@@ -3,17 +3,10 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "postgresql"
     url      = env("DATABASE_URL")
 }
 
-model Example {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-}
-
-// Necessary for Next auth
 model Account {
     id                String  @id @default(cuid())
     userId            String
@@ -40,6 +33,14 @@ model Session {
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
 model User {
     id            String    @id @default(cuid())
     name          String?
@@ -48,12 +49,88 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
+
+    documents     Document[]
+    messages      Message[]
+    highlights    Highlight[]
+    collaborators Collaborator[]
 }
 
-model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+model Document {
+    url           String         @unique
+    id            String         @id @default(cuid())
+    title         String
+    owner         User           @relation(fields: [ownerId], references: [id])
+    highlights    Highlight[]
+    collaborators Collaborator[]
+    ownerId       String
+    notes         String?
+    messages      Message[]
+}
 
-    @@unique([identifier, token])
+enum Role {
+    EDITOR
+    VIEWER
+}
+
+model Collaborator {
+    id         String   @id @default(cuid())
+    role       Role
+    document   Document @relation(fields: [documentId], references: [id])
+    documentId String
+    userId     String
+    user       User     @relation(fields: [userId], references: [id])
+}
+
+model Message {
+    id         String   @id @default(cuid())
+    text       String
+    createdAt  DateTime @default(now())
+    user       User     @relation(fields: [userId], references: [id])
+    userId     String
+    document   Document @relation(fields: [documentId], references: [id])
+    documentId String
+}
+
+// model Comment {
+//   id          String      @id @default(cuid())
+//   text      String
+//   emoji     String
+//   Highlight Highlight
+// }
+
+model Highlight {
+    id       String  @id @default(cuid())
+    imageUrl String?
+    text     String?
+    // comment      Comment     @relation(fields: [commentId], references: [id])
+    // commentId    String
+
+    document   Document @relation(fields: [documentId], references: [id])
+    documentId String
+
+    boundingRectangle Cordinate? @relation("boundingRectangle")
+
+    rectangles Cordinate[] @relation("rectangles")
+
+    pageNumber Int
+    user       User   @relation(fields: [userId], references: [id])
+    userId     String
+}
+
+model Cordinate {
+    id         String @id @default(cuid())
+    x1         Float
+    y1         Float
+    x2         Float
+    y2         Float
+    width      Float
+    height     Float
+    pageNumber Int
+
+    highlightedRectangle   Highlight @relation("rectangles", fields: [highlightedRectangleId], references: [id])
+    highlightedRectangleId String
+
+    highlightedBoundingRectangle   Highlight @relation("boundingRectangle", fields: [highlightedBoundingRectangleId], references: [id])
+    highlightedBoundingRectangleId String    @unique
 }
