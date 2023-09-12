@@ -54,6 +54,7 @@ model User {
     messages      Message[]
     highlights    Highlight[]
     collaborators Collaborator[]
+    // create separate table userpreferences => storing users preferred emojis, theme, etc
 }
 
 model Document {
@@ -66,6 +67,11 @@ model Document {
     ownerId       String
     notes         String?
     messages      Message[]
+
+    // lastLocation => but has to be different for each user 
+    // => create new table storing both userdeets and lastscrolledposition, along with userPreferences table which can be optional, if it exists, then it overrides users default(the one linked to user table)  preferences
+
+    // coverImage 
 }
 
 enum Role {
