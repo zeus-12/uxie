@@ -1,4 +1,4 @@
-import { api } from "@/utils/api";
+import { api } from "@/lib/api";
 
 const UserLibraryPage = () => {
   const { data, isError, isLoading } = api.document.getUsersDocs.useQuery();
