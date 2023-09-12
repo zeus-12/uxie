@@ -21,3 +21,4 @@
 ## TODOS
 
 - make sure the datatypes used in the db works as expected
+- replace novel editor with a simple markdown editor => something that stores data on state. => should be able to update values
