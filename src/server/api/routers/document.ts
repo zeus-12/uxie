@@ -40,6 +40,29 @@ export const documentRouter = createTRPCRouter({
       userCollaboratedDocs,
     };
   }),
+  getDocData: protectedProcedure
+    .input(
+      z.object({
+        docId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return await ctx.prisma.document.findUnique({
+        where: {
+          id: input.docId,
+          OR: [
+            { ownerId: ctx.session.user.id },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                },
+              },
+            },
+          ],
+        },
+      });
+    }),
 
   getSecretMessage: protectedProcedure.query(() => {
     return "you can now see this secret message!";
