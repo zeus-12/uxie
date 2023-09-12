@@ -5,6 +5,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { IHighlight } from "react-pdf-highlighter";
 
 export const documentRouter = createTRPCRouter({
   // hello: publicProcedure
@@ -61,7 +62,36 @@ export const documentRouter = createTRPCRouter({
             },
           ],
         },
+        include: {
+          highlights: {
+            include: {
+              boundingRectangle: true,
+              rectangles: true,
+              user: true,
+            },
+          },
+          collaborators: true,
+          messages: true,
+        },
       });
+
+      // if (!res) {
+      //   throw new Error("Document not found");
+      // }
+
+      // const modifiedHighlights: IHighlight[] = res.highlights.map(
+      //   (highlight) => ({
+      //     content: {
+      //       text:,
+      //       image:
+      //     },
+      //     id: highlight.id,
+      //     position: {
+      //       boundingRect: highlight.boundingRect,
+
+      //     }
+      //   }),
+      // );
     }),
 
   getSecretMessage: protectedProcedure.query(() => {

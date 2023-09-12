@@ -65,7 +65,7 @@ const DocViewer = () => {
   }, []);
 
   function getHighlightById(id: string) {
-    return highlights?.find((highlight) => highlight.id === id);
+    return doc?.highlights?.find((highlight) => highlight.id === id);
   }
 
   async function addHighlight({
@@ -89,7 +89,11 @@ const DocViewer = () => {
     // mutateHighlights();
   };
 
-  if (!highlights || !doc?.url || !isReady) {
+  if (isError) {
+    return <>error</>;
+  }
+
+  if (!doc || !doc.highlights || !doc.url || !isReady) {
     return;
   }
 
