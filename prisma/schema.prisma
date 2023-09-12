@@ -112,6 +112,8 @@ model Highlight {
     // comment      Comment     @relation(fields: [commentId], references: [id])
     // commentId    String
 
+    // replace comment with emoji only?? => also, add colour.
+
     document   Document @relation(fields: [documentId], references: [id])
     documentId String
 
