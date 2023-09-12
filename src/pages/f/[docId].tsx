@@ -1,3 +1,4 @@
+import DynamicDocViewer from "@/components/DynamicDocViewer";
 import { useRouter } from "next/router";
 
 const DocViewerPage = () => {
@@ -9,6 +10,10 @@ const DocViewerPage = () => {
 
   if (!isReady) return <p>loading</p>;
 
-  return <div>{docId}</div>;
+  return (
+    <div>
+      <DynamicDocViewer />
+    </div>
+  );
 };
 export default DocViewerPage;
