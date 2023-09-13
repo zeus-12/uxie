@@ -93,12 +93,13 @@ const DocViewer = () => {
     return <>error</>;
   }
 
-  if (!doc || !doc.highlights || !doc.url || !isReady) {
-    return;
-  }
+  // if (!doc || !doc.highlights || !doc.url || !isReady) {
+  //   return;
+  // }
 
   return (
     <div className="flex h-screen flex-col">
+      helo
       <div className=" flex items-center justify-between">
         <div className="flex items-center">
           <Link href="/f" className="rounded-md p-2 hover:bg-gray-200">
