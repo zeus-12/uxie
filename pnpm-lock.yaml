@@ -6,6 +6,7 @@ specifiers:
   '@radix-ui/react-avatar': ^1.0.3
   '@radix-ui/react-dropdown-menu': ^2.0.5
   '@radix-ui/react-slot': ^1.0.2
+  '@radix-ui/react-tabs': ^1.0.4
   '@t3-oss/env-nextjs': ^0.6.0
   '@tanstack/react-query': ^4.29.25
   '@trpc/client': ^10.34.0
@@ -48,6 +49,7 @@ dependencies:
   '@radix-ui/react-avatar': 1.0.3_zkisbtryv3xtasf42ecsrjh3ky
   '@radix-ui/react-dropdown-menu': 2.0.5_zkisbtryv3xtasf42ecsrjh3ky
   '@radix-ui/react-slot': 1.0.2_gq4reeurwxuj4hvyerswzzqthy
+  '@radix-ui/react-tabs': 1.0.4_zkisbtryv3xtasf42ecsrjh3ky
   '@t3-oss/env-nextjs': 0.6.1_v7htcrlgukgf7qsxduvbwauwy4
   '@tanstack/react-query': 4.35.3_biqbaboplfbrettd7655fr4n2y
   '@trpc/client': 10.38.2_@trpc+server@10.38.2
@@ -753,6 +755,34 @@ packages:
       '@radix-ui/react-compose-refs': 1.0.1_gq4reeurwxuj4hvyerswzzqthy
       '@types/react': 18.2.21
       react: 18.2.0
+    dev: false
+
+  /@radix-ui/react-tabs/1.0.4_zkisbtryv3xtasf42ecsrjh3ky:
+    resolution: {integrity: sha512-egZfYY/+wRNCflXNHx+dePvnz9FbmssDTJBtgRfDY7e8SE5oIo3Py2eCB1ckAbh1Q7cQ/6yJZThJ++sgbxibog==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0
+      react-dom: ^16.8 || ^17.0 || ^18.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.22.15
+      '@radix-ui/primitive': 1.0.1
+      '@radix-ui/react-context': 1.0.1_gq4reeurwxuj4hvyerswzzqthy
+      '@radix-ui/react-direction': 1.0.1_gq4reeurwxuj4hvyerswzzqthy
+      '@radix-ui/react-id': 1.0.1_gq4reeurwxuj4hvyerswzzqthy
+      '@radix-ui/react-presence': 1.0.1_zkisbtryv3xtasf42ecsrjh3ky
+      '@radix-ui/react-primitive': 1.0.3_zkisbtryv3xtasf42ecsrjh3ky
+      '@radix-ui/react-roving-focus': 1.0.4_zkisbtryv3xtasf42ecsrjh3ky
+      '@radix-ui/react-use-controllable-state': 1.0.1_gq4reeurwxuj4hvyerswzzqthy
+      '@types/react': 18.2.21
+      '@types/react-dom': 18.2.7
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
     dev: false
 
   /@radix-ui/react-use-callback-ref/1.0.1_gq4reeurwxuj4hvyerswzzqthy:
