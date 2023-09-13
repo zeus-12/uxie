@@ -21,7 +21,9 @@ const Navbar = () => {
         {session ? (
           <UserAccountNav user={session.user} />
         ) : (
-          <Button>Sign in</Button>
+          <Button>
+            <Link href="/login">Sign in</Link>
+          </Button>
         )}
       </div>
     </div>
