@@ -21,9 +21,11 @@ const MyApp: AppType<{ session: Session | null }> = ({
             <Component {...pageProps} />
           </>
         ) : (
-          <main className="mx-auto max-w-5xl px-4 lg:px-16">
+          <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-2 lg:px-16">
             <Navbar />
-            <Component {...pageProps} />
+            <div className="flex flex-1">
+              <Component {...pageProps} />
+            </div>
           </main>
         )}
       </ThemeProvider>

@@ -4,8 +4,8 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <>
-      <div className="flex flex-col items-center justify-center gap-2 py-8 lg:pt-16  ">
+    <div>
+      <div className="flex flex-col items-center justify-center gap-2 py-8 lg:pt-16">
         <p className="text-4xl font-semibold tracking-tighter ">
           Create. Collaborate. Captivate.
         </p>
@@ -23,6 +23,6 @@ export default function Home() {
         alt="Demo"
         className="rounded-sm"
       />
-    </>
+    </div>
   );
 }

@@ -16,7 +16,7 @@ const UserLibraryPage = () => {
   if (!userDocs) return <div>sorry no result found</div>;
 
   return (
-    <div className="container flex h-screen w-screen flex-col">
+    <div className="container flex w-screen flex-col">
       <Link
         href="/"
         className={cn(
