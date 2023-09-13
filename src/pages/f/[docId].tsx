@@ -1,4 +1,5 @@
 import DynamicDocViewer from "@/components/DynamicDocViewer";
+import Sidebar from "@/components/Sidebar";
 import { MouseEvent, useState } from "react";
 
 const DocViewerPage = () => {
@@ -44,12 +45,12 @@ const DocViewerPage = () => {
         </svg>
       </div>
       <div
-        className="h-screen flex-1 bg-red-300"
+        className="h-screen flex-1"
         style={{
           minWidth: "25vw",
         }}
       >
-        {/* sidebar section */}
+        <Sidebar />
       </div>
     </div>
   );
