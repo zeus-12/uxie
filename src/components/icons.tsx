@@ -21,7 +21,7 @@ import {
   // SunMedium,
   // Trash,
   // Twitter,
-  // User,
+  User,
   // X,
 } from "lucide-react";
 
@@ -40,7 +40,7 @@ export const Icons = {
   // ellipsis: MoreVertical,
   // add: Plus,
   // warning: AlertTriangle,
-  // user: User,
+  user: User,
   // arrowRight: ArrowRight,
   // help: HelpCircle,
   // pizza: Pizza,
