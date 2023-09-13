@@ -26,8 +26,6 @@ export const documentRouter = createTRPCRouter({
         documents: true,
       },
     });
-
-    console.log("user", res);
   }),
   getDocData: protectedProcedure
     .input(
