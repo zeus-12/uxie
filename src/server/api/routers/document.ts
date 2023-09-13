@@ -17,29 +17,17 @@ export const documentRouter = createTRPCRouter({
   //   }),
 
   getUsersDocs: protectedProcedure.query(async ({ ctx }) => {
-    const [userUploadedDocs, userCollaboratedDocs] =
-      await ctx.prisma.$transaction([
-        ctx.prisma.document.findMany({
-          where: {
-            ownerId: ctx?.session?.user.id,
-          },
-        }),
+    return await ctx.prisma.user.findUnique({
+      where: {
+        id: ctx?.session?.user?.id,
+      },
+      include: {
+        collaborators: true,
+        documents: true,
+      },
+    });
 
-        ctx.prisma.document.findMany({
-          where: {
-            collaborators: {
-              some: {
-                id: ctx?.session?.user.id,
-              },
-            },
-          },
-        }),
-      ]);
-
-    return {
-      userUploadedDocs,
-      userCollaboratedDocs,
-    };
+    console.log("user", res);
   }),
   getDocData: protectedProcedure
     .input(
