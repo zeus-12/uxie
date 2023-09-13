@@ -99,14 +99,14 @@ const DocViewer = () => {
 
   return (
     <div className="flex h-screen flex-col">
-      helo
       <div className=" flex items-center justify-between">
         <div className="flex items-center">
           <Link href="/f" className="rounded-md p-2 hover:bg-gray-200">
             <ChevronLeft size={16} />
           </Link>
-          <p className="h-12 bg-white py-4 pl-4 font-semibold">
+          <p className="bg-white font-semibold">
             {doc?.title ?? docId}
+            {/* Docnameee */}
           </p>
         </div>
         <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">

@@ -1,18 +1,56 @@
 import DynamicDocViewer from "@/components/DynamicDocViewer";
-import { useRouter } from "next/router";
+import { MouseEvent, useState } from "react";
 
 const DocViewerPage = () => {
-  const router = useRouter();
-  const {
-    query: { docId },
-    isReady,
-  } = router;
+  const [width, setWidth] = useState<null | number>();
+  const [mouseDown, setMouseDown] = useState(false);
 
-  if (!isReady) return <p>loading</p>;
+  const handleMouseDown = (event: MouseEvent<HTMLOrSVGElement>) => {
+    setMouseDown(true);
+    event.preventDefault();
+  };
+
+  const handleMouseUp = (_event: MouseEvent<HTMLDivElement>) => {
+    setMouseDown(false);
+  };
+
+  const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
+    // if (event.pageX < 300) return;
+    if (mouseDown) {
+      setWidth(event.pageX);
+    }
+  };
 
   return (
-    <div>
-      <DynamicDocViewer />
+    <div
+      className="flex"
+      onMouseUp={handleMouseUp}
+      onMouseMove={handleMouseMove}
+    >
+      <div
+        className="h-screen "
+        style={{ width: width ?? "50vw", minWidth: "25vw" }}
+      >
+        <DynamicDocViewer />
+      </div>
+      <div className="flex items-center">
+        <svg
+          onMouseDown={handleMouseDown}
+          className="px-auto w-4 cursor-col-resize "
+          viewBox="0 0 16 16"
+          fill="#000"
+        >
+          <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"></path>
+        </svg>
+      </div>
+      <div
+        className="h-screen flex-1 bg-red-300"
+        style={{
+          minWidth: "25vw",
+        }}
+      >
+        {/* sidebar section */}
+      </div>
     </div>
   );
 };
