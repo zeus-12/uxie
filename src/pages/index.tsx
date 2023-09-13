@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-5xl px-4 lg:px-24">
       <Navbar />
-      <div className="flex flex-col items-center justify-center gap-2 pt-8 lg:py-16">
+      <div className="flex flex-col items-center justify-center gap-2 py-8 lg:pt-16  ">
         <p className="text-4xl font-semibold tracking-tighter ">
           Create. Collaborate. Captivate.
         </p>
