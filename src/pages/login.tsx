@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/Spinner";
 import { Icons } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,7 +42,7 @@ const Login = () => {
             disabled={isLoading}
           >
             {isLoading ? (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              <Spinner />
             ) : (
               <Icons.google className="mr-2 h-4 w-4" />
             )}{" "}
