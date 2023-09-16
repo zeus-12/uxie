@@ -9,7 +9,7 @@ const UserLibraryPage = () => {
     data: userDocs,
     isError,
     isLoading,
-  } = api.document.getUsersDocs.useQuery();
+  } = api.user.getUsersDocs.useQuery();
 
   if (isError) return <div>error</div>;
   if (isLoading) return <div>loading...</div>;

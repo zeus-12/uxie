@@ -16,17 +16,6 @@ export const documentRouter = createTRPCRouter({
   //     };
   //   }),
 
-  getUsersDocs: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.prisma.user.findUnique({
-      where: {
-        id: ctx?.session?.user?.id,
-      },
-      include: {
-        collaborators: true,
-        documents: true,
-      },
-    });
-  }),
   getDocData: protectedProcedure
     .input(
       z.object({
