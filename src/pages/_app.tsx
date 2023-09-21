@@ -7,6 +7,13 @@ import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/router";
 
+import "@/styles/MouseSelection.css";
+import "@/styles/AreaHighlight.css";
+import "@/styles/Highlight.css";
+import "pdfjs-dist/web/pdf_viewer.css";
+import "@/styles/pdf_viewer.css";
+import "@/styles/PdfHighlighter.css";
+
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
   pageProps: { session, ...pageProps },

@@ -5,7 +5,7 @@ import {
   Highlight,
   Popup,
   AreaHighlight,
-} from "react-pdf-highlighter";
+} from "@/pdf/components/index";
 import type { IHighlight } from "react-pdf-highlighter";
 import testHighlights from "@/lib/test-highlights.json";
 import { Spinner } from "@/components/Spinner";
@@ -109,12 +109,13 @@ const DocViewer = () => {
             {/* Docnameee */}
           </p>
         </div>
-        <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
-          {/* <InviteCollab docId={docId} /> */}
-        </div>
+        {/* <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
+          <InviteCollab docId={docId} />
+        </div> */}
       </div>
       <div className="relative h-screen w-full ">
-        <PdfLoader url={doc?.url ?? PRIMARY_PDF_URL} beforeLoad={<Spinner />}>
+        {/* doc?.url ??  */}
+        <PdfLoader url={PRIMARY_PDF_URL} beforeLoad={<Spinner />}>
           {(pdfDocument) => (
             <PdfHighlighter
               pdfDocument={pdfDocument}
@@ -158,7 +159,7 @@ const DocViewer = () => {
                       <Highlight
                         isScrolledTo={isScrolledTo}
                         position={highlight.position}
-                        comment={highlight.comment}
+                        // comment={highlight.comment}
                       />
                     </Link>
                   </div>
