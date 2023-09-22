@@ -6,6 +6,7 @@ import "@/styles/globals.css";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/router";
+import "@blocknote/core/style.css";
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,

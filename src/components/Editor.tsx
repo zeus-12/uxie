@@ -1,6 +1,5 @@
 import { BlockNoteEditor } from "@blocknote/core";
 import { BlockNoteView, useBlockNote } from "@blocknote/react";
-import "@blocknote/core/style.css";
 import { useTheme } from "next-themes";
 import { useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
