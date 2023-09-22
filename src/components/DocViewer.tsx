@@ -109,7 +109,7 @@ const DocViewer = () => {
           <Link href="/f" className="rounded-md p-2 hover:bg-gray-200">
             <ChevronLeft size={16} />
           </Link>
-          <p className="bg-white font-semibold">
+          <p className="font-semibold dark:text-gray-200">
             {doc?.title ?? docId}
             {/* Docnameee */}
           </p>
