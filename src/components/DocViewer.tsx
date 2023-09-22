@@ -6,10 +6,14 @@ import {
   Popup,
   AreaHighlight,
 } from "react-pdf-highlighter";
-import type { IHighlight } from "react-pdf-highlighter";
 import testHighlights from "@/lib/test-highlights.json";
 import { Spinner } from "@/components/Spinner";
-import { ChevronLeft, Highlighter, TrashIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  ClipboardCopy,
+  Highlighter,
+  TrashIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
@@ -65,7 +69,8 @@ const DocViewer = () => {
   }, []);
 
   function getHighlightById(id: string) {
-    return doc?.highlights?.find((highlight) => highlight.id === id);
+    // return doc?.highlights?.find((highlight) => highlight.id === id);
+    return highlights?.find((highlight) => highlight.id === id);
   }
 
   async function addHighlight({
@@ -89,9 +94,9 @@ const DocViewer = () => {
     // mutateHighlights();
   };
 
-  if (isError) {
-    return <>error</>;
-  }
+  // if (isError) {
+  //   return <>error</>;
+  // }
 
   // if (!doc || !doc.highlights || !doc.url || !isReady) {
   //   return;
@@ -131,12 +136,11 @@ const DocViewer = () => {
                 hideTipAndSelection,
                 transformSelection,
               ) => (
-                <HighlightPopover
-                  onOpen={transformSelection}
-                  onConfirm={(comment: any) => {
-                    addHighlight({ content, position });
-                    hideTipAndSelection();
-                  }}
+                <TextSelectionPopover
+                  content={content}
+                  hideTipAndSelection={hideTipAndSelection}
+                  position={position}
+                  addHighlight={() => addHighlight({ content, position })}
                 />
               )}
               highlightTransform={(
@@ -153,39 +157,34 @@ const DocViewer = () => {
                 );
 
                 const component = isTextHighlight ? (
-                  <div id={highlight.id}>
-                    <Link href={`/f/${docId}#${highlight.id}`}>
-                      <Highlight
-                        isScrolledTo={isScrolledTo}
-                        position={highlight.position}
-                        comment={highlight.comment}
-                      />
-                    </Link>
-                  </div>
+                  <Highlight
+                    isScrolledTo={isScrolledTo}
+                    position={highlight.position}
+                    comment={{
+                      emoji: "",
+                      text: "",
+                    }}
+                  />
                 ) : (
-                  <div id={highlight.id}>
-                    <Link href={`/f/${docId}#${highlight.id}`}>
-                      <AreaHighlight
-                        isScrolledTo={isScrolledTo}
-                        highlight={highlight}
-                        onChange={() => {}}
+                  <AreaHighlight
+                    isScrolledTo={isScrolledTo}
+                    highlight={highlight}
+                    onChange={() => {}}
 
-                        // onChange={(boundingRect) => {
-                        //   updateHighlight(
-                        //     highlight.id,
-                        //     { boundingRect: viewportToScaled(boundingRect) },
-                        //     { image: screenshot(boundingRect) }
-                        //   );
-                        // }}
-                      />
-                    </Link>
-                  </div>
+                    // onChange={(boundingRect) => {
+                    //   updateHighlight(
+                    //     highlight.id,
+                    //     { boundingRect: viewportToScaled(boundingRect) },
+                    //     { image: screenshot(boundingRect) },
+                    //   );
+                    // }}
+                  />
                 );
 
                 return (
                   <Popup
                     popupContent={
-                      <HighlightPopup
+                      <HighlightedTextPopup
                         id={highlight.id}
                         deleteHighlight={deleteHighlight}
                       />
@@ -211,26 +210,48 @@ const DocViewer = () => {
 
 export default DocViewer;
 
-// for text to be highlighted
-const HighlightPopover = ({
-  onOpen,
-  onConfirm,
+const TextSelectionPopover = ({
+  content,
+  hideTipAndSelection,
+  position,
+  addHighlight,
 }: {
-  onOpen: any;
-  onConfirm: any;
+  position: any;
+  addHighlight: () => void;
+  content: {
+    text?: string | undefined;
+    image?: string | undefined;
+  };
+  hideTipAndSelection: () => void;
 }) => {
+  const copyTextToClipboard = () => {
+    // check how to copy image to clipboard
+    if (content.text) {
+      navigator.clipboard.writeText(content.text);
+    }
+    hideTipAndSelection();
+  };
+
   return (
-    <div className="rounded-full bg-gray-200  text-black">
+    <div className="flex gap-2 rounded-md bg-black p-2 ">
       <Highlighter
-        size={24}
-        className="hover:cursor-pointer"
-        onClick={onConfirm}
+        size={18}
+        className="rounded-full text-gray-200 hover:cursor-pointer"
+        onClick={() => {
+          addHighlight();
+          hideTipAndSelection();
+        }}
+      />
+      <ClipboardCopy
+        size={18}
+        className="rounded-full text-gray-200 hover:cursor-pointer"
+        onClick={copyTextToClipboard}
       />
     </div>
   );
 };
 
-const HighlightPopup = ({
+const HighlightedTextPopup = ({
   id,
   deleteHighlight,
 }: {
