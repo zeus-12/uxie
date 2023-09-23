@@ -23,10 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// import { RiAlertFill } from "react-icons/ri";
-// import { MdCancel, MdCheckCircle, MdError, MdInfo } from "react-icons/md";
-// import { Menu } from "@mantine/core";
-
 export const alertTypes = {
   warning: {
     icon: ShieldAlertIcon,
@@ -62,7 +58,6 @@ export const alertTypes = {
   },
 } as const;
 
-// The props for the Alert block
 export const alertPropSchema = {
   textAlignment: defaultProps.textAlignment,
   textColor: defaultProps.textColor,
@@ -84,28 +79,32 @@ export const Alert = (props: {
   theme: "light" | "dark";
 }) => {
   const [type, setType] = useState(props.block.props.type);
-  //   const Icon = alertTypes[type].icon;
+  console.log(type, "type");
+  const Icon = alertTypes[type].icon;
 
   return (
     <div
-      className={"alert"}
+      className="space-x-2"
       style={{
         ...alertStyles,
-        // backgroundColor: "red",
         backgroundColor: alertTypes[type].backgroundColor[props.theme],
       }}
     >
       <Select>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-fit">
           <SelectValue>
             <div
-              className={"alert-icon-wrapper"}
               style={{
                 ...alertIconWrapperStyles,
                 backgroundColor: alertTypes[type].color,
               }}
               contentEditable={false}
-            ></div>
+            >
+              <Icon
+                style={{ color: alertTypes[type].backgroundColor[props.theme] }}
+                size={24}
+              />
+            </div>
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -114,66 +113,25 @@ export const Alert = (props: {
               const ItemIcon = value.icon;
 
               return (
-                <SelectItem
-                  key={key}
-                  value={key}
-                  onClick={() => setType(key as keyof typeof alertTypes)}
-                >
-                  <div className="flex w-fit items-center gap-2 p-1 text-xs">
+                <SelectItem key={key} value={key}>
+                  <div
+                    className="flex w-fit items-center gap-2 text-xs"
+                    onClick={() => {
+                      console.log("updatig type to ", key);
+                      setType(key as keyof typeof alertTypes);
+                    }}
+                  >
                     <ItemIcon size={12} color={value.color} />
-                    {/* <span className="text-xs"> */}
                     {key.slice(0, 1).toUpperCase() + key.slice(1)}
-                    {/* </span> */}
                   </div>
                 </SelectItem>
               );
             })}
-            {/* <SelectLabel>Fruits</SelectLabel>
-            <SelectItem value="apple">Apple</SelectItem>
-            <SelectItem value="banana">Banana</SelectItem>
-            <SelectItem value="blueberry">Blueberry</SelectItem>
-            <SelectItem value="grapes">Grapes</SelectItem>
-            <SelectItem value="pineapple">Pineapple</SelectItem> */}
+            {/* {/* <SelectLabel>Fruits</SelectLabel> */}
           </SelectGroup>
         </SelectContent>
       </Select>
 
-      {/*Icon which opens a menu to choose the Alert type*/}
-      {/* <Menu zIndex={99999}>
-        <Menu.Target>
-          <div
-            className={"alert-icon-wrapper"}
-            style={{
-              ...alertIconWrapperStyles,
-              backgroundColor: alertTypes[type].color,
-            }}
-            contentEditable={false}
-          >
-            <Icon
-              className={"alert-icon"}
-              style={{ color: alertTypes[type].backgroundColor[props.theme] }}
-              size={32}
-            />
-          </div>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Label>Alert Type</Menu.Label>
-          <Menu.Divider />
-          {Object.entries(alertTypes).map(([key, value]) => {
-            const ItemIcon = value.icon;
-
-            return (
-              <Menu.Item
-                key={key}
-                icon={<ItemIcon color={value.color} />}
-                onClick={() => setType(key as keyof typeof alertTypes)}
-              >
-                {key.slice(0, 1).toUpperCase() + key.slice(1)}
-              </Menu.Item>
-            );
-          })}
-        </Menu.Dropdown>
-      </Menu> */}
       <InlineContent style={inlineContentStyles} />
     </div>
   );
@@ -247,7 +205,7 @@ const alertStyles = {
   alignItems: "center",
   flexGrow: 1,
   borderRadius: "4px",
-  height: "48px",
+  // height: "48px",
   padding: "4px",
 } as const;
 
