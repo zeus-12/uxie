@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlbumIcon, Highlighter, MessagesSquareIcon } from "lucide-react";
 import { IHighlight } from "react-pdf-highlighter";
 import testHighlights from "@/lib/test-highlights.json";
-import DynamicEditor from "@/components/DynamicEditor";
+import DynamicEditor from "@/components/Editor/DynamicEditor";
 
 const Sidebar = ({} // docId,
 // userId,
