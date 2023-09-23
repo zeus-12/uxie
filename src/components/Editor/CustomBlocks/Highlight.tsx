@@ -12,46 +12,6 @@ import {
   ReactSlashMenuItem,
 } from "@blocknote/react";
 import { HighlighterIcon } from "lucide-react";
-import { useState } from "react";
-
-// import { MdCancel, MdCheckCircle, MdError, MdInfo } from "react-icons/md";
-// import { Menu } from "@mantine/core";
-
-// The types of highlight that users can choose from
-// export const highlightTypes = {
-//   warning: {
-//     icon: MdError,
-//     color: "#e69819",
-//     backgroundColor: {
-//       light: "#fff6e6",
-//       dark: "#805d20",
-//     },
-//   },
-//   error: {
-//     icon: MdCancel,
-//     color: "#d80d0d",
-//     backgroundColor: {
-//       light: "#ffe6e6",
-//       dark: "#802020",
-//     },
-//   },
-//   info: {
-//     icon: MdInfo,
-//     color: "#507aff",
-//     backgroundColor: {
-//       light: "#e6ebff",
-//       dark: "#203380",
-//     },
-//   },
-//   success: {
-//     icon: MdCheckCircle,
-//     color: "#0bc10b",
-//     backgroundColor: {
-//       light: "#e6ffe6",
-//       dark: "#208020",
-//     },
-//   },
-// } as const;
 
 // The props for the Highlight block
 export const highlightPropSchema = {
@@ -75,19 +35,17 @@ export const Highlight = (props: {
 }) => {
   return (
     <div
-      className={"highlight "}
+      className="highlight flex flex-grow items-center justify-center gap-2"
       style={{
         ...highlightStyles,
       }}
     >
-      <div className="h-full w-2 rounded-full bg-yellow-200" />
-      <InlineContent style={inlineContentStyles} />
+      <div className="h-full w-4 rounded-full bg-yellow-200" />
+      <InlineContent className="flex-grow " />
     </div>
   );
 };
 
-// Function which creates the highlight block itself, where the component is styled
-// correctly with the light & dark theme
 export const createHighlightBlock = (theme: "light" | "dark") =>
   createReactBlockSpec<
     "highlight",
@@ -141,15 +99,7 @@ export const insertHighlight = {
 >;
 
 const highlightStyles = {
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  flexGrow: 1,
   borderRadius: "4px",
-  height: "48px",
+  // height: "48px",
   padding: "4px",
 } as const;
-
-const inlineContentStyles = {
-  flexGrow: "1",
-};
