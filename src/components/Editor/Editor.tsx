@@ -63,9 +63,9 @@ function Editor() {
   };
 
   return (
-    <>
+    <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">
       <BlockNoteView
-        className="h-full w-full flex-1 overflow-hidden"
+        className="w-full flex-1"
         theme={theme === "dark" ? "dark" : "light"}
         editor={editor}
       >
@@ -98,8 +98,8 @@ function Editor() {
         <SlashMenuPositioner editor={editor} />
         <SideMenuPositioner editor={editor} />
       </BlockNoteView>
-      <button onClick={addtext}>add text</button>
-    </>
+      {/* <button onClick={addtext}>add text</button> */}
+    </div>
   );
 }
 
