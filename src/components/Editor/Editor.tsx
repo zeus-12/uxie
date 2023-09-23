@@ -51,7 +51,9 @@ function Editor() {
     editor.insertBlocks(
       [
         {
-          content: "hello ",
+          content: "test",
+          // "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaasdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomr",
+          // type: "highlight",
           type: "alert",
         },
       ],
@@ -63,7 +65,7 @@ function Editor() {
   return (
     <>
       <BlockNoteView
-        className="h-full flex-1"
+        className="h-full w-full flex-1 overflow-hidden"
         theme={theme === "dark" ? "dark" : "light"}
         editor={editor}
       >
@@ -94,9 +96,8 @@ function Editor() {
         />
         <HyperlinkToolbarPositioner editor={editor} />
         <SlashMenuPositioner editor={editor} />
-        {/* <SideMenuPositioner editor={editor} /> */}
+        <SideMenuPositioner editor={editor} />
       </BlockNoteView>
-      <pre>{markdown}</pre>
       <button onClick={addtext}>add text</button>
     </>
   );
