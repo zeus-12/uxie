@@ -32,7 +32,7 @@ const DocViewerPage = () => {
         className="h-screen "
         style={{ width: width ?? "50vw", minWidth: "25vw" }}
       >
-        <DynamicDocViewer />
+        {/* <DynamicDocViewer /> */}
       </div>
       <div className="flex items-center">
         <svg

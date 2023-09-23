@@ -35,12 +35,12 @@ export const Highlight = (props: {
 }) => {
   return (
     <div
-      className="highlight flex flex-grow items-center justify-center gap-2"
+      className="flex h-full max-w-full flex-1 items-center justify-center gap-2 break-words"
       style={{
         ...highlightStyles,
       }}
     >
-      <div className="h-full w-4 rounded-full bg-yellow-200" />
+      <div className="h-full w-4 rounded-full bg-yellow-400" />
       <InlineContent className="flex-grow " />
     </div>
   );
@@ -101,5 +101,6 @@ export const insertHighlight = {
 const highlightStyles = {
   borderRadius: "4px",
   // height: "48px",
+  overflowWrap: "break-word",
   padding: "4px",
 } as const;
