@@ -16,7 +16,10 @@ const Sidebar = ({} // docId,
   const highlights = testHighlights;
 
   return (
-    <Tabs defaultValue="notes" className="w-full">
+    <Tabs
+      defaultValue="notes"
+      className="max-h-screen max-w-full overflow-hidden"
+    >
       <TabsList className="h-12 rounded-ee-none rounded-es-md rounded-se-none rounded-ss-md bg-blue-200">
         <TabsTrigger value="notes">
           <AlbumIcon size={24} />
@@ -30,7 +33,7 @@ const Sidebar = ({} // docId,
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="notes">
+      <TabsContent value="notes" className="flex-1 overflow-scroll">
         <DynamicEditor />
       </TabsContent>
 
