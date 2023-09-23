@@ -67,7 +67,6 @@ export const alertPropSchema = {
   },
 } satisfies PropSchema;
 
-// Component for the Alert block
 export const Alert = (props: {
   block: SpecificBlock<
     DefaultBlockSchema & { alert: BlockSpec<"alert", typeof alertPropSchema> },
@@ -78,19 +77,23 @@ export const Alert = (props: {
   >;
   theme: "light" | "dark";
 }) => {
-  const [type, setType] = useState(props.block.props.type);
-  console.log(type, "type");
+  const [type, setType] =
+    useState<(typeof alertPropSchema.type.values)[number]>("warning");
   const Icon = alertTypes[type].icon;
 
   return (
     <div
-      className="space-x-2"
+      className="flex flex-1 items-center justify-center gap-2 break-words"
       style={{
         ...alertStyles,
         backgroundColor: alertTypes[type].backgroundColor[props.theme],
       }}
     >
-      <Select>
+      <Select
+        onValueChange={(value) => {
+          setType(value as (typeof alertPropSchema.type.values)[number]);
+        }}
+      >
         <SelectTrigger className="w-fit">
           <SelectValue>
             <div
@@ -114,20 +117,13 @@ export const Alert = (props: {
 
               return (
                 <SelectItem key={key} value={key}>
-                  <div
-                    className="flex w-fit items-center gap-2 text-xs"
-                    onClick={() => {
-                      console.log("updatig type to ", key);
-                      setType(key as keyof typeof alertTypes);
-                    }}
-                  >
+                  <div className="flex w-fit items-center gap-2 text-xs">
                     <ItemIcon size={12} color={value.color} />
                     {key.slice(0, 1).toUpperCase() + key.slice(1)}
                   </div>
                 </SelectItem>
               );
             })}
-            {/* {/* <SelectLabel>Fruits</SelectLabel> */}
           </SelectGroup>
         </SelectContent>
       </Select>
@@ -137,8 +133,6 @@ export const Alert = (props: {
   );
 };
 
-// Function which creates the Alert block itself, where the component is styled
-// correctly with the light & dark theme
 export const createAlertBlock = (theme: "light" | "dark") =>
   createReactBlockSpec<
     "alert",
@@ -159,7 +153,6 @@ export const createAlertBlock = (theme: "light" | "dark") =>
     render: (props) => <Alert {...props} theme={theme} />,
   });
 
-// Slash menu item to insert an Alert block
 export const insertAlert = {
   name: "Alert",
   execute: (editor) => {
@@ -200,12 +193,7 @@ export const insertAlert = {
 >;
 
 const alertStyles = {
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  flexGrow: 1,
   borderRadius: "4px",
-  // height: "48px",
   padding: "4px",
 } as const;
 
