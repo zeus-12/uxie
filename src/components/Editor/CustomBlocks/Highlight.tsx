@@ -41,7 +41,7 @@ export const Highlight = (props: {
       }}
     >
       <div className="h-full w-4 rounded-full bg-yellow-400" />
-      <InlineContent className="flex-grow " />
+      <InlineContent className="break-word-overflow flex-grow" />
     </div>
   );
 };

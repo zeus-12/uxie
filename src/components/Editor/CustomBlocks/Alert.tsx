@@ -128,7 +128,10 @@ export const Alert = (props: {
         </SelectContent>
       </Select>
 
-      <InlineContent style={inlineContentStyles} />
+      <InlineContent
+        style={inlineContentStyles}
+        className="break-word-overflow"
+      />
     </div>
   );
 };
