@@ -1,8 +1,5 @@
-import { defaultBlockSchema } from "@blocknote/core";
 import {
   BlockNoteView,
-  getDefaultReactSlashMenuItems,
-  useBlockNote,
   FormattingToolbarPositioner,
   DefaultFormattingToolbar,
   defaultBlockTypeDropdownItems,
@@ -13,54 +10,10 @@ import {
 import { AlertCircle, Highlighter } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
-import { useDebouncedCallback } from "use-debounce";
-import { createAlertBlock, insertAlert } from "./CustomBlocks/Alert";
-import {
-  createHighlightBlock,
-  insertHighlight,
-} from "./CustomBlocks/Highlight";
 
-function Editor() {
+function Editor({ editor }: { editor: any }) {
   const { theme } = useTheme();
   const [markdown, setMarkdown] = useState<string>("");
-
-  const schemaWithCustomBlocks = {
-    ...defaultBlockSchema,
-    alert: createAlertBlock(theme === "dark" ? "dark" : "light"),
-    highlight: createHighlightBlock(theme === "dark" ? "dark" : "light"),
-  };
-
-  const debounced = useDebouncedCallback((value) => {
-    setMarkdown(JSON.stringify(value));
-    console.log("saving to db", value);
-  }, 3000);
-
-  const editor = useBlockNote({
-    onEditorContentChange: (editor) => {
-      debounced(JSON.stringify(editor.topLevelBlocks));
-    },
-    blockSchema: schemaWithCustomBlocks,
-    slashMenuItems: [
-      ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
-      insertAlert,
-      insertHighlight,
-    ],
-  });
-
-  const addtext = () => {
-    editor.insertBlocks(
-      [
-        {
-          content: "test",
-          // "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaasdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomrdfadsfmoremroemooremoremomr",
-          // type: "highlight",
-          type: "alert",
-        },
-      ],
-      editor.getTextCursorPosition().block,
-      "after",
-    );
-  };
 
   return (
     <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">

@@ -30,7 +30,11 @@ const resetHash = () => {
 
 const PRIMARY_PDF_URL = "https://arxiv.org/pdf/1708.08021.pdf";
 
-const DocViewer = () => {
+const DocViewer = ({
+  addHighlightToNotes,
+}: {
+  addHighlightToNotes: (content: string) => void;
+}) => {
   const { query, isReady } = useRouter();
 
   const docId = query?.docId;
@@ -83,9 +87,9 @@ const DocViewer = () => {
     };
     position: any;
   }) {
+    addHighlightToNotes(content.text ?? "");
+    // add to db => do optimistic update
     console.log("adding highlight");
-
-    // mutateHighlights();
   }
 
   const deleteHighlight = (id: string) => {

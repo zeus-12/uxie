@@ -5,11 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlbumIcon, Highlighter, MessagesSquareIcon } from "lucide-react";
 import { IHighlight } from "react-pdf-highlighter";
 import testHighlights from "@/lib/test-highlights.json";
-import DynamicEditor from "@/components/Editor/DynamicEditor";
+import Editor from "@/components/Editor/Editor";
 
-const Sidebar = ({} // docId,
-// userId,
+const Sidebar = ({
+  editor, // docId,
+} // userId,
 : {
+  editor: any;
   // docId: string;
   // userId: string | null;
 }) => {
@@ -34,7 +36,7 @@ const Sidebar = ({} // docId,
       </TabsList>
 
       <TabsContent value="notes" className="flex-1 overflow-scroll">
-        <DynamicEditor />
+        <Editor editor={editor} />
       </TabsContent>
 
       <TabsContent value="chat">
