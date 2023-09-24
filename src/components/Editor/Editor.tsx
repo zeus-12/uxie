@@ -10,7 +10,7 @@ import {
   SlashMenuPositioner,
   SideMenuPositioner,
 } from "@blocknote/react";
-import { AlertCircle, Highlighter, HighlighterIcon } from "lucide-react";
+import { AlertCircle, Highlighter } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
