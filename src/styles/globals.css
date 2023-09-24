@@ -75,10 +75,10 @@
   }
 }
 
-/* .ProseMirror {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-} */
+.ProseMirror {
+  margin-left: 5px !important;
+  margin-right: 5px !important;
+}
 
 .tippy-box {
   background-color: transparent !important;
