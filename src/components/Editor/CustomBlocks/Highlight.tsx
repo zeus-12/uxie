@@ -35,7 +35,7 @@ export const Highlight = (props: {
 }) => {
   return (
     <div
-      className="flex h-full max-w-full flex-1 items-center justify-center gap-2 break-words"
+      className="flex h-full max-w-full flex-1 items-center justify-center gap-2"
       style={{
         ...highlightStyles,
       }}
