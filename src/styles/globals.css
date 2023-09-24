@@ -79,3 +79,11 @@
   padding-left: 0 !important;
   padding-right: 0 !important;
 } */
+
+.tippy-box {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+.tippy-arrow {
+  display: none !important;
+}
