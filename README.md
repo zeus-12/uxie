@@ -21,8 +21,7 @@
 ## TODOS
 
 - make sure the datatypes used in the db works as expected
-<!-- - replace novel editor with a simple markdown editor => something that stores data on state. => should be able to update values -->
-- add text/image to notes on highlighting
+- add image to notes on highlighting
 - image doesnt seem to be supported on the new editor, look into fixing it, also check on creating custom block for the highlighted text => should have a way to link to the highlighted part.
 - figure out on how to save the notes (to the db??)
 - use cloudinary for storage => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time)
