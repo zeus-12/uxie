@@ -1,8 +1,8 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@blocknote/core': ^0.9.2
-  '@blocknote/react': ^0.9.2
+  '@blocknote/core': ^0.9.3
+  '@blocknote/react': ^0.9.3
   '@next-auth/prisma-adapter': ^1.0.7
   '@prisma/client': ^5.1.1
   '@radix-ui/react-avatar': ^1.0.3
@@ -48,8 +48,8 @@ specifiers:
   zod: ^3.21.4
 
 dependencies:
-  '@blocknote/core': 0.9.2
-  '@blocknote/react': 0.9.2_k4s42liilay4ddnrcx57srjqfq
+  '@blocknote/core': 0.9.3
+  '@blocknote/react': 0.9.3_k4s42liilay4ddnrcx57srjqfq
   '@next-auth/prisma-adapter': 1.0.7_zxztzslkycm7fnzjlg2rxlmvgq
   '@prisma/client': 5.3.0_prisma@5.3.0
   '@radix-ui/react-avatar': 1.0.3_zkisbtryv3xtasf42ecsrjh3ky
@@ -156,8 +156,8 @@ packages:
       to-fast-properties: 2.0.0
     dev: false
 
-  /@blocknote/core/0.9.2:
-    resolution: {integrity: sha512-yjkJ4BhQiaZ5U3c9F1bTTuozOAIdSL3upMINcxN90hS3rpSgf0ypJRKCF/N1GBHL+wt2hy1c7edzA5/IuvYOjA==}
+  /@blocknote/core/0.9.3:
+    resolution: {integrity: sha512-RuK5XQK5SXpHkTEx4i+VMMo9lpNzJe0sRzXDmQeFRch2yS2XqYOr2c1uZVRVdd8ufKIlFrC8TEKE5NEPuMA6QA==}
     dependencies:
       '@emotion/cache': 11.11.0
       '@emotion/serialize': 1.1.2
@@ -201,12 +201,12 @@ packages:
       - supports-color
     dev: false
 
-  /@blocknote/react/0.9.2_k4s42liilay4ddnrcx57srjqfq:
-    resolution: {integrity: sha512-C2pmRMcog/MKsVsAx80IowZaZQS0BKQWM8JR3sstRezJonau5/ixY4BiMI4ko0Pmr45LxIyAgQSEFL7bqoemUg==}
+  /@blocknote/react/0.9.3_k4s42liilay4ddnrcx57srjqfq:
+    resolution: {integrity: sha512-AOUL5fbOaU7wBYam5Uue80rh3WODzWgQHa9F3R7uc1I6iWwpbPPpapYsQbH76rjHpt1X06au92dxbB9MJ4Y0sw==}
     peerDependencies:
       react-dom: ^18
     dependencies:
-      '@blocknote/core': 0.9.2
+      '@blocknote/core': 0.9.3
       '@emotion/react': 11.11.1_gq4reeurwxuj4hvyerswzzqthy
       '@mantine/core': 5.10.5_tjppcabzwnl3twjhtydraudieq
       '@mantine/hooks': 5.10.5_react@18.2.0
