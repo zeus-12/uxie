@@ -100,7 +100,5 @@ export const insertHighlight = {
 
 const highlightStyles = {
   borderRadius: "4px",
-  // height: "48px",
-  overflowWrap: "break-word",
   padding: "4px",
 } as const;
