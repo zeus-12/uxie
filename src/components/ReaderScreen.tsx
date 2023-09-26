@@ -11,6 +11,10 @@ import {
   createHighlightBlock,
   insertHighlight,
 } from "@/components/Editor/CustomBlocks/Highlight";
+import {
+  createImageBlock,
+  insertImage,
+} from "@/components/Editor/CustomBlocks/Image";
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
 
@@ -40,6 +44,7 @@ const DocViewerPage = () => {
     ...defaultBlockSchema,
     alert: createAlertBlock(theme === "dark" ? "dark" : "light"),
     highlight: createHighlightBlock(theme === "dark" ? "dark" : "light"),
+    // image: createImageBlock(theme === "dark" ? "dark" : "light"),
   };
 
   const debounced = useDebouncedCallback((value) => {
@@ -55,7 +60,8 @@ const DocViewerPage = () => {
     slashMenuItems: [
       ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
       insertAlert,
-      insertHighlight,
+      // insertHighlight,
+      // insertImage,
     ],
   });
 
@@ -69,9 +75,7 @@ const DocViewerPage = () => {
           type: "highlight",
         },
       ],
-      // get last block
       editor.getTextCursorPosition().block,
-      //   editor.getTextCursorPosition().block,
       "after",
     );
 
