@@ -162,8 +162,6 @@ export const insertAlert = {
     const block = editor.getTextCursorPosition().block;
     const blockIsEmpty = block.content.length === 0;
 
-    // Updates current block to an Alert if it's empty, otherwise inserts a new
-    // one below
     if (blockIsEmpty) {
       editor.updateBlock(block, { type: "alert" });
     } else {
