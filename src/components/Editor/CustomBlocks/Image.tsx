@@ -5,11 +5,7 @@ import {
   PropSchema,
   SpecificBlock,
 } from "@blocknote/core";
-import {
-  createReactBlockSpec,
-  InlineContent,
-  ReactSlashMenuItem,
-} from "@blocknote/react";
+import { createReactBlockSpec, ReactSlashMenuItem } from "@blocknote/react";
 import { ImageIcon } from "lucide-react";
 import { useState } from "react";
 import ImageDetailsModal from "../ImageDetailsModal";
