@@ -17,6 +17,9 @@ import { HighlighterIcon } from "lucide-react";
 export const highlightPropSchema = {
   textAlignment: defaultProps.textAlignment,
   textColor: defaultProps.textColor,
+  highlightId: {
+    default: "",
+  },
 } satisfies PropSchema;
 
 export const Highlight = (props: {
@@ -32,9 +35,8 @@ export const Highlight = (props: {
     }
   >;
   theme: "light" | "dark";
+  // highlightId: string;
 }) => {
-  console.log(props);
-
   return (
     <div
       className="flex h-full max-w-full flex-1 items-center justify-center gap-2"
@@ -42,7 +44,14 @@ export const Highlight = (props: {
         ...highlightStyles,
       }}
     >
-      <div className="h-full w-4 rounded-full bg-yellow-400" />
+      <div
+        onClick={() => {
+          if (!props?.block?.props?.highlightId) return;
+          // todo check whether the "highlight-" is even required
+          document.location.hash = `highlight-${props.block.props.highlightId}`;
+        }}
+        className="h-full w-4 rounded-full bg-yellow-400 hover:cursor-pointer"
+      />
       <InlineContent className="break-word-overflow flex-grow" />
     </div>
   );
@@ -61,6 +70,9 @@ export const createHighlightBlock = (theme: "light" | "dark") =>
     propSchema: {
       textAlignment: defaultProps.textAlignment,
       textColor: defaultProps.textColor,
+      highlightId: {
+        default: "",
+      },
     } as const,
     containsInlineContent: true,
     render: (props) => <Highlight {...props} theme={theme} />,

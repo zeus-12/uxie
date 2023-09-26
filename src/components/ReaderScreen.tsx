@@ -7,14 +7,7 @@ import {
   createAlertBlock,
   insertAlert,
 } from "@/components/Editor/CustomBlocks/Alert";
-import {
-  createHighlightBlock,
-  insertHighlight,
-} from "@/components/Editor/CustomBlocks/Highlight";
-import {
-  createImageBlock,
-  insertImage,
-} from "@/components/Editor/CustomBlocks/Image";
+import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight";
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
 
@@ -44,7 +37,6 @@ const DocViewerPage = () => {
     ...defaultBlockSchema,
     alert: createAlertBlock(theme === "dark" ? "dark" : "light"),
     highlight: createHighlightBlock(theme === "dark" ? "dark" : "light"),
-    // image: createImageBlock(theme === "dark" ? "dark" : "light"),
   };
 
   const debounced = useDebouncedCallback((value) => {
@@ -65,10 +57,10 @@ const DocViewerPage = () => {
     ],
   });
 
-  const addHighlightToNotes = (content: string) => {
+  const addHighlightToNotes = (content: string, highlightId: string) => {
     // handle cases where image is copied, maybe additional parameter
 
-    if (!content) return;
+    if (!content || !highlightId) return;
 
     const block = editor.getTextCursorPosition().block;
     const blockIsEmpty = block.content.length === 0;
@@ -76,6 +68,9 @@ const DocViewerPage = () => {
     if (blockIsEmpty) {
       editor.updateBlock(block, {
         content: content,
+        props: {
+          highlightId: highlightId,
+        },
         type: "highlight",
       });
     } else {
@@ -83,6 +78,9 @@ const DocViewerPage = () => {
         [
           {
             content: content,
+            props: {
+              highlightId: highlightId,
+            },
             type: "highlight",
           },
         ],

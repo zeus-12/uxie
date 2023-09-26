@@ -33,7 +33,7 @@ const PRIMARY_PDF_URL = "https://arxiv.org/pdf/1708.08021.pdf";
 const DocViewer = ({
   addHighlightToNotes,
 }: {
-  addHighlightToNotes: (content: string) => void;
+  addHighlightToNotes: (content: string, highlightId: string) => void;
 }) => {
   const { query, isReady } = useRouter();
 
@@ -80,16 +80,20 @@ const DocViewer = ({
   async function addHighlight({
     content,
     position,
+    id,
   }: {
     content: {
       text?: string;
       image?: string;
     };
     position: any;
+    id: string;
   }) {
-    addHighlightToNotes(content.text ?? "");
-    // add to db => do optimistic update
-    console.log("adding highlight");
+    if (!content.text) return;
+
+    addHighlightToNotes(content.text, id);
+    // add to db => do optimistic update => for optimistic update use id as id. but for db dont pass id
+    console.log("adding highlight", content, position);
   }
 
   const deleteHighlight = (id: string) => {
@@ -118,9 +122,9 @@ const DocViewer = ({
             {/* Docnameee */}
           </p>
         </div>
-        <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
-          {/* <InviteCollab docId={docId} /> */}
-        </div>
+        {/* <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
+          <InviteCollab docId={docId} />
+        </div> */}
       </div>
       <div className="relative h-screen w-full ">
         <PdfLoader url={doc?.url ?? PRIMARY_PDF_URL} beforeLoad={<Spinner />}>
@@ -139,14 +143,17 @@ const DocViewer = ({
                 content,
                 hideTipAndSelection,
                 transformSelection,
-              ) => (
-                <TextSelectionPopover
-                  content={content}
-                  hideTipAndSelection={hideTipAndSelection}
-                  position={position}
-                  addHighlight={() => addHighlight({ content, position })}
-                />
-              )}
+              ) => {
+                const id = String(Math.random());
+                return (
+                  <TextSelectionPopover
+                    content={content}
+                    hideTipAndSelection={hideTipAndSelection}
+                    position={position}
+                    addHighlight={() => addHighlight({ content, position, id })}
+                  />
+                );
+              }}
               highlightTransform={(
                 highlight,
                 index,
@@ -203,6 +210,7 @@ const DocViewer = ({
                   </Popup>
                 );
               }}
+              // @ts-ignore => since i removed comments from highlight
               highlights={highlights}
             />
           )}
