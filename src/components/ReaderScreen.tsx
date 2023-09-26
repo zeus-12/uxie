@@ -66,20 +66,31 @@ const DocViewerPage = () => {
   });
 
   const addHighlightToNotes = (content: string) => {
-    console.log(content);
-    if (!content) return;
-    editor.insertBlocks(
-      [
-        {
-          content: content,
-          type: "highlight",
-        },
-      ],
-      editor.getTextCursorPosition().block,
-      "after",
-    );
+    // handle cases where image is copied, maybe additional parameter
 
-    editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+    if (!content) return;
+
+    const block = editor.getTextCursorPosition().block;
+    const blockIsEmpty = block.content.length === 0;
+
+    if (blockIsEmpty) {
+      editor.updateBlock(block, {
+        content: content,
+        type: "highlight",
+      });
+    } else {
+      editor.insertBlocks(
+        [
+          {
+            content: content,
+            type: "highlight",
+          },
+        ],
+        editor.getTextCursorPosition().block,
+        "after",
+      );
+      editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+    }
   };
 
   return (
