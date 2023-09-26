@@ -7,7 +7,7 @@ import {
   SlashMenuPositioner,
   SideMenuPositioner,
 } from "@blocknote/react";
-import { AlertCircle, Highlighter } from "lucide-react";
+import { AlertCircle, Highlighter, Image } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
 
@@ -33,16 +33,22 @@ function Editor({ editor }: { editor: any }) {
                   name: "Alert",
                   type: "alert",
                   icon: AlertCircle as any,
-                  // @ts-ignore
                   isSelected: (block) => block.type === "alert",
                 },
-                {
-                  name: "Highlight",
-                  type: "highlight",
-                  icon: Highlighter as any,
-                  // @ts-ignore
-                  isSelected: (block) => block.type === "highlight",
-                },
+                // {
+                //   name: "Highlight",
+                //   type: "highlight",
+                //   icon: Highlighter as any,
+                //   // @ts-ignore
+                //   isSelected: (block) => block.type === "highlight",
+                // },
+                // {
+                //   name: "Image",
+                //   type: "image",
+                //   icon: Image as any,
+                //   // @ts-ignore
+                //   isSelected: (block) => block.type === "image",
+                // },
               ]}
             />
           )}
