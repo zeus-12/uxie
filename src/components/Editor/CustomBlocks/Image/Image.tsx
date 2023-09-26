@@ -8,7 +8,7 @@ import {
 import { createReactBlockSpec, ReactSlashMenuItem } from "@blocknote/react";
 import { ImageIcon } from "lucide-react";
 import { useState } from "react";
-import ImageDetailsModal from "../ImageDetailsModal";
+import ImageDetailsModal from "./ImageDetailsModal";
 
 export const imagePropSchema = {
   // src: {
