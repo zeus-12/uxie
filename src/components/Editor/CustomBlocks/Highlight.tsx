@@ -33,6 +33,8 @@ export const Highlight = (props: {
   >;
   theme: "light" | "dark";
 }) => {
+  console.log(props);
+
   return (
     <div
       className="flex h-full max-w-full flex-1 items-center justify-center gap-2"
@@ -65,38 +67,38 @@ export const createHighlightBlock = (theme: "light" | "dark") =>
   });
 
 // Slash menu item to insert an highlight block
-export const insertHighlight = {
-  name: "Highlight",
-  execute: (editor) => {
-    const block = editor.getTextCursorPosition().block;
-    const blockIsEmpty = block.content.length === 0;
+// export const insertHighlight = {
+//   name: "Highlight",
+//   execute: (editor) => {
+//     const block = editor.getTextCursorPosition().block;
+//     const blockIsEmpty = block.content.length === 0;
 
-    // Updates current block to an highlight if it's empty, otherwise inserts a new
-    // one below
-    if (blockIsEmpty) {
-      editor.updateBlock(block, { type: "highlight" });
-    } else {
-      editor.insertBlocks(
-        [
-          {
-            type: "highlight",
-          },
-        ],
-        editor.getTextCursorPosition().block,
-        "after",
-      );
-      editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
-    }
-  },
-  aliases: ["highlight", "annotate"],
-  group: "Other",
-  icon: <HighlighterIcon />,
-  hint: "Display highlighted texts from PDF",
-} satisfies ReactSlashMenuItem<
-  DefaultBlockSchema & {
-    highlight: BlockSpec<"highlight", typeof highlightPropSchema>;
-  }
->;
+//     // Updates current block to an highlight if it's empty, otherwise inserts a new
+//     // one below
+//     if (blockIsEmpty) {
+//       editor.updateBlock(block, { type: "highlight" });
+//     } else {
+//       editor.insertBlocks(
+//         [
+//           {
+//             type: "highlight",
+//           },
+//         ],
+//         editor.getTextCursorPosition().block,
+//         "after",
+//       );
+//       editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+//     }
+//   },
+//   aliases: ["highlight", "annotate"],
+//   group: "Other",
+//   icon: <HighlighterIcon />,
+//   hint: "Display highlighted texts from PDF",
+// } satisfies ReactSlashMenuItem<
+//   DefaultBlockSchema & {
+//     highlight: BlockSpec<"highlight", typeof highlightPropSchema>;
+//   }
+// >;
 
 const highlightStyles = {
   borderRadius: "4px",
