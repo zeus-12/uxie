@@ -21,7 +21,6 @@
 ## TODOS
 
 - copying text from pdf ignores linebreaks
-- make sure the datatypes used in the db works as expected
 - add image to notes on highlighting
 - image doesnt seem to be supported on the new editor, look into fixing it, also check on creating custom block for the highlighted text => should have a way to link to the highlighted part.
 - figure out on how to save the notes (to the db??)
