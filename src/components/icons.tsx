@@ -91,6 +91,12 @@ export const Icons = {
       ></path>
     </svg>
   ),
+
+  resizeHandle: ({ ...props }: LucideProps) => (
+    <svg {...props} viewBox="0 0 16 16" fill="#000">
+      <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"></path>
+    </svg>
+  ),
   // twitter: Twitter,
   // check: Check,
 };

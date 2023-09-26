@@ -10,6 +10,7 @@ import {
 import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight";
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
+import { Icons } from "@/components/icons";
 
 const DocViewerPage = () => {
   const [width, setWidth] = useState<null | number>();
@@ -105,14 +106,11 @@ const DocViewerPage = () => {
       </div>
       <div className="flex items-center">
         {/* move this to icons.tsx */}
-        <svg
-          onMouseDown={handleMouseDown}
+
+        <Icons.resizeHandle
           className="px-auto w-4 cursor-col-resize "
-          viewBox="0 0 16 16"
-          fill="#000"
-        >
-          <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"></path>
-        </svg>
+          onMouseDown={handleMouseDown}
+        />
       </div>
       <div
         className="h-screen flex-1"
