@@ -1,7 +1,10 @@
 import DocViewer from "@/components/DocViewer";
 import Sidebar from "@/components/Sidebar";
 import { MouseEvent, useState } from "react";
-import { defaultBlockSchema } from "@blocknote/core";
+import {
+  defaultBlockSchema,
+  uploadToTmpFilesDotOrg_DEV_ONLY,
+} from "@blocknote/core";
 import { getDefaultReactSlashMenuItems, useBlockNote } from "@blocknote/react";
 import {
   createAlertBlock,
@@ -50,11 +53,12 @@ const DocViewerPage = () => {
       debounced(JSON.stringify(editor.topLevelBlocks));
     },
     blockSchema: schemaWithCustomBlocks,
+    uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
     slashMenuItems: [
       ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
       insertAlert,
+
       // insertHighlight,
-      // insertImage,
     ],
   });
 
@@ -64,7 +68,7 @@ const DocViewerPage = () => {
     if (!content || !highlightId) return;
 
     const block = editor.getTextCursorPosition().block;
-    const blockIsEmpty = block.content.length === 0;
+    const blockIsEmpty = block.content?.length === 0;
 
     if (blockIsEmpty) {
       editor.updateBlock(block, {

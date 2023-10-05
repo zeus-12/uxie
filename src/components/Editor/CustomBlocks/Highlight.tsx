@@ -6,12 +6,7 @@ import {
   PropSchema,
   SpecificBlock,
 } from "@blocknote/core";
-import {
-  createReactBlockSpec,
-  InlineContent,
-  ReactSlashMenuItem,
-} from "@blocknote/react";
-import { HighlighterIcon } from "lucide-react";
+import { createReactBlockSpec, InlineContent } from "@blocknote/react";
 
 // The props for the Highlight block
 export const highlightPropSchema = {
@@ -25,13 +20,13 @@ export const highlightPropSchema = {
 export const Highlight = (props: {
   block: SpecificBlock<
     DefaultBlockSchema & {
-      highlight: BlockSpec<"highlight", typeof highlightPropSchema>;
+      highlight: BlockSpec<"highlight", typeof highlightPropSchema, true>;
     },
     "highlight"
   >;
   editor: BlockNoteEditor<
     DefaultBlockSchema & {
-      highlight: BlockSpec<"highlight", typeof highlightPropSchema>;
+      highlight: BlockSpec<"highlight", typeof highlightPropSchema, true>;
     }
   >;
   theme: "light" | "dark";
@@ -63,7 +58,7 @@ export const createHighlightBlock = (theme: "light" | "dark") =>
     typeof highlightPropSchema,
     true,
     DefaultBlockSchema & {
-      highlight: BlockSpec<"highlight", typeof highlightPropSchema>;
+      highlight: BlockSpec<"highlight", typeof highlightPropSchema, true>;
     }
   >({
     type: "highlight" as const,

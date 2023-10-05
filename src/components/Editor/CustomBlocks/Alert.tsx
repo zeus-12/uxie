@@ -69,11 +69,15 @@ export const alertPropSchema = {
 
 export const Alert = (props: {
   block: SpecificBlock<
-    DefaultBlockSchema & { alert: BlockSpec<"alert", typeof alertPropSchema> },
+    DefaultBlockSchema & {
+      alert: BlockSpec<"alert", typeof alertPropSchema, true>;
+    },
     "alert"
   >;
   editor: BlockNoteEditor<
-    DefaultBlockSchema & { alert: BlockSpec<"alert", typeof alertPropSchema> }
+    DefaultBlockSchema & {
+      alert: BlockSpec<"alert", typeof alertPropSchema, true>;
+    }
   >;
   theme: "light" | "dark";
 }) => {
@@ -141,7 +145,9 @@ export const createAlertBlock = (theme: "light" | "dark") =>
     "alert",
     typeof alertPropSchema,
     true,
-    DefaultBlockSchema & { alert: BlockSpec<"alert", typeof alertPropSchema> }
+    DefaultBlockSchema & {
+      alert: BlockSpec<"alert", typeof alertPropSchema, true>;
+    }
   >({
     type: "alert" as const,
     propSchema: {
@@ -160,7 +166,7 @@ export const insertAlert = {
   name: "Alert",
   execute: (editor) => {
     const block = editor.getTextCursorPosition().block;
-    const blockIsEmpty = block.content.length === 0;
+    const blockIsEmpty = block.content?.length === 0;
 
     if (blockIsEmpty) {
       editor.updateBlock(block, { type: "alert" });
@@ -190,7 +196,9 @@ export const insertAlert = {
   icon: <AlertCircle />,
   hint: "Used to emphasize text",
 } satisfies ReactSlashMenuItem<
-  DefaultBlockSchema & { alert: BlockSpec<"alert", typeof alertPropSchema> }
+  DefaultBlockSchema & {
+    alert: BlockSpec<"alert", typeof alertPropSchema, true>;
+  }
 >;
 
 const alertStyles = {

@@ -6,6 +6,7 @@ import {
   HyperlinkToolbarPositioner,
   SlashMenuPositioner,
   SideMenuPositioner,
+  ImageToolbarPositioner,
 } from "@blocknote/react";
 import { AlertCircle, Highlighter, Image } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -42,13 +43,6 @@ function Editor({ editor }: { editor: any }) {
                 //   // @ts-ignore
                 //   isSelected: (block) => block.type === "highlight",
                 // },
-                // {
-                //   name: "Image",
-                //   type: "image",
-                //   icon: Image as any,
-                //   // @ts-ignore
-                //   isSelected: (block) => block.type === "image",
-                // },
               ]}
             />
           )}
@@ -56,6 +50,7 @@ function Editor({ editor }: { editor: any }) {
         <HyperlinkToolbarPositioner editor={editor} />
         <SlashMenuPositioner editor={editor} />
         <SideMenuPositioner editor={editor} />
+        <ImageToolbarPositioner editor={editor} />
       </BlockNoteView>
       {/* <button onClick={addtext}>add text</button> */}
     </div>
