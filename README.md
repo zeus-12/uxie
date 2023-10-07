@@ -21,8 +21,7 @@
 ## TODOS
 
 - copying text from pdf ignores linebreaks
-- add image to notes on highlighting
-- image doesnt seem to be supported on the new editor, look into fixing it,
+- add images to some free provider or cloudinary
 - fix linking to the highlighted part for highlighted text on notes.
 - use cloudinary for storage => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - integrate ai => chrome extension + custom llm
@@ -31,5 +30,4 @@
 <!-- LOW PRIORITY -->
 
 - integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
-- setup pricing/restrictions and shit
 - create onboarding flow => either the page nextauth provides for new registrations, or just bunch of modals on top of each page w. hasOnboarded stored on db/localstorage or smthn
