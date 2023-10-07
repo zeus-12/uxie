@@ -14,7 +14,7 @@ import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
 import { Icons } from "@/components/icons";
-import { HighlightType } from "@/lib/types";
+import { HighlightContentType } from "@/lib/types";
 
 const DocViewerPage = () => {
   const [width, setWidth] = useState<null | number>();
@@ -67,9 +67,9 @@ const DocViewerPage = () => {
   const addHighlightToNotes = (
     content: string,
     highlightId: string,
-    type: HighlightType,
+    type: HighlightContentType,
   ) => {
-    if (type === HighlightType.TEXT) {
+    if (type === HighlightContentType.TEXT) {
       if (!content || !highlightId) return;
 
       const block = editor.getTextCursorPosition().block;
