@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
+import { HighlightType } from "@/lib/types";
 // import InviteCollab from "@/components/InviteCollab";
 
 const highlights = testHighlights;
@@ -33,7 +34,11 @@ const PRIMARY_PDF_URL = "https://arxiv.org/pdf/1708.08021.pdf";
 const DocViewer = ({
   addHighlightToNotes,
 }: {
-  addHighlightToNotes: (content: string, highlightId: string) => void;
+  addHighlightToNotes: (
+    content: string,
+    highlightId: string,
+    type: HighlightType,
+  ) => void;
 }) => {
   const { query, isReady } = useRouter();
 
@@ -89,11 +94,25 @@ const DocViewer = ({
     position: any;
     id: string;
   }) {
-    if (!content.text) return;
+    console.log(content, "cotnent");
+    if (!content.text && !content.image) return;
+    const isTextHighlight = !content.image;
 
-    addHighlightToNotes(content.text, id);
     // add to db => do optimistic update => for optimistic update use id as id. but for db dont pass id
     console.log("adding highlight", content, position);
+
+    if (isTextHighlight) {
+      if (!content.text) return;
+      addHighlightToNotes(content.text, id, HighlightType.TEXT);
+    } else {
+      if (!content.image) return;
+      addHighlightToNotes(
+        content.image,
+        id,
+
+        HighlightType.IMAGE,
+      );
+    }
   }
 
   const deleteHighlight = (id: string) => {
@@ -127,7 +146,7 @@ const DocViewer = ({
         </div> */}
       </div>
       <div className="relative h-screen w-full ">
-        <PdfLoader url={doc?.url ?? PRIMARY_PDF_URL} beforeLoad={<Spinner />}>
+        <PdfLoader url={"/testpdf.pdf"} beforeLoad={<Spinner />}>
           {(pdfDocument) => (
             <PdfHighlighter
               pdfDocument={pdfDocument}
