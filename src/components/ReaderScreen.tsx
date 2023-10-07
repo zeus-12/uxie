@@ -14,6 +14,7 @@ import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
 import { Icons } from "@/components/icons";
+import { HighlightType } from "@/lib/types";
 
 const DocViewerPage = () => {
   const [width, setWidth] = useState<null | number>();
@@ -52,47 +53,82 @@ const DocViewerPage = () => {
     onEditorContentChange: (editor) => {
       debounced(JSON.stringify(editor.topLevelBlocks));
     },
+
     blockSchema: schemaWithCustomBlocks,
     uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
+
     slashMenuItems: [
       ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
       insertAlert,
-
       // insertHighlight,
     ],
   });
 
-  const addHighlightToNotes = (content: string, highlightId: string) => {
-    // handle cases where image is copied, maybe additional parameter
+  const addHighlightToNotes = (
+    content: string,
+    highlightId: string,
+    type: HighlightType,
+  ) => {
+    if (type === HighlightType.TEXT) {
+      if (!content || !highlightId) return;
 
-    if (!content || !highlightId) return;
+      const block = editor.getTextCursorPosition().block;
+      const blockIsEmpty = block.content?.length === 0;
 
-    const block = editor.getTextCursorPosition().block;
-    const blockIsEmpty = block.content?.length === 0;
-
-    if (blockIsEmpty) {
-      editor.updateBlock(block, {
-        content: content,
-        props: {
-          highlightId: highlightId,
-        },
-        type: "highlight",
-      });
-    } else {
-      editor.insertBlocks(
-        [
-          {
-            content: content,
-            props: {
-              highlightId: highlightId,
-            },
-            type: "highlight",
+      if (blockIsEmpty) {
+        editor.updateBlock(block, {
+          content: content,
+          props: {
+            highlightId: highlightId,
           },
-        ],
-        editor.getTextCursorPosition().block,
-        "after",
-      );
-      editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+          type: "highlight",
+        });
+      } else {
+        editor.insertBlocks(
+          [
+            {
+              content: content,
+              props: {
+                highlightId: highlightId,
+              },
+              type: "highlight",
+            },
+          ],
+          editor.getTextCursorPosition().block,
+          "after",
+        );
+        editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+      }
+    } else {
+      if (!content || !highlightId) return;
+
+      // upload elsewhere for the time, then update the url
+
+      const block = editor.getTextCursorPosition().block;
+      const blockIsEmpty = block.content?.length === 0;
+
+      if (blockIsEmpty) {
+        editor.updateBlock(block, {
+          props: {
+            url: content,
+          },
+          type: "image",
+        });
+      } else {
+        editor.insertBlocks(
+          [
+            {
+              props: {
+                url: content,
+              },
+              type: "image",
+            },
+          ],
+          editor.getTextCursorPosition().block,
+          "after",
+        );
+        editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+      }
     }
   };
 
