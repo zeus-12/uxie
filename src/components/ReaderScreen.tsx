@@ -145,8 +145,6 @@ const DocViewerPage = () => {
         <DocViewer addHighlightToNotes={addHighlightToNotes} />
       </div>
       <div className="flex items-center">
-        {/* move this to icons.tsx */}
-
         <Icons.resizeHandle
           className="px-auto w-4 cursor-col-resize "
           onMouseDown={handleMouseDown}
