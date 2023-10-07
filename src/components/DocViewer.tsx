@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   PdfLoader,
   PdfHighlighter,
@@ -17,10 +17,12 @@ import {
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import { HighlightType } from "@/lib/types";
+import {
+  HighlightContentType,
+  HighlightPositionType,
+  HighlightType,
+} from "@/lib/types";
 // import InviteCollab from "@/components/InviteCollab";
-
-const highlights = testHighlights;
 
 const parseIdFromHash = () =>
   document.location.hash.slice("#highlight-".length);
@@ -37,10 +39,11 @@ const DocViewer = ({
   addHighlightToNotes: (
     content: string,
     highlightId: string,
-    type: HighlightType,
+    type: HighlightContentType,
   ) => void;
 }) => {
   const { query, isReady } = useRouter();
+  const [highlights, setHighlights] = useState<HighlightType[]>([]);
 
   const docId = query?.docId;
 
@@ -91,7 +94,7 @@ const DocViewer = ({
       text?: string;
       image?: string;
     };
-    position: any;
+    position: HighlightPositionType;
     id: string;
   }) {
     console.log(content, "cotnent");
@@ -103,14 +106,38 @@ const DocViewer = ({
 
     if (isTextHighlight) {
       if (!content.text) return;
-      addHighlightToNotes(content.text, id, HighlightType.TEXT);
+
+      setHighlights((prevHighlights) => [
+        ...prevHighlights,
+        {
+          id,
+          position,
+          content: {
+            text: content.text as string,
+          },
+        },
+      ]);
+
+      addHighlightToNotes(content.text, id, HighlightContentType.TEXT);
     } else {
       if (!content.image) return;
+
+      setHighlights((prevHighlights) => [
+        ...prevHighlights,
+        {
+          id,
+          position,
+          content: {
+            image: content.image as string,
+          },
+        },
+      ]);
+
       addHighlightToNotes(
         content.image,
         id,
 
-        HighlightType.IMAGE,
+        HighlightContentType.IMAGE,
       );
     }
   }
