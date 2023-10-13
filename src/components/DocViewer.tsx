@@ -47,6 +47,8 @@ const DocViewer = ({
 
   const docId = query?.docId;
 
+  const { mutate, error } = api.highlight.add.useMutation();
+
   const {
     data: doc,
     isLoading,
