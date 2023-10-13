@@ -26,7 +26,7 @@
 - use cloudinary for storage => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - integrate ai => chrome extension + custom llm
 - check how to export the notes directly to notion? (using notion api or some plugin??) also other note taking apps (obsidian,etc)
-
+- do similar to https://codesandbox.io/s/react-resizable-layout-jy3vhk?fontsize=14&hidenavigation=1&theme=dark&file=/src/components/IdeClone.tsx for the readerscreen
 <!-- LOW PRIORITY -->
 
 - integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
