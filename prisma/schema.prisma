@@ -135,7 +135,7 @@ model Cordinate {
     y2         Float
     width      Float
     height     Float
-    pageNumber Int
+    pageNumber Int?
 
     highlightedRectangle   Highlight @relation("rectangles", fields: [highlightedRectangleId], references: [id])
     highlightedRectangleId String
