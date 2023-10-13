@@ -52,7 +52,7 @@ model User {
 
     documents     Document[]
     messages      Message[]
-    highlights    Highlight[]
+    // highlights    Highlight[]
     collaborators Collaborator[]
     // create separate table userpreferences => storing users preferred emojis, theme, etc
 }
@@ -122,24 +122,25 @@ model Highlight {
 
     rectangles Cordinate[] @relation("rectangles")
 
-    pageNumber Int
-    user       User   @relation(fields: [userId], references: [id])
-    userId     String
+    pageNumber Int?
+    // user       User   @relation(fields: [userId], references: [id])
+    // userId     String
 }
 
 model Cordinate {
-    id         String @id @default(cuid())
-    x1         Float
-    y1         Float
-    x2         Float
-    y2         Float
-    width      Float
-    height     Float
+    id     String @id @default(cuid())
+    x1     Float
+    y1     Float
+    x2     Float
+    y2     Float
+    width  Float
+    height Float
+
     pageNumber Int?
 
-    highlightedRectangle   Highlight @relation("rectangles", fields: [highlightedRectangleId], references: [id])
-    highlightedRectangleId String
+    highlightedRectangle   Highlight? @relation("rectangles", fields: [highlightedRectangleId], references: [id])
+    highlightedRectangleId String?
 
-    highlightedBoundingRectangle   Highlight @relation("boundingRectangle", fields: [highlightedBoundingRectangleId], references: [id])
-    highlightedBoundingRectangleId String    @unique
+    highlightedBoundingRectangle   Highlight? @relation("boundingRectangle", fields: [highlightedBoundingRectangleId], references: [id])
+    highlightedBoundingRectangleId String?    @unique
 }
