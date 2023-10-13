@@ -5,7 +5,7 @@ export enum HighlightContentType {
   IMAGE = "IMAGE",
 }
 
-export interface HighlightType {
+export interface HighlightContentTypes {
   content:
     | {
         text: string;
@@ -13,6 +13,8 @@ export interface HighlightType {
     | {
         image: string;
       };
+}
+export interface HighlightType extends HighlightContentTypes {
   position: HighlightPositionType;
   id: string;
 }
@@ -37,4 +39,10 @@ export interface HighlightPositionType {
     pageNumber?: number;
   }[];
   pageNumber: number;
+}
+
+export interface HighlightPositionTypeWithDocumentId
+  extends HighlightPositionType,
+    HighlightContentTypes {
+  documentId: string;
 }
