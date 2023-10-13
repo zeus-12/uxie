@@ -43,9 +43,11 @@ const DocViewerPage = () => {
     alert: createAlertBlock(theme === "dark" ? "dark" : "light"),
     highlight: createHighlightBlock(theme === "dark" ? "dark" : "light"),
   };
+  const [markdown, setMarkdown] = useState<any>([]);
 
   const debounced = useDebouncedCallback((value) => {
     // setMarkdown(JSON.stringify(value));
+    setMarkdown(value);
     console.log("saving to db", value);
   }, 3000);
 
@@ -102,32 +104,47 @@ const DocViewerPage = () => {
     } else {
       if (!content || !highlightId) return;
 
-      // upload elsewhere for the time, then update the url
+      try {
+        // if (editor.uploadFile) {
+        const block = editor.getTextCursorPosition().block;
+        const blockIsEmpty = block.content?.length === 0;
 
-      const block = editor.getTextCursorPosition().block;
-      const blockIsEmpty = block.content?.length === 0;
+        //   const data = await fetch(content);
+        //   const blob = await data.blob();
 
-      if (blockIsEmpty) {
-        editor.updateBlock(block, {
-          props: {
-            url: content,
-          },
-          type: "image",
-        });
-      } else {
-        editor.insertBlocks(
-          [
-            {
-              props: {
-                url: content,
-              },
-              type: "image",
+        //   const file = new File([blob], content, { type: "image/png" });
+
+        //   const link = await editor.uploadFile(file);
+        //   console.log(link, "link");
+
+        //   console.log("uploadedd");
+
+        if (blockIsEmpty) {
+          editor.updateBlock(block, {
+            props: {
+              url: content,
             },
-          ],
-          editor.getTextCursorPosition().block,
-          "after",
-        );
-        editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+            type: "image",
+          });
+        } else {
+          editor.insertBlocks(
+            [
+              {
+                props: {
+                  url: content,
+                },
+                type: "image",
+              },
+            ],
+            editor.getTextCursorPosition().block,
+            "after",
+          );
+          editor.setTextCursorPosition(
+            editor.getTextCursorPosition().nextBlock!,
+          );
+        }
+      } catch (err: any) {
+        console.log(err.message, "errnes");
       }
     }
   };
