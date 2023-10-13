@@ -5,17 +5,8 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
-import { IHighlight } from "react-pdf-highlighter";
 
 export const documentRouter = createTRPCRouter({
-  // hello: publicProcedure
-  //   .input(z.object({ text: z.string() }))
-  //   .query(({ input }) => {
-  //     return {
-  //       greeting: `Hello ${input.text}`,
-  //     };
-  //   }),
-
   getDocData: protectedProcedure
     .input(
       z.object({
@@ -42,9 +33,9 @@ export const documentRouter = createTRPCRouter({
             include: {
               boundingRectangle: true,
               rectangles: true,
-              user: true,
             },
           },
+          owner: true,
           collaborators: true,
           messages: true,
         },
