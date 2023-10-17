@@ -1,10 +1,6 @@
 import { z } from "zod";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 export const documentRouter = createTRPCRouter({
   getDocData: protectedProcedure
@@ -14,7 +10,7 @@ export const documentRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      return await ctx.prisma.document.findUnique({
+      const res = await ctx.prisma.document.findUnique({
         where: {
           id: input.docId,
           OR: [
@@ -41,26 +37,25 @@ export const documentRouter = createTRPCRouter({
         },
       });
 
-      // if (!res) {
-      //   throw new Error("Document not found");
-      // }
+      const highlightData = res?.highlights.map((highlight) => ({
+        ...(highlight.text
+          ? { content: { text: highlight.text } }
+          : { content: { image: highlight.imageUrl } }),
+        id: highlight.id,
+        position: {
+          boundingRect: highlight.boundingRectangle,
+          rects: highlight.rectangles,
+          pageNumber: highlight.pageNumber,
+        },
+      }));
 
-      // const modifiedHighlights: IHighlight[] = res.highlights.map(
-      //   (highlight) => ({
-      //     content: {
-      //       text:,
-      //       image:
-      //     },
-      //     id: highlight.id,
-      //     position: {
-      //       boundingRect: highlight.boundingRect,
-
-      //     }
-      //   }),
-      // );
+      return {
+        id: res?.id,
+        title: res?.title,
+        highlights: highlightData,
+        owner: res?.owner,
+        collaborators: res?.collaborators,
+        messages: res?.messages,
+      };
     }),
-
-  getSecretMessage: protectedProcedure.query(() => {
-    return "you can now see this secret message!";
-  }),
 });
