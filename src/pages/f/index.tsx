@@ -1,4 +1,5 @@
 import { Icons } from "@/components/icons";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { UploadButton } from "@/lib/uploadthing";
@@ -48,6 +49,13 @@ const UserLibraryPage = () => {
       {userDocs?.documents?.map((doc) => (
         <Link key={doc.id} href={`/f/${doc.id}`}>
           <div>{doc.title}</div>
+        </Link>
+      ))}
+      {userDocs.collaborators.map((collab) => (
+        <Link key={collab.document.id} href={`/f/${collab.document.id}`}>
+          <Badge variant="outline">Collab</Badge>
+          <Badge variant="outline">{collab.role}</Badge>
+          <div>{collab.document.title}</div>
         </Link>
       ))}
     </div>
