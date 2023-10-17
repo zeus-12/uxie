@@ -43,11 +43,12 @@ const DocViewer = ({
   ) => void;
 }) => {
   const { query, isReady } = useRouter();
-  const [highlights, setHighlights] = useState<HighlightType[]>([]);
 
   const docId = query?.docId;
 
-  const { mutate, error } = api.highlight.add.useMutation();
+  const { mutate: addHighlightMutation } = api.highlight.add.useMutation();
+  const { mutate: deleteHighlightMutation } =
+    api.highlight.delete.useMutation();
 
   const {
     data: doc,
@@ -84,7 +85,7 @@ const DocViewer = ({
 
   function getHighlightById(id: string) {
     // return doc?.highlights?.find((highlight) => highlight.id === id);
-    return highlights?.find((highlight) => highlight.id === id);
+    return doc?.highlights?.find((highlight) => highlight.id === id);
   }
 
   async function addHighlight({
@@ -104,7 +105,7 @@ const DocViewer = ({
     const isTextHighlight = !content.image;
 
     // add to db => do optimistic update => for optimistic update use id as id. but for db dont pass id
-    mutate({
+    addHighlightMutation({
       boundingRect: position.boundingRect,
       content: {
         ...(isTextHighlight
@@ -120,31 +121,33 @@ const DocViewer = ({
     if (isTextHighlight) {
       if (!content.text) return;
 
-      setHighlights((prevHighlights) => [
-        ...prevHighlights,
-        {
-          id,
-          position,
-          content: {
-            text: content.text as string,
-          },
-        },
-      ]);
+      // optimistic update
+
+      // setHighlights((prevHighlights) => [
+      //   ...prevHighlights,
+      //   {
+      //     id,
+      //     position,
+      //     content: {
+      //       text: content.text as string,
+      //     },
+      //   },
+      // ]);
 
       addHighlightToNotes(content.text, id, HighlightContentType.TEXT);
     } else {
       if (!content.image) return;
 
-      setHighlights((prevHighlights) => [
-        ...prevHighlights,
-        {
-          id,
-          position,
-          content: {
-            image: content.image as string,
-          },
-        },
-      ]);
+      // setHighlights((prevHighlights) => [
+      //   ...prevHighlights,
+      //   {
+      //     id,
+      //     position,
+      //     content: {
+      //       image: content.image as string,
+      //     },
+      //   },
+      // ]);
 
       addHighlightToNotes(
         content.image,
@@ -158,17 +161,21 @@ const DocViewer = ({
   const deleteHighlight = (id: string) => {
     console.log("deleting highlight", id);
 
-    // mutateHighlights();
+    deleteHighlightMutation({
+      documentId: docId as string,
+      highlightId: id,
+    });
   };
 
-  // if (isError) {
-  //   return <>error</>;
-  // }
+  if (isError) {
+    return <>error</>;
+  }
 
   // if (!doc || !doc.highlights || !doc.url || !isReady) {
   //   return;
   // }
 
+  // console.log(doc.highlights, "highlights");
   return (
     <div className="flex h-screen flex-col">
       <div className=" flex items-center justify-between">
@@ -270,7 +277,7 @@ const DocViewer = ({
                 );
               }}
               // @ts-ignore => since i removed comments from highlight
-              highlights={highlights}
+              highlights={doc?.highlights ?? []}
             />
           )}
         </PdfLoader>
