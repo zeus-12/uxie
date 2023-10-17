@@ -28,20 +28,28 @@ const UserLibraryPage = () => {
         <Icons.chevronLeft className="mr-2 h-4 w-4" />
         Back
       </Link>
-      <p className="text-2xl font-semibold tracking-tighter">
-        Hello, {userDocs?.name || "User"}
-      </p>
-      <UploadButton
-        endpoint="imageUploader"
-        onClientUploadComplete={(res: any) => {
-          // show toast and refetch files
-        }}
-        onUploadError={(error: Error) => {
-          // show toast
-          console.log(error);
-        }}
-      />
+      <div className="flex items-center justify-between">
+        <p className="text-2xl font-semibold tracking-tighter">
+          Hello, {userDocs?.name || "User"}
+        </p>
+        <UploadButton
+          endpoint="imageUploader"
+          onClientUploadComplete={(res: any) => {
+            // show toast and refetch files
+          }}
+          onUploadError={(error: Error) => {
+            // show toast
+            console.log(error);
+          }}
+        />
+      </div>
+
       <p className="text-muted-foreground">Here are your files</p>
+      {userDocs?.documents?.map((doc) => (
+        <Link key={doc.id} href={`/f/${doc.id}`}>
+          <div>{doc.title}</div>
+        </Link>
+      ))}
     </div>
   );
 };
