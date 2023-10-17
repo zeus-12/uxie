@@ -13,7 +13,11 @@ export const userRouter = createTRPCRouter({
         id: ctx?.session?.user?.id,
       },
       include: {
-        collaborators: true,
+        collaborators: {
+          include: {
+            document: true,
+          },
+        },
         documents: true,
       },
     });
