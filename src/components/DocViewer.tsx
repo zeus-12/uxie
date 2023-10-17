@@ -104,6 +104,17 @@ const DocViewer = ({
     const isTextHighlight = !content.image;
 
     // add to db => do optimistic update => for optimistic update use id as id. but for db dont pass id
+    mutate({
+      boundingRect: position.boundingRect,
+      content: {
+        ...(isTextHighlight
+          ? { text: content.text ? content.text : "" }
+          : { image: content.image ? content.image : "" }),
+      },
+      documentId: docId as string,
+      pageNumber: position.pageNumber,
+      rects: position.rects,
+    });
     console.log("adding highlight", content, position);
 
     if (isTextHighlight) {
