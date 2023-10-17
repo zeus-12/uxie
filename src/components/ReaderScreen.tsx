@@ -46,14 +46,13 @@ const DocViewerPage = () => {
   const [markdown, setMarkdown] = useState<any>([]);
 
   const debounced = useDebouncedCallback((value) => {
-    // setMarkdown(JSON.stringify(value));
     setMarkdown(value);
     console.log("saving to db", value);
   }, 3000);
 
   const editor = useBlockNote({
     onEditorContentChange: (editor) => {
-      debounced(JSON.stringify(editor.topLevelBlocks));
+      debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
     },
 
     blockSchema: schemaWithCustomBlocks,
