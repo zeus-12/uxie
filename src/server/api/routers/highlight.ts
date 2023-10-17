@@ -64,5 +64,36 @@ export const highlightRouter = createTRPCRouter({
           ...content,
         },
       });
+
+      return true;
+    }),
+
+  delete: protectedProcedure
+    .input(
+      z.object({
+        highlightId: z.string(),
+        documentId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          ownerId: ctx.session.user.id,
+        },
+      });
+
+      if (!doc) {
+        throw new Error("Document not found");
+      }
+
+      await ctx.prisma.highlight.delete({
+        where: {
+          id: input.highlightId,
+          documentId: input.documentId,
+        },
+      });
+
+      return true;
     }),
 });
