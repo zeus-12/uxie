@@ -36,10 +36,10 @@ export const highlightRouter = createTRPCRouter({
               y2: input.boundingRect.y2,
               width: input.boundingRect.width,
               height: input.boundingRect.height,
-              pageNumber,
+              ...pageNumber,
             },
           },
-          pageNumber,
+          ...pageNumber,
           rectangles: {
             createMany: {
               data: input.rects.map((rect) => ({
