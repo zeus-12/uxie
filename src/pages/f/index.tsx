@@ -1,6 +1,7 @@
 import { Icons } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { UploadButton } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -30,6 +31,16 @@ const UserLibraryPage = () => {
       <p className="text-2xl font-semibold tracking-tighter">
         Hello, {userDocs?.name || "User"}
       </p>
+      <UploadButton
+        endpoint="imageUploader"
+        onClientUploadComplete={(res: any) => {
+          // show toast and refetch files
+        }}
+        onUploadError={(error: Error) => {
+          // show toast
+          console.log(error);
+        }}
+      />
       <p className="text-muted-foreground">Here are your files</p>
     </div>
   );

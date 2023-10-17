@@ -29,6 +29,7 @@
     "@trpc/next": "^10.34.0",
     "@trpc/react-query": "^10.34.0",
     "@trpc/server": "^10.34.0",
+    "@uploadthing/react": "^5.6.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "lucide-react": "^0.276.0",
@@ -43,6 +44,7 @@
     "superjson": "^1.13.1",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
+    "uploadthing": "^5.7.1",
     "use-debounce": "^9.0.4",
     "zod": "^3.22.2"
   },
