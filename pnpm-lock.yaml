@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  react-pdf-highlighter@6.1.0:
+    hash: c5eyzzqg7gc3gyjqu5zv6plk6i
+    path: patches/react-pdf-highlighter@6.1.0.patch
+
 dependencies:
   '@blocknote/core':
     specifier: ^0.9.4
@@ -94,7 +99,7 @@ dependencies:
     version: 7.47.0(react@18.2.0)
   react-pdf-highlighter:
     specifier: ^6.1.0
-    version: 6.1.0(react-dom@18.2.0)(react@18.2.0)
+    version: 6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.2.0)(react@18.2.0)
   superjson:
     specifier: ^1.13.1
     version: 1.13.3
@@ -5099,7 +5104,7 @@ packages:
   /react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
-  /react-pdf-highlighter@6.1.0(react-dom@18.2.0)(react@18.2.0):
+  /react-pdf-highlighter@6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-PD7l+0q1v+pZahLA/2AeWIb0n8d1amL6o+mOKnldIqtyChBHSE3gfnY5ZNMSFrhWXdlM6l4Eet+aydnYo6Skow==}
     peerDependencies:
       react: '>=18.0.0'
@@ -5113,6 +5118,7 @@ packages:
     transitivePeerDependencies:
       - worker-loader
     dev: false
+    patched: true
 
   /react-remove-scroll-bar@2.3.4(@types/react@18.2.25)(react@18.2.0):
     resolution: {integrity: sha512-63C4YQBUt0m6ALadE9XV56hV8BgJWDmmTPY758iIJjfQKt2nYwoUrPk0LXRXcB/yIj82T1/Ixfdpdk68LwIB0A==}

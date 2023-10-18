@@ -67,5 +67,10 @@
   },
   "ct3aMetadata": {
     "initVersion": "7.19.0"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "react-pdf-highlighter@6.1.0": "patches/react-pdf-highlighter@6.1.0.patch"
+    }
   }
 }
