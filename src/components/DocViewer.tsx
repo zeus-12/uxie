@@ -21,6 +21,9 @@ import {
   HighlightPositionType,
   HighlightType,
 } from "@/types";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Icons } from "@/components/icons";
 // import InviteCollab from "@/components/InviteCollab";
 
 const parseIdFromHash = () =>
@@ -245,12 +248,18 @@ const DocViewer = ({
     <div className="flex h-screen flex-col">
       <div className=" flex items-center justify-between">
         <div className="flex items-center">
-          <Link href="/f" className="rounded-md p-2 hover:bg-gray-200">
-            <ChevronLeft size={16} />
+          <Link
+            href="/f"
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "w-fit justify-start",
+            )}
+          >
+            <Icons.chevronLeft className="mr-2 h-4 w-4" />
           </Link>
+
           <p className="font-semibold dark:text-gray-200">
             {doc?.title ?? docId}
-            {/* Docnameee */}
           </p>
         </div>
         {/* <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
@@ -258,7 +267,7 @@ const DocViewer = ({
         </div> */}
       </div>
       <div className="relative h-screen w-full ">
-        <PdfLoader url={"/testpdf.pdf"} beforeLoad={<Spinner />}>
+        <PdfLoader url={doc.url} beforeLoad={<Spinner />}>
           {(pdfDocument) => (
             <PdfHighlighter
               pdfDocument={pdfDocument}
