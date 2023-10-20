@@ -34,11 +34,12 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
             )}
           </div>
         </div>
-        <DropdownMenuSeparator />
 
+        {/* <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings">Settings</Link>
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer"
