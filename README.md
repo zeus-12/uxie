@@ -27,3 +27,6 @@
 - [ ] heck how to export the notes directly to notion? (using notion api or some plugin??) also other note taking apps (obsidian,etc) : add a download as markdown feature for starters
 - [ ] do similar to https://codesandbox.io/s/react-resizable-layout-jy3vhk?fontsize=14&hidenavigation=1&theme=dark&file=/src/components/IdeClone.tsx for the readerscreen
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
+- [ ] highlight popover tip not appearing at times (for later pages)
+- [ ] add dark mode for the bg of home screen
+- [ ] give solid width for the yellow line in the highlighter cusotm block in notes
