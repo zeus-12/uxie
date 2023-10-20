@@ -80,4 +80,47 @@ export const documentRouter = createTRPCRouter({
         url: res.url,
       };
     }),
+
+  getNotes: protectedProcedure
+    .input(z.object({ docId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const res = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.docId,
+          OR: [
+            { ownerId: ctx.session.user.id },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      if (!res) return null;
+
+      return res.note;
+    }),
+  updateNotes: protectedProcedure
+    .input(
+      z.object({
+        markdown: z.string(),
+        documentId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.document.update({
+        data: {
+          note: input.markdown,
+        },
+        where: {
+          id: input.documentId,
+        },
+      });
+
+      return true;
+    }),
 });
