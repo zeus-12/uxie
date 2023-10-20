@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   PdfLoader,
   PdfHighlighter,
@@ -6,7 +6,6 @@ import {
   Popup,
   AreaHighlight,
 } from "react-pdf-highlighter";
-import testHighlights from "@/lib/test-highlights.json";
 import { Spinner } from "@/components/Spinner";
 import {
   ChevronLeft,
@@ -31,8 +30,6 @@ const resetHash = () => {
   document.location.hash = "";
 };
 
-const PRIMARY_PDF_URL = "https://arxiv.org/pdf/1708.08021.pdf";
-
 const DocViewer = ({
   addHighlightToNotes,
 }: {
@@ -46,10 +43,6 @@ const DocViewer = ({
 
   const docId = query?.docId;
 
-  const { mutate: addHighlightMutation } = api.highlight.add.useMutation();
-  const { mutate: deleteHighlightMutation } =
-    api.highlight.delete.useMutation();
-
   const {
     data: doc,
     isLoading,
@@ -62,6 +55,78 @@ const DocViewer = ({
       enabled: !!docId,
     },
   );
+
+  const { mutate: addHighlightMutation } = api.highlight.add.useMutation({
+    async onMutate(newHighlight) {
+      await utils.document.getDocData.cancel();
+      const prevData = utils.document.getDocData.getData();
+
+      // @ts-ignore
+      utils.document.getDocData.setData({ docId: docId as string }, (old) => {
+        if (!old) return null;
+        return {
+          ...old,
+          highlights: [
+            ...old.highlights,
+            {
+              // id: "23423",
+              position: {
+                boundingRect: newHighlight.boundingRect,
+                rects: newHighlight.rects,
+                pageNumber: newHighlight.pageNumber,
+              },
+              content: newHighlight.content,
+            },
+          ],
+        };
+      });
+
+      return { prevData };
+    },
+    onError(err, newPost, ctx) {
+      // If the mutation fails, use the context-value from onMutate
+      utils.document.getDocData.setData(
+        { docId: docId as string },
+        ctx?.prevData,
+      );
+    },
+    onSettled() {
+      // Sync with server once mutation has settled
+      utils.document.getDocData.invalidate();
+    },
+  });
+  const { mutate: deleteHighlightMutation } = api.highlight.delete.useMutation({
+    async onMutate(oldHighlight) {
+      await utils.document.getDocData.cancel();
+      const prevData = utils.document.getDocData.getData();
+
+      // @ts-ignore
+      utils.document.getDocData.setData({ docId: docId as string }, (old) => {
+        if (!old) return null;
+        return {
+          ...old,
+          highlights: [
+            ...old.highlights.filter(
+              (highlight) => highlight.id === oldHighlight.highlightId,
+            ),
+          ],
+        };
+      });
+
+      return { prevData };
+    },
+    onError(err, newPost, ctx) {
+      utils.document.getDocData.setData(
+        { docId: docId as string },
+        ctx?.prevData,
+      );
+    },
+    onSettled() {
+      utils.document.getDocData.invalidate();
+    },
+  });
+
+  const utils = api.useContext();
 
   let scrollViewerTo = (highlight: any) => {};
 
@@ -171,9 +236,9 @@ const DocViewer = ({
     return <>error</>;
   }
 
-  // if (!doc || !doc.highlights || !doc.url || !isReady) {
-  //   return;
-  // }
+  if (!doc || !doc.highlights || !isReady) {
+    return;
+  }
 
   // console.log(doc.highlights, "highlights");
   return (
@@ -311,7 +376,7 @@ const TextSelectionPopover = ({
   };
 
   return (
-    <div className="flex gap-2 rounded-md bg-black p-2 ">
+    <div className="flex gap-2 rounded-md bg-black p-2">
       <Highlighter
         size={18}
         className="rounded-full text-gray-200 hover:cursor-pointer"
@@ -337,10 +402,10 @@ const HighlightedTextPopup = ({
   deleteHighlight: any;
 }) => {
   return (
-    <div className="rounded-full bg-gray-200  text-black">
+    <div className="flex gap-2 rounded-md bg-black p-2">
       <TrashIcon
-        size={24}
-        className="hover:cursor-pointer"
+        size={18}
+        className="rounded-full text-gray-200 hover:cursor-pointer"
         onClick={() => {
           deleteHighlight(id);
         }}
