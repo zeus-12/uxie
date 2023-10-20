@@ -8,7 +8,7 @@ import {
   SideMenuPositioner,
   ImageToolbarPositioner,
 } from "@blocknote/react";
-import { AlertCircle, Highlighter, Image } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 
 function Editor({ editor }: { editor: any }) {
