@@ -39,8 +39,7 @@ const UserLibraryPage = () => {
             // show toast and refetch files
           }}
           onUploadError={(error: Error) => {
-            // show toast
-            console.log(error);
+            console.log(error.message);
           }}
         />
       </div>
