@@ -45,18 +45,28 @@ const UserLibraryPage = () => {
       </div>
 
       <p className="text-muted-foreground">Here are your files</p>
-      {userDocs?.documents?.map((doc) => (
-        <Link key={doc.id} href={`/f/${doc.id}`}>
-          <div>{doc.title}</div>
-        </Link>
-      ))}
-      {userDocs.collaborators.map((collab) => (
-        <Link key={collab.document.id} href={`/f/${collab.document.id}`}>
-          <Badge variant="outline">Collab</Badge>
-          <Badge variant="outline">{collab.role}</Badge>
-          <div>{collab.document.title}</div>
-        </Link>
-      ))}
+      <div className="flex flex-wrap gap-2">
+        {userDocs?.documents?.map((doc) => (
+          <Link key={doc.id} href={`/f/${doc.id}`}>
+            <div className={cn(buttonVariants({ variant: "ghost" }))}>
+              {doc.title}
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {userDocs.collaborators.map((collab) => (
+          <Link key={collab.document.id} href={`/f/${collab.document.id}`}>
+            <div className={cn(buttonVariants({ variant: "ghost" }))}>
+              {/* <Badge variant="outline">{collab.role}</Badge> */}
+              <Badge variant="outline">Collab</Badge>
+
+              {collab.document.title}
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 };
