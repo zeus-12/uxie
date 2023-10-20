@@ -77,6 +77,7 @@ export const documentRouter = createTRPCRouter({
         owner: res.owner,
         collaborators: res.collaborators,
         messages: res.messages,
+        url: res.url,
       };
     }),
 });
