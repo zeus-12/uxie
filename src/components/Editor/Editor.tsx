@@ -36,13 +36,6 @@ function Editor({ editor }: { editor: any }) {
                   icon: AlertCircle as any,
                   isSelected: (block) => block.type === "alert",
                 },
-                // {
-                //   name: "Highlight",
-                //   type: "highlight",
-                //   icon: Highlighter as any,
-                //   // @ts-ignore
-                //   isSelected: (block) => block.type === "highlight",
-                // },
               ]}
             />
           )}
@@ -52,7 +45,6 @@ function Editor({ editor }: { editor: any }) {
         <SideMenuPositioner editor={editor} />
         <ImageToolbarPositioner editor={editor} />
       </BlockNoteView>
-      {/* <button onClick={addtext}>add text</button> */}
     </div>
   );
 }
