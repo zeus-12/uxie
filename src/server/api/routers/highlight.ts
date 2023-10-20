@@ -1,7 +1,7 @@
 import { z, custom } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { HighlightPositionTypeWithDocumentId } from "@/lib/types";
+import { HighlightPositionTypeWithDocumentId } from "@/types";
 
 export const highlightRouter = createTRPCRouter({
   add: protectedProcedure

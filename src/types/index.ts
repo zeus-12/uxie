@@ -1,4 +1,4 @@
-import { Highlight } from "react-pdf-highlighter";
+// import { Highlight } from "react-pdf-highlighter";
 
 export enum HighlightContentType {
   TEXT = "TEXT",

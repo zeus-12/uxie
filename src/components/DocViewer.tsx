@@ -20,7 +20,7 @@ import {
   HighlightContentType,
   HighlightPositionType,
   HighlightType,
-} from "@/lib/types";
+} from "@/types";
 // import InviteCollab from "@/components/InviteCollab";
 
 const parseIdFromHash = () =>

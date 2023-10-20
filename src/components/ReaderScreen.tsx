@@ -14,7 +14,7 @@ import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
 import { Icons } from "@/components/icons";
-import { HighlightContentType } from "@/lib/types";
+import { HighlightContentType } from "@/types";
 
 const DocViewerPage = () => {
   const [width, setWidth] = useState<null | number>();
