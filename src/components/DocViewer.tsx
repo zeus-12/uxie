@@ -25,9 +25,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Icons } from "@/components/icons";
 // import InviteCollab from "@/components/InviteCollab";
+import { createId } from "@paralleldrive/cuid2";
 
-const parseIdFromHash = () =>
-  document.location.hash.slice("#highlight-".length);
+const parseIdFromHash = () => document.location.hash.slice(1);
 
 const resetHash = () => {
   document.location.hash = "";
@@ -72,7 +72,6 @@ const DocViewer = ({
           highlights: [
             ...old.highlights,
             {
-              // id: "23423",
               position: {
                 boundingRect: newHighlight.boundingRect,
                 rects: newHighlight.rects,
@@ -159,21 +158,21 @@ const DocViewer = ({
   async function addHighlight({
     content,
     position,
-    id,
   }: {
     content: {
       text?: string;
       image?: string;
     };
     position: HighlightPositionType;
-    id: string;
   }) {
-    console.log(content, "cotnent");
+    const highlightId = createId();
+
     if (!content.text && !content.image) return;
     const isTextHighlight = !content.image;
 
     // add to db => do optimistic update => for optimistic update use id as id. but for db dont pass id
     addHighlightMutation({
+      id: highlightId,
       boundingRect: position.boundingRect,
       content: {
         ...(isTextHighlight
@@ -184,51 +183,23 @@ const DocViewer = ({
       pageNumber: position.pageNumber,
       rects: position.rects,
     });
-    console.log("adding highlight", content, position);
 
     if (isTextHighlight) {
       if (!content.text) return;
 
-      // optimistic update
-
-      // setHighlights((prevHighlights) => [
-      //   ...prevHighlights,
-      //   {
-      //     id,
-      //     position,
-      //     content: {
-      //       text: content.text as string,
-      //     },
-      //   },
-      // ]);
-
-      addHighlightToNotes(content.text, id, HighlightContentType.TEXT);
+      addHighlightToNotes(content.text, highlightId, HighlightContentType.TEXT);
     } else {
       if (!content.image) return;
 
-      // setHighlights((prevHighlights) => [
-      //   ...prevHighlights,
-      //   {
-      //     id,
-      //     position,
-      //     content: {
-      //       image: content.image as string,
-      //     },
-      //   },
-      // ]);
-
       addHighlightToNotes(
         content.image,
-        id,
-
+        highlightId,
         HighlightContentType.IMAGE,
       );
     }
   }
 
   const deleteHighlight = (id: string) => {
-    console.log("deleting highlight", id);
-
     deleteHighlightMutation({
       documentId: docId as string,
       highlightId: id,
@@ -243,7 +214,6 @@ const DocViewer = ({
     return;
   }
 
-  // console.log(doc.highlights, "highlights");
   return (
     <div className="flex h-screen flex-col">
       <div className=" flex items-center justify-between">
@@ -284,13 +254,12 @@ const DocViewer = ({
                 hideTipAndSelection,
                 transformSelection,
               ) => {
-                const id = String(Math.random());
                 return (
                   <TextSelectionPopover
                     content={content}
                     hideTipAndSelection={hideTipAndSelection}
                     position={position}
-                    addHighlight={() => addHighlight({ content, position, id })}
+                    addHighlight={() => addHighlight({ content, position })}
                   />
                 );
               }}
@@ -308,28 +277,24 @@ const DocViewer = ({
                 );
 
                 const component = isTextHighlight ? (
-                  <Highlight
-                    isScrolledTo={isScrolledTo}
-                    position={highlight.position}
-                    comment={{
-                      emoji: "",
-                      text: "",
-                    }}
-                  />
+                  <div id={highlight.id}>
+                    <Highlight
+                      isScrolledTo={isScrolledTo}
+                      position={highlight.position}
+                      comment={{
+                        emoji: "",
+                        text: "",
+                      }}
+                    />
+                  </div>
                 ) : (
-                  <AreaHighlight
-                    isScrolledTo={isScrolledTo}
-                    highlight={highlight}
-                    onChange={() => {}}
-
-                    // onChange={(boundingRect) => {
-                    //   updateHighlight(
-                    //     highlight.id,
-                    //     { boundingRect: viewportToScaled(boundingRect) },
-                    //     { image: screenshot(boundingRect) },
-                    //   );
-                    // }}
-                  />
+                  <div id={highlight.id}>
+                    <AreaHighlight
+                      isScrolledTo={isScrolledTo}
+                      highlight={highlight}
+                      onChange={() => {}}
+                    />
+                  </div>
                 );
 
                 return (
