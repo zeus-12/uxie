@@ -10,11 +10,9 @@ import {
 } from "@blocknote/react";
 import { AlertCircle, Highlighter, Image } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useState } from "react";
 
 function Editor({ editor }: { editor: any }) {
   const { theme } = useTheme();
-  const [markdown, setMarkdown] = useState<string>("");
 
   return (
     <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">
