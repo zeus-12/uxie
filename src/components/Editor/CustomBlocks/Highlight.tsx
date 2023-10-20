@@ -43,7 +43,7 @@ export const Highlight = (props: {
         onClick={() => {
           if (!props?.block?.props?.highlightId) return;
           // todo check whether the "highlight-" is even required
-          document.location.hash = `highlight-${props.block.props.highlightId}`;
+          document.location.hash = props.block.props.highlightId;
         }}
         className="h-full w-4 rounded-full bg-yellow-400 hover:cursor-pointer"
       />
