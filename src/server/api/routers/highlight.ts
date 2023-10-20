@@ -1,13 +1,40 @@
-import { z, custom } from "zod";
+import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { HighlightPositionTypeWithDocumentId } from "@/types";
 
 export const highlightRouter = createTRPCRouter({
   add: protectedProcedure
     .input(
-      // maybe replace with zod types
-      custom<HighlightPositionTypeWithDocumentId>(),
+      z.object({
+        documentId: z.string(),
+        id: z.string(),
+        boundingRect: z.object({
+          x1: z.number(),
+          y1: z.number(),
+          x2: z.number(),
+          y2: z.number(),
+          width: z.number(),
+          height: z.number(),
+          pageNumber: z.number().optional(),
+        }),
+        rects: z.array(
+          z.object({
+            x1: z.number(),
+            y1: z.number(),
+            x2: z.number(),
+            y2: z.number(),
+            width: z.number(),
+            height: z.number(),
+            pageNumber: z.number().optional(),
+          }),
+        ),
+        pageNumber: z.number(),
+
+        content: z.object({
+          text: z.string().optional(),
+          image: z.string().optional(),
+        }),
+      }),
     )
     .mutation(async ({ ctx, input }) => {
       const content: any = {};
@@ -28,6 +55,7 @@ export const highlightRouter = createTRPCRouter({
 
       await ctx.prisma.highlight.create({
         data: {
+          id: input.id,
           boundingRectangle: {
             create: {
               x1: input.boundingRect.x1,
