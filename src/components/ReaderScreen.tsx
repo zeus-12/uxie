@@ -15,10 +15,26 @@ import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
 import { Icons } from "@/components/icons";
 import { HighlightContentType } from "@/types";
+import { api } from "@/lib/api";
+import { useRouter } from "next/router";
 
 const DocViewerPage = () => {
+  const { query } = useRouter();
+
+  const { data: initialNotes } = api.document.getNotes.useQuery(
+    {
+      docId: query?.docId as string,
+    },
+    {
+      enabled: !!query?.docId,
+    },
+  );
+
   const [width, setWidth] = useState<null | number>();
   const [mouseDown, setMouseDown] = useState(false);
+
+  const { mutate: updateNotesMutation } =
+    api.document.updateNotes.useMutation();
 
   const handleMouseDown = (event: MouseEvent<HTMLOrSVGElement>) => {
     setMouseDown(true);
@@ -43,27 +59,32 @@ const DocViewerPage = () => {
     alert: createAlertBlock(theme === "dark" ? "dark" : "light"),
     highlight: createHighlightBlock(theme === "dark" ? "dark" : "light"),
   };
-  const [markdown, setMarkdown] = useState<any>([]);
 
   const debounced = useDebouncedCallback((value) => {
-    setMarkdown(value);
-    console.log("saving to db", value);
+    updateNotesMutation({
+      markdown: value,
+      documentId: query?.docId as string,
+    });
   }, 3000);
 
-  const editor = useBlockNote({
-    onEditorContentChange: (editor) => {
-      debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
+  const editor = useBlockNote(
+    {
+      initialContent: initialNotes ? JSON.parse(initialNotes) : undefined,
+      onEditorContentChange: (editor) => {
+        debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
+      },
+
+      blockSchema: schemaWithCustomBlocks,
+      uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
+
+      slashMenuItems: [
+        ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
+        insertAlert,
+        // insertHighlight,
+      ],
     },
-
-    blockSchema: schemaWithCustomBlocks,
-    uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
-
-    slashMenuItems: [
-      ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
-      insertAlert,
-      // insertHighlight,
-    ],
-  });
+    [initialNotes],
+  );
 
   const addHighlightToNotes = (
     content: string,
@@ -104,19 +125,8 @@ const DocViewerPage = () => {
       if (!content || !highlightId) return;
 
       try {
-        // if (editor.uploadFile) {
         const block = editor.getTextCursorPosition().block;
         const blockIsEmpty = block.content?.length === 0;
-
-        //   const data = await fetch(content);
-        //   const blob = await data.blob();
-
-        //   const file = new File([blob], content, { type: "image/png" });
-
-        //   const link = await editor.uploadFile(file);
-        //   console.log(link, "link");
-
-        //   console.log("uploadedd");
 
         if (blockIsEmpty) {
           editor.updateBlock(block, {
