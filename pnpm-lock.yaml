@@ -11,11 +11,11 @@ patchedDependencies:
 
 dependencies:
   '@blocknote/core':
-    specifier: ^0.9.4
-    version: 0.9.4
+    specifier: ^0.9.5
+    version: 0.9.5
   '@blocknote/react':
-    specifier: ^0.9.4
-    version: 0.9.4(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+    specifier: ^0.9.5
+    version: 0.9.5(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
   '@hookform/resolvers':
     specifier: ^3.3.1
     version: 3.3.1(react-hook-form@7.47.0)
@@ -76,6 +76,9 @@ dependencies:
   clsx:
     specifier: ^2.0.0
     version: 2.0.0
+  file-saver:
+    specifier: ^2.0.5
+    version: 2.0.5
   lucide-react:
     specifier: ^0.276.0
     version: 0.276.0(react@18.2.0)
@@ -126,6 +129,9 @@ devDependencies:
   '@types/eslint':
     specifier: ^8.44.2
     version: 8.44.3
+  '@types/file-saver':
+    specifier: ^2.0.6
+    version: 2.0.6
   '@types/node':
     specifier: ^18.16.0
     version: 18.18.4
@@ -229,8 +235,8 @@ packages:
       to-fast-properties: 2.0.0
     dev: false
 
-  /@blocknote/core@0.9.4:
-    resolution: {integrity: sha512-K/yfXISCc8JdPNZrBlx5SVlbTM/iVIwL9fHWRe0dJ75ns1AAJh1s9N2tRSa4NovtajGAempjyNIJqXXzqIirmg==}
+  /@blocknote/core@0.9.5:
+    resolution: {integrity: sha512-aTU9pSUTQvMDWcvpdUJG+8MvP8CfSutWu6xiorGw2nNBMwnnletFxVxebZvvDBMSyjO6Ye4xtiaIA7D3PXn7PA==}
     dependencies:
       '@emotion/cache': 11.11.0
       '@emotion/serialize': 1.1.2
@@ -274,13 +280,13 @@ packages:
       - supports-color
     dev: false
 
-  /@blocknote/react@0.9.4(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-+VJiJB3xOUkUAU9aGvlPMhUw2zucZIThX1syD2wqHHos+XdqV0HiSK40B8jkIlN0V7rErVxddPsCgridor8gEQ==}
+  /@blocknote/react@0.9.5(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-Mp+6hg0uja83U5NGvlU9CSM+a/T68nq9gsS4e4ixiQwrHYq227qU+X9cFK4fnVQZLENwMWE5gQ+W6DPP92JwLg==}
     peerDependencies:
       react: ^18
       react-dom: ^18
     dependencies:
-      '@blocknote/core': 0.9.4
+      '@blocknote/core': 0.9.5
       '@emotion/react': 11.11.1(@types/react@18.2.25)(react@18.2.0)
       '@mantine/core': 5.10.5(@emotion/react@11.11.1)(@mantine/hooks@5.10.5)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
       '@mantine/hooks': 5.10.5(react@18.2.0)
@@ -1984,6 +1990,10 @@ packages:
     resolution: {integrity: sha512-CqDQhn7jxaN9zw7zAu926zIx51ZzMaX8U8Wa4jGpKI6jeBr9ejFE68AQ+h+ztfrNJD+leo7K1cLbvMjpHfZSRg==}
     dev: false
 
+  /@types/file-saver@2.0.6:
+    resolution: {integrity: sha512-Mw671DVqoMHbjw0w4v2iiOro01dlT/WhWp5uwecBa0Wg8c+bcZOjgF1ndBnlaxhtvFCgTRBtsGivSVhrK/vnag==}
+    dev: true
+
   /@types/hast@2.3.6:
     resolution: {integrity: sha512-47rJE80oqPmFdVDCD7IheXBrVdwuBgsYwoczFvKmwfo2Mzsnt+V9OONsYauFmICb6lQPpCuXYJWejBNs4pDJRg==}
     dependencies:
@@ -3203,6 +3213,10 @@ packages:
     dependencies:
       flat-cache: 3.1.1
     dev: true
+
+  /file-saver@2.0.5:
+    resolution: {integrity: sha512-P9bmyZ3h/PRG+Nzga+rbdI4OEpNDzAVyy74uVO9ATgzLK6VtAsYybF/+TOCvrc0MO793d6+42lLyZTw7/ArVzA==}
+    dev: false
 
   /file-selector@0.6.0:
     resolution: {integrity: sha512-QlZ5yJC0VxHxQQsQhXvBaC7VRJ2uaxTf+Tfpu4Z/OcVQJVpZO+DGU0rkoVW5ce2SccxugvpBJoMvUs59iILYdw==}
