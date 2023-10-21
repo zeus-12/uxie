@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/Spinner";
 import { Icons } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,10 +12,16 @@ const UserLibraryPage = () => {
     data: userDocs,
     isError,
     isLoading,
+    refetch: refetchUserDocs,
   } = api.user.getUsersDocs.useQuery();
 
   if (isError) return <div>error</div>;
-  if (isLoading) return <div>loading...</div>;
+  if (isLoading)
+    return (
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
+        <Spinner />
+      </div>
+    );
   if (!userDocs) return <div>sorry no result found</div>;
 
   return (
@@ -36,7 +43,9 @@ const UserLibraryPage = () => {
         <UploadButton
           endpoint="imageUploader"
           onClientUploadComplete={(res: any) => {
-            // show toast and refetch files
+            // console.log("client upload complete");
+            // someway to refetch
+            refetchUserDocs();
           }}
           onUploadError={(error: Error) => {
             console.log(error.message);
