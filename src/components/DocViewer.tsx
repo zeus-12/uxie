@@ -109,7 +109,7 @@ const DocViewer = ({
           ...old,
           highlights: [
             ...old.highlights.filter(
-              (highlight) => highlight.id === oldHighlight.highlightId,
+              (highlight) => highlight.id !== oldHighlight.highlightId,
             ),
           ],
         };
