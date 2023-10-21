@@ -27,7 +27,7 @@
 - [x] add dark mode for the bg of home screen
 
 - [ ] integrate ai => chrome extension + custom llm
-- [] heck how to export the notes directly to notion? (using notion api or some plugin??)
+- [ ] check how to export the notes directly to notion? (using notion api or some plugin??)
 - [ ] do similar to https://codesandbox.io/s/react-resizable-layout-jy3vhk?fontsize=14&hidenavigation=1&theme=dark&file=/src/components/IdeClone.tsx for the readerscreen
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] highlight popover tip not appearing at times (for later pages)
@@ -39,3 +39,9 @@
 - highlights block which on click takes you to that highlight on the doc.
 - download as markdown
 -
+
+## setting up guide
+
+### Pinecone
+
+- Create index => Dimensions = 1536, Metric = Cosine
