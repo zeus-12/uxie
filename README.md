@@ -32,3 +32,10 @@
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] highlight popover tip not appearing at times (for later pages)
 - [ ] give solid width for the yellow line in the highlighter cusotm block in notes
+
+## Features to pitch
+
+- custom blocks in editor
+- highlights block which on click takes you to that highlight on the doc.
+- download as markdown
+-
