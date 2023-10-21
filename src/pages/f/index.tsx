@@ -41,6 +41,9 @@ const UserLibraryPage = () => {
           Hello, {userDocs?.name || "User"}
         </p>
         <UploadButton
+          appearance={{
+            button: buttonVariants({ variant: "default" }),
+          }}
           endpoint="imageUploader"
           onClientUploadComplete={(res: any) => {
             // console.log("client upload complete");
