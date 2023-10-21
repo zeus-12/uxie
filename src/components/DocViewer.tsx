@@ -237,7 +237,14 @@ const DocViewer = ({
         </div> */}
       </div>
       <div className="relative h-screen w-full ">
-        <PdfLoader url={doc.url} beforeLoad={<Spinner />}>
+        <PdfLoader
+          url={doc.url}
+          beforeLoad={
+            <div className="flex h-full items-center justify-center">
+              <Spinner />
+            </div>
+          }
+        >
           {(pdfDocument) => (
             <PdfHighlighter
               pdfDocument={pdfDocument}
