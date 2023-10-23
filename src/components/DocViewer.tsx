@@ -310,6 +310,7 @@ const DocViewer = ({
                       <HighlightedTextPopup
                         id={highlight.id}
                         deleteHighlight={deleteHighlight}
+                        hideTip={hideTip}
                       />
                     }
                     onMouseOver={(popupContent) =>
@@ -357,20 +358,19 @@ const TextSelectionPopover = ({
   };
 
   return (
-    <div className="flex gap-2 rounded-md bg-black p-2">
-      <Highlighter
-        size={18}
-        className="rounded-full text-gray-200 hover:cursor-pointer"
+    <div className="flex rounded-md bg-black">
+      <div
+        className="p-2 hover:cursor-pointer"
         onClick={() => {
           addHighlight();
           hideTipAndSelection();
         }}
-      />
-      <ClipboardCopy
-        size={18}
-        className="rounded-full text-gray-200 hover:cursor-pointer"
-        onClick={copyTextToClipboard}
-      />
+      >
+        <Highlighter size={18} className="rounded-full  text-gray-200 " />
+      </div>
+      <div className="p-2 hover:cursor-pointer" onClick={copyTextToClipboard}>
+        <ClipboardCopy size={18} className="rounded-full text-gray-200" />
+      </div>
     </div>
   );
 };
@@ -378,19 +378,26 @@ const TextSelectionPopover = ({
 const HighlightedTextPopup = ({
   id,
   deleteHighlight,
+  hideTip,
 }: {
   id: string;
   deleteHighlight: any;
+  hideTip: () => void;
 }) => {
   return (
-    <div className="flex gap-2 rounded-md bg-black p-2">
-      <TrashIcon
-        size={18}
-        className="rounded-full text-gray-200 hover:cursor-pointer"
+    <div className="flex rounded-md bg-black">
+      <div
+        className="p-2 hover:cursor-pointer"
         onClick={() => {
           deleteHighlight(id);
+          hideTip();
         }}
-      />
+      >
+        <TrashIcon
+          size={18}
+          className="rounded-full text-gray-200 hover:cursor-pointer"
+        />
+      </div>
     </div>
   );
 };
