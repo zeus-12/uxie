@@ -95,27 +95,15 @@ model Message {
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id])
   userId     String
-  document   Document @relation(fields: [documentId], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
 }
 
-// model Comment {
-//   id          String      @id @default(cuid())
-//   text      String
-//   emoji     String
-//   Highlight Highlight
-// }
-
 model Highlight {
-  id       String  @id @default(cuid())
-  imageUrl String? @db.Text
-  text     String? @db.Text
-  // comment      Comment     @relation(fields: [commentId], references: [id])
-  // commentId    String
-
-  // replace comment with emoji only?? => also, add colour.
-
-  document   Document @relation(fields: [documentId], references: [id])
+  id         String   @id @default(cuid())
+  imageUrl   String?  @db.Text
+  text       String?  @db.Text
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
 
   boundingRectangle Cordinate? @relation("boundingRectangle")
@@ -123,8 +111,6 @@ model Highlight {
   rectangles Cordinate[] @relation("rectangles")
 
   pageNumber Int?
-  // user       User   @relation(fields: [userId], references: [id])
-  // userId     String
 }
 
 model Cordinate {
@@ -138,9 +124,9 @@ model Cordinate {
 
   pageNumber Int?
 
-  highlightedRectangle   Highlight? @relation("rectangles", fields: [highlightedRectangleId], references: [id])
+  highlightedRectangle   Highlight? @relation("rectangles", fields: [highlightedRectangleId], references: [id], onDelete: Cascade)
   highlightedRectangleId String?
 
-  highlightedBoundingRectangle   Highlight? @relation("boundingRectangle", fields: [highlightedBoundingRectangleId], references: [id])
+  highlightedBoundingRectangle   Highlight? @relation("boundingRectangle", fields: [highlightedBoundingRectangleId], references: [id], onDelete: Cascade)
   highlightedBoundingRectangleId String?    @unique
 }
