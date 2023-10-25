@@ -7,10 +7,14 @@ import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { env } from "@/env.mjs";
 import { prisma } from "@/server/db";
 
-const TransformersApi = Function(
-  'return import("langchain/embeddings/hf_transformers")',
-)();
-const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
+// const TransformersApi = Function(
+//   'return import("langchain/embeddings/hf_transformers")',
+// )();
+// const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
+
+// const { HuggingFaceTransformersEmbeddings } = await import(
+//   "langchain/embeddings/hf_transformers"
+// );
 
 const fireworks = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -30,6 +34,10 @@ export async function POST(req: Request) {
   });
 
   if (!doc) return new Response("Not found", { status: 404 });
+
+  const HuggingFaceTransformersEmbeddings = (
+    await import("langchain/embeddings/hf_transformers")
+  ).HuggingFaceTransformersEmbeddings;
 
   const embeddings = new HuggingFaceTransformersEmbeddings({
     // modelName: "jinaai/jina-embeddings-v2-small-en",

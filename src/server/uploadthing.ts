@@ -5,10 +5,14 @@ import { prisma } from "@/server/db";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
-const TransformersApi = Function(
-  'return import("langchain/embeddings/hf_transformers")',
-)();
-const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
+// import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers";
+
+// const { HuggingFaceTransformersEmbeddings } = await import(
+//   "langchain/embeddings/hf_transformers"
+// );
+// const TransformersApi = Function(
+//   'return ',
+// )();
 
 const f = createUploadthing();
 
@@ -54,6 +58,10 @@ export const imageUploader = {
             dataset: "pdf", // Use a field to indicate the source dataset (e.g., 'pdf')
           };
         });
+
+        const HuggingFaceTransformersEmbeddings = (
+          await import("langchain/embeddings/hf_transformers")
+        ).HuggingFaceTransformersEmbeddings;
 
         const embeddings = new HuggingFaceTransformersEmbeddings({
           // modelName: "jinaai/jina-embeddings-v2-small-en",
