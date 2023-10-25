@@ -1,7 +1,14 @@
+// import { generateEmbeddings } from "@/lib/embeddings";
+import { getPineconeClient } from "@/lib/pinecone";
 import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
-
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
+import { PineconeStore } from "langchain/vectorstores/pinecone";
+const TransformersApi = Function(
+  'return import("langchain/embeddings/hf_transformers")',
+)();
+const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
 
 const f = createUploadthing();
 
@@ -15,7 +22,7 @@ export const imageUploader = {
       return { userId: session?.user?.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      await prisma?.document.create({
+      const newFile = await prisma?.document.create({
         data: {
           owner: {
             connect: {
@@ -26,6 +33,40 @@ export const imageUploader = {
           title: file.name,
         },
       });
+
+      try {
+        const response = await fetch(file.url);
+        const blob = await response.blob();
+        const loader = new PDFLoader(blob);
+        const pageLevelDocs = await loader.load();
+
+        // vectorize and index entire document
+        const pinecone = await getPineconeClient();
+        const pineconeIndex = pinecone.Index("uxie");
+
+        // Add a 'dataset' field to the data to distinguish the source
+        const combinedData = pageLevelDocs.map((document) => {
+          return {
+            ...document,
+            metadata: {
+              fileId: newFile.id,
+            },
+            dataset: "pdf", // Use a field to indicate the source dataset (e.g., 'pdf')
+          };
+        });
+
+        const embeddings = new HuggingFaceTransformersEmbeddings({
+          // modelName: "jinaai/jina-embeddings-v2-small-en",
+          modelName: "Xenova/all-MiniLM-L6-v2",
+        });
+
+        await PineconeStore.fromDocuments(combinedData, embeddings, {
+          pineconeIndex,
+        });
+      } catch (err: any) {
+        console.log(err.message, "error ");
+        console.log(err);
+      }
     }),
 } satisfies FileRouter;
 
