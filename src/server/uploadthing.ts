@@ -7,12 +7,10 @@ import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 // import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers";
 
-// const { HuggingFaceTransformersEmbeddings } = await import(
-//   "langchain/embeddings/hf_transformers"
-// );
-// const TransformersApi = Function(
-//   'return ',
-// )();
+const TransformersApi = Function(
+  'return import("langchain/embeddings/hf_transformers")',
+)();
+const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
 
 const f = createUploadthing();
 
@@ -59,13 +57,10 @@ export const imageUploader = {
           };
         });
 
-        const HuggingFaceTransformersEmbeddings = (
-          await import("langchain/embeddings/hf_transformers")
-        ).HuggingFaceTransformersEmbeddings;
-
         const embeddings = new HuggingFaceTransformersEmbeddings({
           // modelName: "jinaai/jina-embeddings-v2-small-en",
           modelName: "Xenova/all-MiniLM-L6-v2",
+          // stripNewLines: true,
         });
 
         await PineconeStore.fromDocuments(combinedData, embeddings, {
@@ -73,7 +68,6 @@ export const imageUploader = {
         });
       } catch (err: any) {
         console.log(err.message, "error ");
-        console.log(err);
       }
     }),
 } satisfies FileRouter;
