@@ -46,9 +46,10 @@ const Sidebar = ({ editor }: { editor: any }) => {
         </TabsContent>
 
         <TabsContent value="chat">
-          <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:p-4 sm:shadow-lg lg:p-8">
+          <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg ">
             <Chat
-            // docId={docId} userId={userId}
+
+            // userId={userId}
             />
           </div>
         </TabsContent>
