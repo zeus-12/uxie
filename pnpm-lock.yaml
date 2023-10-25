@@ -77,8 +77,8 @@ dependencies:
     specifier: ^5.6.2
     version: 5.6.2(next@13.5.4)(react@18.2.0)(uploadthing@5.7.1)(zod@3.22.4)
   '@xenova/transformers':
-    specifier: ^2.7.0
-    version: 2.7.0
+    specifier: ^2.5.4
+    version: 2.5.4
   ai:
     specifier: ^2.2.17
     version: 2.2.17(react@18.2.0)(solid-js@1.8.3)(svelte@4.2.2)(vue@3.3.6)
@@ -93,7 +93,7 @@ dependencies:
     version: 2.0.5
   langchain:
     specifier: ^0.0.171
-    version: 0.0.171(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.7.0)(pdf-parse@1.1.1)
+    version: 0.0.171(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.5.4)(pdf-parse@1.1.1)
   lucide-react:
     specifier: ^0.276.0
     version: 0.276.0(react@18.2.0)
@@ -2491,8 +2491,8 @@ packages:
     resolution: {integrity: sha512-Xno5pEqg8SVhomD0kTSmfh30ZEmV/+jZtyh39q6QflrjdJCXah5lrnOLi9KB6a5k5aAHXMXjoMnxlzUkCNfWLQ==}
     dev: false
 
-  /@xenova/transformers@2.7.0:
-    resolution: {integrity: sha512-py5RqZt9lL/FFUT5X6St+TOSBoVaEmDETI98lK9ApEOvlWeX4bTS2nMQDFe3nFMpv24+wllhmPw2Www/f/ubJA==}
+  /@xenova/transformers@2.5.4:
+    resolution: {integrity: sha512-hXk/8j5E5Ql4PmP7/n45zSRVjTB1iLTUvRJum8ywU/aAXg4QW2SYQqb0oCBrY7yCG8Hb/8s3C+TevHjgWEbLkw==}
     dependencies:
       onnxruntime-web: 1.14.0
       sharp: 0.32.6
@@ -4557,7 +4557,7 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  /langchain@0.0.171(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.7.0)(pdf-parse@1.1.1):
+  /langchain@0.0.171(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.5.4)(pdf-parse@1.1.1):
     resolution: {integrity: sha512-SSlo3Q2qYohdYxQZ2Iehu5/B2c9x4saKNHIhLhiTRlIiStQORYyxAXu71/eIkpVa9thrK0i3fuU3gXKWukGlyA==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -4850,7 +4850,7 @@ packages:
     dependencies:
       '@anthropic-ai/sdk': 0.6.8
       '@pinecone-database/pinecone': 1.1.1
-      '@xenova/transformers': 2.7.0
+      '@xenova/transformers': 2.5.4
       ansi-styles: 5.2.0
       binary-extensions: 2.2.0
       camelcase: 6.3.0
