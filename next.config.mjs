@@ -11,21 +11,21 @@ const config = {
     domains: ["lh3.googleusercontent.com"],
   },
 
-  // https://huggingface.co/docs/transformers.js/tutorials/next => for HuggingFaceTransformersEmbeddings
-  // @ts-ignore
-  webpack: (config) => {
-    // See https://webpack.js.org/configuration/resolve/#resolvealias
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      sharp$: false,
-      "onnxruntime-node$": false,
-    };
+  // // https://huggingface.co/docs/transformers.js/tutorials/next => for HuggingFaceTransformersEmbeddings
+  // // @ts-ignore
+  // webpack: (config) => {
+  //   // See https://webpack.js.org/configuration/resolve/#resolvealias
+  //   config.resolve.alias = {
+  //     ...config.resolve.alias,
+  //     sharp$: false,
+  //     "onnxruntime-node$": false,
+  //   };
 
-    return config;
-  },
-  experimental: {
-    serverComponentsExternalPackages: ["sharp", "onnxruntime-node"],
-  },
+  //   return config;
+  // },
+  // experimental: {
+  //   serverComponentsExternalPackages: ["sharp", "onnxruntime-node"],
+  // },
 };
 
 export default withConfig(config);
