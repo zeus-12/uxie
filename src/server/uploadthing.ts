@@ -18,7 +18,7 @@ import { env } from "@/env.mjs";
 const f = createUploadthing();
 
 export const imageUploader = {
-  imageUploader: f({ pdf: { maxFileSize: "16MB" } })
+  imageUploader: f({ pdf: { maxFileSize: "8MB" } })
     .middleware(async ({ req, res }) => {
       const session = await getServerAuthSession({ req, res });
 
