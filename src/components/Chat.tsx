@@ -4,6 +4,7 @@ import { useChat } from "ai/react";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import TextareaAutosize from "react-textarea-autosize";
 
 export default function Chat() {
   const { query } = useRouter();
@@ -53,11 +54,12 @@ export default function Chat() {
 
       <form onSubmit={handleSubmit}>
         <div className="flex w-full rounded-md border shadow-xl">
-          <input
+          <TextareaAutosize
             className="flex-1 rounded border-0 border-gray-300 p-2 "
             value={input}
             onChange={handleInputChange}
             autoFocus
+            maxRows={4}
           />
           <button className="w-fit bg-gray-50 px-2" type="submit">
             Send
