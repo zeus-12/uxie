@@ -3,12 +3,23 @@
 ### Built using
 
 - **Nextjs** App dir For the frontend and serverless api routes
+- **tRPC** For typesafe api routes
+- **zod** For validation
 - **Typescript** For type safety
 - **Tailwind CSS** For styling
-- **ShadcnUI** For components
+- **React Query** for data fetching
+- **React Hook Form** for form handling
+- **Shadcn UI + Radix UI** For UI components
 - **Supabase** As the database
 - **Prisma** As the ORM
-- **Novel** for note taking
+- **Blocknote** for note taking
+- **Uploadthing** for storing pdfs
+- **Next Auth** for authentication
+- **React-pdf-highlighter** for pdf rendering,highlighting
+- **Vercel AI SDK, Langchain** for AI responses and streaming
+- **Pinecone DB** for storing embeddings of pdfs
+- **Fireworks AI** for LLM
+- **Huggingface Model** for generating Embeddings
 
 ### Features:
 
@@ -25,11 +36,14 @@
 - [x] fix linking to the highlighted part for highlighted text on notes.
 - [x] also other note taking apps (obsidian,etc) : add a download as markdown feature for starters
 - [x] add dark mode for the bg of home screen
-- [ ] integrate ai => chrome extension + custom llm
+- [ ] integrate ai =>
+  - [ ] chrome extension
+  - [x] custom llm
 - [ ] check how to export the notes directly to notion? (using notion api or some plugin??)
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] highlight popover tip not appearing at times (for later pages)
 - [ ] give solid width for the yellow line in the highlighter cusotm block in notes
+- [ ] save chat messages to db after streaming (some handler onComplete fn)
 
 ## Features to pitch
 
@@ -42,4 +56,4 @@
 
 ### Pinecone
 
-- Create index => Dimensions = 1536, Metric = Cosine
+- Create index => Dimensions = 768, Metric = Cosine
