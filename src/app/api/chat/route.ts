@@ -150,6 +150,11 @@ export async function POST(req: Request) {
   //   ],
   // });
 
-  const stream = OpenAIStream(response);
+  const stream = OpenAIStream(response, {
+    onCompletion: async (completion: string) => {
+      // This callback is called when the stream completes
+      // await saveCompletionToDatabase(completion);
+    },
+  });
   return new StreamingTextResponse(stream);
 }
