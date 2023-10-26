@@ -37,20 +37,19 @@
 - [x] also other note taking apps (obsidian,etc) : add a download as markdown feature for starters
 - [x] add dark mode for the bg of home screen
 - [ ] integrate ai =>
-  - [ ] chrome extension
   - [x] custom llm
-- [ ] check how to export the notes directly to notion? (using notion api or some plugin??)
+  - [ ] chrome extension
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] highlight popover tip not appearing at times (for later pages)
 - [ ] give solid width for the yellow line in the highlighter cusotm block in notes
 - [ ] save chat messages to db after streaming (some handler onComplete fn)
+- [ ] create a isVectorised (use better name) column in document, and check that on the chat screen - maybe w. an option to vectorise it there? also check the number of pages before vectorising
 
 ## Features to pitch
 
 - custom blocks in editor
 - highlights block which on click takes you to that highlight on the doc.
 - download as markdown
--
 
 ## setting up guide
 
