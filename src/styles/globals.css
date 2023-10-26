@@ -94,3 +94,12 @@
   -ms-word-break: break-all;
   word-break: break-word;
 }
+
+.hideScrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hideScrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important ;
+}
