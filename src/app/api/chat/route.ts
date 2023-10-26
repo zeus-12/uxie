@@ -57,6 +57,8 @@ export async function POST(req: Request) {
 
   const lastMessage = messages.at(-1).content;
 
+  // save user message to db
+
   const results = await vectorStore.similaritySearch(lastMessage, 4);
   console.log(results, "embedding results");
   const prevMessages = await prisma.message.findMany({
