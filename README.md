@@ -44,6 +44,7 @@
 - [ ] give solid width for the yellow line in the highlighter cusotm block in notes
 - [ ] save chat messages to db after streaming (some handler onComplete fn)
 - [ ] create a isVectorised (use better name) column in document, and check that on the chat screen - maybe w. an option to vectorise it there? also check the number of pages before vectorising
+- [ ] create a validators folder which has zod types for all api body params => just chat for now
 
 ## Features to pitch
 
