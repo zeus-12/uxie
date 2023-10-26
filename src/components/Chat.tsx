@@ -57,6 +57,7 @@ export default function Chat() {
             className="flex-1 rounded border-0 border-gray-300 p-2 "
             value={input}
             onChange={handleInputChange}
+            autoFocus
           />
           <button className="w-fit bg-gray-50 px-2" type="submit">
             Send
