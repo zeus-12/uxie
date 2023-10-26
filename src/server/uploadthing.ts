@@ -5,12 +5,15 @@ import { prisma } from "@/server/db";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
-// import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers";
+import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
+import { env } from "@/env.mjs";
 
-const TransformersApi = Function(
-  'return import("langchain/embeddings/hf_transformers")',
-)();
-const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
+// import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers";
+// import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers";
+// const TransformersApi = Function(
+//   'return import("langchain/embeddings/hf_transformers")',
+// )();
+// const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
 
 const f = createUploadthing();
 
@@ -57,10 +60,18 @@ export const imageUploader = {
           };
         });
 
-        const embeddings = new HuggingFaceTransformersEmbeddings({
-          // modelName: "jinaai/jina-embeddings-v2-small-en",
-          modelName: "Xenova/all-MiniLM-L6-v2",
-          // stripNewLines: true,
+        // const { HuggingFaceTransformersEmbeddings } = await import(
+        //   "langchain/embeddings/hf_transformers"
+        // );
+
+        // const embeddings = new HuggingFaceTransformersEmbeddings({
+        //   // modelName: "jinaai/jina-embeddings-v2-small-en",
+        //   modelName: "Xenova/all-MiniLM-L6-v2",
+        //   // stripNewLines: true,
+        // });
+
+        const embeddings = new HuggingFaceInferenceEmbeddings({
+          apiKey: env.HUGGINGFACE_API_KEY, // In Node.js defaults to process.env.HUGGINGFACEHUB_API_KEY
         });
 
         await PineconeStore.fromDocuments(combinedData, embeddings, {

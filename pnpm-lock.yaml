@@ -19,6 +19,9 @@ dependencies:
   '@hookform/resolvers':
     specifier: ^3.3.1
     version: 3.3.1(react-hook-form@7.47.0)
+  '@huggingface/inference':
+    specifier: '1'
+    version: 1.8.0
   '@next-auth/prisma-adapter':
     specifier: ^1.0.7
     version: 1.0.7(@prisma/client@5.4.1)(next-auth@4.23.2)
@@ -93,7 +96,7 @@ dependencies:
     version: 2.0.5
   langchain:
     specifier: ^0.0.171
-    version: 0.0.171(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.5.4)(pdf-parse@1.1.1)
+    version: 0.0.171(@huggingface/inference@1.8.0)(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.5.4)(pdf-parse@1.1.1)
   lucide-react:
     specifier: ^0.276.0
     version: 0.276.0(react@18.2.0)
@@ -558,6 +561,11 @@ packages:
       react-hook-form: ^7.0.0
     dependencies:
       react-hook-form: 7.47.0(react@18.2.0)
+    dev: false
+
+  /@huggingface/inference@1.8.0:
+    resolution: {integrity: sha512-Dkh7PiyMf6TINRocQsdceiR5LcqJiUHgWjaBMRpCUOCbs+GZA122VH9q+wodoSptj6rIQf7wIwtDsof+/gd0WA==}
+    engines: {node: '>=18'}
     dev: false
 
   /@humanwhocodes/config-array@0.11.11:
@@ -4557,7 +4565,7 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  /langchain@0.0.171(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.5.4)(pdf-parse@1.1.1):
+  /langchain@0.0.171(@huggingface/inference@1.8.0)(@pinecone-database/pinecone@1.1.1)(@xenova/transformers@2.5.4)(pdf-parse@1.1.1):
     resolution: {integrity: sha512-SSlo3Q2qYohdYxQZ2Iehu5/B2c9x4saKNHIhLhiTRlIiStQORYyxAXu71/eIkpVa9thrK0i3fuU3gXKWukGlyA==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -4849,6 +4857,7 @@ packages:
         optional: true
     dependencies:
       '@anthropic-ai/sdk': 0.6.8
+      '@huggingface/inference': 1.8.0
       '@pinecone-database/pinecone': 1.1.1
       '@xenova/transformers': 2.5.4
       ansi-styles: 5.2.0

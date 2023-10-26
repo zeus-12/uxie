@@ -6,11 +6,12 @@ import { getPineconeClient } from "@/lib/pinecone";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { env } from "@/env.mjs";
 import { prisma } from "@/server/db";
-
-const TransformersApi = Function(
-  'return import("langchain/embeddings/hf_transformers")',
-)();
-const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
+// import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers";
+// const TransformersApi = Function(
+//   'return import("langchain/embeddings/hf_transformers")',
+// )();
+// const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
+import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 
 const fireworks = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -31,10 +32,17 @@ export async function POST(req: Request) {
 
   if (!doc) return new Response("Not found", { status: 404 });
 
-  const embeddings = new HuggingFaceTransformersEmbeddings({
-    // modelName: "jinaai/jina-embeddings-v2-small-en",
-    modelName: "Xenova/all-MiniLM-L6-v2",
-    stripNewLines: true,
+  // const { HuggingFaceTransformersEmbeddings } = await import(
+  //   "langchain/embeddings/hf_transformers"
+  // );
+  // const embeddings = new HuggingFaceTransformersEmbeddings({
+  //   // modelName: "jinaai/jina-embeddings-v2-small-en",
+  //   modelName: "Xenova/all-MiniLM-L6-v2",
+  //   stripNewLines: true,
+  // });
+
+  const embeddings = new HuggingFaceInferenceEmbeddings({
+    apiKey: env.HUGGINGFACE_API_KEY, // In Node.js defaults to process.env.HUGGINGFACEHUB_API_KEY
   });
 
   const pinecone = getPineconeClient();
