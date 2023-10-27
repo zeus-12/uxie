@@ -1,5 +1,5 @@
-import { Icons } from "@/components/icons";
+import { SpinnerIcon } from "@/components/icons";
 
 export function Spinner() {
-  return <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />;
+  return <SpinnerIcon className="mr-2 h-4 w-4 animate-spin" />;
 }

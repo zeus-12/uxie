@@ -1,5 +1,5 @@
 import { Spinner } from "@/components/Spinner";
-import { Icons } from "@/components/icons";
+import { BrainIcon, ChevronLeftIcon, GoogleIcon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { signIn } from "next-auth/react";
@@ -19,14 +19,14 @@ const Login = () => {
         )}
       >
         <>
-          <Icons.chevronLeft className="mr-2 h-4 w-4" />
+          <ChevronLeftIcon className="mr-2 h-4 w-4" />
           Back
         </>
       </Link>
       <div className="mx-auto flex flex-1 flex-col justify-center space-y-6 sm:w-[350px]">
         <>
           <div className="flex flex-col space-y-2 text-center">
-            <Icons.logo className="mx-auto h-6 w-6" />
+            <BrainIcon className="mx-auto h-6 w-6" />
             <h1 className="text-2xl font-semibold tracking-tight">
               Welcome back
             </h1>
@@ -41,11 +41,7 @@ const Login = () => {
             }}
             disabled={isLoading}
           >
-            {isLoading ? (
-              <Spinner />
-            ) : (
-              <Icons.google className="mr-2 h-4 w-4" />
-            )}{" "}
+            {isLoading ? <Spinner /> : <GoogleIcon className="mr-2 h-4 w-4" />}{" "}
             Google
           </button>
         </>

@@ -1,5 +1,5 @@
 import { Spinner } from "@/components/Spinner";
-import { Icons } from "@/components/icons";
+import { ChevronLeftIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -22,7 +22,7 @@ const UserLibraryPage = () => {
         <Spinner />
       </div>
     );
-  if (!userDocs) return <div>sorry no result found</div>;
+  if (!userDocs) return <div>Sorry no result found</div>;
 
   return (
     <div className="container flex w-screen flex-col">
@@ -33,7 +33,7 @@ const UserLibraryPage = () => {
           "w-fit justify-start",
         )}
       >
-        <Icons.chevronLeft className="mr-2 h-4 w-4" />
+        <ChevronLeftIcon className="mr-2 h-4 w-4" />
         Back
       </Link>
       <div className="flex items-center justify-between">

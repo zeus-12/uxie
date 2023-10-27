@@ -23,7 +23,7 @@ import {
 } from "@/types";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Icons } from "@/components/icons";
+import { ChevronLeftIcon } from "@/components/icons";
 // import InviteCollab from "@/components/InviteCollab";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -225,7 +225,7 @@ const DocViewer = ({
               "w-fit justify-start",
             )}
           >
-            <Icons.chevronLeft className="mr-2 h-4 w-4" />
+            <ChevronLeftIcon className="mr-2 h-4 w-4" />
           </Link>
 
           <p className="font-semibold dark:text-gray-200">

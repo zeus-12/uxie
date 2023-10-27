@@ -1,5 +1,4 @@
 import Chat from "@/components/Chat";
-// import Highlights from "@/components/Highlights";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlbumIcon,
@@ -47,10 +46,7 @@ const Sidebar = ({ editor }: { editor: any }) => {
 
         <TabsContent value="chat">
           <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg ">
-            <Chat
-
-            // userId={userId}
-            />
+            <Chat />
           </div>
         </TabsContent>
         <TabsContent value="highlights">

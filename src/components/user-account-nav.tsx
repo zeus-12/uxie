@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { User } from "next-auth";
 import { signOut } from "next-auth/react";
 import {
@@ -34,11 +33,6 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
             )}
           </div>
         </div>
-
-        {/* <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/settings">Settings</Link>
-        </DropdownMenuItem> */}
 
         <DropdownMenuSeparator />
         <DropdownMenuItem

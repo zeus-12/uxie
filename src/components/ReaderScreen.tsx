@@ -13,7 +13,7 @@ import {
 import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight";
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
-import { Icons } from "@/components/icons";
+import { ResizeHandleIcon } from "@/components/icons";
 import { HighlightContentType } from "@/types";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
@@ -171,7 +171,7 @@ const DocViewerPage = () => {
         <DocViewer addHighlightToNotes={addHighlightToNotes} />
       </div>
       <div className="flex w-4 items-center rounded-md bg-gray-50">
-        <Icons.resizeHandle
+        <ResizeHandleIcon
           size={18}
           className="cursor-col-resize "
           onMouseDown={handleMouseDown}
