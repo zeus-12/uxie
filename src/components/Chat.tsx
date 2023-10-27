@@ -11,11 +11,12 @@ export default function Chat() {
 
   const docId = query?.docId;
 
-  const { messages, input, handleInputChange, handleSubmit } = useChat({
-    body: {
-      docId: docId as string,
-    },
-  });
+  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+    useChat({
+      body: {
+        docId: docId as string,
+      },
+    });
 
   //implement autoscrolling, and infinite loading => also fetch the messages from prev session and display
   // const { data: messages } = api.message.getAll.useQuery({
@@ -61,7 +62,11 @@ export default function Chat() {
             autoFocus
             maxRows={4}
           />
-          <button className="w-fit bg-gray-50 px-2" type="submit">
+          <button
+            className="w-fit bg-gray-50 px-2"
+            type="submit"
+            disabled={isLoading}
+          >
             Send
           </button>
         </div>
