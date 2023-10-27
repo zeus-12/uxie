@@ -170,11 +170,13 @@ const DocViewerPage = () => {
       >
         <DocViewer addHighlightToNotes={addHighlightToNotes} />
       </div>
-      <div className="flex w-4 items-center rounded-md bg-gray-50">
+      <div
+        className="group flex w-4 cursor-col-resize items-center rounded-md bg-gray-50"
+        onMouseDown={handleMouseDown}
+      >
         <ResizeHandleIcon
           size={18}
-          className="cursor-col-resize "
-          onMouseDown={handleMouseDown}
+          className="fill-gray-600 group-hover:fill-black"
         />
       </div>
       <div
