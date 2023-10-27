@@ -1,6 +1,7 @@
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
+import { Send } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
@@ -67,7 +68,10 @@ export default function Chat() {
             type="submit"
             disabled={isLoading}
           >
-            Send
+            <Send
+              size={24}
+              className={cn(!isLoading && "text-gray-400 hover:cursor-none")}
+            />
           </button>
         </div>
       </form>
