@@ -1,8 +1,7 @@
+// @ts-nocheck
 /** @type {import('tailwindcss').Config} */
-import { Config } from "tailwindcss";
 import { withUt } from "uploadthing/tw";
 
-// @ts-ignore
 export default withUt({
   darkMode: ["class"],
   content: [
@@ -62,13 +61,12 @@ export default withUt({
       },
       keyframes: {
         "accordion-down": {
-          // @ts-ignore
           from: { height: 0 },
           to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
-          // @ts-ignore
+
           to: { height: 0 },
         },
       },

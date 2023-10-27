@@ -1,5 +1,3 @@
-// import { Highlight } from "react-pdf-highlighter";
-
 export enum HighlightContentType {
   TEXT = "TEXT",
   IMAGE = "IMAGE",
