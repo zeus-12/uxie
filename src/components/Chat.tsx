@@ -57,7 +57,16 @@ export default function Chat() {
       <form onSubmit={handleSubmit}>
         <div className="flex w-full rounded-md border shadow-xl">
           <TextareaAutosize
-            className="flex-1 rounded border-0 border-gray-300 p-2 "
+            className="flex-1 resize-none rounded border-0 border-gray-300 p-2"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !isLoading) {
+                e.preventDefault();
+                // @ts-ignore
+                handleSubmit(e);
+              } else if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+              }
+            }}
             value={input}
             onChange={handleInputChange}
             autoFocus
@@ -70,7 +79,7 @@ export default function Chat() {
           >
             <Send
               size={24}
-              className={cn(!isLoading && "text-gray-400 hover:cursor-none")}
+              className={cn(isLoading && "text-gray-400 hover:cursor-none")}
             />
           </button>
         </div>
