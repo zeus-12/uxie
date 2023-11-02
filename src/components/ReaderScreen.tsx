@@ -13,11 +13,9 @@ import {
 import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight";
 import { useDebouncedCallback } from "use-debounce";
 import { useTheme } from "next-themes";
-import { ResizeHandleIcon } from "@/components/icons";
 import { HighlightContentType } from "@/types";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import { Minus } from "lucide-react";
 
 const DocViewerPage = () => {
   const { query } = useRouter();
@@ -172,21 +170,10 @@ const DocViewerPage = () => {
         <DocViewer addHighlightToNotes={addHighlightToNotes} />
       </div>
       <div
-        className="group flex w-2 cursor-col-resize items-center rounded-md bg-gray-50"
+        className="group flex w-2 cursor-col-resize items-center justify-center rounded-md bg-gray-50"
         onMouseDown={handleMouseDown}
       >
-        {/* <ResizeHandleIcon
-          size={18}
-          className="w-2 fill-gray-600 group-hover:fill-black"
-        /> */}
-
-        <Minus
-          size={20}
-          strokeWidth={8}
-          // height={64}
-          width={64}
-          className="rotate-90 scale-150 text-gray-500 group-hover:text-black"
-        />
+        <div className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 dark:bg-neutral-700 group-hover:dark:bg-primary lg:h-24 lg:w-1" />
       </div>
       <div
         className="h-screen flex-1"
