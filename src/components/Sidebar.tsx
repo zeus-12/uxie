@@ -35,9 +35,9 @@ const Sidebar = ({ editor }: { editor: any }) => {
           <TabsTrigger value="chat">
             <MessagesSquareIcon size={24} />
           </TabsTrigger>
-          <TabsTrigger value="highlights">
+          {/* <TabsTrigger value="highlights">
             <Highlighter size={24} />
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         <TabsContent
@@ -52,11 +52,14 @@ const Sidebar = ({ editor }: { editor: any }) => {
             <Chat />
           </div>
         </TabsContent>
-        <TabsContent value="highlights">
+        {/* <TabsContent value="highlights">
           <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:p-4 sm:shadow-lg lg:p-8 ">
-            {/* <Highlights highlights={highlights} docId={docId} /> */}
+            <PdfHighlights highlights={highlights}
+            
+              // docId={docId}
+            />
           </div>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
 
       <div
