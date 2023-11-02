@@ -20,10 +20,9 @@ export default function Chat() {
     });
 
   //implement autoscrolling, and infinite loading => also fetch the messages from prev session and display
-  // const { data: messages } = api.message.getAll.useQuery({
-  //   docId: docId as string,
-  //   userId: userId as string,
-  // })
+  const { data: prevChatMessages } = api.message.getAllByDocId.useQuery({
+    docId: docId as string,
+  });
 
   const messageWindowRef = useRef<HTMLDivElement>(null);
 
@@ -40,7 +39,7 @@ export default function Chat() {
         className="hideScrollbar flex flex-1 flex-col gap-2 overflow-auto"
         ref={messageWindowRef}
       >
-        {messages.map((m) => (
+        {[...(prevChatMessages ?? []), ...messages].map((m) => (
           <div
             key={m.id}
             className={cn(
