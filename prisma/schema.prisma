@@ -67,6 +67,7 @@ model Document {
   ownerId       String
   note          String?        @db.Text
   messages      Message[]
+  isVectorised  Boolean        @default(false)
 
   // lastLocation => but has to be different for each user 
   // create new table storing lastscrolledposition, 
