@@ -40,7 +40,6 @@ export const imageUploader = {
         const pinecone = getPineconeClient();
         const pineconeIndex = pinecone.Index("uxie");
 
-        // Add a 'dataset' field to the data to distinguish the source
         const combinedData = pageLevelDocs.map((document) => {
           return {
             ...document,
@@ -57,6 +56,15 @@ export const imageUploader = {
 
         await PineconeStore.fromDocuments(combinedData, embeddings, {
           pineconeIndex,
+        });
+
+        await prisma.document.update({
+          where: {
+            id: newFile.id,
+          },
+          data: {
+            isVectorised: true,
+          },
         });
       } catch (err: any) {
         console.log(err.message, "error ");
