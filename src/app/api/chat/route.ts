@@ -21,6 +21,11 @@ const fireworks = new OpenAI({
 // export const runtime = "edge";
 export async function POST(req: Request) {
   const { messages, docId } = await req.json();
+  // use zod validations here
+
+  if (typeof docId !== "string")
+    return new Response("Not found", { status: 404 });
+
   console.log(messages, docId, "this");
 
   const doc = await prisma.document.findFirst({
@@ -32,17 +37,8 @@ export async function POST(req: Request) {
 
   if (!doc) return new Response("Not found", { status: 404 });
 
-  // const { HuggingFaceTransformersEmbeddings } = await import(
-  //   "langchain/embeddings/hf_transformers"
-  // );
-  // const embeddings = new HuggingFaceTransformersEmbeddings({
-  //   // modelName: "jinaai/jina-embeddings-v2-small-en",
-  //   modelName: "Xenova/all-MiniLM-L6-v2",
-  //   stripNewLines: true,
-  // });
-
   const embeddings = new HuggingFaceInferenceEmbeddings({
-    apiKey: env.HUGGINGFACE_API_KEY, // In Node.js defaults to process.env.HUGGINGFACEHUB_API_KEY
+    apiKey: env.HUGGINGFACE_API_KEY,
   });
 
   const pinecone = getPineconeClient();
@@ -60,7 +56,7 @@ export async function POST(req: Request) {
   // save user message to db
 
   const results = await vectorStore.similaritySearch(lastMessage, 4);
-  console.log(results, "embedding results");
+
   const prevMessages = await prisma.message.findMany({
     where: {
       documentId: docId as string,
@@ -108,21 +104,6 @@ export async function POST(req: Request) {
     ],
   });
 
-  // const stream = OpenAIStream(response, {
-  //   async onCompletion(completion) {
-  //     await db.message.create({
-  //       data: {
-  //         text: completion,
-  //         isUserMessage: false,
-  //         fileId,
-  //         userId,
-  //       },
-  //     });
-  //   },
-  // });
-
-  // // return new StreamingTextResponse(stream);
-
   // const prompt = {
   //   role: "system",
   //   content: `AI assistant is a brand new, powerful, human-like artificial intelligence.
@@ -156,6 +137,14 @@ export async function POST(req: Request) {
     onCompletion: async (completion: string) => {
       // This callback is called when the stream completes
       // await saveCompletionToDatabase(completion);
+      // await prisma.message.create({
+      //   data: {
+      //     text: completion,
+      //     isUserMessage: false,
+      //     documentId: docId,
+      //     userId:
+      //   },
+      // });
     },
   });
   return new StreamingTextResponse(stream);
