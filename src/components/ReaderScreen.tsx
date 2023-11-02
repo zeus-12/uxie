@@ -17,6 +17,7 @@ import { ResizeHandleIcon } from "@/components/icons";
 import { HighlightContentType } from "@/types";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
+import { Minus } from "lucide-react";
 
 const DocViewerPage = () => {
   const { query } = useRouter();
@@ -165,18 +166,26 @@ const DocViewerPage = () => {
       onMouseMove={handleMouseMove}
     >
       <div
-        className="h-screen "
+        className="h-screen border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
         style={{ width: width ?? "50vw", minWidth: "25vw" }}
       >
         <DocViewer addHighlightToNotes={addHighlightToNotes} />
       </div>
       <div
-        className="group flex w-4 cursor-col-resize items-center rounded-md bg-gray-50"
+        className="group flex w-2 cursor-col-resize items-center rounded-md bg-gray-50"
         onMouseDown={handleMouseDown}
       >
-        <ResizeHandleIcon
+        {/* <ResizeHandleIcon
           size={18}
-          className="fill-gray-600 group-hover:fill-black"
+          className="w-2 fill-gray-600 group-hover:fill-black"
+        /> */}
+
+        <Minus
+          size={20}
+          strokeWidth={8}
+          // height={64}
+          width={64}
+          className="rotate-90 scale-150 text-gray-500 group-hover:text-black"
         />
       </div>
       <div
