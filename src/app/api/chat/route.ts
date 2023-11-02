@@ -1,16 +1,9 @@
 import OpenAI from "openai";
 import { OpenAIStream, StreamingTextResponse, Message } from "ai";
-import { NextResponse } from "next/server";
 import { getPineconeClient } from "@/lib/pinecone";
-// import { getContext } from "@/lib/context";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { env } from "@/env.mjs";
 import { prisma } from "@/server/db";
-// import { HuggingFaceTransformersEmbeddings } from "langchain/embeddings/hf_transformers";
-// const TransformersApi = Function(
-//   'return import("langchain/embeddings/hf_transformers")',
-// )();
-// const { HuggingFaceTransformersEmbeddings } = await TransformersApi;
 import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 
 const fireworks = new OpenAI({
