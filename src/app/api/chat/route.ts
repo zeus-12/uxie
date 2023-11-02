@@ -5,6 +5,8 @@ import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { env } from "@/env.mjs";
 import { prisma } from "@/server/db";
 import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
+import { authOptions } from "@/server/auth";
+import { getServerSession } from "next-auth";
 
 const fireworks = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
@@ -12,21 +14,46 @@ const fireworks = new OpenAI({
 });
 
 // export const runtime = "edge";
-export async function POST(req: Request) {
+export async function POST(req: Request, res: Response) {
   const { messages, docId } = await req.json();
   // use zod validations here
 
   if (typeof docId !== "string")
     return new Response("Not found", { status: 404 });
 
-  console.log(messages, docId, "this");
+  const session = await getServerSession(authOptions);
+  if (!session) return new Response("Not found", { status: 404 });
+
+  await prisma.message.create({
+    data: {
+      text: messages.at(-1).content,
+      isUserMessage: true,
+      documentId: docId,
+      userId: session?.user.id,
+    },
+  });
 
   const doc = await prisma.document.findFirst({
     where: {
       id: docId,
-      // ownerId: userId,
+      OR: [
+        { ownerId: session?.user.id },
+
+        {
+          collaborators: {
+            some: {
+              userId: session?.user.id,
+            },
+          },
+        },
+      ],
     },
   });
+
+  // TODO ISVECTORISED DOENST SEEM TO BE UDPDATED CORRECTLY
+  // if (!doc?.isVectorised) {
+  //   throw new Error("Document not vectorised.");
+  // }
 
   if (!doc) return new Response("Not found", { status: 404 });
 
@@ -46,8 +73,6 @@ export async function POST(req: Request) {
 
   const lastMessage = messages.at(-1).content;
 
-  // save user message to db
-
   const results = await vectorStore.similaritySearch(lastMessage, 4);
 
   const prevMessages = await prisma.message.findMany({
@@ -65,10 +90,12 @@ export async function POST(req: Request) {
     content: msg.text,
   }));
 
+  // TODO IMPROVE THE PROMPT => ADD MORE FORM THE PROMPT BELOW
   const response = await fireworks.chat.completions.create({
     model: "accounts/fireworks/models/llama-v2-70b-chat",
     temperature: 0,
     stream: true,
+    max_tokens: 1000,
     messages: [
       {
         role: "system",
@@ -84,7 +111,7 @@ export async function POST(req: Request) {
   PREVIOUS CONVERSATION:
   ${formattedPrevMessages.map((message) => {
     if (message.role === "user") return `User: ${message.content}\n`;
-    return `Assistant: ${message.content}\n`;
+    // return `Assistant: ${message.content}\n`;
   })}
 
   \n----------------\n
@@ -115,29 +142,15 @@ export async function POST(req: Request) {
   //   `,
   // };
 
-  // const response = await fireworks.chat.completions.create({
-  //   model: "accounts/fireworks/models/llama-v2-70b-chat",
-  //   stream: true,
-  //   max_tokens: 1000,
-  //   messages: [
-  //     prompt,
-  //     ...messages,
-  //     // .filter((message: Message) => message.role === "user"),
-  //   ],
-  // });
-
   const stream = OpenAIStream(response, {
     onCompletion: async (completion: string) => {
-      // This callback is called when the stream completes
-      // await saveCompletionToDatabase(completion);
-      // await prisma.message.create({
-      //   data: {
-      //     text: completion,
-      //     isUserMessage: false,
-      //     documentId: docId,
-      //     userId:
-      //   },
-      // });
+      await prisma.message.create({
+        data: {
+          text: completion,
+          isUserMessage: false,
+          documentId: docId,
+        },
+      });
     },
   });
   return new StreamingTextResponse(stream);
