@@ -38,10 +38,11 @@ export const highlightRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const content: any = {};
-      // make this cleaner
+      //TODO make this cleaner
       if ("text" in input.content) {
         content["text"] = input.content.text;
       } else if ("image" in input.content) {
+        //TODO upload this base64 image to somewhere and store the link to db
         content["imageUrl"] = input.content.image;
       } else {
         throw new Error("Invalid content type");
