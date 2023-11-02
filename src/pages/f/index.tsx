@@ -30,7 +30,7 @@ const UserLibraryPage = () => {
         href="/"
         className={cn(
           buttonVariants({ variant: "ghost" }),
-          "w-fit justify-start",
+          "my-2 w-fit justify-start p-2",
         )}
       >
         <ChevronLeftIcon className="mr-2 h-4 w-4" />
@@ -56,7 +56,13 @@ const UserLibraryPage = () => {
         />
       </div>
 
-      <p className="text-muted-foreground">Here are your files</p>
+      {userDocs?.documents.length + userDocs?.collaborators.length === 0 ? (
+        <p className="text-muted-foreground">
+          You have no files yet, upload one now!
+        </p>
+      ) : (
+        <p className="text-muted-foreground">Here are your files</p>
+      )}
       <div className="flex flex-wrap gap-2">
         {userDocs?.documents?.map((doc) => (
           <Link key={doc.id} href={`/f/${doc.id}`}>
