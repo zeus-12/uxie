@@ -8,19 +8,19 @@ import { useFeatureStore } from "@/lib/store";
 const features = [
   {
     title: "Annotate your notes w. ease",
-    imageUrl: "",
+    imageUrl: "/demo.png",
   },
   {
     title: "Take notes with a notion like editor",
-    imageUrl: "",
+    imageUrl: "/demo.png",
   },
   {
     title: "Ask the chatbot anything pdf related",
-    imageUrl: "",
+    imageUrl: "/demo.png",
   },
   {
     title: "Collaborate with your team",
-    imageUrl: "",
+    imageUrl: "/demo.png",
   },
 ];
 
