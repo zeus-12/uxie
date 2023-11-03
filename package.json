@@ -38,6 +38,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "file-saver": "^2.0.5",
+    "framer-motion": "^10.16.4",
     "langchain": "^0.0.171",
     "lucide-react": "^0.276.0",
     "next": "^13.4.13",
@@ -57,7 +58,8 @@
     "tailwindcss-animate": "^1.0.7",
     "uploadthing": "^5.7.1",
     "use-debounce": "^9.0.4",
-    "zod": "^3.22.2"
+    "zod": "^3.22.2",
+    "zustand": "^4.4.6"
   },
   "devDependencies": {
     "@types/eslint": "^8.44.2",
