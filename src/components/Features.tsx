@@ -8,15 +8,19 @@ import { useFeatureStore } from "@/lib/store";
 const features = [
   {
     title: "Annotate your notes w. ease",
+    imageUrl: "",
   },
   {
     title: "Take notes with a notion like editor",
+    imageUrl: "",
   },
   {
     title: "Ask the chatbot anything pdf related",
+    imageUrl: "",
   },
   {
     title: "Collaborate with your team",
+    imageUrl: "",
   },
 ];
 
@@ -40,7 +44,7 @@ function Features() {
                 <FeatureCard key={id} id={id}>
                   <Image
                     alt="feature"
-                    src={`/features/${id}.png`}
+                    src={feature.imageUrl}
                     width={200}
                     height={200}
                     className="h-full w-full"
