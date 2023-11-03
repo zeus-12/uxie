@@ -3,7 +3,6 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { UserAccountNav } from "@/components/user-account-nav";
-import { ModeToggle } from "@/components/theme-toggle";
 
 const Navbar = () => {
   const { data: session } = useSession();
@@ -16,16 +15,13 @@ const Navbar = () => {
           <span className="font-semibold">Uxie</span>
         </div>
       </Link>
-      <div className="flex items-center gap-2">
-        <ModeToggle />
-        {session ? (
-          <UserAccountNav user={session.user} />
-        ) : (
-          <Button>
-            <Link href="/login">Sign in</Link>
-          </Button>
-        )}
-      </div>
+      {session ? (
+        <UserAccountNav user={session.user} />
+      ) : (
+        <Button>
+          <Link href="/login">Sign in</Link>
+        </Button>
+      )}
     </div>
   );
 };

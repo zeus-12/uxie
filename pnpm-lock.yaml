@@ -109,9 +109,6 @@ dependencies:
   next-global-css:
     specifier: ^1.3.1
     version: 1.3.1
-  next-themes:
-    specifier: ^0.2.0
-    version: 0.2.0(next@13.5.4)(react-dom@18.2.0)(react@18.2.0)
   openai:
     specifier: ^4.12.4
     version: 4.12.4
@@ -5626,18 +5623,6 @@ packages:
 
   /next-global-css@1.3.1:
     resolution: {integrity: sha512-+OnTwQKmv1lDP7r4R3T94oq6372R9UGVivchBQu49j7ZjzvSXHCnv93yAuhgMkvUgAbGifTs8sQ5YL9wjyAxfA==}
-    dev: false
-
-  /next-themes@0.2.0(next@13.5.4)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-myhpDL4vadBD9YDSHiewqvzorGzB03N84e+3LxCwHRlM/hiBOaW+UsKsQojQAzC7fdcJA0l2ppveXcYaVV+hxQ==}
-    peerDependencies:
-      next: '*'
-      react: '*'
-      react-dom: '*'
-    dependencies:
-      next: 13.5.4(react-dom@18.2.0)(react@18.2.0)
-      react: 18.2.0
-      react-dom: 18.2.0(react@18.2.0)
     dev: false
 
   /next@13.5.4(react-dom@18.2.0)(react@18.2.0):
