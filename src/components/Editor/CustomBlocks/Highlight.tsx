@@ -52,7 +52,7 @@ export const Highlight = (props: {
   );
 };
 
-export const createHighlightBlock = (theme: "light" | "dark") =>
+export const createHighlightBlock = () =>
   createReactBlockSpec<
     "highlight",
     typeof highlightPropSchema,
@@ -70,7 +70,7 @@ export const createHighlightBlock = (theme: "light" | "dark") =>
       },
     } as const,
     containsInlineContent: true,
-    render: (props) => <Highlight {...props} theme={theme} />,
+    render: (props) => <Highlight {...props} theme={"light"} />,
   });
 
 // Slash menu item to insert an highlight block

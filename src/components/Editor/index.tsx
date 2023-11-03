@@ -9,18 +9,11 @@ import {
   ImageToolbarPositioner,
 } from "@blocknote/react";
 import { AlertCircle } from "lucide-react";
-import { useTheme } from "next-themes";
 
 function Editor({ editor }: { editor: any }) {
-  const { theme } = useTheme();
-
   return (
     <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">
-      <BlockNoteView
-        className="w-full flex-1"
-        theme={theme === "dark" ? "dark" : "light"}
-        editor={editor}
-      >
+      <BlockNoteView className="w-full flex-1" theme={"light"} editor={editor}>
         <FormattingToolbarPositioner
           editor={editor}
           formattingToolbar={(props) => (

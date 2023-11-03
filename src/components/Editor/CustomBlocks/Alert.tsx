@@ -140,7 +140,7 @@ export const Alert = (props: {
   );
 };
 
-export const createAlertBlock = (theme: "light" | "dark") =>
+export const createAlertBlock = () =>
   createReactBlockSpec<
     "alert",
     typeof alertPropSchema,
@@ -159,7 +159,7 @@ export const createAlertBlock = (theme: "light" | "dark") =>
       },
     } as const,
     containsInlineContent: true,
-    render: (props) => <Alert {...props} theme={theme} />,
+    render: (props) => <Alert {...props} theme={"light"} />,
   });
 
 export const insertAlert = {

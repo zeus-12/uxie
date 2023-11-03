@@ -12,7 +12,6 @@ import {
 } from "@/components/Editor/CustomBlocks/Alert";
 import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight";
 import { useDebouncedCallback } from "use-debounce";
-import { useTheme } from "next-themes";
 import { HighlightContentType } from "@/types";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
@@ -51,12 +50,10 @@ const DocViewerPage = () => {
     }
   };
 
-  const { theme } = useTheme();
-
   const schemaWithCustomBlocks = {
     ...defaultBlockSchema,
-    alert: createAlertBlock(theme === "dark" ? "dark" : "light"),
-    highlight: createHighlightBlock(theme === "dark" ? "dark" : "light"),
+    alert: createAlertBlock(),
+    highlight: createHighlightBlock(),
   };
 
   const debounced = useDebouncedCallback((value) => {
