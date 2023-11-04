@@ -27,18 +27,29 @@ const Sidebar = ({ editor }: { editor: any }) => {
         defaultValue="notes"
         className="max-h-screen max-w-full overflow-hidden"
       >
-        <TabsList className="h-12 rounded-md rounded-se-none rounded-ss-md bg-gray-200">
-          <TabsTrigger value="notes">
-            <AlbumIcon size={24} />
-          </TabsTrigger>
+        <div className="flex items-center justify-between pr-1">
+          <TabsList className="h-12 rounded-md bg-gray-200">
+            <TabsTrigger value="notes">
+              <AlbumIcon size={20} />
+            </TabsTrigger>
 
-          <TabsTrigger value="chat">
-            <MessagesSquareIcon size={24} />
-          </TabsTrigger>
-          {/* <TabsTrigger value="highlights">
+            <TabsTrigger value="chat">
+              <MessagesSquareIcon size={20} />
+            </TabsTrigger>
+            {/* <TabsTrigger value="highlights">
             <Highlighter size={24} />
           </TabsTrigger> */}
-        </TabsList>
+          </TabsList>
+          <div
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "ml-auto cursor-pointer border-stone-200 bg-white text-xs shadow-sm sm:border",
+            )}
+            onClick={handleDownloadMarkdownAsFile}
+          >
+            <Download size={20} />
+          </div>
+        </div>
 
         <TabsContent
           value="notes"
@@ -52,6 +63,7 @@ const Sidebar = ({ editor }: { editor: any }) => {
             <Chat />
           </div>
         </TabsContent>
+
         {/* <TabsContent value="highlights">
           <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:p-4 sm:shadow-lg lg:p-8 ">
             <PdfHighlights highlights={highlights}
@@ -61,16 +73,6 @@ const Sidebar = ({ editor }: { editor: any }) => {
           </div>
         </TabsContent> */}
       </Tabs>
-
-      <div
-        className={cn(
-          buttonVariants({ variant: "ghost" }),
-          "absolute right-5 top-2 cursor-pointer border-stone-200 bg-white text-xs shadow-sm sm:border",
-        )}
-        onClick={handleDownloadMarkdownAsFile}
-      >
-        <Download size={18} />
-      </div>
     </div>
   );
 };
