@@ -69,6 +69,8 @@ const DocViewerPage = () => {
       onEditorContentChange: (editor) => {
         debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       },
+      // editable: check if user is not owner or collaborator w. edit access.
+      // todo add collaboration feature
 
       blockSchema: schemaWithCustomBlocks,
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
