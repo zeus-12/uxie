@@ -221,7 +221,7 @@ const DocViewer = ({
           <Link
             href="/f"
             className={cn(
-              buttonVariants({ variant: "ghost" }),
+              buttonVariants({ variant: "ghost", size: "sm" }),
               "w-fit justify-start",
             )}
           >
