@@ -74,6 +74,11 @@ const DocViewerPage = () => {
 
       blockSchema: schemaWithCustomBlocks,
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
+      domAttributes: {
+        editor: {
+          class: "mt-6",
+        },
+      },
 
       slashMenuItems: [
         ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
