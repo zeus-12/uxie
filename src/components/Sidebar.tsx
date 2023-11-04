@@ -43,7 +43,7 @@ const Sidebar = ({ editor }: { editor: any }) => {
           <div
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "ml-auto cursor-pointer border-stone-200 bg-white text-xs shadow-sm sm:border",
+              "ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border",
             )}
             onClick={handleDownloadMarkdownAsFile}
           >
