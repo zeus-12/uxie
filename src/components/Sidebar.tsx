@@ -22,7 +22,7 @@ const Sidebar = ({ editor }: { editor: any }) => {
   };
 
   return (
-    <>
+    <div className="bg-gray-50">
       <Tabs
         defaultValue="notes"
         className="max-h-screen max-w-full overflow-hidden"
@@ -65,13 +65,13 @@ const Sidebar = ({ editor }: { editor: any }) => {
       <div
         className={cn(
           buttonVariants({ variant: "ghost" }),
-          "absolute right-5 top-2 cursor-pointer text-xs",
+          "absolute right-5 top-2 cursor-pointer border-stone-200 bg-white text-xs shadow-sm sm:border",
         )}
         onClick={handleDownloadMarkdownAsFile}
       >
         <Download size={18} />
       </div>
-    </>
+    </div>
   );
 };
 export default Sidebar;
