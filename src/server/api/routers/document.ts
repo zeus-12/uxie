@@ -78,6 +78,7 @@ export const documentRouter = createTRPCRouter({
         collaborators: res.collaborators,
         messages: res.messages,
         url: res.url,
+        isVectorised: res.isVectorised,
       };
     }),
 

@@ -51,9 +51,9 @@ export async function POST(req: Request, res: Response) {
   });
 
   // TODO ISVECTORISED DOENST SEEM TO BE UDPDATED CORRECTLY
-  // if (!doc?.isVectorised) {
-  //   throw new Error("Document not vectorised.");
-  // }
+  if (!doc?.isVectorised) {
+    throw new Error("Document not vectorised.");
+  }
 
   if (!doc) return new Response("Not found", { status: 404 });
 
