@@ -34,7 +34,7 @@ export const Highlight = (props: {
 }) => {
   return (
     <div
-      className="flex h-full max-w-full flex-1 items-center justify-center gap-2"
+      className="flex h-full max-w-full flex-1 items-center gap-2"
       style={{
         ...highlightStyles,
       }}
@@ -42,12 +42,13 @@ export const Highlight = (props: {
       <div
         onClick={() => {
           if (!props?.block?.props?.highlightId) return;
-          // todo check whether the "highlight-" is even required
           document.location.hash = props.block.props.highlightId;
         }}
-        className="h-full w-4 rounded-full bg-yellow-400 hover:cursor-pointer"
+        className="h-full w-2 rounded-full bg-yellow-400 hover:cursor-pointer"
       />
-      <InlineContent className="break-word-overflow flex-grow" />
+      <div className="flex-1">
+        <InlineContent className="break-word-overflow" />
+      </div>
     </div>
   );
 };
