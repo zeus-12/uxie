@@ -191,6 +191,7 @@ export const insertAlert = {
     "error",
     "info",
     "success",
+    "callout",
   ],
   group: "Other",
   icon: <AlertCircle />,
