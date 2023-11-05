@@ -19,19 +19,19 @@ export const imageUploader = {
       return { userId: session?.user?.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
-      const newFile = await prisma?.document.create({
-        data: {
-          owner: {
-            connect: {
-              id: metadata.userId,
-            },
-          },
-          url: file.url,
-          title: file.name,
-        },
-      });
-
       try {
+        const newFile = await prisma.document.create({
+          data: {
+            owner: {
+              connect: {
+                id: metadata.userId,
+              },
+            },
+            url: file.url,
+            title: file.name,
+          },
+        });
+
         const response = await fetch(file.url);
         const blob = await response.blob();
         const loader = new PDFLoader(blob);
