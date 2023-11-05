@@ -38,12 +38,12 @@
 - [x] add dark mode for the bg of home screen
 - [x] save chat messages to db after streaming (some handler onComplete fn
 - [x] give solid width for the yellow line in the highlighter cusotm block in notes
+- [x] create a isVectorised (use better name) column in document, and check that on the chat screen
+- [x] highlight popover tip not appearing at times (for later pages)
 - [ ] integrate ai =>
   - [x] custom llm
   - [ ] chrome extension: prob wont happen => no good reason, since we cant feed the vectorised data to it.
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
-- [ ] highlight popover tip not appearing at times (for later pages)
-- [ ] create a isVectorised (use better name) column in document, and check that on the chat screen - maybe w. an option to vectorise it there? also check the number of pages before vectorising
 - [ ] fix seo stuff, use next-seo
 - [ ] have a hardcoded message as first message of every chat => something like => "Hey there, ask me anything about this document!"
 
