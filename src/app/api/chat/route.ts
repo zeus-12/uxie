@@ -50,7 +50,6 @@ export async function POST(req: Request, res: Response) {
     },
   });
 
-  // TODO ISVECTORISED DOENST SEEM TO BE UDPDATED CORRECTLY
   if (!doc?.isVectorised) {
     throw new Error("Document not vectorised.");
   }
@@ -85,12 +84,11 @@ export async function POST(req: Request, res: Response) {
     take: 6,
   });
 
-  const formattedPrevMessages = prevMessages.map((msg) => ({
-    role: msg.isUserMessage ? ("user" as const) : ("assistant" as const),
-    content: msg.text,
-  }));
+  // const formattedPrevMessages = prevMessages.map((msg) => ({
+  //   role: msg.isUserMessage ? ("user" as const) : ("assistant" as const),
+  //   content: msg.text,
+  // }));
 
-  // TODO IMPROVE THE PROMPT => ADD MORE FORM THE PROMPT BELOW
   const response = await fireworks.chat.completions.create({
     model: "accounts/fireworks/models/llama-v2-70b-chat",
     temperature: 0,
