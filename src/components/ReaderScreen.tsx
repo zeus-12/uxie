@@ -29,8 +29,8 @@ const DocViewerPage = () => {
       onMouseMove={handleMouseMove}
     >
       <div
-        className="h-screen border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
-        style={{ width: width ?? "50vw", minWidth: "25vw" }}
+        className="h-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
+        style={{ width: width ?? "50vw" }}
       >
         <DocViewer />
       </div>
@@ -40,12 +40,7 @@ const DocViewerPage = () => {
       >
         <div className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 dark:bg-neutral-700 group-hover:dark:bg-primary lg:h-24 lg:w-1" />
       </div>
-      <div
-        className="h-screen flex-1"
-        style={{
-          minWidth: "25vw",
-        }}
-      >
+      <div className="h-screen min-w-[25vw] flex-1">
         <Sidebar />
       </div>
     </div>
