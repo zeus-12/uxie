@@ -25,36 +25,15 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
-// model Session {
-//     id           String   @id @default(cuid())
-//     sessionToken String   @unique
-//     userId       String
-//     expires      DateTime
-//     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-// }
-
-// model VerificationToken {
-//     identifier String
-//     token      String   @unique
-//     expires    DateTime
-
-//     @@unique([identifier, token])
-// }
-
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
   image         String?
   accounts      Account[]
-  // sessions      Session[]
-
   documents     Document[]
   messages      Message[]
-  // highlights    Highlight[]
   collaborators Collaborator[]
-  // create separate table userpreferences => storing users preferred emojis, theme, etc
 }
 
 model Document {
@@ -69,25 +48,25 @@ model Document {
   messages      Message[]
   isVectorised  Boolean        @default(false)
 
-  // lastLocation => but has to be different for each user 
+  // lastscrolledposition => but has to be different for each user 
   // create new table storing lastscrolledposition, 
   // along with userPreferences table which can be optional, if it exists, then it overrides users default(the one linked to user table) preferences (less priority)
 
-  // coverImage 
+  // pdf first page url => cloudinary provides this.
 }
 
-enum Role {
+enum DocumentAccessRole {
   EDITOR
   VIEWER
 }
 
 model Collaborator {
-  id         String   @id @default(cuid())
-  role       Role
-  document   Document @relation(fields: [documentId], references: [id])
+  id         String             @id @default(cuid())
+  role       DocumentAccessRole
+  document   Document           @relation(fields: [documentId], references: [id])
   documentId String
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  user       User               @relation(fields: [userId], references: [id])
 }
 
 model Message {
