@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "@/components/icons";
 // import InviteCollab from "@/components/InviteCollab";
 import { createId } from "@paralleldrive/cuid2";
+import { useBlocknoteEditorStore } from "@/lib/store";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -33,15 +34,7 @@ const resetHash = () => {
   document.location.hash = "";
 };
 
-const DocViewer = ({
-  addHighlightToNotes,
-}: {
-  addHighlightToNotes: (
-    content: string,
-    highlightId: string,
-    type: HighlightContentType,
-  ) => void;
-}) => {
+const DocViewer = () => {
   const { query, isReady } = useRouter();
 
   const docId = query?.docId;
@@ -127,6 +120,85 @@ const DocViewer = ({
       utils.document.getDocData.invalidate();
     },
   });
+
+  const { editor } = useBlocknoteEditorStore();
+
+  const addHighlightToNotes = (
+    content: string,
+    highlightId: string,
+    type: HighlightContentType,
+  ) => {
+    if (!editor) {
+      console.log("editor null");
+      return;
+    }
+
+    if (type === HighlightContentType.TEXT) {
+      if (!content || !highlightId) return;
+
+      const block = editor.getTextCursorPosition().block;
+      const blockIsEmpty = block.content?.length === 0;
+
+      if (blockIsEmpty) {
+        editor.updateBlock(block, {
+          content: content,
+          props: {
+            highlightId: highlightId,
+          },
+          type: "highlight",
+        });
+      } else {
+        editor.insertBlocks(
+          [
+            {
+              content: content,
+              props: {
+                highlightId: highlightId,
+              },
+              type: "highlight",
+            },
+          ],
+          editor.getTextCursorPosition().block,
+          "after",
+        );
+        editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
+      }
+    } else {
+      if (!content || !highlightId) return;
+
+      try {
+        const block = editor.getTextCursorPosition().block;
+        const blockIsEmpty = block.content?.length === 0;
+
+        if (blockIsEmpty) {
+          editor.updateBlock(block, {
+            props: {
+              url: content,
+            },
+            type: "image",
+          });
+        } else {
+          editor.insertBlocks(
+            [
+              {
+                props: {
+                  url: content,
+                },
+                type: "image",
+              },
+            ],
+            editor.getTextCursorPosition().block,
+            "after",
+          );
+          editor.setTextCursorPosition(
+            editor.getTextCursorPosition().nextBlock!,
+          );
+        }
+      } catch (err: any) {
+        console.log(err.message, "errnes");
+      }
+    }
+  };
 
   const utils = api.useContext();
 
