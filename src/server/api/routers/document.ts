@@ -1,6 +1,7 @@
 import { z } from "zod";
-
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
+import { CollaboratorRole } from "@prisma/client";
 
 export const documentRouter = createTRPCRouter({
   getDocData: protectedProcedure
@@ -82,7 +83,7 @@ export const documentRouter = createTRPCRouter({
       };
     }),
 
-  getNotes: protectedProcedure
+  getNotesData: protectedProcedure
     .input(z.object({ docId: z.string() }))
     .query(async ({ ctx, input }) => {
       const res = await ctx.prisma.document.findUnique({
@@ -99,11 +100,47 @@ export const documentRouter = createTRPCRouter({
             },
           ],
         },
+
+        include: {
+          collaborators: {
+            // this might be expensive, would be better to fetch userdetails as a transaction
+            include: {
+              user: true,
+            },
+          },
+          owner: true,
+        },
       });
 
-      if (!res) return null;
+      if (!res) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you do not have access to it.",
+        });
+      }
 
-      return res.note;
+      let canEdit = false;
+      let username = "";
+      if (res?.owner.id === ctx.session.user.id) {
+        canEdit = true;
+        username = res.owner.name;
+      } else {
+        for (const collaborator of res.collaborators) {
+          if (collaborator.userId === ctx.session.user.id) {
+            username = collaborator.user.name;
+            if (collaborator.role === CollaboratorRole.EDITOR) {
+              canEdit = true;
+            }
+            break;
+          }
+        }
+      }
+
+      return {
+        initialNotes: res.note,
+        canEdit,
+        username,
+      };
     }),
   updateNotes: protectedProcedure
     .input(
@@ -113,9 +150,66 @@ export const documentRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          ownerId: ctx.session.user.id,
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you do not have access to it.",
+        });
+      }
+
       await ctx.prisma.document.update({
         data: {
           note: input.markdown,
+        },
+        where: {
+          id: input.documentId,
+        },
+      });
+
+      return true;
+    }),
+
+  updateCollaborators: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+        collaborators: z.array(
+          z.object({
+            userId: z.string(),
+            role: z.nativeEnum(CollaboratorRole),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          ownerId: ctx.session.user.id,
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you do not have access to it.",
+        });
+      }
+
+      await ctx.prisma.document.update({
+        data: {
+          collaborators: {
+            createMany: {
+              data: input.collaborators,
+            },
+          },
         },
         where: {
           id: input.documentId,
