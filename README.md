@@ -43,6 +43,7 @@
 - [ ] integrate ai =>
   - [x] custom llm
   - [ ] chrome extension: prob wont happen => no good reason, since we cant feed the vectorised data to it.
+- [ ] optimistic update for file page after adding a new file
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] fix seo stuff, use next-seo
 - [ ] have a hardcoded message as first message of every chat => something like => "Hey there, ask me anything about this document!"
