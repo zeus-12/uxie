@@ -42,7 +42,6 @@
 - [x] highlight popover tip not appearing at times (for later pages)
 - [ ] integrate ai =>
   - [x] custom llm
-  - [ ] chrome extension: prob wont happen => no good reason, since we cant feed the vectorised data to it.
 - [ ] optimistic update for file page after adding a new file
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] fix seo stuff, use next-seo
