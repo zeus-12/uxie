@@ -56,18 +56,18 @@ model Document {
   // pdf first page url => cloudinary provides this.
 }
 
-enum DocumentAccessRole {
+enum CollaboratorRole {
   EDITOR
   VIEWER
 }
 
 model Collaborator {
-  id         String             @id @default(cuid())
-  role       DocumentAccessRole
-  document   Document           @relation(fields: [documentId], references: [id])
+  id         String           @id @default(cuid())
+  role       CollaboratorRole
+  document   Document         @relation(fields: [documentId], references: [id])
   documentId String
   userId     String
-  user       User               @relation(fields: [userId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
 }
 
 model Message {
