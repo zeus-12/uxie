@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/router";
 import "@blocknote/core/style.css";
+import { Toaster } from "@/components/ui/toaster";
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
@@ -27,6 +28,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
           </div>
         </main>
       )}
+      <Toaster />
     </SessionProvider>
   );
 };
