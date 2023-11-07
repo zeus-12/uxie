@@ -1,18 +1,17 @@
 import Chat from "@/components/Chat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlbumIcon,
-  Download,
-  Highlighter,
-  MessagesSquareIcon,
-} from "lucide-react";
+import { AlbumIcon, Download, MessagesSquareIcon } from "lucide-react";
 import Editor from "@/components/Editor";
 import { saveAs } from "file-saver";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { useBlocknoteEditorStore } from "@/lib/store";
 
-const Sidebar = ({ editor }: { editor: any }) => {
+const Sidebar = () => {
+  const { editor } = useBlocknoteEditorStore();
+
   const handleDownloadMarkdownAsFile = async () => {
+    if (!editor) return;
     const markdownContent = await editor.blocksToMarkdown(
       editor.topLevelBlocks,
     );
@@ -55,7 +54,7 @@ const Sidebar = ({ editor }: { editor: any }) => {
           value="notes"
           className="flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg"
         >
-          <Editor editor={editor} />
+          <Editor />
         </TabsContent>
 
         <TabsContent value="chat">
