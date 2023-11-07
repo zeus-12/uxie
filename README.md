@@ -31,21 +31,12 @@
 
 ## TODOS
 
-- [x] copying text from pdf ignores linebreaks
 - [x] add images to some free provider or cloudinary: use cloudinary for storage => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
-- [x] fix linking to the highlighted part for highlighted text on notes.
-- [x] also other note taking apps (obsidian,etc) : add a download as markdown feature for starters
-- [x] add dark mode for the bg of home screen
-- [x] save chat messages to db after streaming (some handler onComplete fn
-- [x] give solid width for the yellow line in the highlighter cusotm block in notes
-- [x] create a isVectorised (use better name) column in document, and check that on the chat screen
-- [x] highlight popover tip not appearing at times (for later pages)
-- [ ] integrate ai =>
-  - [x] custom llm
 - [ ] optimistic update for file page after adding a new file
 - [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] fix seo stuff, use next-seo
-- [ ] have a hardcoded message as first message of every chat => something like => "Hey there, ask me anything about this document!"
+- [ ] store highlights as plain json. it was super dumb to store it as separate tables.
+- [ ] have a "summarise" text option right next to highlight text on selecting the text.
 
 ## Features to pitch
 
