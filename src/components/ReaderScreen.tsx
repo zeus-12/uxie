@@ -38,7 +38,7 @@ const DocViewerPage = () => {
         className="group flex w-2 cursor-col-resize items-center justify-center rounded-md bg-gray-50"
         onMouseDown={handleMouseDown}
       >
-        <div className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 dark:bg-neutral-700 group-hover:dark:bg-primary lg:h-24 lg:w-1" />
+        <div className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24 lg:w-1" />
       </div>
       <div className="h-screen min-w-[25vw] flex-1">
         <Sidebar />

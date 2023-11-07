@@ -300,9 +300,7 @@ const DocViewer = () => {
             <ChevronLeftIcon className="mr-2 h-4 w-4" />
           </Link>
 
-          <p className="font-semibold dark:text-gray-200">
-            {doc?.title ?? docId}
-          </p>
+          <p className="font-semibold">{doc?.title ?? docId}</p>
         </div>
         {/* <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
           <InviteCollab docId={docId} />
