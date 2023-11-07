@@ -74,15 +74,15 @@ export async function POST(req: Request, res: Response) {
 
   const results = await vectorStore.similaritySearch(lastMessage, 4);
 
-  const prevMessages = await prisma.message.findMany({
-    where: {
-      documentId: docId as string,
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-    take: 6,
-  });
+  // const prevMessages = await prisma.message.findMany({
+  //   where: {
+  //     documentId: docId as string,
+  //   },
+  //   orderBy: {
+  //     createdAt: "asc",
+  //   },
+  //   take: 6,
+  // });
 
   // const formattedPrevMessages = prevMessages.map((msg) => ({
   //   role: msg.isUserMessage ? ("user" as const) : ("assistant" as const),
