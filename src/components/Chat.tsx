@@ -39,13 +39,21 @@ export default function Chat() {
         className="hideScrollbar flex flex-1 flex-col gap-2 overflow-auto"
         ref={messageWindowRef}
       >
-        {[...(prevChatMessages ?? []), ...messages].map((m) => (
+        {[
+          {
+            id: "id",
+            content: `Hello! I'm AI assistant, your friendly and knowledgeable AI friend. I'm here to help you with any questions or topics you'd like to discuss. I've been trained on a vast amount of information, including the context you provided, and I'm eager to share my knowledge with you.`,
+            role: "assistant",
+          },
+          ...(prevChatMessages ?? []),
+          ...messages,
+        ].map((m) => (
           <div
             key={m.id}
             className={cn(
               m.role === "user" && "ml-auto bg-blue-500 text-white",
               m.role === "assistant" && "mr-auto bg-gray-200 text-black",
-              "max-w-[90%] select-none rounded-xl px-3 py-1 text-left ",
+              "max-w-[90%] rounded-xl px-3 py-1 text-left ",
             )}
           >
             <ReactMarkdown>{m.content}</ReactMarkdown>
