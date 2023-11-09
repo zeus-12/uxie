@@ -55,7 +55,6 @@ const Sidebar = () => {
   // }
 
   const [activeIndex, setActiveIndex] = useState("notes");
-  console.log(activeIndex, "activeinded");
   // TODO better error messages everywhere
   if (isError) return <>Something went wrong</>;
 
