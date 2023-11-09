@@ -37,10 +37,10 @@
 - [ ] fix seo stuff, use next-seo
 - [ ] store highlights as plain json. it was super dumb to store it as separate tables.
 - [ ] setup permissions inside liveblocks dashboard
-- [ ] see if u can see all the users in the liveblocks room
+- [ ] see if u can see all the users in the liveblocks room, (and display it at top)
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
 - [ ] fix `.tippy-arrow` appearing on screen at all times
-- [ ] fix fontcolor of `Liveblocks Presence` based on bg
+- [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 
 ## Features to pitch
 
