@@ -90,14 +90,15 @@ function BlockNoteEditor({ doc, provider }: EditorProps) {
 
   const { setEditor } = useBlocknoteEditorStore();
 
+  console.log(data?.canEdit, "canedit");
   const editor = useBlockNote(
     {
       // initialContent: data?.initialNotes
       //   ? JSON.parse(data.initialNotes)
       //   : undefined,
-      onEditorContentChange: (editor) => {
-        debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
-      },
+      // onEditorContentChange: (editor) => {
+      //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
+      // },
       editable: data?.canEdit,
 
       collaboration: {
