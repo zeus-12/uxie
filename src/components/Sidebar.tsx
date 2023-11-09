@@ -2,6 +2,7 @@ import Chat from "@/components/Chat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlbumIcon,
+  DeleteIcon,
   Download,
   MessagesSquareIcon,
   UserPlus,
@@ -24,11 +25,14 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { useState } from "react";
-import { z } from "zod";
 import { CollaboratorRole } from "@prisma/client";
 import { useRouter } from "next/router";
+import { toast } from "@/components/ui/use-toast";
 
 const Sidebar = () => {
+  const { query } = useRouter();
+  const documentId = query?.docId as string;
+
   const { editor } = useBlocknoteEditorStore();
 
   const handleDownloadMarkdownAsFile = async () => {
@@ -78,7 +82,7 @@ const Sidebar = () => {
           value="notes"
           className="flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg"
         >
-          <RoomProvider id="my-room" initialPresence={{}}>
+          <RoomProvider id={`doc-${documentId}`} initialPresence={{}}>
             <ClientSideSuspense
               fallback={
                 <div className="flex min-h-screen items-center justify-center">
@@ -112,63 +116,115 @@ const Sidebar = () => {
 export default Sidebar;
 
 type CollaboratorRoleValuesUnion = keyof typeof CollaboratorRole;
-interface CollaboratorType {
-  userId: string;
-  role: CollaboratorRoleValuesUnion;
-}
 
 const InviteCollab = () => {
-  return <></>;
-  // some really dumb code
-  // const { query } = useRouter();
-  // const documentId = query?.docId;
+  const { query } = useRouter();
+  const documentId = query?.docId as string;
 
-  // const { mutate } = api.document.updateCollaborators.useMutation();
-  // const [collaborators, setCollaborators] = useState<CollaboratorType[]>([]);
+  const { data } = api.document.getCollaborators.useQuery({
+    documentId,
+  });
+  const { mutate } = api.document.addCollaborator.useMutation();
+  const { mutate: removeCollaboratorByIdMutation } =
+    api.document.removeCollaboratorById.useMutation();
 
-  // const addCollaborator = async () => {
-  //   if (!email) return;
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<CollaboratorRoleValuesUnion>(
+    CollaboratorRole.VIEWER,
+  );
 
-  //   await mutate({
-  //     documentId: docId,
-  //     collaborators,
-  //   });
-  // };
-  // return (
-  //   <Dialog>
-  //     <DialogTrigger>
-  //       <UserPlus size={24} />
-  //     </DialogTrigger>
-  //     <DialogContent>
-  //       <DialogHeader>
-  //         <DialogTitle>Invite to collaborate?</DialogTitle>
-  //         <DialogDescription>
-  //           <div className="my-4 flex gap-2">
-  //             <input
-  //               className="flex-1 border-b-[1px] px-1"
-  //               placeholder="Email"
-  //               type="email"
-  //               inputMode="email"
-  //               value={email}
-  //               onChange={(e) => setEmail((e.target as CollaboratorRoleValuesUnion).value)}
-  //             />
-  //             <select
-  //               className="w-[180px] border-b-[1px] py-2"
-  //               value={role}
-  //               // @ts-ignore
-  //               onChange={(e) => setRole((e.target as "READ" | "WRITE").value)}
-  //             >
-  //               <option value="READ">Read</option>
-  //               <option value="WRITE">Write</option>
-  //             </select>
-  //           </div>
+  const addCollaborator = async () => {
+    try {
+      if (!email || !role) return;
+      mutate({
+        documentId,
+        data: {
+          email,
+          role,
+        },
+      });
+      // todo do optimisitc update here
+      setEmail("");
+      setRole(CollaboratorRole.VIEWER);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+        duration: 4000,
+      });
+    }
+  };
 
-  //           <div className="flex justify-end">
-  //             <Button onClick={addCollaborator}>Submit</Button>
-  //           </div>
-  //         </DialogDescription>
-  //       </DialogHeader>
-  //     </DialogContent>
-  //   </Dialog>
-  // );
+  const removeCollaboratorById = async (id: string) => {
+    removeCollaboratorByIdMutation({
+      documentId,
+      userId: id,
+    });
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger>
+        <UserPlus size={24} />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Invite to collaborate?</DialogTitle>
+          <DialogDescription>
+            <div className="my-4 flex gap-2">
+              <input
+                className="flex-1 border-b-[1px] px-1"
+                placeholder="Email"
+                type="email"
+                inputMode="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <select
+                className="w-[180px] border-b-[1px] py-2"
+                value={role}
+                onChange={(e) =>
+                  setRole(e.target.value as CollaboratorRoleValuesUnion)
+                }
+              >
+                {["VIEWER", "EDITOR"].map((role) => (
+                  <option key={role} value={role}>
+                    {role[0] + role.slice(1).toLowerCase()}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                )}
+                onClick={addCollaborator}
+              >
+                Invite
+              </button>
+            </div>
+
+            <div>
+              {data?.map((user, id) => (
+                <div
+                  key={id}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <span>{user.email}</span>
+                  <div>
+                    <span>{user.role}</span>
+                    <DeleteIcon
+                      size={20}
+                      onClick={() => removeCollaboratorById(user.id)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  );
 };
