@@ -223,7 +223,6 @@ const DocViewer = () => {
   }, []);
 
   function getHighlightById(id: string) {
-    // return doc?.highlights?.find((highlight) => highlight.id === id);
     return doc?.highlights?.find((highlight) => highlight.id === id);
   }
 
@@ -242,7 +241,6 @@ const DocViewer = () => {
     if (!content.text && !content.image) return;
     const isTextHighlight = !content.image;
 
-    // add to db => do optimistic update => for optimistic update use id as id. but for db dont pass id
     addHighlightMutation({
       id: highlightId,
       boundingRect: position.boundingRect,
@@ -302,9 +300,6 @@ const DocViewer = () => {
 
           <p className="font-semibold">{doc?.title ?? docId}</p>
         </div>
-        {/* <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
-          <InviteCollab docId={docId} />
-        </div> */}
       </div>
       <div className="relative h-screen w-full ">
         <PdfLoader
