@@ -1,6 +1,6 @@
 import { CollaboratorRole } from "@prisma/client";
 import { useRouter } from "next/router";
-import { DeleteIcon, UserPlus } from "lucide-react";
+import { TrashIcon, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ const InviteCollab = () => {
   const { query } = useRouter();
   const documentId = query?.docId as string;
 
-  const { data } = api.document.getCollaborators.useQuery({
+  const { data: collaborators } = api.document.getCollaborators.useQuery({
     documentId,
   });
   const { mutate } = api.document.addCollaborator.useMutation();
@@ -66,7 +66,14 @@ const InviteCollab = () => {
   return (
     <Dialog>
       <DialogTrigger>
-        <UserPlus size={24} />
+        <div
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border",
+          )}
+        >
+          <UserPlus size={20} />
+        </div>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -105,19 +112,22 @@ const InviteCollab = () => {
               </button>
             </div>
 
-            <div>
-              {data?.map((user, id) => (
+            <div className="space-y-2">
+              {collaborators?.map((user, id) => (
                 <div
                   key={id}
                   className="flex items-center justify-between gap-2"
                 >
                   <span>{user.email}</span>
-                  <div>
+                  <div className="flex gap-2">
                     <span>{user.role}</span>
-                    <DeleteIcon
-                      size={20}
-                      onClick={() => removeCollaboratorById(user.id)}
-                    />
+                    {user.role !== CollaboratorRole.OWNER && (
+                      // isOwner &&
+                      <TrashIcon
+                        size={20}
+                        onClick={() => removeCollaboratorById(user.id)}
+                      />
+                    )}
                   </div>
                 </div>
               ))}
