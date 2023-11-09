@@ -41,6 +41,7 @@
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
 - [ ] fix `.tippy-arrow` appearing on screen at all times
 - [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
+- [ ] reduce pdfreader scrollbar height + width
 
 ## Features to pitch
 
