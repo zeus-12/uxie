@@ -123,10 +123,9 @@ function BlockNoteEditor({ doc, provider }: EditorProps) {
       slashMenuItems: [
         ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
         insertAlert,
-        // insertHighlight,
       ],
     },
-    [data],
+    [data?.initialNotes],
   );
 
   if (isError) {
