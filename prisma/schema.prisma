@@ -84,11 +84,17 @@ model Message {
   isUserMessage Boolean
 }
 
+enum HighlightTypeEnum {
+  TEXT
+  IMAGE
+}
+
 model Highlight {
-  id         String   @id @default(cuid())
+  id         String            @id @default(cuid())
   // imageUrl   String?  @db.Text
   // text       String?  @db.Text
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  type       HighlightTypeEnum
+  document   Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
 
   boundingRectangle Cordinate? @relation("boundingRectangle")
