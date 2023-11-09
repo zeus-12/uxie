@@ -53,7 +53,7 @@ export default function Chat() {
             className={cn(
               m.role === "user" && "ml-auto bg-blue-500 text-white",
               m.role === "assistant" && "mr-auto bg-gray-200 text-black",
-              "max-w-[90%] rounded-xl px-3 py-1 text-left ",
+              "max-w-[80%] rounded-xl px-3 py-1 text-left ",
             )}
           >
             <ReactMarkdown>{m.content}</ReactMarkdown>
