@@ -39,6 +39,8 @@
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users in the liveblocks room
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
+- [ ] fix `.tippy-arrow` appearing on screen at all times
+- [ ] fix fontcolor of `Liveblocks Presence` based on bg
 
 ## Features to pitch
 
