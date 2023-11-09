@@ -153,7 +153,17 @@ export const documentRouter = createTRPCRouter({
       const doc = await ctx.prisma.document.findUnique({
         where: {
           id: input.documentId,
-          ownerId: ctx.session.user.id,
+          OR: [
+            { ownerId: ctx.session.user.id },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                  role: CollaboratorRole.EDITOR,
+                },
+              },
+            },
+          ],
         },
       });
 
@@ -176,46 +186,153 @@ export const documentRouter = createTRPCRouter({
       return true;
     }),
 
-  updateCollaborators: protectedProcedure
+  addCollaborator: protectedProcedure
     .input(
       z.object({
         documentId: z.string(),
-        collaborators: z.array(
-          z.object({
-            userId: z.string(),
-            role: z.nativeEnum(CollaboratorRole),
-          }),
-        ),
+        data: z.object({
+          email: z.string(),
+          role: z.nativeEnum(CollaboratorRole),
+        }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      try {
+        const doc = await ctx.prisma.document.findUnique({
+          where: {
+            id: input.documentId,
+            ownerId: ctx.session.user.id,
+          },
+        });
+
+        if (!doc) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Document not found or you do not have access to it.",
+          });
+        }
+
+        const user = await ctx.prisma.user.findUnique({
+          where: {
+            email: input.data.email,
+          },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found.",
+          });
+        }
+
+        await ctx.prisma.collaborator.create({
+          data: {
+            role: input.data.role,
+            documentId: input.documentId,
+            userId: user.id,
+          },
+        });
+
+        return true;
+      } catch (err: any) {
+        console.log(err.message);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: err.message,
+        });
+      }
+    }),
+
+  removeCollaboratorById: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+        userId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const doc = await ctx.prisma.document.findUnique({
+          where: {
+            id: input.documentId,
+            ownerId: ctx.session.user.id,
+          },
+        });
+
+        if (!doc) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Document not found or you do not have access to it.",
+          });
+        }
+
+        await ctx.prisma.collaborator.delete({
+          where: {
+            documentId: input.documentId,
+            userId: input.userId,
+          },
+        });
+
+        return true;
+      } catch (err: any) {
+        console.log(err.message);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: err.message,
+        });
+      }
+    }),
+
+  getCollaborators: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
       const doc = await ctx.prisma.document.findUnique({
         where: {
           id: input.documentId,
           ownerId: ctx.session.user.id,
+        },
+        select: {
+          collaborators: {
+            select: {
+              role: true,
+              user: {
+                select: {
+                  email: true,
+                  id: true,
+                },
+              },
+            },
+          },
+          owner: {
+            select: {
+              email: true,
+              id: true,
+            },
+          },
         },
       });
 
       if (!doc) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
-          message: "Document not found or you do not have access to it.",
+          message: "Document not found or you are not the owner.",
         });
       }
-
-      await ctx.prisma.document.update({
-        data: {
-          collaborators: {
-            createMany: {
-              data: input.collaborators,
-            },
-          },
+      return [
+        {
+          email: doc.owner.email ?? "Invalid Email",
+          role: CollaboratorRole.OWNER,
+          id: doc.owner.id,
         },
-        where: {
-          id: input.documentId,
-        },
-      });
-
-      return true;
+        ...doc.collaborators.map((cur) => ({
+          email: cur.user.email ?? "Invalid Email",
+          role: cur.role,
+          id: cur.user.id,
+        })),
+      ];
     }),
 });
