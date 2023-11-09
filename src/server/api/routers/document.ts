@@ -83,8 +83,12 @@ export const documentRouter = createTRPCRouter({
       };
     }),
 
-  getNotesData: protectedProcedure
-    .input(z.object({ docId: z.string() }))
+  getDocsDetails: protectedProcedure
+    .input(
+      z.object({
+        docId: z.string(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const res = await ctx.prisma.document.findUnique({
         where: {
@@ -137,54 +141,114 @@ export const documentRouter = createTRPCRouter({
       }
 
       return {
-        initialNotes: res.note,
         canEdit,
         username,
+        isOwner: res.owner.id === ctx.session.user.id,
       };
     }),
-  updateNotes: protectedProcedure
-    .input(
-      z.object({
-        markdown: z.string(),
-        documentId: z.string(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const doc = await ctx.prisma.document.findUnique({
-        where: {
-          id: input.documentId,
-          OR: [
-            { ownerId: ctx.session.user.id },
-            {
-              collaborators: {
-                some: {
-                  userId: ctx.session.user.id,
-                  role: CollaboratorRole.EDITOR,
-                },
-              },
-            },
-          ],
-        },
-      });
 
-      if (!doc) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Document not found or you do not have access to it.",
-        });
-      }
+  // getNotesData: protectedProcedure
+  //   .input(z.object({ docId: z.string() }))
+  //   .query(async ({ ctx, input }) => {
+  // const res = await ctx.prisma.document.findUnique({
+  //   where: {
+  //     id: input.docId,
+  //     OR: [
+  //       { ownerId: ctx.session.user.id },
+  //       {
+  //         collaborators: {
+  //           some: {
+  //             userId: ctx.session.user.id,
+  //           },
+  //         },
+  //       },
+  //     ],
+  //   },
 
-      await ctx.prisma.document.update({
-        data: {
-          note: input.markdown,
-        },
-        where: {
-          id: input.documentId,
-        },
-      });
+  //   include: {
+  //     collaborators: {
+  //       // this might be expensive, would be better to fetch userdetails as a transaction
+  //       include: {
+  //         user: true,
+  //       },
+  //     },
+  //     owner: true,
+  //   },
+  // });
 
-      return true;
-    }),
+  // if (!res) {
+  //   throw new TRPCError({
+  //     code: "UNAUTHORIZED",
+  //     message: "Document not found or you do not have access to it.",
+  //   });
+  // }
+
+  // let canEdit = false;
+  // let username = "";
+  // if (res?.owner.id === ctx.session.user.id) {
+  //   canEdit = true;
+  //   username = res.owner.name;
+  // } else {
+  //   for (const collaborator of res.collaborators) {
+  //     if (collaborator.userId === ctx.session.user.id) {
+  //       username = collaborator.user.name;
+  //       if (collaborator.role === CollaboratorRole.EDITOR) {
+  //         canEdit = true;
+  //       }
+  //       break;
+  //     }
+  //   }
+  //     }
+
+  //     return {
+  //       initialNotes: res.note,
+  //       canEdit,
+  //       username,
+  //     };
+  //   }),
+  // updateNotes: protectedProcedure
+  //   .input(
+  //     z.object({
+  //       markdown: z.string(),
+  //       documentId: z.string(),
+  //     }),
+  //   )
+  //   .mutation(async ({ ctx, input }) => {
+  //     const doc = await ctx.prisma.document.findUnique({
+  //       where: {
+  //         id: input.documentId,
+  //         OR: [
+  //           { ownerId: ctx.session.user.id },
+  //           {
+  //             collaborators: {
+  //               some: {
+  //                 userId: ctx.session.user.id,
+  //                 role: CollaboratorRole.EDITOR,
+  //               },
+  //             },
+  //           },
+  //         ],
+  //       },
+  //     });
+
+  //     if (!doc) {
+  //       throw new TRPCError({
+  //         code: "UNAUTHORIZED",
+  //         message: "Document not found or you do not have access to it.",
+  //       });
+  //     }
+
+  //     await ctx.prisma.document.update({
+  //       data: {
+  //         note: input.markdown,
+  //       },
+  //       where: {
+  //         id: input.documentId,
+  //       },
+  //     });
+
+  //     return true;
+  //   }),
 
   addCollaborator: protectedProcedure
     .input(
