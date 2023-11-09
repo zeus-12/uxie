@@ -92,9 +92,9 @@ function BlockNoteEditor({ doc, provider }: EditorProps) {
 
   const editor = useBlockNote(
     {
-      initialContent: data?.initialNotes
-        ? JSON.parse(data.initialNotes)
-        : undefined,
+      // initialContent: data?.initialNotes
+      //   ? JSON.parse(data.initialNotes)
+      //   : undefined,
       onEditorContentChange: (editor) => {
         debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       },
@@ -125,7 +125,7 @@ function BlockNoteEditor({ doc, provider }: EditorProps) {
         insertAlert,
       ],
     },
-    [data?.initialNotes],
+    [data?.canEdit],
   );
 
   if (isError) {
