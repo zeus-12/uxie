@@ -44,6 +44,7 @@
 - [ ] reduce pdfreader scrollbar height + width
 - [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
 - [ ] remove hardcoded heights using vh
+- [ ] remove the weird dragging thing on area-highlight
 
 ## Features to pitch
 
