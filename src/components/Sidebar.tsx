@@ -39,6 +39,20 @@ const Sidebar = () => {
     },
   );
 
+  // if (isError) {
+  //   if (error?.data?.code === "UNAUTHORIZED") {
+  //     push("/f");
+
+  //     toast({
+  //       title: "Unauthorized",
+  //       description: error.message,
+  //       variant: "destructive",
+  //       duration: 4000,
+  //     });
+  //   }
+  //   return;
+  // }
+
   if (!data) return <>Something went wrong</>;
 
   return (
