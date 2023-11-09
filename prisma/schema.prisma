@@ -45,6 +45,7 @@ model Document {
   highlights    Highlight[]
   collaborators Collaborator[]
   ownerId       String
+  // notes seems to be stored on yjs, so no need to store it here
   note          String?        @db.Text
   messages      Message[]
   isVectorised  Boolean        @default(false)

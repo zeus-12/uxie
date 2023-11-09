@@ -27,6 +27,7 @@ const DocViewerPage = () => {
       className="flex"
       onMouseUp={handleMouseUp}
       onMouseMove={handleMouseMove}
+      // TODO add support for touch movements
     >
       <div
         className="h-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
