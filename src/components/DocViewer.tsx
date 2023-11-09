@@ -66,7 +66,6 @@ const DocViewer = () => {
                 rects: newHighlight.rects,
                 pageNumber: newHighlight.pageNumber,
               },
-              content: newHighlight.content,
             },
           ],
         };
@@ -240,11 +239,6 @@ const DocViewer = () => {
     addHighlightMutation({
       id: highlightId,
       boundingRect: position.boundingRect,
-      content: {
-        ...(isTextHighlight
-          ? { text: content.text ? content.text : "" }
-          : { image: content.image ? content.image : "" }),
-      },
       type: isTextHighlight ? HighlightTypeEnum.TEXT : HighlightTypeEnum.IMAGE,
       documentId: docId as string,
       pageNumber: position.pageNumber,
