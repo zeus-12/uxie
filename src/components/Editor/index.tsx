@@ -125,6 +125,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
         setEditor(editor);
       },
       blockSchema: schemaWithCustomBlocks,
+      // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
       domAttributes: {
         editor: {
