@@ -16,6 +16,7 @@ export const highlightRouter = createTRPCRouter({
           y2: z.number(),
           width: z.number(),
           height: z.number(),
+          // see when this becomes optional => for text highlights?
           pageNumber: z.number().optional(),
         }),
         rects: z.array(
@@ -26,15 +27,12 @@ export const highlightRouter = createTRPCRouter({
             y2: z.number(),
             width: z.number(),
             height: z.number(),
+            // see when this becomes optional => for imagehighlights?
             pageNumber: z.number().optional(),
           }),
         ),
         pageNumber: z.number(),
         type: z.nativeEnum(HighlightTypeEnum),
-        content: z.object({
-          text: z.string().optional(),
-          image: z.string().optional(),
-        }),
       }),
     )
     .mutation(async ({ ctx, input }) => {
