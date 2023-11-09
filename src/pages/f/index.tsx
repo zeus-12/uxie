@@ -56,7 +56,9 @@ const UserLibraryPage = () => {
         />
       </div>
 
-      {userDocs?.documents.length + userDocs?.collaborators.length === 0 ? (
+      {userDocs?.documents.length +
+        userDocs?.collaboratorateddocuments.length ===
+      0 ? (
         <p className="text-muted-foreground">
           You have no files yet, upload one now!
         </p>
@@ -74,7 +76,7 @@ const UserLibraryPage = () => {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {userDocs.collaborators.map((collab) => (
+        {userDocs.collaboratorateddocuments.map((collab) => (
           <Link key={collab.document.id} href={`/f/${collab.document.id}`}>
             <div className={cn(buttonVariants({ variant: "ghost" }))}>
               {/* <Badge variant="outline">{collab.role}</Badge> */}
