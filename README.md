@@ -42,7 +42,7 @@
 - [ ] fix `.tippy-arrow` appearing on screen at all times
 - [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 - [ ] reduce pdfreader scrollbar height + width
-- [ ] areahighlight from pdf => imagelink stored on editor is base64 one
+- [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
 - [ ] remove hardcoded heights using vh
 
 ## Features to pitch
