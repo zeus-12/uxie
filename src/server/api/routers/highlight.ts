@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { HighlightTypeEnum } from "@prisma/client";
 
 export const highlightRouter = createTRPCRouter({
   add: protectedProcedure
@@ -29,7 +30,7 @@ export const highlightRouter = createTRPCRouter({
           }),
         ),
         pageNumber: z.number(),
-
+        type: z.nativeEnum(HighlightTypeEnum),
         content: z.object({
           text: z.string().optional(),
           image: z.string().optional(),
@@ -59,6 +60,7 @@ export const highlightRouter = createTRPCRouter({
               ...pageNumber,
             },
           },
+          type: input.type,
           ...pageNumber,
           rectangles: {
             createMany: {
