@@ -35,7 +35,13 @@ export const imageUploader = {
         const response = await fetch(file.url);
         const blob = await response.blob();
         const loader = new PDFLoader(blob);
+
         const pageLevelDocs = await loader.load();
+        const pageCount = pageLevelDocs.length;
+
+        if (pageCount > 5) {
+          throw new Error("Too many pages");
+        }
 
         const pinecone = getPineconeClient();
         const pineconeIndex = pinecone.Index("uxie");
