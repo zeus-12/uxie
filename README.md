@@ -20,6 +20,7 @@
 - **Pinecone DB** for storing embeddings of pdfs
 - **Fireworks AI** for LLM
 - **Huggingface Model** for generating Embeddings
+- **Liveblocks** for realtime collaboration
 
 ### Features:
 
@@ -31,11 +32,12 @@
 
 ## TODOS
 
-- [x] add images to some free provider or cloudinary: use cloudinary for storage => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
+- [ ] maybe switch file uploadingt to cloudinary => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] optimistic update for file page after adding a new file
-- [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
 - [ ] fix seo stuff, use next-seo
 - [ ] store highlights as plain json. it was super dumb to store it as separate tables.
+- [ ] setup permissions inside liveblocks dashboard
+- [ ] see if u can see all the users in the liveblocks room
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
 
 ## Features to pitch
