@@ -11,6 +11,7 @@ import { ClientSideSuspense } from "@liveblocks/react";
 import { Spinner } from "@/components/Spinner";
 import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
+import { api } from "@/lib/api";
 
 const Sidebar = () => {
   const { query } = useRouter();
@@ -27,6 +28,18 @@ const Sidebar = () => {
     const blob = new Blob([markdownContent], { type: "text/markdown" });
     saveAs(blob, "notes.md");
   };
+
+  const { data } = api.document.getDocsDetails.useQuery(
+    {
+      docId: query?.docId as string,
+    },
+    {
+      enabled: !!query?.docId,
+      retry: false,
+    },
+  );
+
+  if (!data) return <>Something went wrong</>;
 
   return (
     <div className="bg-gray-50">
@@ -47,8 +60,9 @@ const Sidebar = () => {
             <Highlighter size={24} />
           </TabsTrigger> */}
           </TabsList>
-          <div>
-            <InviteCollab />
+          <div className="flex items-center">
+            {data.isOwner && <InviteCollab />}
+
             <div
               className={cn(
                 buttonVariants({ variant: "ghost", size: "sm" }),
@@ -65,7 +79,13 @@ const Sidebar = () => {
           value="notes"
           className="flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg"
         >
-          <RoomProvider id={`doc-${documentId}`} initialPresence={{}}>
+          <RoomProvider
+            id={`doc-${documentId}`}
+            initialPresence={{
+              name: "User",
+              color: "red",
+            }}
+          >
             <ClientSideSuspense
               fallback={
                 <div className="flex min-h-screen items-center justify-center">
@@ -73,7 +93,7 @@ const Sidebar = () => {
                 </div>
               }
             >
-              {() => <Editor />}
+              {() => <Editor canEdit={data.canEdit} username={data.username} />}
             </ClientSideSuspense>
           </RoomProvider>
         </TabsContent>
