@@ -42,9 +42,6 @@ export const documentRouter = createTRPCRouter({
       if (!res) return null;
 
       const highlightData = res.highlights.map((highlight) => ({
-        ...(highlight.text
-          ? { content: { text: highlight.text } }
-          : { content: { image: highlight.imageUrl } }),
         id: highlight.id,
         position: {
           boundingRect: {
