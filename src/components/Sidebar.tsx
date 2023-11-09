@@ -12,6 +12,7 @@ import { Spinner } from "@/components/Spinner";
 import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
 import { api } from "@/lib/api";
+import { useState } from "react";
 
 const Sidebar = () => {
   const { query } = useRouter();
@@ -29,7 +30,7 @@ const Sidebar = () => {
     saveAs(blob, "notes.md");
   };
 
-  const { data } = api.document.getDocsDetails.useQuery(
+  const { data, isError } = api.document.getDocsDetails.useQuery(
     {
       docId: query?.docId as string,
     },
@@ -53,11 +54,16 @@ const Sidebar = () => {
   //   return;
   // }
 
-  if (!data) return <>Something went wrong</>;
+  const [activeIndex, setActiveIndex] = useState("notes");
+  console.log(activeIndex, "activeinded");
+  // TODO better error messages everywhere
+  if (isError) return <>Something went wrong</>;
 
   return (
     <div className="bg-gray-50">
       <Tabs
+        value={activeIndex}
+        onValueChange={(value) => setActiveIndex(value)}
         defaultValue="notes"
         className="max-h-screen max-w-full overflow-hidden"
       >
@@ -75,7 +81,7 @@ const Sidebar = () => {
           </TabsTrigger> */}
           </TabsList>
           <div className="flex items-center">
-            {data.isOwner && <InviteCollab />}
+            {data?.isOwner && <InviteCollab />}
 
             <div
               className={cn(
@@ -89,43 +95,58 @@ const Sidebar = () => {
           </div>
         </div>
 
-        <TabsContent
-          value="notes"
-          className="flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg"
-        >
-          <RoomProvider
-            id={`doc-${documentId}`}
-            initialPresence={{
-              name: "User",
-              color: "red",
-            }}
+        {[
+          {
+            value: "notes",
+            tw: "flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg",
+            children: (
+              <RoomProvider
+                id={`doc-${documentId}`}
+                initialPresence={
+                  {
+                    // TODO: figure out what this is
+                    // name: "User",
+                    // color: "red",
+                  }
+                }
+              >
+                <ClientSideSuspense
+                  fallback={
+                    <div className="flex min-h-screen items-center justify-center">
+                      <Spinner />
+                    </div>
+                  }
+                >
+                  {() => (
+                    <Editor
+                      canEdit={data?.canEdit ?? false}
+                      username={data?.username ?? "User"}
+                    />
+                  )}
+                </ClientSideSuspense>
+              </RoomProvider>
+            ),
+          },
+          {
+            value: "chat",
+            tw: "",
+            children: (
+              <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg ">
+                <Chat />
+              </div>
+            ),
+          },
+        ].map((item) => (
+          <TabsContent
+            key={item.value}
+            forceMount
+            hidden={item.value !== activeIndex}
+            value={item.value}
+            className={item.tw}
           >
-            <ClientSideSuspense
-              fallback={
-                <div className="flex min-h-screen items-center justify-center">
-                  <Spinner />
-                </div>
-              }
-            >
-              {() => <Editor canEdit={data.canEdit} username={data.username} />}
-            </ClientSideSuspense>
-          </RoomProvider>
-        </TabsContent>
-
-        <TabsContent value="chat">
-          <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg ">
-            <Chat />
-          </div>
-        </TabsContent>
-
-        {/* <TabsContent value="highlights">
-          <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:p-4 sm:shadow-lg lg:p-8 ">
-            <PdfHighlights highlights={highlights}
-            
-              // docId={docId}
-            />
-          </div>
-        </TabsContent> */}
+            {item.children}
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
