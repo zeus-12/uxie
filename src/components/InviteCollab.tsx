@@ -112,7 +112,7 @@ const InviteCollab = () => {
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="mt-8 space-y-2">
               {collaborators?.map((user, id) => (
                 <div
                   key={id}
