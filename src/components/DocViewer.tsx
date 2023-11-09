@@ -7,12 +7,7 @@ import {
   AreaHighlight,
 } from "react-pdf-highlighter";
 import { Spinner } from "@/components/Spinner";
-import {
-  ChevronLeft,
-  ClipboardCopy,
-  Highlighter,
-  TrashIcon,
-} from "lucide-react";
+import { ClipboardCopy, Highlighter, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
@@ -27,6 +22,7 @@ import { ChevronLeftIcon } from "@/components/icons";
 // import InviteCollab from "@/components/InviteCollab";
 import { createId } from "@paralleldrive/cuid2";
 import { useBlocknoteEditorStore } from "@/lib/store";
+import { HighlightTypeEnum } from "@prisma/client";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -249,6 +245,7 @@ const DocViewer = () => {
           ? { text: content.text ? content.text : "" }
           : { image: content.image ? content.image : "" }),
       },
+      type: isTextHighlight ? HighlightTypeEnum.TEXT : HighlightTypeEnum.IMAGE,
       documentId: docId as string,
       pageNumber: position.pageNumber,
       rects: position.rects,
@@ -344,23 +341,18 @@ const DocViewer = () => {
                 screenshot,
                 isScrolledTo,
               ) => {
-                const isTextHighlight = !Boolean(
-                  highlight.content && highlight.content.image,
-                );
+                const isTextHighlight = highlight.position.rects.length !== 0;
 
                 const component = isTextHighlight ? (
                   <div id={highlight.id}>
+                    {/* @ts-ignore */}
                     <Highlight
                       isScrolledTo={isScrolledTo}
                       position={highlight.position}
-                      comment={{
-                        emoji: "",
-                        text: "",
-                      }}
                     />
                   </div>
                 ) : (
-                  <div id={highlight.id}>
+                  <div id={highlight.id} className="">
                     <AreaHighlight
                       isScrolledTo={isScrolledTo}
                       highlight={highlight}
