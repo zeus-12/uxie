@@ -42,8 +42,8 @@
 - [ ] fix `.tippy-arrow` appearing on screen at all times
 - [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 - [ ] reduce pdfreader scrollbar height + width
-- [ ] why are we storing the text and image base64 of the highlight to the db??
-- [ ] area highlight not displaying properly on the pdf, area pdf imagelink stored on editor is base64 one
+- [ ] areahighlight from pdf => imagelink stored on editor is base64 one
+- [ ] remove hardcoded heights using vh
 
 ## Features to pitch
 
