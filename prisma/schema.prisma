@@ -86,8 +86,8 @@ model Message {
 
 model Highlight {
   id         String   @id @default(cuid())
-  imageUrl   String?  @db.Text
-  text       String?  @db.Text
+  // imageUrl   String?  @db.Text
+  // text       String?  @db.Text
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
 
