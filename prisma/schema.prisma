@@ -71,6 +71,8 @@ model Collaborator {
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([documentId, userId])
 }
 
 model Message {

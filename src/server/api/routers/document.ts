@@ -329,8 +329,10 @@ export const documentRouter = createTRPCRouter({
 
         await ctx.prisma.collaborator.delete({
           where: {
-            documentId: input.documentId,
-            userId: input.userId,
+            documentId_userId: {
+              documentId: input.documentId,
+              userId: input.userId,
+            },
           },
         });
 
