@@ -51,6 +51,7 @@ const DocViewer = () => {
       // @ts-ignore
       utils.document.getDocData.setData({ docId: docId as string }, (old) => {
         if (!old) return null;
+
         return {
           ...old,
           highlights: [
@@ -69,7 +70,6 @@ const DocViewer = () => {
       return { prevData };
     },
     onError(err, newPost, ctx) {
-      // If the mutation fails, use the context-value from onMutate
       utils.document.getDocData.setData(
         { docId: docId as string },
         ctx?.prevData,
@@ -340,7 +340,7 @@ const DocViewer = () => {
                     />
                   </div>
                 ) : (
-                  <div id={highlight.id} className="">
+                  <div id={highlight.id}>
                     <AreaHighlight
                       isScrolledTo={isScrolledTo}
                       highlight={highlight}
