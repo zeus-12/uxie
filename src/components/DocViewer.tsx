@@ -11,15 +11,10 @@ import { ClipboardCopy, Highlighter, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import {
-  HighlightContentType,
-  HighlightPositionType,
-  HighlightType,
-} from "@/types";
+import { HighlightContentType, HighlightPositionType } from "@/types";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "@/components/icons";
-// import InviteCollab from "@/components/InviteCollab";
 import { createId } from "@paralleldrive/cuid2";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { HighlightTypeEnum } from "@prisma/client";
