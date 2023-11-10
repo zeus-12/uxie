@@ -44,7 +44,7 @@
 
 ## FEATURE SUGGESTIONS
 
-- [ ] maybe switch file uploadingt to cloudinary => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
+- [ ] maybe switch file uploading to cloudinary => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] fix seo stuff, use next-seo
 - [ ] store highlights as plain json. it was super dumb to store it as separate tables.
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
