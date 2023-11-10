@@ -128,6 +128,9 @@ const DocViewer = () => {
       const block = editor.getTextCursorPosition().block;
       const blockIsEmpty = block.content?.length === 0;
 
+      // console.log(editor.topLevelBlocks, "editor");
+      // console.log(block, "block");
+
       if (blockIsEmpty) {
         editor.updateBlock(block, {
           content: content,
