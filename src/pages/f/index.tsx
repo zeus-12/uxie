@@ -13,6 +13,7 @@ const UserLibraryPage = () => {
     data: userDocs,
     isError,
     isLoading,
+    refetch: refetchUserDocs,
   } = api.user.getUsersDocs.useQuery();
 
   if (isError) return <div>error</div>;
@@ -46,6 +47,7 @@ const UserLibraryPage = () => {
           }}
           endpoint="docUploader"
           onClientUploadComplete={async (res: any) => {
+            refetchUserDocs();
             toast({
               title: "Success",
               description: "File uploaded successfully.",
