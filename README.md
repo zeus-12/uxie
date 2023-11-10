@@ -30,21 +30,24 @@
   - Chat and collab with other
   - Export highlights of your pdf
 
-## TODOS
+## BUGS
 
-- [ ] maybe switch file uploadingt to cloudinary => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] optimistic update for file page after adding a new file
-- [ ] fix seo stuff, use next-seo
-- [ ] store highlights as plain json. it was super dumb to store it as separate tables.
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
-- [ ] have a "summarise" text option right next to highlight text on selecting the text.
 - [ ] fix `.tippy-arrow` appearing on screen at all times
 - [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 - [ ] reduce pdfreader scrollbar height + width
 - [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
 - [ ] remove hardcoded heights using vh
 - [ ] remove the weird dragging thing on area-highlight
+
+## FEATURE SUGGESTIONS
+
+- [ ] maybe switch file uploadingt to cloudinary => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
+- [ ] fix seo stuff, use next-seo
+- [ ] store highlights as plain json. it was super dumb to store it as separate tables.
+- [ ] have a "summarise" text option right next to highlight text on selecting the text.
 
 ## Features to pitch
 
