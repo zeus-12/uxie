@@ -5,11 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getRandomColor() {
-  var letters = "0123456789ABCDEF";
-  var color = "#";
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
+export function getRandomLightColor() {
+  function getRandomLightValue() {
+    return Math.floor(Math.random() * 128) + 128;
   }
-  return color;
+
+  var r = getRandomLightValue();
+  var g = getRandomLightValue();
+  var b = getRandomLightValue();
+
+  return "#" + r.toString(16) + g.toString(16) + b.toString(16);
 }
