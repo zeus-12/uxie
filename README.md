@@ -33,14 +33,17 @@
 ## BUGS
 
 - [ ] optimistic update for file page after adding a new file
-- [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
-- [ ] fix `.tippy-arrow` appearing on screen at all times
 - [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 - [ ] reduce pdfreader scrollbar height + width
 - [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
 - [ ] remove hardcoded heights using vh
 - [ ] remove the weird dragging thing on area-highlight
+
+### Low priority
+
+- [ ] setup permissions inside liveblocks dashboard
+- [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 
 ## FEATURE SUGGESTIONS
 
@@ -54,6 +57,7 @@
 - custom blocks in editor
 - highlights block which on click takes you to that highlight on the doc.
 - download as markdown
+- collaborator
 
 ## Setting up guide
 
