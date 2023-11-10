@@ -2,6 +2,7 @@ import { Spinner } from "@/components/Spinner";
 import { ChevronLeftIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { UploadButton } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,6 @@ const UserLibraryPage = () => {
     data: userDocs,
     isError,
     isLoading,
-    refetch: refetchUserDocs,
   } = api.user.getUsersDocs.useQuery();
 
   if (isError) return <div>error</div>;
@@ -44,13 +44,19 @@ const UserLibraryPage = () => {
           appearance={{
             button: buttonVariants({ variant: "default" }),
           }}
-          endpoint="imageUploader"
-          onClientUploadComplete={(res: any) => {
-            // console.log("client upload complete");
-            // someway to refetch
-            refetchUserDocs();
+          endpoint="docUploader"
+          onClientUploadComplete={async (res: any) => {
+            toast({
+              title: "Success",
+              description: "File uploaded successfully.",
+            });
           }}
           onUploadError={(error: Error) => {
+            toast({
+              title: "Error",
+              description: "Something went wrong, please try again later.",
+              variant: "destructive",
+            });
             console.log(error.message);
           }}
         />

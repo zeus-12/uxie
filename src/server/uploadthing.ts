@@ -9,8 +9,8 @@ import { env } from "@/env.mjs";
 
 const f = createUploadthing();
 
-export const imageUploader = {
-  imageUploader: f({ pdf: { maxFileSize: "8MB" } })
+export const docUploader = {
+  docUploader: f({ pdf: { maxFileSize: "8MB" } })
     .middleware(async ({ req, res }) => {
       const session = await getServerAuthSession({ req, res });
 
@@ -78,4 +78,4 @@ export const imageUploader = {
     }),
 } satisfies FileRouter;
 
-export type OurFileRouter = typeof imageUploader;
+export type OurFileRouter = typeof docUploader;
