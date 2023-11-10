@@ -68,16 +68,24 @@ const Sidebar = () => {
       >
         <div className="flex items-center justify-between pr-1">
           <TabsList className="h-12 rounded-md bg-gray-200">
-            <TabsTrigger value="notes">
-              <AlbumIcon size={20} />
-            </TabsTrigger>
-
-            <TabsTrigger value="chat">
-              <MessagesSquareIcon size={20} />
-            </TabsTrigger>
-            {/* <TabsTrigger value="highlights">
-            <Highlighter size={24} />
-          </TabsTrigger> */}
+            {[
+              {
+                value: "notes",
+                icon: <AlbumIcon size={20} />,
+              },
+              {
+                value: "chat",
+                icon: <MessagesSquareIcon size={20} />,
+              },
+              // {
+              //   value: "highlights",
+              //   icon: <MessagesSquareIcon size={20} />,
+              // }
+            ].map((item) => (
+              <TabsTrigger key={item.value} value={item.value}>
+                {item.icon}
+              </TabsTrigger>
+            ))}
           </TabsList>
           <div className="flex items-center">
             {data?.isOwner && <InviteCollab />}
@@ -130,7 +138,7 @@ const Sidebar = () => {
             value: "chat",
             tw: "",
             children: (
-              <div className="relative h-[calc(100vh-4rem)] w-full max-w-screen-lg overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg ">
+              <div className="relative h-[calc(100vh-4rem)] w-full overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg ">
                 <Chat />
               </div>
             ),
