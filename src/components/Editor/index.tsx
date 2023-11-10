@@ -24,7 +24,7 @@ import { useEffect, useState } from "react";
 import * as Y from "yjs";
 import LiveblocksProvider from "@liveblocks/yjs";
 import { useRoom } from "liveblocks.config";
-import { getRandomColor } from "@/lib/utils";
+import { getRandomLightColor } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 
 type EditorProps = {
@@ -42,6 +42,7 @@ export default function Editor({
   username: string;
 }) {
   const room = useRoom();
+  // console.log(room.getOthers(), "presence");
   const [doc, setDoc] = useState<Y.Doc>();
   const [provider, setProvider] = useState<any>();
 
@@ -49,6 +50,7 @@ export default function Editor({
   useEffect(() => {
     const yDoc = new Y.Doc();
     const yProvider = new LiveblocksProvider(room, yDoc);
+
     setDoc(yDoc);
     setProvider(yProvider);
 
@@ -117,7 +119,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
         fragment: doc.getXmlFragment("document-store"),
         user: {
           name: username || "User",
-          color: getRandomColor(),
+          color: getRandomLightColor(),
         },
       },
 
