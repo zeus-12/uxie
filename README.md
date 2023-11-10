@@ -20,6 +20,7 @@
 - **Pinecone DB** for storing embeddings of pdfs
 - **Fireworks AI** for LLM
 - **Huggingface Model** for generating Embeddings
+- **Liveblocks** for realtime collaboration
 
 ### Features:
 
@@ -29,29 +30,34 @@
   - Chat and collab with other
   - Export highlights of your pdf
 
-## TODOS
+## BUGS
 
-- [x] copying text from pdf ignores linebreaks
-- [x] add images to some free provider or cloudinary: use cloudinary for storage => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
-- [x] fix linking to the highlighted part for highlighted text on notes.
-- [x] also other note taking apps (obsidian,etc) : add a download as markdown feature for starters
-- [x] add dark mode for the bg of home screen
-- [x] save chat messages to db after streaming (some handler onComplete fn
-- [x] give solid width for the yellow line in the highlighter cusotm block in notes
-- [x] create a isVectorised (use better name) column in document, and check that on the chat screen
-- [x] highlight popover tip not appearing at times (for later pages)
-- [ ] integrate ai =>
-  - [x] custom llm
 - [ ] optimistic update for file page after adding a new file
-- [ ] integrate yjs or whatever for realtime note editing for blocknotes (eg already existing)
+- [ ] see if u can see all the users in the liveblocks room, (and display it at top)
+- [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
+- [ ] reduce pdfreader scrollbar height + width
+- [ ] remove hardcoded heights using vh
+- [ ] remove the weird dragging thing on area-highlight
+
+### Low priority
+
+- [ ] setup permissions inside liveblocks dashboard
+- [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
+- [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
+
+## FEATURE SUGGESTIONS
+
+- [ ] maybe switch file uploading to cloudinary => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] fix seo stuff, use next-seo
-- [ ] have a hardcoded message as first message of every chat => something like => "Hey there, ask me anything about this document!"
+- [ ] store highlights as plain json. it was super dumb to store it as separate tables.
+- [ ] have a "summarise" text option right next to highlight text on selecting the text.
 
 ## Features to pitch
 
 - custom blocks in editor
 - highlights block which on click takes you to that highlight on the doc.
 - download as markdown
+- collaborator
 
 ## Setting up guide
 

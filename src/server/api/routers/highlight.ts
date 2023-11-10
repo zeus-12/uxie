@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { HighlightTypeEnum } from "@prisma/client";
 
 export const highlightRouter = createTRPCRouter({
   add: protectedProcedure
@@ -15,6 +16,7 @@ export const highlightRouter = createTRPCRouter({
           y2: z.number(),
           width: z.number(),
           height: z.number(),
+          // see when this becomes optional => for text highlights?
           pageNumber: z.number().optional(),
         }),
         rects: z.array(
@@ -25,28 +27,16 @@ export const highlightRouter = createTRPCRouter({
             y2: z.number(),
             width: z.number(),
             height: z.number(),
+            // see when this becomes optional => for imagehighlights?
             pageNumber: z.number().optional(),
           }),
         ),
         pageNumber: z.number(),
-
-        content: z.object({
-          text: z.string().optional(),
-          image: z.string().optional(),
-        }),
+        type: z.nativeEnum(HighlightTypeEnum),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const content: any = {};
-      //TODO make this cleaner
-      if ("text" in input.content) {
-        content["text"] = input.content.text;
-      } else if ("image" in input.content) {
-        //TODO upload this base64 image to somewhere and store the link to db
-        content["imageUrl"] = input.content.image;
-      } else {
-        throw new Error("Invalid content type");
-      }
 
       const pageNumber =
         typeof input.boundingRect.pageNumber === "number" &&
@@ -68,6 +58,7 @@ export const highlightRouter = createTRPCRouter({
               ...pageNumber,
             },
           },
+          type: input.type,
           ...pageNumber,
           rectangles: {
             createMany: {

@@ -1,9 +1,9 @@
 import { createNextPageApiHandler } from "uploadthing/next-legacy";
 
-import { imageUploader } from "@/server/uploadthing";
+import { docUploader } from "@/server/uploadthing";
 
 const handler = createNextPageApiHandler({
-  router: imageUploader,
+  router: docUploader,
 });
 
 export default handler;

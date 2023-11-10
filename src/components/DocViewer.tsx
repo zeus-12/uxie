@@ -7,26 +7,17 @@ import {
   AreaHighlight,
 } from "react-pdf-highlighter";
 import { Spinner } from "@/components/Spinner";
-import {
-  ChevronLeft,
-  ClipboardCopy,
-  Highlighter,
-  TrashIcon,
-} from "lucide-react";
+import { ClipboardCopy, Highlighter, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import {
-  HighlightContentType,
-  HighlightPositionType,
-  HighlightType,
-} from "@/types";
+import { HighlightContentType, HighlightPositionType } from "@/types";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "@/components/icons";
-// import InviteCollab from "@/components/InviteCollab";
 import { createId } from "@paralleldrive/cuid2";
 import { useBlocknoteEditorStore } from "@/lib/store";
+import { HighlightTypeEnum } from "@prisma/client";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -60,6 +51,7 @@ const DocViewer = () => {
       // @ts-ignore
       utils.document.getDocData.setData({ docId: docId as string }, (old) => {
         if (!old) return null;
+
         return {
           ...old,
           highlights: [
@@ -70,7 +62,6 @@ const DocViewer = () => {
                 rects: newHighlight.rects,
                 pageNumber: newHighlight.pageNumber,
               },
-              content: newHighlight.content,
             },
           ],
         };
@@ -79,7 +70,6 @@ const DocViewer = () => {
       return { prevData };
     },
     onError(err, newPost, ctx) {
-      // If the mutation fails, use the context-value from onMutate
       utils.document.getDocData.setData(
         { docId: docId as string },
         ctx?.prevData,
@@ -95,7 +85,6 @@ const DocViewer = () => {
       await utils.document.getDocData.cancel();
       const prevData = utils.document.getDocData.getData();
 
-      // @ts-ignore
       utils.document.getDocData.setData({ docId: docId as string }, (old) => {
         if (!old) return null;
         return {
@@ -223,7 +212,6 @@ const DocViewer = () => {
   }, []);
 
   function getHighlightById(id: string) {
-    // return doc?.highlights?.find((highlight) => highlight.id === id);
     return doc?.highlights?.find((highlight) => highlight.id === id);
   }
 
@@ -242,15 +230,10 @@ const DocViewer = () => {
     if (!content.text && !content.image) return;
     const isTextHighlight = !content.image;
 
-    // add to db => do optimistic update => for optimistic update use id as id. but for db dont pass id
     addHighlightMutation({
       id: highlightId,
       boundingRect: position.boundingRect,
-      content: {
-        ...(isTextHighlight
-          ? { text: content.text ? content.text : "" }
-          : { image: content.image ? content.image : "" }),
-      },
+      type: isTextHighlight ? HighlightTypeEnum.TEXT : HighlightTypeEnum.IMAGE,
       documentId: docId as string,
       pageNumber: position.pageNumber,
       rects: position.rects,
@@ -300,13 +283,8 @@ const DocViewer = () => {
             <ChevronLeftIcon className="mr-2 h-4 w-4" />
           </Link>
 
-          <p className="font-semibold dark:text-gray-200">
-            {doc?.title ?? docId}
-          </p>
+          <p className="font-semibold">{doc?.title ?? docId}</p>
         </div>
-        {/* <div className="h-12 rounded-es-md rounded-ss-md bg-blue-200 px-2 py-4">
-          <InviteCollab docId={docId} />
-        </div> */}
       </div>
       <div className="relative h-screen w-full ">
         <PdfLoader
@@ -351,19 +329,14 @@ const DocViewer = () => {
                 screenshot,
                 isScrolledTo,
               ) => {
-                const isTextHighlight = !Boolean(
-                  highlight.content && highlight.content.image,
-                );
+                const isTextHighlight = highlight.position.rects.length !== 0;
 
                 const component = isTextHighlight ? (
                   <div id={highlight.id}>
+                    {/* @ts-ignore */}
                     <Highlight
                       isScrolledTo={isScrolledTo}
                       position={highlight.position}
-                      comment={{
-                        emoji: "",
-                        text: "",
-                      }}
                     />
                   </div>
                 ) : (

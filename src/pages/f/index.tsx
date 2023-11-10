@@ -2,6 +2,7 @@ import { Spinner } from "@/components/Spinner";
 import { ChevronLeftIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { UploadButton } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
@@ -44,19 +45,28 @@ const UserLibraryPage = () => {
           appearance={{
             button: buttonVariants({ variant: "default" }),
           }}
-          endpoint="imageUploader"
-          onClientUploadComplete={(res: any) => {
-            // console.log("client upload complete");
-            // someway to refetch
+          endpoint="docUploader"
+          onClientUploadComplete={async (res: any) => {
             refetchUserDocs();
+            toast({
+              title: "Success",
+              description: "File uploaded successfully.",
+            });
           }}
           onUploadError={(error: Error) => {
+            toast({
+              title: "Error",
+              description: "Something went wrong, please try again later.",
+              variant: "destructive",
+            });
             console.log(error.message);
           }}
         />
       </div>
 
-      {userDocs?.documents.length + userDocs?.collaborators.length === 0 ? (
+      {userDocs?.documents.length +
+        userDocs?.collaboratorateddocuments.length ===
+      0 ? (
         <p className="text-muted-foreground">
           You have no files yet, upload one now!
         </p>
@@ -74,7 +84,7 @@ const UserLibraryPage = () => {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {userDocs.collaborators.map((collab) => (
+        {userDocs.collaboratorateddocuments.map((collab) => (
           <Link key={collab.document.id} href={`/f/${collab.document.id}`}>
             <div className={cn(buttonVariants({ variant: "ghost" }))}>
               {/* <Badge variant="outline">{collab.role}</Badge> */}

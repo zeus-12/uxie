@@ -12,57 +12,122 @@ import {
 } from "@blocknote/react";
 import { AlertCircle } from "lucide-react";
 import { uploadToTmpFilesDotOrg_DEV_ONLY } from "@blocknote/core";
-import { useRouter } from "next/router";
-import { api } from "@/lib/api";
 import { defaultBlockSchema } from "@blocknote/core";
 import {
   createAlertBlock,
   insertAlert,
 } from "@/components/Editor/CustomBlocks/Alert";
 import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight";
-import { useDebouncedCallback } from "use-debounce";
+// import { useDebouncedCallback } from "use-debounce";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import * as Y from "yjs";
+import LiveblocksProvider from "@liveblocks/yjs";
+import { useRoom } from "liveblocks.config";
+import { getRandomLightColor } from "@/lib/utils";
+import { toast } from "@/components/ui/use-toast";
 
-function Editor() {
-  const { query } = useRouter();
-  const { mutate: updateNotesMutation } =
-    api.document.updateNotes.useMutation();
+type EditorProps = {
+  doc: Y.Doc;
+  provider: any;
+  canEdit: boolean;
+  username: string;
+};
 
-  const { data: initialNotes } = api.document.getNotes.useQuery(
-    {
-      docId: query?.docId as string,
-    },
-    {
-      enabled: !!query?.docId,
-    },
+export default function Editor({
+  canEdit,
+  username,
+}: {
+  canEdit: boolean;
+  username: string;
+}) {
+  const room = useRoom();
+  // console.log(room.getOthers(), "presence");
+  const [doc, setDoc] = useState<Y.Doc>();
+  const [provider, setProvider] = useState<any>();
+
+  // Set up Liveblocks Yjs provider
+  useEffect(() => {
+    const yDoc = new Y.Doc();
+    const yProvider = new LiveblocksProvider(room, yDoc);
+
+    setDoc(yDoc);
+    setProvider(yProvider);
+
+    return () => {
+      yDoc?.destroy();
+      yProvider?.destroy();
+    };
+  }, [room]);
+
+  if (!doc || !provider) {
+    return null;
+  }
+
+  return (
+    <BlockNoteEditor
+      canEdit={canEdit}
+      username={username}
+      doc={doc}
+      provider={provider}
+    />
   );
+}
 
-  const schemaWithCustomBlocks = {
-    ...defaultBlockSchema,
-    alert: createAlertBlock(),
-    highlight: createHighlightBlock(),
-  };
+const schemaWithCustomBlocks = {
+  ...defaultBlockSchema,
+  alert: createAlertBlock(),
+  highlight: createHighlightBlock(),
+};
 
-  const debounced = useDebouncedCallback((value) => {
-    updateNotesMutation({
-      markdown: value,
-      documentId: query?.docId as string,
-    });
-  }, 3000);
+function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
+  // const { mutate: updateNotesMutation } =
+  //   api.document.updateNotes.useMutation();
 
-  const { setEditor, editor: _editor } = useBlocknoteEditorStore();
+  // username, can user see the post,can user edit the post, initial note,
+  // const { data, error, isError } = api.document.getNotesData.useQuery(
+  //   {
+  //     docId: query?.docId as string,
+  //   },
+  //   {
+  //     enabled: !!query?.docId,
+  //     retry: false,
+  //   },
+  // );
+
+  // const debounced = useDebouncedCallback((value) => {
+  //   updateNotesMutation({
+  //     markdown: value,
+  //     documentId: query?.docId as string,
+  //   });
+  // }, 3000);
+
+  const { setEditor } = useBlocknoteEditorStore();
 
   const editor = useBlockNote(
     {
-      initialContent: initialNotes ? JSON.parse(initialNotes) : undefined,
-      onEditorContentChange: (editor) => {
-        debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
-      },
-      // editable: check if user is not owner or collaborator w. edit access.
-      // todo add collaboration feature
+      // initialContent: data?.initialNotes
+      //   ? JSON.parse(data.initialNotes)
+      //   : undefined,
+      // onEditorContentChange: (editor) => {
+      //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
+      // },
+      editable: canEdit,
 
+      collaboration: {
+        provider,
+        fragment: doc.getXmlFragment("document-store"),
+        user: {
+          name: username || "User",
+          color: getRandomLightColor(),
+        },
+      },
+
+      onEditorReady: (editor) => {
+        setEditor(editor);
+      },
       blockSchema: schemaWithCustomBlocks,
+      // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
       domAttributes: {
         editor: {
@@ -73,17 +138,24 @@ function Editor() {
       slashMenuItems: [
         ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
         insertAlert,
-        // insertHighlight,
       ],
     },
-    [initialNotes],
+    [canEdit],
   );
 
-  useEffect(() => {
-    if (editor !== _editor) {
-      setEditor(editor);
-    }
-  }, [editor]);
+  // if (isError) {
+  //   if (error?.data?.code === "UNAUTHORIZED") {
+  //     push("/f");
+
+  //     toast({
+  //       title: "Unauthorized",
+  //       description: error.message,
+  //       variant: "destructive",
+  //       duration: 4000,
+  //     });
+  //   }
+  //   return;
+  // }
 
   return (
     <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">
@@ -113,5 +185,3 @@ function Editor() {
     </div>
   );
 }
-
-export default Editor;

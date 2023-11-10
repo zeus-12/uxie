@@ -22,6 +22,15 @@ dependencies:
   '@huggingface/inference':
     specifier: '1'
     version: 1.8.0
+  '@liveblocks/client':
+    specifier: ^1.7.0
+    version: 1.7.0
+  '@liveblocks/react':
+    specifier: ^1.7.0
+    version: 1.7.0(react@18.2.0)
+  '@liveblocks/yjs':
+    specifier: ^1.7.0
+    version: 1.7.0(yjs@13.6.8)
   '@next-auth/prisma-adapter':
     specifier: ^1.0.7
     version: 1.0.7(@prisma/client@5.4.1)(next-auth@4.23.2)
@@ -41,7 +50,7 @@ dependencies:
     specifier: ^1.0.3
     version: 1.0.4(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
   '@radix-ui/react-dialog':
-    specifier: ^1.0.4
+    specifier: ^1.0.5
     version: 1.0.5(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
   '@radix-ui/react-dropdown-menu':
     specifier: ^2.0.5
@@ -58,6 +67,9 @@ dependencies:
   '@radix-ui/react-tabs':
     specifier: ^1.0.4
     version: 1.0.4(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+  '@radix-ui/react-toast':
+    specifier: ^1.1.5
+    version: 1.1.5(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
   '@t3-oss/env-nextjs':
     specifier: ^0.6.0
     version: 0.6.1(typescript@5.2.2)(zod@3.22.4)
@@ -148,6 +160,9 @@ dependencies:
   use-debounce:
     specifier: ^9.0.4
     version: 9.0.4(react@18.2.0)
+  yjs:
+    specifier: ^13.6.8
+    version: 13.6.8
   zod:
     specifier: ^3.22.2
     version: 3.22.4
@@ -629,6 +644,39 @@ packages:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
       '@jridgewell/sourcemap-codec': 1.4.15
+
+  /@liveblocks/client@1.7.0:
+    resolution: {integrity: sha512-BJnHDnp2GH+d7NuJJSRSZwSHLSd73BNS3ApiNInsatE56y5FSOx861kbbYKyD2Spv9vg3z9QZfBWMSrzTR5IeA==}
+    dependencies:
+      '@liveblocks/core': 1.7.0
+    dev: false
+
+  /@liveblocks/core@1.7.0:
+    resolution: {integrity: sha512-JSEvFr4iQYAKnE0dH36VWNFW6KmWStP8XJtb711bSXevRxx/4ODN88kQkTNNVuUjpgAOM+ekKjbqEdHmd8JhKw==}
+    dev: false
+
+  /@liveblocks/react@1.7.0(react@18.2.0):
+    resolution: {integrity: sha512-dXSfMNlqjtMVuy1qpQAdUYQ8jKWI7kHKJsXc12vDUzGybyil7JKMJgRKI9RTQgHWcfq1t2aPlL5rw7JmQa4qbA==}
+    peerDependencies:
+      react: ^16.14.0 || ^17 || ^18
+    dependencies:
+      '@liveblocks/client': 1.7.0
+      '@liveblocks/core': 1.7.0
+      nanoid: 3.3.6
+      react: 18.2.0
+      use-sync-external-store: 1.2.0(react@18.2.0)
+    dev: false
+
+  /@liveblocks/yjs@1.7.0(yjs@13.6.8):
+    resolution: {integrity: sha512-Uwsk6aCYUyZm67UGOuDvRTeGJL2wsG4kn8LseLWza7eUZiYGYSCrDbVTuRnE2nIPXtu0esnUqp6Pce5HUXAa8g==}
+    peerDependencies:
+      yjs: ^13.6.1
+    dependencies:
+      '@liveblocks/client': 1.7.0
+      '@liveblocks/core': 1.7.0
+      js-base64: 3.7.5
+      yjs: 13.6.8
+    dev: false
 
   /@mantine/core@5.10.5(@emotion/react@11.11.1)(@mantine/hooks@5.10.5)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-F4tqHSEVM9D6/iSqHfPda+Xl5XgSEPHAAkT01Zwzj4Jnbd10qGrlqr/SFUop2CIcuKYnmra9XltUahUPXBC2BQ==}
@@ -1580,6 +1628,38 @@ packages:
       '@radix-ui/react-primitive': 1.0.3(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
       '@radix-ui/react-roving-focus': 1.0.4(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
       '@radix-ui/react-use-controllable-state': 1.0.1(@types/react@18.2.25)(react@18.2.0)
+      '@types/react': 18.2.25
+      '@types/react-dom': 18.2.11
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+    dev: false
+
+  /@radix-ui/react-toast@1.1.5(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-fRLn227WHIBRSzuRzGJ8W+5YALxofH23y0MlPLddaIpLpCDqdE0NZlS2NRQDRiptfxDeeCjgFIpexB1/zkxDlw==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0
+      react-dom: ^16.8 || ^17.0 || ^18.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.23.1
+      '@radix-ui/primitive': 1.0.1
+      '@radix-ui/react-collection': 1.0.3(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+      '@radix-ui/react-compose-refs': 1.0.1(@types/react@18.2.25)(react@18.2.0)
+      '@radix-ui/react-context': 1.0.1(@types/react@18.2.25)(react@18.2.0)
+      '@radix-ui/react-dismissable-layer': 1.0.5(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+      '@radix-ui/react-portal': 1.0.4(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+      '@radix-ui/react-presence': 1.0.1(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+      '@radix-ui/react-primitive': 1.0.3(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+      '@radix-ui/react-use-callback-ref': 1.0.1(@types/react@18.2.25)(react@18.2.0)
+      '@radix-ui/react-use-controllable-state': 1.0.1(@types/react@18.2.25)(react@18.2.0)
+      '@radix-ui/react-use-layout-effect': 1.0.1(@types/react@18.2.25)(react@18.2.0)
+      '@radix-ui/react-visually-hidden': 1.0.3(@types/react-dom@18.2.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
       '@types/react': 18.2.25
       '@types/react-dom': 18.2.11
       react: 18.2.0
@@ -4378,6 +4458,10 @@ packages:
 
   /jose@4.15.2:
     resolution: {integrity: sha512-IY73F228OXRl9ar3jJagh7Vnuhj/GzBunPiZP13K0lOl7Am9SoWW3kEzq3MCllJMTtZqHTiDXQvoRd4U95aU6A==}
+    dev: false
+
+  /js-base64@3.7.5:
+    resolution: {integrity: sha512-3MEt5DTINKqfScXKfJFrRbxkrnk2AxPWGBL/ycjz4dK8iqiSJ06UxD8jh8xuh6p10TX4t2+7FsBYVxxQbMg+qA==}
     dev: false
 
   /js-tiktoken@1.0.7:

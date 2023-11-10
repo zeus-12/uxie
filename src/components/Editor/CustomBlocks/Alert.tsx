@@ -29,7 +29,6 @@ export const alertTypes = {
     color: "#e69819",
     backgroundColor: {
       light: "#fff6e6",
-      dark: "#805d20",
     },
   },
   error: {
@@ -37,7 +36,6 @@ export const alertTypes = {
     color: "#d80d0d",
     backgroundColor: {
       light: "#ffe6e6",
-      dark: "#802020",
     },
   },
   info: {
@@ -45,7 +43,6 @@ export const alertTypes = {
     color: "#507aff",
     backgroundColor: {
       light: "#e6ebff",
-      dark: "#203380",
     },
   },
   success: {
@@ -53,7 +50,6 @@ export const alertTypes = {
     color: "#0bc10b",
     backgroundColor: {
       light: "#e6ffe6",
-      dark: "#208020",
     },
   },
 } as const;
@@ -79,7 +75,7 @@ export const Alert = (props: {
       alert: BlockSpec<"alert", typeof alertPropSchema, true>;
     }
   >;
-  theme: "light" | "dark";
+  theme: "light";
 }) => {
   const [type, setType] =
     useState<(typeof alertPropSchema.type.values)[number]>("warning");
