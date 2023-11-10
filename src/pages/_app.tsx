@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import { useRouter } from "next/router";
 import "@blocknote/core/style.css";
 import { Toaster } from "@/components/ui/toaster";
+import "react-lite-youtube-embed/dist/LiteYouTubeEmbed.css";
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
@@ -23,7 +24,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
       ) : (
         <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-2 lg:px-16">
           <Navbar />
-          <div className="flex flex-1">
+          <div className="mx-auto flex flex-1">
             <Component {...pageProps} />
           </div>
         </main>
