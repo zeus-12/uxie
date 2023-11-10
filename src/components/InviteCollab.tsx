@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { createId } from "@paralleldrive/cuid2";
 
 type CollaboratorRoleValuesUnion = keyof typeof CollaboratorRole;
 
@@ -25,9 +26,88 @@ const InviteCollab = () => {
   const { data: collaborators } = api.document.getCollaborators.useQuery({
     documentId,
   });
-  const { mutate } = api.document.addCollaborator.useMutation();
+
+  const utils = api.useContext();
+
+  const { mutate: addCollaboratorMutation } =
+    api.document.addCollaborator.useMutation({
+      async onMutate({ documentId, data: { email, role } }) {
+        await utils.document.getDocData.cancel();
+        const prevData = utils.document.getCollaborators.getData({
+          documentId,
+        });
+        console.log("prevdata->onmutate", prevData);
+
+        utils.document.getCollaborators.setData(
+          { documentId: documentId as string },
+          (old) => [
+            ...(old ?? []),
+            {
+              email,
+              role,
+              id: createId(),
+            },
+          ],
+        );
+
+        return { prevData };
+      },
+      onError(err, newPost, ctx) {
+        console.log("here");
+        toast({
+          title: "Error",
+          description: "Make sure user exists, and is not already added.",
+          variant: "destructive",
+          duration: 4000,
+        });
+
+        console.log(ctx?.prevData, "prevdag");
+
+        utils.document.getCollaborators.setData(
+          { documentId: documentId as string },
+          ctx?.prevData,
+        );
+      },
+      onSettled() {
+        // Sync with server once mutation has settled
+        utils.document.getDocData.invalidate();
+      },
+    });
+
   const { mutate: removeCollaboratorByIdMutation } =
-    api.document.removeCollaboratorById.useMutation();
+    api.document.removeCollaboratorById.useMutation({
+      async onMutate({ documentId, userId }) {
+        await utils.document.getDocData.cancel();
+        const prevData = utils.document.getCollaborators.getData({
+          documentId,
+        });
+
+        utils.document.getCollaborators.setData(
+          { documentId: documentId as string },
+          (old) => [...(old ?? []).filter((user) => user.id !== userId)],
+        );
+
+        return { prevData };
+      },
+      onError(err, newPost, ctx) {
+        console.log("here");
+        toast({
+          title: "Error",
+          description: "Make sure user exists, and is not already added.",
+          variant: "destructive",
+          duration: 4000,
+        });
+
+        utils.document.getCollaborators.setData(
+          { documentId: documentId as string },
+          ctx?.prevData,
+        );
+      },
+      onSettled() {
+        // Sync with server once mutation has settled
+        utils.document.getDocData.invalidate();
+      },
+    });
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<CollaboratorRoleValuesUnion>(
@@ -37,7 +117,7 @@ const InviteCollab = () => {
   const addCollaborator = async () => {
     try {
       if (!email || !role) return;
-      mutate({
+      addCollaboratorMutation({
         documentId,
         data: {
           email,

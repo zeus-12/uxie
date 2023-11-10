@@ -33,7 +33,6 @@
 ## BUGS
 
 - [ ] optimistic update for file page after adding a new file
-- [ ] optimistic update for addcollaborators
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
 - [ ] fix `.tippy-arrow` appearing on screen at all times
