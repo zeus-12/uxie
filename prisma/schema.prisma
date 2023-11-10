@@ -69,7 +69,7 @@ model Collaborator {
   document   Document         @relation(fields: [documentId], references: [id])
   documentId String
 
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id])
 }
 

@@ -112,8 +112,22 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
       // onEditorContentChange: (editor) => {
       //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       // },
-      editable: canEdit,
 
+      // initialContent: [
+      //   {
+      //     id: "b8847f8b-e06a-4ad3-a27d-47b581e222ad",
+      //     type: "paragraph",
+      //     props: {
+      //       textColor: "default",
+      //       backgroundColor: "default",
+      //       textAlignment: "left",
+      //     },
+      //     content: [],
+      //     children: [],
+      //   },
+      // ],
+
+      editable: canEdit,
       collaboration: {
         provider,
         fragment: doc.getXmlFragment("document-store"),
@@ -157,31 +171,38 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
   //   return;
   // }
 
-  return (
-    <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">
-      <BlockNoteView className="w-full flex-1" theme={"light"} editor={editor}>
-        <FormattingToolbarPositioner
+  if (editor.ready) {
+    return (
+      <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">
+        <BlockNoteView
+          className="w-full flex-1"
+          theme={"light"}
           editor={editor}
-          formattingToolbar={(props) => (
-            <DefaultFormattingToolbar
-              {...props}
-              blockTypeDropdownItems={[
-                ...defaultBlockTypeDropdownItems,
-                {
-                  name: "Alert",
-                  type: "alert",
-                  icon: AlertCircle as any,
-                  isSelected: (block) => block.type === "alert",
-                },
-              ]}
-            />
-          )}
-        />
-        <HyperlinkToolbarPositioner editor={editor} />
-        <SlashMenuPositioner editor={editor} />
-        <SideMenuPositioner editor={editor} />
-        <ImageToolbarPositioner editor={editor} />
-      </BlockNoteView>
-    </div>
-  );
+        >
+          <FormattingToolbarPositioner
+            editor={editor}
+            formattingToolbar={(props) => (
+              <DefaultFormattingToolbar
+                {...props}
+                blockTypeDropdownItems={[
+                  ...defaultBlockTypeDropdownItems,
+                  {
+                    name: "Alert",
+                    type: "alert",
+                    icon: AlertCircle as any,
+                    isSelected: (block) => block.type === "alert",
+                  },
+                ]}
+              />
+            )}
+          />
+          <HyperlinkToolbarPositioner editor={editor} />
+          <SlashMenuPositioner editor={editor} />
+          <SideMenuPositioner editor={editor} />
+          <ImageToolbarPositioner editor={editor} />
+        </BlockNoteView>
+      </div>
+    );
+  }
+  return <></>;
 }
