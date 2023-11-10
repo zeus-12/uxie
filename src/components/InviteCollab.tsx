@@ -14,6 +14,7 @@ import {
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 type CollaboratorRoleValuesUnion = keyof typeof CollaboratorRole;
 
@@ -120,14 +121,16 @@ const InviteCollab = () => {
                 >
                   <span>{user.email}</span>
                   <div className="flex gap-2">
-                    <span>{user.role}</span>
-                    {user.role !== CollaboratorRole.OWNER && (
-                      // isOwner &&
-                      <TrashIcon
-                        size={20}
-                        onClick={() => removeCollaboratorById(user.id)}
-                      />
-                    )}
+                    <Badge>{user.role}</Badge>
+                    <TrashIcon
+                      className={cn(
+                        // && isOwner
+                        user.role === CollaboratorRole.OWNER && "invisible",
+                        "hover:cursor-pointer hover:fill-red-400 hover:text-red-400",
+                      )}
+                      size={20}
+                      onClick={() => removeCollaboratorById(user.id)}
+                    />
                   </div>
                 </div>
               ))}
