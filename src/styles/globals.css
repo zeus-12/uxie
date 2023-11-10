@@ -83,6 +83,7 @@
 .tippy-box {
   background-color: transparent !important;
   background: transparent !important;
+  z-index: 10;
 }
 .tippy-arrow {
   display: none !important;
