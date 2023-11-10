@@ -1,7 +1,8 @@
+import BouncingDotsLoader from "@/components/BouncingDotsLoader";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
-import { Send } from "lucide-react";
+import { BanIcon, Send } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
@@ -12,7 +13,7 @@ export default function Chat() {
 
   const docId = query?.docId;
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
     useChat({
       body: {
         docId: docId as string,
@@ -27,6 +28,7 @@ export default function Chat() {
   const messageWindowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // this is not the best way to do this, but it works for now
     if (messageWindowRef.current) {
       messageWindowRef.current.scrollTop =
         messageWindowRef.current.scrollHeight;
@@ -59,6 +61,17 @@ export default function Chat() {
             <ReactMarkdown>{m.content}</ReactMarkdown>
           </div>
         ))}
+
+        {isLoading && messages.at(-1)?.role === "user" && (
+          <div
+            className={cn(
+              "mr-auto bg-gray-200 text-black",
+              "max-w-[80%] rounded-xl px-3 py-1 text-left ",
+            )}
+          >
+            <BouncingDotsLoader />
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -79,16 +92,15 @@ export default function Chat() {
             autoFocus
             maxRows={4}
           />
-          <button
-            className="w-fit bg-gray-50 px-2"
-            type="submit"
-            disabled={isLoading}
-          >
-            <Send
-              size={24}
-              className={cn(isLoading && "text-gray-400 hover:cursor-none")}
-            />
-          </button>
+          {isLoading ? (
+            <button className="w-fit bg-gray-50 px-2">
+              <BanIcon size={24} className="text-red-500" onClick={stop} />
+            </button>
+          ) : (
+            <button className="w-fit bg-gray-50 px-2" type="submit">
+              <Send size={24} />
+            </button>
+          )}
         </div>
       </form>
     </div>
