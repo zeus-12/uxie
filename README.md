@@ -32,7 +32,7 @@
 
 ## BUGS
 
-- [ ] optimistic update for file page after adding a new file
+- [ ] optimistic update for file page after adding a new file => uploadthing issue, should be fixed on v6
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
 - [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 - [ ] reduce pdfreader scrollbar height + width
@@ -44,6 +44,10 @@
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 - [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
+
+## Known bug
+
+- new file w. blank editor => u cant add highlight => open issue https://github.com/TypeCellOS/BlockNote/issues/366
 
 ## FEATURE SUGGESTIONS
 
