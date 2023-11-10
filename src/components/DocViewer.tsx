@@ -18,6 +18,7 @@ import { ChevronLeftIcon } from "@/components/icons";
 import { createId } from "@paralleldrive/cuid2";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { HighlightTypeEnum } from "@prisma/client";
+import { toast } from "@/components/ui/use-toast";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -25,7 +26,7 @@ const resetHash = () => {
   document.location.hash = "";
 };
 
-const DocViewer = () => {
+const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
   const { query, isReady } = useRouter();
 
   const docId = query?.docId;
@@ -118,7 +119,22 @@ const DocViewer = () => {
     type: HighlightContentType,
   ) => {
     if (!editor) {
-      console.log("editor null");
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!canEdit) {
+      toast({
+        title: "Error",
+        description: "User can't edit this document",
+        variant: "destructive",
+        duration: 3000,
+      });
       return;
     }
 

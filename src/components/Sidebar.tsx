@@ -11,10 +11,17 @@ import { ClientSideSuspense } from "@liveblocks/react";
 import { Spinner } from "@/components/Spinner";
 import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
-import { api } from "@/lib/api";
 import { useState } from "react";
 
-const Sidebar = () => {
+const Sidebar = ({
+  canEdit,
+  username,
+  isOwner,
+}: {
+  canEdit: boolean;
+  username: string;
+  isOwner: boolean;
+}) => {
   const { query } = useRouter();
   const documentId = query?.docId as string;
 
@@ -30,33 +37,7 @@ const Sidebar = () => {
     saveAs(blob, "notes.md");
   };
 
-  const { data, isError } = api.document.getDocsDetails.useQuery(
-    {
-      docId: query?.docId as string,
-    },
-    {
-      enabled: !!query?.docId,
-      retry: false,
-    },
-  );
-
-  // if (isError) {
-  //   if (error?.data?.code === "UNAUTHORIZED") {
-  //     push("/f");
-
-  //     toast({
-  //       title: "Unauthorized",
-  //       description: error.message,
-  //       variant: "destructive",
-  //       duration: 4000,
-  //     });
-  //   }
-  //   return;
-  // }
-
   const [activeIndex, setActiveIndex] = useState("notes");
-  // TODO better error messages everywhere
-  if (isError) return <>Something went wrong</>;
 
   return (
     <div className="bg-gray-50">
@@ -88,7 +69,7 @@ const Sidebar = () => {
             ))}
           </TabsList>
           <div className="flex items-center">
-            {data?.isOwner && <InviteCollab />}
+            {isOwner && <InviteCollab />}
 
             <div
               className={cn(
@@ -126,8 +107,8 @@ const Sidebar = () => {
                 >
                   {() => (
                     <Editor
-                      canEdit={data?.canEdit ?? false}
-                      username={data?.username ?? "User"}
+                      canEdit={canEdit ?? false}
+                      username={username ?? "User"}
                     />
                   )}
                 </ClientSideSuspense>
