@@ -36,7 +36,6 @@ const InviteCollab = () => {
         const prevData = utils.document.getCollaborators.getData({
           documentId,
         });
-        console.log("prevdata->onmutate", prevData);
 
         utils.document.getCollaborators.setData(
           { documentId: documentId as string },
@@ -53,15 +52,12 @@ const InviteCollab = () => {
         return { prevData };
       },
       onError(err, newPost, ctx) {
-        console.log("here");
         toast({
           title: "Error",
           description: "Make sure user exists, and is not already added.",
           variant: "destructive",
           duration: 4000,
         });
-
-        console.log(ctx?.prevData, "prevdag");
 
         utils.document.getCollaborators.setData(
           { documentId: documentId as string },
@@ -90,7 +86,6 @@ const InviteCollab = () => {
         return { prevData };
       },
       onError(err, newPost, ctx) {
-        console.log("here");
         toast({
           title: "Error",
           description: "Make sure user exists, and is not already added.",
