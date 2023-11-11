@@ -1,4 +1,5 @@
 import BouncingDotsLoader from "@/components/BouncingDotsLoader";
+import { toast, useToast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
@@ -13,12 +14,28 @@ export default function Chat() {
 
   const docId = query?.docId;
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, stop } =
-    useChat({
-      body: {
-        docId: docId as string,
-      },
-    });
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    stop,
+    error,
+  } = useChat({
+    body: {
+      docId: docId as string,
+    },
+
+    onError: (err: any) => {
+      toast({
+        title: "Error",
+        description: error?.message ?? "Something went wrong",
+        variant: "destructive",
+        duration: 3000,
+      });
+    },
+  });
 
   //implement autoscrolling, and infinite loading => also fetch the messages from prev session and display
   const { data: prevChatMessages } = api.message.getAllByDocId.useQuery({
@@ -48,7 +65,12 @@ export default function Chat() {
             role: "assistant",
           },
           ...(prevChatMessages ?? []),
-          ...messages,
+          ...messages.filter(
+            (message) =>
+              prevChatMessages?.findIndex(
+                (prevMessage) => prevMessage.content === message.content,
+              ) === -1,
+          ),
         ].map((m) => (
           <div
             key={m.id}
