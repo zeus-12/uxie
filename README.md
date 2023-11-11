@@ -34,10 +34,10 @@
 
 - [ ] optimistic update for file page after adding a new file => uploadthing issue, should be fixed on v6
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
-- [ ] fix fontcolor of `Liveblocks Presence` based on bg => https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
+- [ ] get light coloured background for `liveblocks presence` => https://stackoverflow.com/questions/23601792/get-only-light-colors-randomly-using-javascript
 - [ ] reduce pdfreader scrollbar height + width
 - [ ] remove hardcoded heights using vh
-- [ ] remove the weird dragging thing on area-highlight
+- [ ] remove the weird dragging thing on area-highlight => prob better to rebuilt the library. =>
 
 ### Low priority
 
