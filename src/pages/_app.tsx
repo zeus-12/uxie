@@ -9,6 +9,7 @@ import "@blocknote/core/style.css";
 import { Toaster } from "@/components/ui/toaster";
 import { SEO } from "next-seo.config";
 import { DefaultSeo } from "next-seo";
+import SlideUpWhenVisible from "@/hooks/SlideUpWhenVisible";
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
@@ -24,11 +25,9 @@ const MyApp: AppType<{ session: Session | null }> = ({
           <Component {...pageProps} />
         </>
       ) : (
-        <main className="px-4 py-2 lg:px-16">
-          <div className="mx-auto flex max-w-5xl flex-col">
-            <Navbar />
-          </div>
-          <div className="mx-auto flex  min-h-screen flex-col">
+        <main>
+          <Navbar />
+          <div className="mx-auto flex min-h-screen flex-col">
             <Component {...pageProps} />
           </div>
         </main>

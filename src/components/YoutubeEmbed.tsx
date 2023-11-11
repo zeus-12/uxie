@@ -1,11 +1,11 @@
-import YouTube, { YouTubeEvent, YouTubeProps } from "react-youtube";
+import YouTube, { YouTubeProps } from "react-youtube";
 
 interface YoutubeEmbedProps {}
 
 const YoutubeEmbed: React.FC<YoutubeEmbedProps> = ({}) => {
-  const onPlayerReady: YouTubeProps["onReady"] = (event: YouTubeEvent<any>) => {
-    event.target.pauseVideo();
-  };
+  // const onPlayerReady: YouTubeProps["onReady"] = (event: YouTubeEvent<any>) => {
+  //   event.target.pauseVideo();
+  // };
 
   const opts: YouTubeProps["opts"] = {
     height: "390",
@@ -21,7 +21,7 @@ const YoutubeEmbed: React.FC<YoutubeEmbedProps> = ({}) => {
         iframeClassName="rounded-md aspect-video h-96  max-w-[90vw]"
         videoId="m97zcPWSceU"
         opts={opts}
-        onReady={onPlayerReady}
+        // onReady={onPlayerReady}
       />
     </div>
   );
