@@ -8,25 +8,25 @@ import { useFeatureStore } from "@/lib/store";
 const features = [
   {
     title: "Annotate your notes w. ease",
-    imageUrl: "/demo.png",
+    imageUrl: "/features/annotation.gif",
   },
   {
     title: "Take notes with a notion like editor",
-    imageUrl: "/demo.png",
+    imageUrl: "/features/editor.gif",
   },
   {
     title: "Ask the chatbot anything pdf related",
-    imageUrl: "/demo.png",
+    imageUrl: "/features/chatbot.gif",
   },
   {
     title: "Collaborate with your team",
-    imageUrl: "/demo.png",
+    imageUrl: "/features/collab.gif",
   },
 ];
 
 function Features() {
   return (
-    <div className="mx-auto max-w-6xl px-4">
+    <div className="mx-auto hidden max-w-6xl px-4 md:block">
       <div>
         <div className="flex w-full items-start gap-20">
           <div className="w-full py-[50vh]">
@@ -39,15 +39,16 @@ function Features() {
             </ul>
           </div>
           <div className="sticky top-0 flex h-screen w-full items-center">
-            <div className="relative aspect-square w-full rounded-2xl bg-gray-100 [&:has(>_.active-card)]:bg-transparent">
+            <div className="relative aspect-video h-[30%] w-full rounded-2xl bg-gray-100 lg:h-[40%] [&:has(>_.active-card)]:bg-transparent">
               {features.map((feature, id) => (
                 <FeatureCard key={id} id={id}>
                   <Image
                     alt="feature"
                     src={feature.imageUrl}
-                    width={200}
-                    height={200}
-                    className="h-full w-full"
+                    width={800}
+                    height={450}
+                    className="h-full w-full rounded-md"
+                    unoptimized={true}
                   />
                 </FeatureCard>
               ))}
