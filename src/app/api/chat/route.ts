@@ -24,15 +24,6 @@ export async function POST(req: Request, res: Response) {
   const session = await getServerSession(authOptions);
   if (!session) return new Response("Not found", { status: 404 });
 
-  await prisma.message.create({
-    data: {
-      text: messages.at(-1).content,
-      isUserMessage: true,
-      documentId: docId,
-      userId: session?.user.id,
-    },
-  });
-
   const doc = await prisma.document.findFirst({
     where: {
       id: docId,
@@ -139,6 +130,15 @@ export async function POST(req: Request, res: Response) {
     // USER INPUT: ${lastMessage}`,
     //     },
     //   ],
+  });
+
+  await prisma.message.create({
+    data: {
+      text: messages.at(-1).content,
+      isUserMessage: true,
+      documentId: docId,
+      userId: session?.user.id,
+    },
   });
 
   const stream = OpenAIStream(response, {
