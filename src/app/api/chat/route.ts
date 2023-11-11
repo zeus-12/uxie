@@ -93,7 +93,7 @@ export async function POST(req: Request, res: Response) {
     model: "accounts/fireworks/models/llama-v2-70b-chat",
     temperature: 0,
     stream: true,
-    max_tokens: 1000,
+    max_tokens: 4096,
     messages: [
       {
         role: "system",
