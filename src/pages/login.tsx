@@ -10,7 +10,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="container flex w-screen flex-col">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
       <Link
         href="/"
         className={cn(
