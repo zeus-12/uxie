@@ -1,8 +1,7 @@
-// import Features from "@/components/Features";
+import Features from "@/components/Features";
+import YoutubeEmbed from "@/components/YoutubeEmbed";
 import { Button } from "@/components/ui/button";
-// import Image from "next/image";
 import Link from "next/link";
-import LiteYouTubeEmbed from "react-lite-youtube-embed";
 
 export default function Home() {
   return (
@@ -20,68 +19,9 @@ export default function Home() {
             <Button className="mt-2">Get started 🚀</Button>
           </Link>
         </div>
-        <LiteYouTubeEmbed
-          id="m97zcPWSceU"
-          noCookie={true}
-          poster="maxresdefault"
-          playerClass="rounded-md"
-          title="Uxie | Demo Video"
-        />
+        <YoutubeEmbed />
+        <Features />
       </div>
     </>
   );
 }
-
-/* <Image
-        src="/demo.png"
-        width={1000}
-        height={500}
-        alt="Demo"
-        className="rounded-sm"
-      /> */
-
-/* <Features /> */
-/* <div className="flex justify-center">
-        <div className="grid grid-cols-2 gap-2">
-          {features.map((item) => (
-            <FeatureCard
-              title={item.title}
-              description={item.description}
-              key={item.title}
-            />
-          ))}
-        </div>
-      </div> */
-// const FeatureCard = ({
-//   title,
-//   description,
-// }: {
-//   title: string;
-//   description: string;
-// }) => {
-//   return (
-//     <div className="flex max-w-xs flex-col items-center justify-center gap-2 py-8 lg:pt-16">
-//       <p className="text-center text-2xl font-bold tracking-tight">{title}</p>
-//       <p className="text-base text-gray-400 md:text-lg">{description}</p>
-//     </div>
-//   );
-// };
-
-// const features = [
-//   {
-//     title: "Annotate your notes w. ease",
-//     description: "Text, Image highlight, instantly adds to your notes.",
-//   },
-//   {
-//     title: "Take notes with a notion like editor",
-//     description: "Also export it as markdown.",
-//   },
-//   {
-//     title: "Ask the chatbot anything pdf related",
-//     description: "Clear all your doubts with a custom trained chatbot.",
-//   },
-//   {
-//     title: "Collaborate with your team",
-//     description: "Invite your friends and work together on a document.",
-//   },
-// ];
