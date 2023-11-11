@@ -38,9 +38,14 @@ export default function Chat() {
   });
 
   //implement autoscrolling, and infinite loading => also fetch the messages from prev session and display
-  const { data: prevChatMessages } = api.message.getAllByDocId.useQuery({
-    docId: docId as string,
-  });
+  const { data: prevChatMessages } = api.message.getAllByDocId.useQuery(
+    {
+      docId: docId as string,
+    },
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const messageWindowRef = useRef<HTMLDivElement>(null);
 
@@ -65,12 +70,8 @@ export default function Chat() {
             role: "assistant",
           },
           ...(prevChatMessages ?? []),
-          ...messages.filter(
-            (message) =>
-              prevChatMessages?.findIndex(
-                (prevMessage) => prevMessage.content === message.content,
-              ) === -1,
-          ),
+
+          ...messages,
         ].map((m) => (
           <div
             key={m.id}
