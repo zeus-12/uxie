@@ -8,6 +8,8 @@ import { useRouter } from "next/router";
 import "@blocknote/core/style.css";
 import { Toaster } from "@/components/ui/toaster";
 import "react-lite-youtube-embed/dist/LiteYouTubeEmbed.css";
+import { SEO } from "next-seo.config";
+import { DefaultSeo } from "next-seo";
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
@@ -17,6 +19,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
   const isReader = router.pathname.startsWith("/f/");
   return (
     <SessionProvider session={session}>
+      <DefaultSeo {...SEO} />
       {isReader ? (
         <>
           <Component {...pageProps} />
