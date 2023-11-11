@@ -41,6 +41,7 @@
 
 ### Low priority
 
+- [ ] replace prisma w. drizzle and use edge runtime for chat
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 - [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
