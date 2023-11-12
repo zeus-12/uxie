@@ -9,7 +9,6 @@ import "@blocknote/core/style.css";
 import { Toaster } from "@/components/ui/toaster";
 import { SEO } from "next-seo.config";
 import { DefaultSeo } from "next-seo";
-import SlideUpWhenVisible from "@/hooks/SlideUpWhenVisible";
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
