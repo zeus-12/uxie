@@ -29,7 +29,7 @@ const DocViewerPage = () => {
   const { query, push } = useRouter();
 
   const { data, isError, isLoading, error } =
-    api.document.getDocsDetails.useQuery(
+    api.document.getUserPermissions.useQuery(
       {
         docId: query?.docId as string,
       },

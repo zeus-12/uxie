@@ -80,7 +80,8 @@ export const documentRouter = createTRPCRouter({
       };
     }),
 
-  getDocsDetails: protectedProcedure
+  // rename => too confusing
+  getUserPermissions: protectedProcedure
     .input(
       z.object({
         docId: z.string(),
@@ -120,22 +121,13 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
-      let canEdit = false;
-      let username = "";
-      if (res?.owner.id === ctx.session.user.id) {
-        canEdit = true;
-        username = res.owner.name;
-      } else {
-        for (const collaborator of res.collaborators) {
-          if (collaborator.userId === ctx.session.user.id) {
-            username = collaborator.user.name;
-            if (collaborator.role === CollaboratorRole.EDITOR) {
-              canEdit = true;
-            }
-            break;
-          }
-        }
-      }
+      const collaborator = res.collaborators.find(
+        (c) => c.userId === ctx.session.user.id,
+      );
+
+      const isOwner = res.owner.id === ctx.session.user.id;
+      const canEdit = isOwner || collaborator?.role === CollaboratorRole.EDITOR;
+      const username = isOwner ? res.owner.name : collaborator?.user.name || "";
 
       return {
         canEdit,
