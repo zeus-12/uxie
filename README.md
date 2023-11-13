@@ -30,6 +30,10 @@
   - Chat and collab with other
   - Export highlights of your pdf
 
+## TODOS
+
+- [ ] add logs in uploadthing route to see why vectorising fails at times.
+
 ## BUGS
 
 - [ ] optimistic update for file page after adding a new file => uploadthing issue, should be fixed on v6
