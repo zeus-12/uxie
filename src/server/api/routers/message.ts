@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { TRPCError } from "@trpc/server";
 
 export const messageRouter = createTRPCRouter({
   getAllByDocId: protectedProcedure
@@ -28,6 +29,13 @@ export const messageRouter = createTRPCRouter({
           messages: true,
         },
       });
+
+      if (!res) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you do not have access to it.",
+        });
+      }
 
       return res?.messages?.map((c) => ({
         id: c.id,
