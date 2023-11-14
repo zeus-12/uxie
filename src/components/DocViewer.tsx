@@ -262,6 +262,8 @@ const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
     if (!content.text && !content.image) return;
     const isTextHighlight = !content.image;
 
+    // todo check if user has edit/admin access
+
     addHighlightMutation({
       id: highlightId,
       boundingRect: position.boundingRect,
@@ -274,6 +276,7 @@ const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
     if (isTextHighlight) {
       if (!content.text) return;
 
+      // todo why is id being passed here?
       addHighlightToNotes(content.text, highlightId, HighlightContentType.TEXT);
     } else {
       if (!content.image) return;
@@ -287,6 +290,7 @@ const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
   }
 
   const deleteHighlight = (id: string) => {
+    // todo check if user has edit/admin access
     deleteHighlightMutation({
       documentId: docId as string,
       highlightId: id,
