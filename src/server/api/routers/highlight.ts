@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { HighlightTypeEnum } from "@prisma/client";
+import { CollaboratorRole, HighlightTypeEnum } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
 
 export const highlightRouter = createTRPCRouter({
   add: protectedProcedure
@@ -36,6 +37,32 @@ export const highlightRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          OR: [
+            {
+              ownerId: ctx.session.user.id,
+            },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                  role: CollaboratorRole.EDITOR,
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not authorized to edit this document",
+        });
+      }
+
       const content: any = {};
 
       const pageNumber =
@@ -99,12 +126,27 @@ export const highlightRouter = createTRPCRouter({
       const doc = await ctx.prisma.document.findUnique({
         where: {
           id: input.documentId,
-          ownerId: ctx.session.user.id,
+          OR: [
+            {
+              ownerId: ctx.session.user.id,
+            },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                  role: CollaboratorRole.EDITOR,
+                },
+              },
+            },
+          ],
         },
       });
 
       if (!doc) {
-        throw new Error("Document not found");
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not authorized to edit this document",
+        });
       }
 
       await ctx.prisma.highlight.delete({
