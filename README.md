@@ -41,15 +41,22 @@
 - [ ] get light coloured background for `liveblocks presence` => https://stackoverflow.com/questions/23601792/get-only-light-colors-randomly-using-javascript
 - [ ] reduce pdfreader scrollbar height + width
 - [ ] remove hardcoded heights using vh
-- [ ] remove the weird dragging thing on area-highlight => prob better to rebuilt the library. =>
+- [ ] remove the weird dragging thing on area-highlight => prob better to rebuilt the library.
 
 ### Low priority
 
 - [ ] replace prisma w. drizzle and use edge runtime for chat
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
-- [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes.
-- [ ] abstract userIsOwner and userHasAccess (either collab or owner) to a separate trpc procedure.
+- [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
+- [ ] abstract userIsOwner and userHasAccess (either collab or owner) to a separate trpc procedure. => api called `experimental_standaloneMiddleware`: but
+
+  1. it requries the types for the entire input, the only way seems to be putting any for the rest => losing typesafety for the whole route
+  2. most times data is returned from this, so query will also run twice
+
+  solution seems to be => create separate helper functions
+
+- [ ] move all error messages to a helper fn
 
 ## Known bug
 
@@ -57,9 +64,9 @@
 
 ## FEATURE SUGGESTIONS
 
+- [ ] see if the liveblocks stuff can be replaced w. sockets
 - [ ] maybe switch file uploading to cloudinary => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
-- [ ] fix seo stuff, use next-seo
-- [ ] store highlights as plain json. it was super dumb to store it as separate tables.
+- [ ] store highlights as plain jsonb. it was super dumb to store it as separate tables. => READ ON THIS. Deleting by id could be expensive if its stored as jsonb/json. (jsonb is better than json), but still could be worse than having it as separate tables.
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
 
 ## Features to pitch
