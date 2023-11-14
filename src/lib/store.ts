@@ -1,6 +1,5 @@
-import { HighlightContentType } from "@/types";
+import { BlockNoteEditor } from "@blocknote/core";
 import { create } from "zustand";
-
 type FeaturesStore = {
   inViewFeature: number | null;
   setInViewFeature: (feature: number | null) => void;
@@ -12,9 +11,8 @@ export const useFeatureStore = create<FeaturesStore>((set) => ({
 }));
 
 type EditorStore = {
-  // replace any with actual type
-  editor: any | null;
-  setEditor: (editor: any) => void;
+  editor: BlockNoteEditor<any> | null;
+  setEditor: (editor: BlockNoteEditor<any>) => void;
 };
 
 export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
