@@ -71,6 +71,13 @@ const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
       return { prevData };
     },
     onError(err, newPost, ctx) {
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+        duration: 3000,
+      });
+
       utils.document.getDocData.setData(
         { docId: docId as string },
         ctx?.prevData,
@@ -101,6 +108,12 @@ const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
       return { prevData };
     },
     onError(err, newPost, ctx) {
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+        duration: 3000,
+      });
       utils.document.getDocData.setData(
         { docId: docId as string },
         ctx?.prevData,
