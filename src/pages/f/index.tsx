@@ -26,7 +26,7 @@ const UserLibraryPage = () => {
   if (!userDocs) return <div>Sorry no result found</div>;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col">
+    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16">
       <Link
         href="/"
         className={cn(
@@ -63,7 +63,6 @@ const UserLibraryPage = () => {
           }}
         />
       </div>
-
       {userDocs?.documents.length +
         userDocs?.collaboratorateddocuments.length ===
       0 ? (
@@ -82,7 +81,6 @@ const UserLibraryPage = () => {
           </Link>
         ))}
       </div>
-
       <div className="flex flex-wrap gap-2">
         {userDocs.collaboratorateddocuments.map((collab) => (
           <Link key={collab.document.id} href={`/f/${collab.document.id}`}>
