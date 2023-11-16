@@ -72,6 +72,8 @@ const UserLibraryPage = () => {
       ) : (
         <p className="text-muted-foreground">Here are your files</p>
       )}
+
+      {/* todo use grid layout for docs */}
       <div className="flex flex-wrap gap-2">
         {userDocs?.documents?.map((doc) => (
           <Doc key={doc.id} id={doc.id} title={doc.title} isCollab={false} />
@@ -110,6 +112,8 @@ const Doc = ({
       >
         {isCollab && <Badge variant="outline">Collab</Badge>}
         {title}
+        {/* maybe display first page of the pdf here */}
+        {/* add menubar to delete, rename doc, download pdf */}
       </div>
     </Link>
   );
