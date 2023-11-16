@@ -24,9 +24,9 @@ const MyApp: AppType<{ session: Session | null }> = ({
           <Component {...pageProps} />
         </>
       ) : (
-        <main>
+        <main className="min-h-screen">
           <Navbar />
-          <div className="mx-auto flex min-h-screen flex-col">
+          <div className="mx-auto flex flex-col">
             <Component {...pageProps} />
           </div>
         </main>
