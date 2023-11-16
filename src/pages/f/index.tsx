@@ -74,26 +74,45 @@ const UserLibraryPage = () => {
       )}
       <div className="flex flex-wrap gap-2">
         {userDocs?.documents?.map((doc) => (
-          <Link key={doc.id} href={`/f/${doc.id}`}>
-            <div className={cn(buttonVariants({ variant: "ghost" }))}>
-              {doc.title}
-            </div>
-          </Link>
+          <Doc key={doc.id} id={doc.id} title={doc.title} isCollab={false} />
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
         {userDocs.collaboratorateddocuments.map((collab) => (
-          <Link key={collab.document.id} href={`/f/${collab.document.id}`}>
-            <div className={cn(buttonVariants({ variant: "ghost" }))}>
-              {/* <Badge variant="outline">{collab.role}</Badge> */}
-              <Badge variant="outline">Collab</Badge>
-
-              {collab.document.title}
-            </div>
-          </Link>
+          <Doc
+            key={collab.document.id}
+            id={collab.document.id}
+            title={collab.document.title}
+            isCollab={true}
+          />
         ))}
       </div>
     </div>
   );
 };
+
+const Doc = ({
+  title,
+  id,
+  isCollab,
+}: {
+  title: string;
+  id: string;
+  isCollab: boolean;
+}) => {
+  return (
+    <Link key={id} href={`/f/${id}`}>
+      <div
+        className={cn(
+          buttonVariants({ variant: "ghost" }),
+          // "w-32 overflow-hidden text-ellipsis border p-6",
+        )}
+      >
+        {isCollab && <Badge variant="outline">Collab</Badge>}
+        {title}
+      </div>
+    </Link>
+  );
+};
+
 export default UserLibraryPage;
