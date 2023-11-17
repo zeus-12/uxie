@@ -86,7 +86,7 @@ const Sidebar = ({
         {[
           {
             value: "notes",
-            tw: "flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg",
+            tw: "flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll",
             children: (
               <RoomProvider
                 id={`doc-${documentId}`}
@@ -117,12 +117,8 @@ const Sidebar = ({
           },
           {
             value: "chat",
-            tw: "",
-            children: (
-              <div className="relative h-[calc(100vh-4rem)] w-full overflow-scroll break-words border-stone-200 bg-white p-2 sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg ">
-                <Chat />
-              </div>
-            ),
+            tw: " p-2 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
+            children: <Chat />,
           },
         ].map((item) => (
           <TabsContent

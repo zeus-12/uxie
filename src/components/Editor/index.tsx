@@ -145,7 +145,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
       domAttributes: {
         editor: {
-          class: "mt-6",
+          class: "my-6",
         },
       },
 
@@ -173,35 +173,29 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
 
   if (editor.ready) {
     return (
-      <div className="h-[calc(100vh_-_3rem)] w-full flex-1 overflow-scroll">
-        <BlockNoteView
-          className="w-full flex-1"
-          theme={"light"}
+      <BlockNoteView className="w-full flex-1" theme={"light"} editor={editor}>
+        <FormattingToolbarPositioner
           editor={editor}
-        >
-          <FormattingToolbarPositioner
-            editor={editor}
-            formattingToolbar={(props) => (
-              <DefaultFormattingToolbar
-                {...props}
-                blockTypeDropdownItems={[
-                  ...defaultBlockTypeDropdownItems,
-                  {
-                    name: "Alert",
-                    type: "alert",
-                    icon: AlertCircle as any,
-                    isSelected: (block) => block.type === "alert",
-                  },
-                ]}
-              />
-            )}
-          />
-          <HyperlinkToolbarPositioner editor={editor} />
-          <SlashMenuPositioner editor={editor} />
-          <SideMenuPositioner editor={editor} />
-          <ImageToolbarPositioner editor={editor} />
-        </BlockNoteView>
-      </div>
+          formattingToolbar={(props) => (
+            <DefaultFormattingToolbar
+              {...props}
+              blockTypeDropdownItems={[
+                ...defaultBlockTypeDropdownItems,
+                {
+                  name: "Alert",
+                  type: "alert",
+                  icon: AlertCircle as any,
+                  isSelected: (block) => block.type === "alert",
+                },
+              ]}
+            />
+          )}
+        />
+        <HyperlinkToolbarPositioner editor={editor} />
+        <SlashMenuPositioner editor={editor} />
+        <SideMenuPositioner editor={editor} />
+        <ImageToolbarPositioner editor={editor} />
+      </BlockNoteView>
     );
   }
   return <></>;
