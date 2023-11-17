@@ -28,16 +28,19 @@ const DocViewerPage = () => {
 
   const { query, push } = useRouter();
 
-  const { data, isError, isLoading, error } =
-    api.document.getUserPermissions.useQuery(
-      {
-        docId: query?.docId as string,
-      },
-      {
-        enabled: !!query?.docId,
-        retry: false,
-      },
-    );
+  const {
+    data: doc,
+    isLoading,
+    isError,
+    error,
+  } = api.document.getDocData.useQuery(
+    {
+      docId: query.docId as string,
+    },
+    {
+      enabled: !!query?.docId,
+    },
+  );
 
   if (isLoading) {
     return (
@@ -72,7 +75,7 @@ const DocViewerPage = () => {
         className="h-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
         style={{ width: width ?? "50vw" }}
       >
-        <DocViewer canEdit={data.canEdit} />
+        <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
       </div>
       <div
         className="group flex w-2 cursor-col-resize items-center justify-center rounded-md bg-gray-50"
@@ -82,9 +85,10 @@ const DocViewerPage = () => {
       </div>
       <div className="h-screen min-w-[25vw] flex-1">
         <Sidebar
-          canEdit={data.canEdit}
-          username={data.username}
-          isOwner={data.isOwner}
+          canEdit={doc.userPermissions.canEdit}
+          username={doc.userPermissions.username}
+          isOwner={doc.userPermissions.isOwner}
+          isVectorised={doc.isVectorised}
         />
       </div>
     </div>
