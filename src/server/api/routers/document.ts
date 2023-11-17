@@ -34,25 +34,34 @@ export const documentRouter = createTRPCRouter({
             },
           },
           owner: true,
-          collaborators: true,
+          collaborators: {
+            include: {
+              user: true,
+            },
+          },
           messages: true,
         },
       });
 
-      if (!res) return null;
+      if (!res) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you do not have access to it.",
+        });
+      }
 
       const highlightData = res.highlights.map((highlight) => ({
         id: highlight.id,
         position: {
           boundingRect: {
-            id: highlight.boundingRectangle?.id!,
-            x1: highlight.boundingRectangle?.x1!,
-            y1: highlight.boundingRectangle?.y1!,
-            x2: highlight.boundingRectangle?.x2!,
-            y2: highlight.boundingRectangle?.y2!,
-            width: highlight.boundingRectangle?.width!,
-            height: highlight.boundingRectangle?.height!,
-            pageNumber: highlight.boundingRectangle?.pageNumber!,
+            id: highlight.boundingRectangle?.id,
+            x1: highlight.boundingRectangle?.x1,
+            y1: highlight.boundingRectangle?.y1,
+            x2: highlight.boundingRectangle?.x2,
+            y2: highlight.boundingRectangle?.y2,
+            width: highlight.boundingRectangle?.width,
+            height: highlight.boundingRectangle?.height,
+            pageNumber: highlight.boundingRectangle?.pageNumber,
           },
           rects: highlight.rectangles.map((rect) => ({
             id: rect.id,
@@ -68,59 +77,6 @@ export const documentRouter = createTRPCRouter({
         },
       }));
 
-      return {
-        id: res.id,
-        title: res.title,
-        highlights: highlightData!,
-        owner: res.owner,
-        collaborators: res.collaborators,
-        messages: res.messages,
-        url: res.url,
-        isVectorised: res.isVectorised,
-      };
-    }),
-
-  // rename => too confusing
-  getUserPermissions: protectedProcedure
-    .input(
-      z.object({
-        docId: z.string(),
-      }),
-    )
-    .query(async ({ ctx, input }) => {
-      const res = await ctx.prisma.document.findUnique({
-        where: {
-          id: input.docId,
-          OR: [
-            { ownerId: ctx.session.user.id },
-            {
-              collaborators: {
-                some: {
-                  userId: ctx.session.user.id,
-                },
-              },
-            },
-          ],
-        },
-
-        include: {
-          collaborators: {
-            // this might be expensive, would be better to fetch userdetails as a transaction
-            include: {
-              user: true,
-            },
-          },
-          owner: true,
-        },
-      });
-
-      if (!res) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Document not found or you do not have access to it.",
-        });
-      }
-
       const collaborator = res.collaborators.find(
         (c) => c.userId === ctx.session.user.id,
       );
@@ -130,11 +86,77 @@ export const documentRouter = createTRPCRouter({
       const username = isOwner ? res.owner.name : collaborator?.user.name || "";
 
       return {
-        canEdit,
-        username,
-        isOwner: res.owner.id === ctx.session.user.id,
+        id: res.id,
+        title: res.title,
+        highlights: highlightData!,
+        owner: res.owner,
+        collaborators: res.collaborators,
+        messages: res.messages,
+        url: res.url,
+        isVectorised: res.isVectorised,
+        userPermissions: {
+          canEdit,
+          username,
+          isOwner: res.owner.id === ctx.session.user.id,
+        },
       };
     }),
+
+  // rename => too confusing
+  // getUserPermissions: protectedProcedure
+  //   .input(
+  //     z.object({
+  //       docId: z.string(),
+  //     }),
+  //   )
+  //   .query(async ({ ctx, input }) => {
+  //     const res = await ctx.prisma.document.findUnique({
+  //       where: {
+  //         id: input.docId,
+  //         OR: [
+  //           { ownerId: ctx.session.user.id },
+  //           {
+  //             collaborators: {
+  //               some: {
+  //                 userId: ctx.session.user.id,
+  //               },
+  //             },
+  //           },
+  //         ],
+  //       },
+
+  //       include: {
+  //         collaborators: {
+  //           // this might be expensive, would be better to fetch userdetails as a transaction
+  //           include: {
+  //             user: true,
+  //           },
+  //         },
+  //         owner: true,
+  //       },
+  //     });
+
+  //     if (!res) {
+  //       throw new TRPCError({
+  //         code: "UNAUTHORIZED",
+  //         message: "Document not found or you do not have access to it.",
+  //       });
+  //     }
+
+  //     const collaborator = res.collaborators.find(
+  //       (c) => c.userId === ctx.session.user.id,
+  //     );
+
+  //     const isOwner = res.owner.id === ctx.session.user.id;
+  //     const canEdit = isOwner || collaborator?.role === CollaboratorRole.EDITOR;
+  //     const username = isOwner ? res.owner.name : collaborator?.user.name || "";
+
+  //     return {
+  //       canEdit,
+  //       username,
+  //       isOwner: res.owner.id === ctx.session.user.id,
+  //     };
+  //   }),
 
   // getNotesData: protectedProcedure
   //   .input(z.object({ docId: z.string() }))
