@@ -1,5 +1,5 @@
 import BouncingDotsLoader from "@/components/BouncingDotsLoader";
-import { toast, useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
