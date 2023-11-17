@@ -154,64 +154,60 @@ const InviteCollab = () => {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Invite to collaborate?</DialogTitle>
-          <DialogDescription>
-            <div className="my-4 flex gap-2">
-              <input
-                className="flex-1 border-b-[1px] px-1"
-                placeholder="Email"
-                type="email"
-                inputMode="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <select
-                className="w-[180px] border-b-[1px] py-2"
-                value={role}
-                onChange={(e) =>
-                  setRole(e.target.value as CollaboratorRoleValuesUnion)
-                }
-              >
-                {["VIEWER", "EDITOR"].map((role) => (
-                  <option key={role} value={role}>
-                    {role[0] + role.slice(1).toLowerCase()}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                )}
-                onClick={addCollaborator}
-              >
-                Invite
-              </button>
-            </div>
-
-            <div className="mt-8 space-y-2">
-              {collaborators?.map((user, id) => (
-                <div
-                  key={id}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span>{user.email}</span>
-                  <div className="flex gap-2">
-                    <Badge>{user.role}</Badge>
-                    <TrashIcon
-                      className={cn(
-                        // && isOwner
-                        user.role === CollaboratorRole.OWNER && "invisible",
-                        "hover:cursor-pointer hover:fill-red-400 hover:text-red-400",
-                      )}
-                      size={20}
-                      onClick={() => removeCollaboratorById(user.id)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </DialogDescription>
         </DialogHeader>
+
+        <>
+          <div className="flex gap-2 text-sm text-muted-foreground">
+            <input
+              className="flex-1 border-b-[1px] px-1"
+              placeholder="Email"
+              type="email"
+              inputMode="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <select
+              className="w-[180px] border-b-[1px] py-2"
+              value={role}
+              onChange={(e) =>
+                setRole(e.target.value as CollaboratorRoleValuesUnion)
+              }
+            >
+              {["VIEWER", "EDITOR"].map((role) => (
+                <option key={role} value={role}>
+                  {role[0] + role.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
+
+            <button
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              onClick={addCollaborator}
+            >
+              Invite
+            </button>
+          </div>
+
+          <div className="mt-2 space-y-2 text-sm text-muted-foreground ">
+            {collaborators?.map((user, id) => (
+              <div key={id} className="flex items-center justify-between gap-2">
+                <span>{user.email}</span>
+                <div className="flex gap-2">
+                  <Badge>{user.role}</Badge>
+                  <TrashIcon
+                    className={cn(
+                      // && isOwner
+                      user.role === CollaboratorRole.OWNER && "invisible",
+                      "hover:cursor-pointer hover:fill-red-400 hover:text-red-400",
+                    )}
+                    size={20}
+                    onClick={() => removeCollaboratorById(user.id)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       </DialogContent>
     </Dialog>
   );
