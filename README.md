@@ -36,7 +36,6 @@
 
 ## BUGS
 
-- [ ] optimistic update for file page after adding a new file => uploadthing issue, should be fixed on v6
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
 - [ ] get light coloured background for `liveblocks presence` => https://stackoverflow.com/questions/23601792/get-only-light-colors-randomly-using-javascript
 - [ ] reduce pdfreader scrollbar height + width
