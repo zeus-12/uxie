@@ -17,10 +17,12 @@ const Sidebar = ({
   canEdit,
   username,
   isOwner,
+  isVectorised,
 }: {
   canEdit: boolean;
   username: string;
   isOwner: boolean;
+  isVectorised: boolean;
 }) => {
   const { query } = useRouter();
   const documentId = query?.docId as string;
@@ -118,7 +120,7 @@ const Sidebar = ({
           {
             value: "chat",
             tw: " p-2 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
-            children: <Chat />,
+            children: <Chat isVectorised={isVectorised} />,
           },
         ].map((item) => (
           <TabsContent

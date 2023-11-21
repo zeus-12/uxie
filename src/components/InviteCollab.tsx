@@ -32,7 +32,8 @@ const InviteCollab = () => {
   const { mutate: addCollaboratorMutation } =
     api.document.addCollaborator.useMutation({
       async onMutate({ documentId, data: { email, role } }) {
-        await utils.document.getDocData.cancel();
+        await utils.document.getCollaborators.cancel();
+
         const prevData = utils.document.getCollaborators.getData({
           documentId,
         });
@@ -66,14 +67,14 @@ const InviteCollab = () => {
       },
       onSettled() {
         // Sync with server once mutation has settled
-        utils.document.getDocData.invalidate();
+        utils.document.getCollaborators.invalidate();
       },
     });
 
   const { mutate: removeCollaboratorByIdMutation } =
     api.document.removeCollaboratorById.useMutation({
       async onMutate({ documentId, userId }) {
-        await utils.document.getDocData.cancel();
+        await utils.document.getCollaborators.cancel();
         const prevData = utils.document.getCollaborators.getData({
           documentId,
         });
@@ -100,7 +101,7 @@ const InviteCollab = () => {
       },
       onSettled() {
         // Sync with server once mutation has settled
-        utils.document.getDocData.invalidate();
+        utils.document.getCollaborators.invalidate();
       },
     });
 

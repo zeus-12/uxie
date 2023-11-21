@@ -19,6 +19,8 @@ import { createId } from "@paralleldrive/cuid2";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { HighlightTypeEnum } from "@prisma/client";
 import { toast } from "@/components/ui/use-toast";
+import { AppRouter } from "@/server/api/root";
+import { inferRouterOutputs } from "@trpc/server";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -26,23 +28,16 @@ const resetHash = () => {
   document.location.hash = "";
 };
 
-const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
+const DocViewer = ({
+  canEdit,
+  doc,
+}: {
+  canEdit: boolean;
+  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
+}) => {
   const { query, isReady } = useRouter();
 
   const docId = query?.docId;
-
-  const {
-    data: doc,
-    isLoading,
-    isError,
-  } = api.document.getDocData.useQuery(
-    {
-      docId: docId as string,
-    },
-    {
-      enabled: !!docId,
-    },
-  );
 
   const { mutate: addHighlightMutation } = api.highlight.add.useMutation({
     async onMutate(newHighlight) {
@@ -93,6 +88,7 @@ const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
       await utils.document.getDocData.cancel();
       const prevData = utils.document.getDocData.getData();
 
+      // @ts-ignore
       utils.document.getDocData.setData({ docId: docId as string }, (old) => {
         if (!old) return null;
         return {
@@ -297,9 +293,9 @@ const DocViewer = ({ canEdit }: { canEdit: boolean }) => {
     });
   };
 
-  if (isError) {
-    return <>error</>;
-  }
+  // if (isError) {
+  //   return <>error</>;
+  // }
 
   if (!doc || !doc.highlights || !isReady) {
     return;

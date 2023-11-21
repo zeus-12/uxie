@@ -1,5 +1,5 @@
 import BouncingDotsLoader from "@/components/BouncingDotsLoader";
-import { toast, useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
@@ -9,7 +9,7 @@ import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import TextareaAutosize from "react-textarea-autosize";
 
-export default function Chat() {
+export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { query } = useRouter();
 
   const docId = query?.docId;
@@ -56,6 +56,15 @@ export default function Chat() {
         messageWindowRef.current.scrollHeight;
     }
   }, [messages]);
+
+  if (!isVectorised) {
+    return (
+      <div>
+        Unfortunately, this document is not vectorised, and therefore cannot be
+        used with the AI assistant. Please reupload.
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-full flex-col gap-2 overflow-hidden">
