@@ -60,6 +60,7 @@
 ## Known bug
 
 - new file w. blank editor => u cant add highlight => open issue https://github.com/TypeCellOS/BlockNote/issues/366
+- note with images cant be downloaded as markdown => open issue in blocknote
 
 ## FEATURE SUGGESTIONS
 
