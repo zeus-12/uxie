@@ -2,37 +2,28 @@ import {
   BlockNoteView,
   FormattingToolbarPositioner,
   DefaultFormattingToolbar,
-  defaultBlockTypeDropdownItems,
   HyperlinkToolbarPositioner,
   SlashMenuPositioner,
   SideMenuPositioner,
   ImageToolbarPositioner,
   useBlockNote,
-  getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
-import { AlertCircle } from "lucide-react";
 import { uploadToTmpFilesDotOrg_DEV_ONLY } from "@blocknote/core";
-import { defaultBlockSchema } from "@blocknote/core";
-import {
-  createAlertBlock,
-  insertAlert,
-} from "@/components/Editor/CustomBlocks/Alert";
-import { createHighlightBlock } from "@/components/Editor/CustomBlocks/Highlight";
-// import { useDebouncedCallback } from "use-debounce";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import LiveblocksProvider from "@liveblocks/yjs";
 import { useRoom } from "liveblocks.config";
 import { getRandomLightColor } from "@/lib/utils";
-// import { toast } from "@/components/ui/use-toast";
-
-type EditorProps = {
-  doc: Y.Doc;
-  provider: any;
-  canEdit: boolean;
-  username: string;
-};
+import { useCompletion } from "ai/react";
+import { toast } from "@/components/ui/use-toast";
+import {
+  blockTypeDropdownItems,
+  schemaWithCustomBlocks,
+  slashMenuItems,
+} from "@/lib/editor-utils";
+import { YjsEditorProps } from "@/types/editor";
+// import { useDebouncedCallback } from "use-debounce";
 
 export default function Editor({
   canEdit,
@@ -42,7 +33,6 @@ export default function Editor({
   username: string;
 }) {
   const room = useRoom();
-  // console.log(room.getOthers(), "presence");
   const [doc, setDoc] = useState<Y.Doc>();
   const [provider, setProvider] = useState<any>();
 
@@ -74,17 +64,10 @@ export default function Editor({
   );
 }
 
-const schemaWithCustomBlocks = {
-  ...defaultBlockSchema,
-  alert: createAlertBlock(),
-  highlight: createHighlightBlock(),
-};
-
-function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
+function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
   // const { mutate: updateNotesMutation } =
   //   api.document.updateNotes.useMutation();
 
-  // username, can user see the post,can user edit the post, initial note,
   // const { data, error, isError } = api.document.getNotesData.useQuery(
   //   {
   //     docId: query?.docId as string,
@@ -104,6 +87,24 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
 
   const { setEditor } = useBlocknoteEditorStore();
 
+  const { complete, completion, isLoading, stop } = useCompletion({
+    onFinish: (_prompt, completion) => {
+      // select the text that was just inserted
+      // editor?.commands.setTextSelection({
+      //   from: editor.state.selection.from - completion.length,
+      //   to: editor.state.selection.from,
+      // });
+    },
+    onError: (err) => {
+      toast({
+        title: "Error",
+        description: "Something went wrong with text generation",
+        variant: "destructive",
+        duration: 3000,
+      });
+    },
+  });
+
   const editor = useBlockNote(
     {
       // initialContent: data?.initialNotes
@@ -112,20 +113,6 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
       // onEditorContentChange: (editor) => {
       //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       // },
-
-      // initialContent: [
-      //   {
-      //     id: "b8847f8b-e06a-4ad3-a27d-47b581e222ad",
-      //     type: "paragraph",
-      //     props: {
-      //       textColor: "default",
-      //       backgroundColor: "default",
-      //       textAlignment: "left",
-      //     },
-      //     content: [],
-      //     children: [],
-      //   },
-      // ],
 
       editable: canEdit,
       collaboration: {
@@ -140,6 +127,23 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
       onEditorReady: (editor) => {
         setEditor(editor);
       },
+      onEditorContentChange: async (editor) => {
+        const block = editor.getTextCursorPosition().block;
+
+        const blockText = (await editor.blocksToMarkdown([block])).trim();
+        const lastTwo = blockText?.slice(-2);
+
+        if (lastTwo === "++" && !isLoading) {
+          block.content?.splice(-2, 2);
+
+          editor.updateBlock(block, {
+            id: block.id,
+            content: blockText?.slice(0, -2),
+          });
+
+          complete(blockText?.slice(-500) ?? "");
+        }
+      },
       blockSchema: schemaWithCustomBlocks,
       // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
@@ -148,28 +152,71 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
           class: "my-6",
         },
       },
-
-      slashMenuItems: [
-        ...getDefaultReactSlashMenuItems(schemaWithCustomBlocks),
-        insertAlert,
-      ],
+      slashMenuItems,
     },
     [canEdit],
   );
 
-  // if (isError) {
-  //   if (error?.data?.code === "UNAUTHORIZED") {
-  //     push("/f");
+  const prev = useRef("");
 
-  //     toast({
-  //       title: "Unauthorized",
-  //       description: error.message,
-  //       variant: "destructive",
-  //       duration: 4000,
-  //     });
+  useEffect(() => {
+    if (!editor || !editor.ready) return;
+
+    const streamCompletion = async () => {
+      const diff = completion?.slice(prev.current.length);
+      prev.current = completion;
+
+      const block = editor.getTextCursorPosition().block;
+      const blockText = (await editor.blocksToMarkdown([block])).trim();
+
+      editor.updateBlock(editor.getTextCursorPosition().block, {
+        id: editor.getTextCursorPosition().block.id,
+        content: blockText + " " + diff,
+      });
+    };
+
+    streamCompletion();
+  }, [isLoading, editor, completion]);
+
+  // add once text selection is available
+
+  // useEffect(() => {
+  //   if (!editor || !editor.ready) return;
+
+  //   // if user presses escape or cmd + z and it's loading,
+  //   // stop the request, delete the completion, and insert back the "++"
+  //   const onKeyDown = (e: KeyboardEvent) => {
+  //     if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
+  //       stop();
+  //       if (e.key === "Escape") {
+  //         // editor?.commands.deleteRange({
+  //         //   from: editor.state.selection.from - completion.length,
+  //         //   to: editor.state.selection.from,
+  //         // });
+  //       }
+  //       // editor?.commands.insertContent("++");
+  //     }
+  //   };
+  //   const mousedownHandler = (e: MouseEvent) => {
+  //     e.preventDefault();
+  //     e.stopPropagation();
+  //     stop();
+  //     if (window.confirm("AI writing paused. Continue?")) {
+  //       // complete(editor?.getText() || "");
+  //     }
+  //   };
+  //   if (isLoading) {
+  //     document.addEventListener("keydown", onKeyDown);
+  //     window.addEventListener("mousedown", mousedownHandler);
+  //   } else {
+  //     document.removeEventListener("keydown", onKeyDown);
+  //     window.removeEventListener("mousedown", mousedownHandler);
   //   }
-  //   return;
-  // }
+  //   return () => {
+  //     document.removeEventListener("keydown", onKeyDown);
+  //     window.removeEventListener("mousedown", mousedownHandler);
+  //   };
+  // }, [stop, isLoading, editor, complete, completion.length]);
 
   if (editor.ready) {
     return (
@@ -179,15 +226,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: EditorProps) {
           formattingToolbar={(props) => (
             <DefaultFormattingToolbar
               {...props}
-              blockTypeDropdownItems={[
-                ...defaultBlockTypeDropdownItems,
-                {
-                  name: "Alert",
-                  type: "alert",
-                  icon: AlertCircle as any,
-                  isSelected: (block) => block.type === "alert",
-                },
-              ]}
+              blockTypeDropdownItems={blockTypeDropdownItems}
             />
           )}
         />
