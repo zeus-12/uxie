@@ -22,6 +22,10 @@ const features = [
     title: "Collaborate with your team",
     imageUrl: "/features/collab.gif",
   },
+  {
+    title: "AI-powered autocompletion",
+    imageUrl: "/features/completion.gif",
+  },
 ];
 
 function Features() {

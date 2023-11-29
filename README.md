@@ -29,6 +29,7 @@
 - Chat and collab with other
 - custom blocks in editor
 - highlights block which on click takes you to that highlight on the doc.
+- AI-powered text autocompletion
 
 ## REGRETS
 
@@ -42,6 +43,7 @@
 
 ### Low priority
 
+- [ ] add "++ for autocomplete" in the default placeholder of the editor
 - [ ] replace prisma w. drizzle and use edge runtime for chat
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
