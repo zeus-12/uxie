@@ -25,7 +25,7 @@ import * as Y from "yjs";
 import LiveblocksProvider from "@liveblocks/yjs";
 import { useRoom } from "liveblocks.config";
 import { getRandomLightColor } from "@/lib/utils";
-import { toast } from "@/components/ui/use-toast";
+// import { toast } from "@/components/ui/use-toast";
 
 type EditorProps = {
   doc: Y.Doc;

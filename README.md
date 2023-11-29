@@ -36,7 +36,6 @@
 
 ## BUGS
 
-- [ ] see if u can see all the users in the liveblocks room, (and display it at top)
 - [ ] get light coloured background for `liveblocks presence` => https://stackoverflow.com/questions/23601792/get-only-light-colors-randomly-using-javascript
 - [ ] reduce pdfreader scrollbar height + width
 - [ ] remove the weird dragging thing on area-highlight => prob better to rebuilt the library.
@@ -45,6 +44,7 @@
 
 - [ ] replace prisma w. drizzle and use edge runtime for chat
 - [ ] setup permissions inside liveblocks dashboard
+- [ ] see if u can see all the users in the liveblocks room, (and display it at top)
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 - [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. => open issue https://github.com/TypeCellOS/BlockNote/issues/410
 - [ ] abstract userIsOwner and userHasAccess (either collab or owner) to a separate trpc procedure. => api called `experimental_standaloneMiddleware`: but
