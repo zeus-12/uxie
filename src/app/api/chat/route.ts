@@ -7,11 +7,7 @@ import { prisma } from "@/server/db";
 import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 import { authOptions } from "@/server/auth";
 import { getServerSession } from "next-auth";
-
-const fireworks = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-  baseURL: "https://api.fireworks.ai/inference/v1",
-});
+import fireworks from "@/lib/fireworks";
 
 // export const runtime = "edge";
 export async function POST(req: Request, res: Response) {
