@@ -64,7 +64,7 @@
 
 ## FEATURE SUGGESTIONS
 
-- [ ] see if the liveblocks stuff can be replaced w. sockets
+- [ ] see if the liveblocks stuff can be replaced w. sockets => https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers
 - [ ] maybe switch uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] store highlights as plain jsonb. it was super dumb to store it as separate tables. => READ ON THIS. Deleting by id could be expensive if its stored as jsonb/json. (jsonb is better than json), but still could be worse than having it as separate tables.
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
