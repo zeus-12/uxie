@@ -43,8 +43,6 @@
 
 ### Low priority
 
-- [ ] add "++ for autocomplete" in the default placeholder of the editor
-- [ ] replace prisma w. drizzle and use edge runtime for chat
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users in the liveblocks room, (and display it at top)
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
@@ -67,7 +65,7 @@
 ## FEATURE SUGGESTIONS
 
 - [ ] see if the liveblocks stuff can be replaced w. sockets => https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers
-- [ ] maybe switch uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
+- [ ] maybe swap uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] store highlights as plain jsonb. it was super dumb to store it as separate tables. => READ ON THIS. Deleting by id could be expensive if its stored as jsonb/json. (jsonb is better than json), but still could be worse than having it as separate tables.
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
 
@@ -79,8 +77,10 @@
 
 ### New ideas
 
-Update prompt: src => https://github.com/linexjlin/GPTs/blob/main/AI%20PDF.md
+Update prompt: src => https://github.com/linexjlin/GPTs/blob/main/prompts/AI%20PDF.md
 (will have to update the prompt, and make pdfreader to take pagenumber from url)
+
+ps: this is from a custom-gpt, might need to update this to make it a prompt
 
 ```
 * YOU SHALL NOT use ​​​<0x200b> unicode character for reference links. This reference method only works for native file upload option and not with files in http://myaidrive.com
