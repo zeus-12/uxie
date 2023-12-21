@@ -1,14 +1,6 @@
-import {
-  BlockNoteEditor,
-  BlockSpec,
-  DefaultBlockSchema,
-  defaultProps,
-  PropSchema,
-  SpecificBlock,
-} from "@blocknote/core";
-import { createReactBlockSpec, InlineContent } from "@blocknote/react";
+import { defaultProps, PropSchema } from "@blocknote/core";
+import { createReactBlockSpec } from "@blocknote/react";
 
-// The props for the Highlight block
 export const highlightPropSchema = {
   textAlignment: defaultProps.textAlignment,
   textColor: defaultProps.textColor,
@@ -17,98 +9,32 @@ export const highlightPropSchema = {
   },
 } satisfies PropSchema;
 
-export const Highlight = (props: {
-  block: SpecificBlock<
-    DefaultBlockSchema & {
-      highlight: BlockSpec<"highlight", typeof highlightPropSchema, true>;
-    },
-    "highlight"
-  >;
-  editor: BlockNoteEditor<
-    DefaultBlockSchema & {
-      highlight: BlockSpec<"highlight", typeof highlightPropSchema, true>;
-    }
-  >;
-  theme: "light" | "dark";
-  // highlightId: string;
-}) => {
-  return (
-    <div
-      className="flex h-full max-w-full flex-1 items-center gap-2"
-      style={{
-        ...highlightStyles,
-      }}
-    >
-      <div
-        onClick={() => {
-          if (!props?.block?.props?.highlightId) return;
-          document.location.hash = props.block.props.highlightId;
-        }}
-        className="h-full w-2 rounded-full bg-yellow-400 hover:cursor-pointer"
-      />
-      <div className="flex-1">
-        <InlineContent className="break-word-overflow" />
-      </div>
-    </div>
-  );
-};
-
-export const createHighlightBlock = () =>
-  createReactBlockSpec<
-    "highlight",
-    typeof highlightPropSchema,
-    true,
-    DefaultBlockSchema & {
-      highlight: BlockSpec<"highlight", typeof highlightPropSchema, true>;
-    }
-  >({
-    type: "highlight" as const,
+export const highlightBlock = createReactBlockSpec(
+  {
+    type: "highlight",
     propSchema: {
       textAlignment: defaultProps.textAlignment,
       textColor: defaultProps.textColor,
       highlightId: {
         default: "",
       },
-    } as const,
-    containsInlineContent: true,
-    render: (props) => <Highlight {...props} theme={"light"} />,
-  });
-
-// Slash menu item to insert an highlight block
-// export const insertHighlight = {
-//   name: "Highlight",
-//   execute: (editor) => {
-//     const block = editor.getTextCursorPosition().block;
-//     const blockIsEmpty = block.content.length === 0;
-
-//     // Updates current block to an highlight if it's empty, otherwise inserts a new
-//     // one below
-//     if (blockIsEmpty) {
-//       editor.updateBlock(block, { type: "highlight" });
-//     } else {
-//       editor.insertBlocks(
-//         [
-//           {
-//             type: "highlight",
-//           },
-//         ],
-//         editor.getTextCursorPosition().block,
-//         "after",
-//       );
-//       editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
-//     }
-//   },
-//   aliases: ["highlight", "annotate"],
-//   group: "Other",
-//   icon: <HighlighterIcon />,
-//   hint: "Display highlighted texts from PDF",
-// } satisfies ReactSlashMenuItem<
-//   DefaultBlockSchema & {
-//     highlight: BlockSpec<"highlight", typeof highlightPropSchema>;
-//   }
-// >;
-
-const highlightStyles = {
-  borderRadius: "4px",
-  padding: "4px",
-} as const;
+    },
+    content: "inline",
+  },
+  {
+    render: (props) => (
+      <div className="flex h-full max-w-full flex-1 items-center gap-2 rounded-sm p-1">
+        <div
+          onClick={() => {
+            if (!props?.block?.props?.highlightId) return;
+            document.location.hash = props.block.props.highlightId;
+          }}
+          className="h-full w-2 rounded-full bg-yellow-400 hover:cursor-pointer"
+        />
+        <div className="flex-1">
+          <div className={"inline-content"} ref={props.contentRef} />
+        </div>
+      </div>
+    ),
+  },
+);
