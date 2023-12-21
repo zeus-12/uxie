@@ -1,13 +1,4 @@
-import {
-  BlockNoteView,
-  FormattingToolbarPositioner,
-  DefaultFormattingToolbar,
-  HyperlinkToolbarPositioner,
-  SlashMenuPositioner,
-  SideMenuPositioner,
-  ImageToolbarPositioner,
-  useBlockNote,
-} from "@blocknote/react";
+import { BlockNoteView, useBlockNote } from "@blocknote/react";
 import { uploadToTmpFilesDotOrg_DEV_ONLY } from "@blocknote/core";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { useEffect, useRef, useState } from "react";
@@ -17,11 +8,7 @@ import { useRoom } from "liveblocks.config";
 import { getRandomLightColor } from "@/lib/utils";
 import { useCompletion } from "ai/react";
 import { toast } from "@/components/ui/use-toast";
-import {
-  blockTypeDropdownItems,
-  schemaWithCustomBlocks,
-  slashMenuItems,
-} from "@/lib/editor-utils";
+import { blockSpecs, slashMenuItems } from "@/lib/editor-utils";
 import { YjsEditorProps } from "@/types/editor";
 // import { useDebouncedCallback } from "use-debounce";
 
@@ -129,22 +116,17 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
       },
       onEditorContentChange: async (editor) => {
         const block = editor.getTextCursorPosition().block;
-
-        const blockText = (await editor.blocksToMarkdown([block])).trim();
+        const blockText = (await editor.blocksToMarkdownLossy([block])).trim();
         const lastTwo = blockText?.slice(-2);
-
         if (lastTwo === "++" && !isLoading) {
-          block.content?.splice(-2, 2);
-
           editor.updateBlock(block, {
             id: block.id,
-            content: blockText?.slice(0, -2),
+            content: blockText?.slice(0, -2) + " ",
           });
-
           complete(blockText?.slice(-500) ?? "");
         }
       },
-      blockSchema: schemaWithCustomBlocks,
+      blockSpecs: blockSpecs,
       // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
       domAttributes: {
@@ -167,11 +149,11 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
       prev.current = completion;
 
       const block = editor.getTextCursorPosition().block;
-      const blockText = (await editor.blocksToMarkdown([block])).trim();
+      const blockText = (await editor.blocksToMarkdownLossy([block])).trim();
 
       editor.updateBlock(editor.getTextCursorPosition().block, {
         id: editor.getTextCursorPosition().block.id,
-        content: blockText + " " + diff,
+        content: blockText + diff,
       });
     };
 
@@ -220,21 +202,11 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
 
   if (editor.ready) {
     return (
-      <BlockNoteView className="w-full flex-1" theme={"light"} editor={editor}>
-        <FormattingToolbarPositioner
-          editor={editor}
-          formattingToolbar={(props) => (
-            <DefaultFormattingToolbar
-              {...props}
-              blockTypeDropdownItems={blockTypeDropdownItems}
-            />
-          )}
-        />
-        <HyperlinkToolbarPositioner editor={editor} />
-        <SlashMenuPositioner editor={editor} />
-        <SideMenuPositioner editor={editor} />
-        <ImageToolbarPositioner editor={editor} />
-      </BlockNoteView>
+      <BlockNoteView
+        className="w-full flex-1"
+        theme={"light"}
+        editor={editor}
+      />
     );
   }
   return <></>;
