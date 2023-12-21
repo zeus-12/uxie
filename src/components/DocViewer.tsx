@@ -151,10 +151,8 @@ const DocViewer = ({
       if (!content || !highlightId) return;
 
       const block = editor.getTextCursorPosition().block;
-      const blockIsEmpty = block.content?.length === 0;
-
-      // console.log(editor.topLevelBlocks, "editor");
-      // console.log(block, "block");
+      // hack
+      const blockIsEmpty = (block.content as any[])?.length === 0;
 
       if (blockIsEmpty) {
         editor.updateBlock(block, {
@@ -185,7 +183,7 @@ const DocViewer = ({
 
       try {
         const block = editor.getTextCursorPosition().block;
-        const blockIsEmpty = block.content?.length === 0;
+        const blockIsEmpty = (block.content as any[])?.length === 0;
 
         if (blockIsEmpty) {
           editor.updateBlock(block, {
