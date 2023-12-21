@@ -11,11 +11,11 @@ patchedDependencies:
 
 dependencies:
   '@blocknote/core':
-    specifier: ^0.9.6
-    version: 0.9.6
+    specifier: ^0.10.1
+    version: 0.10.1
   '@blocknote/react':
-    specifier: ^0.9.6
-    version: 0.9.6(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+    specifier: ^0.10.1
+    version: 0.10.1(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
   '@hookform/resolvers':
     specifier: ^3.3.1
     version: 3.3.1(react-hook-form@7.47.0)
@@ -321,8 +321,8 @@ packages:
       to-fast-properties: 2.0.0
     dev: false
 
-  /@blocknote/core@0.9.6:
-    resolution: {integrity: sha512-L0T8L+akKPI4tJh9n18Cq0gR5WxCXoVPfPtA4gfFu+Yu5mtLfY4Rts5bKNzbFFFahx0Ns3VLjLHkr4h+YeT5Dw==}
+  /@blocknote/core@0.10.1:
+    resolution: {integrity: sha512-3IbBwKqfKpSskcFwR8gjiL0W5hvuGv9NRyBCCtSnHdgpEg+5O6PVsMulzh82nOqe4Ahb9cii8ET4gFEZkD154g==}
     dependencies:
       '@emotion/cache': 11.11.0
       '@emotion/serialize': 1.1.2
@@ -341,15 +341,19 @@ packages:
       '@tiptap/extension-link': 2.1.11(@tiptap/core@2.1.11)(@tiptap/pm@2.1.11)
       '@tiptap/extension-paragraph': 2.1.11(@tiptap/core@2.1.11)
       '@tiptap/extension-strike': 2.1.11(@tiptap/core@2.1.11)
+      '@tiptap/extension-table-cell': 2.1.13(@tiptap/core@2.1.11)
+      '@tiptap/extension-table-header': 2.1.13(@tiptap/core@2.1.11)
+      '@tiptap/extension-table-row': 2.1.13(@tiptap/core@2.1.11)
       '@tiptap/extension-text': 2.1.11(@tiptap/core@2.1.11)
       '@tiptap/extension-underline': 2.1.11(@tiptap/core@2.1.11)
       '@tiptap/pm': 2.1.11
       hast-util-from-dom: 4.2.0
-      lodash: 4.17.21
       prosemirror-model: 1.19.3
       prosemirror-state: 1.4.3
+      prosemirror-tables: 1.3.4
       prosemirror-transform: 1.8.0
       prosemirror-view: 1.32.0
+      rehype-format: 5.0.0
       rehype-parse: 8.0.5
       rehype-remark: 9.1.2
       rehype-stringify: 9.0.4
@@ -366,13 +370,13 @@ packages:
       - supports-color
     dev: false
 
-  /@blocknote/react@0.9.6(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-xybLu1vSiIVXe6nginmC/3MKfjFVAycGII2/1kythmyxM1YgLBg4JWD6i8ABrniRlXkQ9tjpjrlWbdP4Ld2/zg==}
+  /@blocknote/react@0.10.1(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-rp+43SyrrdMnq4rCsqFz2T6c5FHKpzrYCpaZI6CaZPs3eTbySaAtc40OT9JHz6eF91fqVHGXomq/hqF0okeVTw==}
     peerDependencies:
       react: ^18
       react-dom: ^18
     dependencies:
-      '@blocknote/core': 0.9.6
+      '@blocknote/core': 0.10.1
       '@emotion/react': 11.11.1(@types/react@18.2.25)(react@18.2.0)
       '@mantine/core': 5.10.5(@emotion/react@11.11.1)(@mantine/hooks@5.10.5)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
       '@mantine/hooks': 5.10.5(react@18.2.0)
@@ -380,7 +384,9 @@ packages:
       '@tippyjs/react': 4.2.6(react-dom@18.2.0)(react@18.2.0)
       '@tiptap/core': 2.1.11(@tiptap/pm@2.1.11)
       '@tiptap/react': 2.1.11(@tiptap/core@2.1.11)(@tiptap/pm@2.1.11)(react-dom@18.2.0)(react@18.2.0)
-      lodash: 4.17.21
+      lodash.foreach: 4.5.0
+      lodash.groupby: 4.6.0
+      lodash.merge: 4.6.2
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       react-icons: 4.11.0(react@18.2.0)
@@ -2063,6 +2069,30 @@ packages:
 
   /@tiptap/extension-strike@2.1.11(@tiptap/core@2.1.11):
     resolution: {integrity: sha512-UnjeSVgu3bDuyjjUdWsUErRCoQKAHCzH/pAiqTEPEEdFYgZFQPBpcJICRVdlYjRmI2ZKh6d0TMUS55m7ckmwmQ==}
+    peerDependencies:
+      '@tiptap/core': ^2.0.0
+    dependencies:
+      '@tiptap/core': 2.1.11(@tiptap/pm@2.1.11)
+    dev: false
+
+  /@tiptap/extension-table-cell@2.1.13(@tiptap/core@2.1.11):
+    resolution: {integrity: sha512-30pyVt2PxGAk8jmsXKxDheql8K/xIRA9FiDo++kS2Kr6Y7I42/kNPQttJ2W+Q1JdRJvedNfQtziQfKWDRLLCNA==}
+    peerDependencies:
+      '@tiptap/core': ^2.0.0
+    dependencies:
+      '@tiptap/core': 2.1.11(@tiptap/pm@2.1.11)
+    dev: false
+
+  /@tiptap/extension-table-header@2.1.13(@tiptap/core@2.1.11):
+    resolution: {integrity: sha512-FwIV5iso5kmpu01QyvrPCjJqZfqxRTjtjMsDyut2uIgx9v5TXk0V5XvMWobx435ANIDJoGTYCMRlIqcgtyqwAQ==}
+    peerDependencies:
+      '@tiptap/core': ^2.0.0
+    dependencies:
+      '@tiptap/core': 2.1.11(@tiptap/pm@2.1.11)
+    dev: false
+
+  /@tiptap/extension-table-row@2.1.13(@tiptap/core@2.1.11):
+    resolution: {integrity: sha512-27Mb9/oYbiLd+/BUFMhQzRIqMd2Z5j1BZMYsktwtDG8vGdYVlaW257UVaoNR9TmiXyIzd3Dh1mOil8G35+HRHg==}
     peerDependencies:
       '@tiptap/core': ^2.0.0
     dependencies:
@@ -4007,6 +4037,13 @@ packages:
       hast-util-is-element: 2.1.3
     dev: false
 
+  /hast-util-embedded@3.0.0:
+    resolution: {integrity: sha512-naH8sld4Pe2ep03qqULEtvYr7EjrLK2QHY8KJR6RJkTUjPGObe1vnx585uzem2hGra+s1q08DZZpfgDVYRbaXA==}
+    dependencies:
+      '@types/hast': 3.0.2
+      hast-util-is-element: 3.0.0
+    dev: false
+
   /hast-util-from-dom@4.2.0:
     resolution: {integrity: sha512-t1RJW/OpJbCAJQeKi3Qrj1cAOLA0+av/iPFori112+0X7R3wng+jxLA+kXec8K4szqPRGI8vPxbbpEYvvpwaeQ==}
     dependencies:
@@ -4030,6 +4067,12 @@ packages:
     resolution: {integrity: sha512-X2+RwZIMTMKpXUzlotatPzWj8bspCymtXH3cfG3iQKV+wPF53Vgaqxi/eLqGck0wKq1kS9nvoB1wchbCPEL8sg==}
     dev: false
 
+  /hast-util-has-property@3.0.0:
+    resolution: {integrity: sha512-MNilsvEKLFpV604hwfhVStK0usFY/QmM5zX16bo7EjnAEGofr5YyI37kzopBlZJkHD4t887i+q/C8/tr5Q94cA==}
+    dependencies:
+      '@types/hast': 3.0.2
+    dev: false
+
   /hast-util-is-body-ok-link@2.0.0:
     resolution: {integrity: sha512-S58hCexyKdD31vMsErvgLfflW6vYWo/ixRLPJTtkOvLld24vyI8vmYmkgLA5LG3la2ME7nm7dLGdm48gfLRBfw==}
     dependencies:
@@ -4038,11 +4081,23 @@ packages:
       hast-util-is-element: 2.1.3
     dev: false
 
+  /hast-util-is-body-ok-link@3.0.0:
+    resolution: {integrity: sha512-VFHY5bo2nY8HiV6nir2ynmEB1XkxzuUffhEGeVx7orbu/B1KaGyeGgMZldvMVx5xWrDlLLG/kQ6YkJAMkBEx0w==}
+    dependencies:
+      '@types/hast': 3.0.2
+    dev: false
+
   /hast-util-is-element@2.1.3:
     resolution: {integrity: sha512-O1bKah6mhgEq2WtVMk+Ta5K7pPMqsBBlmzysLdcwKVrqzZQ0CHqUPiIVspNhAG1rvxpvJjtGee17XfauZYKqVA==}
     dependencies:
       '@types/hast': 2.3.6
       '@types/unist': 2.0.8
+    dev: false
+
+  /hast-util-is-element@3.0.0:
+    resolution: {integrity: sha512-Val9mnv2IWpLbNPqc/pUem+a7Ipj2aHacCwgNfTiK0vJKl0LF+4Ba4+v1oPHFpf3bLYmreq0/l3Gud9S5OH42g==}
+    dependencies:
+      '@types/hast': 3.0.2
     dev: false
 
   /hast-util-parse-selector@3.1.1:
@@ -4059,6 +4114,16 @@ packages:
       hast-util-has-property: 2.0.1
       hast-util-is-body-ok-link: 2.0.0
       hast-util-is-element: 2.1.3
+    dev: false
+
+  /hast-util-phrasing@3.0.1:
+    resolution: {integrity: sha512-6h60VfI3uBQUxHqTyMymMZnEbNl1XmEGtOxxKYL7stY2o601COo62AWAYBQR9lZbYXYSBoxag8UpPRXK+9fqSQ==}
+    dependencies:
+      '@types/hast': 3.0.2
+      hast-util-embedded: 3.0.0
+      hast-util-has-property: 3.0.0
+      hast-util-is-body-ok-link: 3.0.0
+      hast-util-is-element: 3.0.0
     dev: false
 
   /hast-util-raw@7.2.3:
@@ -4179,6 +4244,10 @@ packages:
 
   /html-void-elements@2.0.1:
     resolution: {integrity: sha512-0quDb7s97CfemeJAnW9wC0hw78MtW7NU3hqtCD75g2vFlDLt36llsYD7uB7SUzojLMP24N5IatXf7ylGXiGG9A==}
+    dev: false
+
+  /html-whitespace-sensitive-tag-names@3.0.0:
+    resolution: {integrity: sha512-KlClZ3/Qy5UgvpvVvDomGhnQhNWH5INE8GwvSIQ9CWt1K0zbbXrl7eN5bWaafOZgtmO3jMPwUqmrmEwinhPq1w==}
     dev: false
 
   /humanize-ms@1.2.1:
@@ -4946,13 +5015,16 @@ packages:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
     dev: false
 
+  /lodash.foreach@4.5.0:
+    resolution: {integrity: sha512-aEXTF4d+m05rVOAUG3z4vZZ4xVexLKZGF0lIxuHZ1Hplpk/3B6Z1+/ICICYRLm7c41Z2xiejbkCkJoTlypoXhQ==}
+    dev: false
+
+  /lodash.groupby@4.6.0:
+    resolution: {integrity: sha512-5dcWxm23+VAoz+awKmBaiBvzox8+RqMgFhi7UvX9DHZr2HdxHXM/Wrf8cfKpsW37RNrvtPn6hSwNqurSILbmJw==}
+    dev: false
+
   /lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
-    dev: true
-
-  /lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-    dev: false
 
   /longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
@@ -6690,6 +6762,19 @@ packages:
       set-function-name: 2.0.1
     dev: true
 
+  /rehype-format@5.0.0:
+    resolution: {integrity: sha512-kM4II8krCHmUhxrlvzFSptvaWh280Fr7UGNJU5DCMuvmAwGCNmGfi9CvFAQK6JDjsNoRMWQStglK3zKJH685Wg==}
+    dependencies:
+      '@types/hast': 3.0.2
+      hast-util-embedded: 3.0.0
+      hast-util-is-element: 3.0.0
+      hast-util-phrasing: 3.0.1
+      hast-util-whitespace: 3.0.0
+      html-whitespace-sensitive-tag-names: 3.0.0
+      rehype-minify-whitespace: 6.0.0
+      unist-util-visit-parents: 6.0.1
+    dev: false
+
   /rehype-minify-whitespace@5.0.1:
     resolution: {integrity: sha512-PPp4lWJiBPlePI/dv1BeYktbwkfgXkrK59MUa+tYbMPgleod+4DvFK2PLU0O0O60/xuhHfiR9GUIUlXTU8sRIQ==}
     dependencies:
@@ -6699,6 +6784,16 @@ packages:
       hast-util-whitespace: 2.0.1
       unified: 10.1.2
       unist-util-is: 5.2.1
+    dev: false
+
+  /rehype-minify-whitespace@6.0.0:
+    resolution: {integrity: sha512-i9It4YHR0Sf3GsnlR5jFUKXRr9oayvEk9GKQUkwZv6hs70OH9q3OCZrq9PpLvIGKt3W+JxBOxCidNVpH/6rWdA==}
+    dependencies:
+      '@types/hast': 3.0.2
+      hast-util-embedded: 3.0.0
+      hast-util-is-element: 3.0.0
+      hast-util-whitespace: 3.0.0
+      unist-util-is: 6.0.0
     dev: false
 
   /rehype-parse@8.0.5:
