@@ -10,7 +10,6 @@ import { useCompletion } from "ai/react";
 import { toast } from "@/components/ui/use-toast";
 import { blockSpecs, slashMenuItems } from "@/lib/editor-utils";
 import { YjsEditorProps } from "@/types/editor";
-// import { useDebouncedCallback } from "use-debounce";
 
 export default function Editor({
   canEdit,
