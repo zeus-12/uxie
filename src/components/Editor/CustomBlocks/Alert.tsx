@@ -57,8 +57,9 @@ export const alertBlock = createReactBlockSpec(
         }}
       >
         <Select
+          // NOT WORKING PROPERLY
           onValueChange={(value) => {
-            console.log(props.block.props.type);
+            // console.log(props.block.props.type);
             props.block.props.type = value as
               | "warning"
               | "error"
