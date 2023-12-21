@@ -31,7 +31,7 @@ const Sidebar = ({
 
   const handleDownloadMarkdownAsFile = async () => {
     if (!editor) return;
-    const markdownContent = await editor.blocksToMarkdown(
+    const markdownContent = await editor.blocksToMarkdownLossy(
       editor.topLevelBlocks,
     );
 
