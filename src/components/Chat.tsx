@@ -59,9 +59,13 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
 
   if (!isVectorised) {
     return (
-      <div>
-        Unfortunately, this document is not vectorised, and therefore cannot be
-        used with the AI assistant. Please reupload.
+      <div className="mx-auto flex h-full max-w-[70%] items-center justify-center">
+        <p className="font-xl  text-center">
+          This document couldn&apos;t be vectorised, and therefore cannot be
+          used with the AI assistant.{" "}
+          <span className=" font-semibold">Please reupload.</span>
+          {/* give user choice to re-vectorise */}
+        </p>
       </div>
     );
   }
