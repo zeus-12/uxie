@@ -130,7 +130,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
           />
           {isLoading ? (
             <button className="w-fit bg-gray-50 px-2">
-              <BanIcon size={24} className="text-red-500" onClick={stop} />
+              <BanIcon size={24} className="text-gray-500" onClick={stop} />
             </button>
           ) : (
             <button className="w-fit bg-gray-50 px-2" type="submit">
