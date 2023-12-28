@@ -74,6 +74,7 @@ const UserLibraryPage = () => {
       )}
 
       <div className="xs:grid-cols-2 grid grid-cols-1 justify-items-center gap-2 md:grid-cols-3 xl:grid-cols-4">
+        {/* both combined should be sorted => some array generating logic should be used. */}
         {userDocs?.documents?.map((doc) => (
           <Doc key={doc.id} id={doc.id} title={doc.title} isCollab={false} />
         ))}
