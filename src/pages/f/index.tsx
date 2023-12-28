@@ -73,13 +73,11 @@ const UserLibraryPage = () => {
         <p className="text-muted-foreground">Here are your files</p>
       )}
 
-      {/* todo use grid layout for docs */}
-      <div className="flex flex-wrap gap-2">
+      <div className="xs:grid-cols-2 grid grid-cols-1 justify-items-center gap-2 md:grid-cols-3 xl:grid-cols-4">
         {userDocs?.documents?.map((doc) => (
           <Doc key={doc.id} id={doc.id} title={doc.title} isCollab={false} />
         ))}
-      </div>
-      <div className="flex flex-wrap gap-2">
+
         {userDocs.collaboratorateddocuments.map((collab) => (
           <Doc
             key={collab.document.id}
@@ -103,18 +101,25 @@ const Doc = ({
   isCollab: boolean;
 }) => {
   return (
-    <Link key={id} href={`/f/${id}`}>
-      <div
-        className={cn(
-          buttonVariants({ variant: "ghost" }),
-          // "w-32 overflow-hidden text-ellipsis border p-6",
-        )}
-      >
-        {isCollab && <Badge variant="outline">Collab</Badge>}
-        {title}
-        {/* maybe display first page of the pdf here */}
-        {/* add menubar to delete, rename doc, download pdf */}
-      </div>
+    <Link
+      key={id}
+      href={`/f/${id}`}
+      className={cn(
+        buttonVariants({ variant: "ghost" }),
+        "flex w-full flex-col gap-2 border py-8",
+      )}
+    >
+      <p className="text-start">
+        {title?.slice(0, 30) + (title.length > 30 ? "..." : "") ?? "Untitled"}{" "}
+      </p>
+
+      {isCollab && (
+        <Badge className="mr-auto" variant="outline">
+          Collab
+        </Badge>
+      )}
+      {/* maybe display first page of the pdf here */}
+      {/* add menubar to delete, rename doc, download pdf */}
     </Link>
   );
 };
