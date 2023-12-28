@@ -89,8 +89,8 @@ dependencies:
     specifier: ^10.34.0
     version: 10.40.0
   '@uploadthing/react':
-    specifier: ^6.0.1
-    version: 6.0.1(next@13.5.4)(react@18.2.0)(uploadthing@6.0.2)
+    specifier: ^6.0.2
+    version: 6.0.2(next@13.5.4)(react@18.2.0)(uploadthing@6.1.0)
   ai:
     specifier: ^2.2.17
     version: 2.2.17(react@18.2.0)(solid-js@1.8.3)(svelte@4.2.2)(vue@3.3.6)
@@ -164,8 +164,8 @@ dependencies:
     specifier: ^1.0.7
     version: 1.0.7(tailwindcss@3.3.3)
   uploadthing:
-    specifier: ^6.0.2
-    version: 6.0.2
+    specifier: ^6.1.0
+    version: 6.1.0
   use-debounce:
     specifier: ^9.0.4
     version: 9.0.4(react@18.2.0)
@@ -2470,29 +2470,29 @@ packages:
     resolution: {integrity: sha512-ZUo1JHOPPMZDsUw1mOhhVDIvJGlsjj6T0xJ/YJtulyJwL43S9B5pxg1cHcRuTEgjaxj7B55jiqQ6r9mDrrjH9A==}
     dev: false
 
-  /@uploadthing/react@6.0.1(next@13.5.4)(react@18.2.0)(uploadthing@6.0.2):
-    resolution: {integrity: sha512-IJHAdEYV66QXvd3/GMQaWr7ZJncZAVWvBhxg9UhE/b3qn651aJWnHBPgo2Q7W9R4t3ITua+/5cN7n0EpP00dhg==}
+  /@uploadthing/react@6.0.2(next@13.5.4)(react@18.2.0)(uploadthing@6.1.0):
+    resolution: {integrity: sha512-gUJwNvSFs0bg4m0c6wlFo1Fe3uyGTmAp0BESkRZvqyN4hNhIcxMY0TxjqxCKsYkv1T0/y3dHgN/XU2BDAQQh7w==}
     peerDependencies:
-      next: 14.0.1
+      next: '*'
       react: ^17.0.2 || ^18.0.0
       uploadthing: ^6.0.0
     peerDependenciesMeta:
       next:
         optional: true
     dependencies:
-      '@uploadthing/shared': 6.0.1(@uploadthing/mime-types@0.2.2)
+      '@uploadthing/shared': 6.0.2(@uploadthing/mime-types@0.2.2)
       attr-accept: 2.2.2
       file-selector: 0.6.0
       next: 13.5.4(react-dom@18.2.0)(react@18.2.0)
       react: 18.2.0
       tailwind-merge: 1.14.0
-      uploadthing: 6.0.2
+      uploadthing: 6.1.0
     transitivePeerDependencies:
       - '@uploadthing/mime-types'
     dev: false
 
-  /@uploadthing/shared@6.0.1(@uploadthing/mime-types@0.2.2):
-    resolution: {integrity: sha512-ZdeTj77MU1zi5mhLzlYa5jUCUxXJqK4+sd9lgZZ6pIWN9tK5Xs0MptF3orqZH/RzIir6aqpsI9OaSd/BamHDxQ==}
+  /@uploadthing/shared@6.0.2(@uploadthing/mime-types@0.2.2):
+    resolution: {integrity: sha512-yFOhvzBG8VB2qmEGWDuW/tV/ZcfRZ4a6rX7i9/ZS3IqHA0FO7CKa8yitltAl3yRdSI9it88iMEQg7Ah/ve8D4A==}
     peerDependencies:
       '@uploadthing/mime-types': ^0.2.2
     peerDependenciesMeta:
@@ -7571,12 +7571,12 @@ packages:
       picocolors: 1.0.0
     dev: true
 
-  /uploadthing@6.0.2:
-    resolution: {integrity: sha512-wJPlgUCQC6hoLQ1rVWbFSGhyNBs5NCohQqWmD8MAaM5sxupLeCl5bQZ1vJLonDgpaErM9ejyMvphb7aH/AkNvw==}
+  /uploadthing@6.1.0:
+    resolution: {integrity: sha512-3OhxRxY+cOoA+g5kAkuYo/pIyOJKZR6+iUt077QkfhmN8GCjekFyiQDAmH/X1IQ29U8lMpMkgcxHx9HetkPtdw==}
     engines: {node: '>=18.13.0'}
     dependencies:
       '@uploadthing/mime-types': 0.2.2
-      '@uploadthing/shared': 6.0.1(@uploadthing/mime-types@0.2.2)
+      '@uploadthing/shared': 6.0.2(@uploadthing/mime-types@0.2.2)
     dev: false
 
   /uri-js@4.4.1:
