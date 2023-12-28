@@ -1,4 +1,5 @@
 import BouncingDotsLoader from "@/components/BouncingDotsLoader";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -57,15 +58,73 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
     }
   }, [messages]);
 
+  // const { mutate: reVectoriseDocMutation } = api.highlight.add.useMutation({
+  //   async onMutate(newHighlight) {
+  //     await utils.document.getDocData.cancel();
+  //     const prevData = utils.document.getDocData.getData();
+
+  //     // @ts-ignore
+  //     utils.document.getDocData.setData({ docId: docId as string }, (old) => {
+  //       if (!old) return null;
+
+  //       return {
+  //         ...old,
+  //         highlights: [
+  //           ...old.highlights,
+  //           {
+  //             position: {
+  //               boundingRect: newHighlight.boundingRect,
+  //               rects: newHighlight.rects,
+  //               pageNumber: newHighlight.pageNumber,
+  //             },
+  //           },
+  //         ],
+  //       };
+  //     });
+
+  //     return { prevData };
+  //   },
+  //   onError(err, newPost, ctx) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Something went wrong",
+  //       variant: "destructive",
+  //       duration: 3000,
+  //     });
+
+  //     utils.document.getDocData.setData(
+  //       { docId: docId as string },
+  //       ctx?.prevData,
+  //     );
+  //   },
+  //   onSettled() {
+  //     // Sync with server once mutation has settled
+  //     utils.document.getDocData.invalidate();
+  //   },
+  // });
+
   if (!isVectorised) {
     return (
-      <div className="mx-auto flex h-full max-w-[70%] items-center justify-center">
+      <div className="mx-auto flex h-full max-w-[70%] flex-col items-center justify-center">
         <p className="font-xl  text-center">
           This document couldn&apos;t be vectorised, and therefore cannot be
           used with the AI assistant.{" "}
-          <span className=" font-semibold">Please reupload.</span>
-          {/* give user choice to re-vectorise */}
         </p>
+
+        <Button
+          className="mt-2"
+          onClick={() => {
+            // reVectoriseDocMutation()
+            toast({
+              title: "Uh-oh",
+              description: "Coming soon, Please reupload for now...",
+              variant: "default",
+              duration: 3000,
+            });
+          }}
+        >
+          Re-vectorise
+        </Button>
       </div>
     );
   }
