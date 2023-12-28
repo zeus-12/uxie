@@ -102,7 +102,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
           <div
             className={cn(
               "mr-auto bg-gray-200 text-black",
-              "max-w-[80%] rounded-xl px-3 py-1 text-left ",
+              "max-w-[80%] rounded-xl px-3 py-2 text-left ",
             )}
           >
             <BouncingDotsLoader />

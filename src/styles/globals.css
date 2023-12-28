@@ -112,8 +112,8 @@
 }
 
 .bouncing-loader > div {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   margin: 3px;
   border-radius: 50%;
   background-color: #a3a1a1;
