@@ -110,7 +110,7 @@ const Doc = ({
         "flex w-full flex-col gap-2 border py-8",
       )}
     >
-      <p className="text-start">
+      <p className="mr-auto">
         {title?.slice(0, 30) + (title.length > 30 ? "..." : "") ?? "Untitled"}{" "}
       </p>
 
