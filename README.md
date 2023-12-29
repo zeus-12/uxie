@@ -1,4 +1,6 @@
-## Deployed at [https://uxie.vercel.app](https://uxie.vercel.app)
+# [Uxie](https://uxie.vercel.app)
+
+[![thumbnail](./public/thumbnail.png)](https://www.youtube.com/watch?v=m97zcPWSceU)
 
 ### Built using
 
