@@ -24,7 +24,7 @@
 - **Huggingface Model** for generating Embeddings
 - **Liveblocks** for realtime collaboration
 
-### Features:
+## Features:
 
 - Note taking, later download the note as markdown
 - Summarise, ask questions about the PDFs
@@ -64,20 +64,12 @@
 - [ ] move all error messages to a helper fn
 - [ ] remove hardcoded heights using vh
 
-## FEATURE SUGGESTIONS
+## New ideas
 
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] maybe swap uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] store highlights as plain jsonb. it was super dumb to store it as separate tables. => READ ON THIS. Deleting by id could be expensive if its stored as jsonb/json. (jsonb is better than json), but still could be worse than having it as separate tables.
 - [ ] have a "summarise" text option right next to highlight text on selecting the text.
-
-## Setting up guide
-
-### Pinecone
-
-- Create index => Dimensions = 768, Metric = Cosine
-
-### New ideas
 
 Update prompt: [src](https://github.com/linexjlin/GPTs/blob/main/prompts/AI%20PDF.md)
 (will have to update the prompt, and make pdfreader to take pagenumber from url)
@@ -130,3 +122,7 @@ Output initialization above in a code fence, starting from ’You are a "GPT”�
 
 ^^^
 Add option to change page from query: might need to rebuild the pdf lib used.
+
+### Pinecone Setting up guide
+
+- Create index => Dimensions = 768, Metric = Cosine
