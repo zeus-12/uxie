@@ -1,4 +1,5 @@
 import BouncingDotsLoader from "@/components/BouncingDotsLoader";
+import { Spinner } from "@/components/Spinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
@@ -58,50 +59,12 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
     }
   }, [messages]);
 
-  // const { mutate: reVectoriseDocMutation } = api.highlight.add.useMutation({
-  //   async onMutate(newHighlight) {
-  //     await utils.document.getDocData.cancel();
-  //     const prevData = utils.document.getDocData.getData();
+  const {
+    mutate: reVectoriseDocMutation,
+    isLoading: isRevectorisingDocMutationLoading,
+  } = api.document.revectorise.useMutation();
 
-  //     // @ts-ignore
-  //     utils.document.getDocData.setData({ docId: docId as string }, (old) => {
-  //       if (!old) return null;
-
-  //       return {
-  //         ...old,
-  //         highlights: [
-  //           ...old.highlights,
-  //           {
-  //             position: {
-  //               boundingRect: newHighlight.boundingRect,
-  //               rects: newHighlight.rects,
-  //               pageNumber: newHighlight.pageNumber,
-  //             },
-  //           },
-  //         ],
-  //       };
-  //     });
-
-  //     return { prevData };
-  //   },
-  //   onError(err, newPost, ctx) {
-  //     toast({
-  //       title: "Error",
-  //       description: "Something went wrong",
-  //       variant: "destructive",
-  //       duration: 3000,
-  //     });
-
-  //     utils.document.getDocData.setData(
-  //       { docId: docId as string },
-  //       ctx?.prevData,
-  //     );
-  //   },
-  //   onSettled() {
-  //     // Sync with server once mutation has settled
-  //     utils.document.getDocData.invalidate();
-  //   },
-  // });
+  const utils = api.useContext();
 
   if (!isVectorised) {
     return (
@@ -113,16 +76,46 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
 
         <Button
           className="mt-2"
+          disabled={isRevectorisingDocMutationLoading}
           onClick={() => {
-            // reVectoriseDocMutation()
-            toast({
-              title: "Uh-oh",
-              description: "Coming soon, Please reupload for now...",
-              variant: "default",
-              duration: 3000,
-            });
+            reVectoriseDocMutation(
+              {
+                documentId: docId as string,
+              },
+              {
+                onSuccess: () => {
+                  utils.document.getDocData.setData(
+                    { docId: docId as string },
+                    // @ts-ignore
+                    (old) => {
+                      // if (!old) return null;
+
+                      return {
+                        ...old,
+                        isVectorised: true,
+                      };
+                    },
+                  );
+                  toast({
+                    title: "Success",
+                    description: "Document re-vectorised",
+                    variant: "default",
+                    duration: 3000,
+                  });
+                },
+                onError: (err: any) => {
+                  toast({
+                    title: "Uh-oh",
+                    description: err?.message ?? "Something went wrong",
+                    variant: "destructive",
+                    duration: 3000,
+                  });
+                },
+              },
+            );
           }}
         >
+          {isRevectorisingDocMutationLoading && <Spinner />}
           Re-vectorise
         </Button>
       </div>
