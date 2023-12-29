@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { CollaboratorRole } from "@prisma/client";
+import { vectoriseDocument } from "@/lib/vectorise";
 
 export const documentRouter = createTRPCRouter({
   getDocData: protectedProcedure
@@ -252,5 +253,45 @@ export const documentRouter = createTRPCRouter({
           id: cur.user.id,
         })),
       ];
+    }),
+
+  revectorise: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          ownerId: ctx.session.user.id,
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you are not the owner.",
+        });
+      }
+
+      if (doc.isVectorised) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Document already vectorised.",
+        });
+      }
+
+      try {
+        await vectoriseDocument(doc.url, doc.id);
+      } catch (err: any) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: err.message,
+        });
+      }
+
+      return true;
     }),
 });
