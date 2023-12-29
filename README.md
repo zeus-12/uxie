@@ -64,10 +64,6 @@
 - [ ] move all error messages to a helper fn
 - [ ] remove hardcoded heights using vh
 
-## Known bug
-
-- new file w. blank editor => u cant add highlight => [open issue](https://github.com/TypeCellOS/BlockNote/issues/366)
-
 ## FEATURE SUGGESTIONS
 
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
