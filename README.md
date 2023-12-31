@@ -45,6 +45,7 @@
 
 ### Low priority
 
+- [ ] update placeholder text to mention "++" for ai autocomplete.
 - [ ] fix docs stylin in "/f"
 - [ ] better error,loading pages.
 - [ ] editor loads with empty data before the data is loaded.
