@@ -10,20 +10,14 @@ import {
 } from "@blocknote/react";
 import { AlertCircle } from "lucide-react";
 
-export const blockTypeDropdownItems =
-  // :BlockTypeDropdownItem[]
-  [
-    ...defaultBlockTypeDropdownItems,
-    {
-      name: "Alert",
-      type: "alert",
-      icon: AlertCircle,
-
-      // isSelected: (
-      //   block: Block<Record<string, BlockSpec<string, PropSchema, boolean>>>,
-      // ) => block.type === "alert",
-    },
-  ];
+export const blockTypeDropdownItems = [
+  ...defaultBlockTypeDropdownItems,
+  {
+    name: "Alert",
+    type: "alert",
+    icon: AlertCircle,
+  },
+];
 
 export const blockSpecs = {
   ...defaultBlockSpecs,
