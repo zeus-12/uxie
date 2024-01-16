@@ -77,7 +77,8 @@ export async function POST(req: Request, res: Response) {
   // }));
 
   const response = await fireworks.chat.completions.create({
-    model: "accounts/fireworks/models/llama-v2-70b-chat",
+    model: "accounts/fireworks/models/mixtral-8x7b-instruct",
+
     temperature: 0,
     stream: true,
     max_tokens: 4096,
