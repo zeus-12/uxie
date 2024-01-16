@@ -35,7 +35,8 @@
 
 ## REGRETS
 
-- [ ] 10s limit on serverless function SUCKS! Should've chosen drizzle over prisma (for edge functions) UGHGHH
+- [ ] 10s limit on serverless function SUCKS! Should've chosen drizzle/kysely over prisma (for edge functions) UGHGHH
+      checkout [acme-corp project](https://github.com/juliusmarminge/acme-corp) => using both prisma and kysely
 
 ## BUGS
 
