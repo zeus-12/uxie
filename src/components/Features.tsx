@@ -9,10 +9,13 @@ const features = [
   {
     title: "Annotate your notes w. ease",
     imageUrl: "/features/annotation.gif",
+    description:
+      "To create area highlight hold ⌥ Option key (Alt), then click and drag.",
   },
   {
     title: "Take notes with a notion like editor",
     imageUrl: "/features/editor.gif",
+    description: "With export to Markdown.",
   },
   {
     title: "Ask the chatbot anything pdf related",
@@ -21,10 +24,12 @@ const features = [
   {
     title: "Collaborate with your team",
     imageUrl: "/features/collab.gif",
+    description: "With real-time updates.",
   },
   {
     title: "AI-powered autocompletion",
     imageUrl: "/features/completion.gif",
+    description: "Add '++' to the end of a sentence to autocomplete.",
   },
 ];
 
@@ -37,7 +42,16 @@ function Features() {
             <ul>
               {features.map((feature, index) => (
                 <li key={index}>
-                  <FeatureTitle id={index}>{feature.title}</FeatureTitle>
+                  <FeatureTitle id={index}>
+                    <>
+                      {feature.title}
+                      {feature.description && (
+                        <span className="mt-2 block text-lg font-normal tracking-tight text-gray-400">
+                          {feature.description}
+                        </span>
+                      )}
+                    </>
+                  </FeatureTitle>
                 </li>
               ))}
             </ul>
