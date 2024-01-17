@@ -46,6 +46,7 @@
 
 ### Low priority
 
+- [ ] display loading spinner inside the submit button while loading for feedback
 - [ ] update placeholder text to mention "++" for ai autocomplete.
 - [ ] fix docs stylin in "/f"
 - [ ] better error,loading pages => abstract this logic to hook / component
