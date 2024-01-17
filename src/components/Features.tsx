@@ -42,22 +42,17 @@ function Features() {
             <ul>
               {features.map((feature, index) => (
                 <li key={index}>
-                  <FeatureTitle id={index}>
-                    <>
-                      {feature.title}
-                      {feature.description && (
-                        <span className="mt-2 block text-lg font-normal tracking-tight text-gray-400">
-                          {feature.description}
-                        </span>
-                      )}
-                    </>
-                  </FeatureTitle>
+                  <FeatureData
+                    id={index}
+                    title={feature.title}
+                    description={feature.description}
+                  />
                 </li>
               ))}
             </ul>
           </div>
           <div className="sticky top-0 flex h-screen w-full items-center">
-            <div className="relative aspect-video h-[30%] w-full rounded-2xl bg-gray-100 lg:h-[40%] [&:has(>_.active-card)]:bg-transparent">
+            <div className="relative aspect-video h-[25%] w-full rounded-2xl bg-gray-100 lg:h-[40%] [&:has(>_.active-card)]:bg-transparent">
               {features.map((feature, id) => (
                 <FeatureCard key={id} id={id}>
                   <Image
@@ -80,12 +75,13 @@ function Features() {
 
 export default Features;
 
-type Props = {
-  children: React.ReactNode;
+type FeatureDataProps = {
   id: number;
+  title: string;
+  description?: string;
 };
 
-export const FeatureTitle = ({ children, id }: Props) => {
+export const FeatureData = ({ id, title, description }: FeatureDataProps) => {
   const ref = useRef<HTMLParagraphElement>(null);
   const documentRef = useRef(null);
   const isInView = useInView(ref, {
@@ -105,11 +101,21 @@ export const FeatureTitle = ({ children, id }: Props) => {
     <p
       ref={ref}
       className={cn(
-        "feature-title font-heading py-16 text-5xl font-semibold tracking-tight transition-colors",
+        "feature-title font-heading py-16 text-4xl font-semibold tracking-tight transition-colors xl:text-5xl",
         isInView ? "text-black" : "text-gray-300",
       )}
     >
-      {children}
+      {title}
+      {description && (
+        <span
+          className={cn(
+            "mt-3 block text-lg font-normal tracking-tight text-gray-400",
+            isInView ? "text-gray-400" : "text-white",
+          )}
+        >
+          {description}
+        </span>
+      )}
     </p>
   );
 };
