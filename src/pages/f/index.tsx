@@ -37,41 +37,50 @@ const UserLibraryPage = () => {
         <ChevronLeftIcon className="mr-2 h-4 w-4" />
         Back
       </Link>
-      <div className="flex items-center justify-between">
-        <p className="text-2xl font-semibold tracking-tighter">
-          Hello, {userDocs?.name || "User"}
-        </p>
-        <UploadButton
-          appearance={{
-            button: buttonVariants({ variant: "default" }),
-          }}
-          endpoint="docUploader"
-          onClientUploadComplete={async (res: any) => {
-            refetchUserDocs();
-            toast({
-              title: "Success",
-              description: "File uploaded successfully.",
-            });
-          }}
-          onUploadError={(error: Error) => {
-            toast({
-              title: "Error",
-              description: "Something went wrong, please try again later.",
-              variant: "destructive",
-            });
-            console.log(error.message);
-          }}
-        />
+      <div className="flex items-start justify-between md:px-4">
+        <div>
+          <p className="mb-1 text-2xl font-semibold tracking-tighter">
+            Hello, {userDocs?.name || "User"}
+          </p>
+
+          {userDocs?.documents.length +
+            userDocs?.collaboratorateddocuments.length ===
+          0 ? (
+            <p className="text-muted-foreground">
+              You have no files yet, upload one now!
+            </p>
+          ) : (
+            <p className="text-muted-foreground">Here are your files</p>
+          )}
+        </div>
+
+        <div>
+          <UploadButton
+            appearance={{
+              button: buttonVariants({ variant: "default" }),
+            }}
+            endpoint="docUploader"
+            onClientUploadComplete={async (res: any) => {
+              refetchUserDocs();
+              toast({
+                title: "Success",
+                description: "File uploaded successfully.",
+              });
+            }}
+            onUploadError={(error: Error) => {
+              toast({
+                title: "Error",
+                description: "Something went wrong, please try again later.",
+                variant: "destructive",
+              });
+              console.log(error.message);
+            }}
+          />
+          {/* <p className="text-sm text-gray-400">
+            Choose file &lt; 6 pages for AI
+          </p> */}
+        </div>
       </div>
-      {userDocs?.documents.length +
-        userDocs?.collaboratorateddocuments.length ===
-      0 ? (
-        <p className="text-muted-foreground">
-          You have no files yet, upload one now!
-        </p>
-      ) : (
-        <p className="text-muted-foreground">Here are your files</p>
-      )}
 
       <div className="grid grid-cols-1 justify-items-center gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         {/* both combined should be sorted => some array generating logic should be used. */}
