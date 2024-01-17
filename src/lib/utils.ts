@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import * as z from "zod";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -15,3 +16,22 @@ export function getRandomLightColor() {
 
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
+
+// FEEDBACK FORM UTILS
+export const FEEDBACK_TYPES = ["Feature request", "Bug", "Other"] as const;
+export const feedbackFormSchema = z.object({
+  email: z.string().email().optional().or(z.literal("")),
+  message: z
+    .string()
+    .min(10, { message: "Feedback should be atleast 10 characters." })
+    .max(200, {
+      message: "Feedback must not be longer than 200 characters.",
+    }),
+  type: z.enum(FEEDBACK_TYPES),
+});
+
+export const FEEDBACK_FORM_DEFAULT_VALUES = {
+  email: "",
+  message: "",
+  type: FEEDBACK_TYPES[0],
+};
