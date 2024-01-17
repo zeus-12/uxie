@@ -5,6 +5,7 @@ import {
   protectedProcedure,
   publicProcedure,
 } from "@/server/api/trpc";
+import { feedbackFormSchema } from "@/lib/utils";
 
 export const userRouter = createTRPCRouter({
   getUsersDocs: protectedProcedure.query(async ({ ctx }) => {
@@ -26,4 +27,24 @@ export const userRouter = createTRPCRouter({
       },
     });
   }),
+  submitFeedback: publicProcedure
+    .input(feedbackFormSchema)
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.prisma.feedback.create({
+        data: {
+          message: input.message,
+          type: input.type,
+          ...(input.email ? { contact_email: input.email } : {}),
+          ...(ctx?.session?.user?.id
+            ? {
+                user: {
+                  connect: {
+                    id: ctx?.session?.user?.id,
+                  },
+                },
+              }
+            : {}),
+        },
+      });
+    }),
 });
