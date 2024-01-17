@@ -3,6 +3,7 @@ import YoutubeEmbed from "@/components/YoutubeEmbed";
 import { Button } from "@/components/ui/button";
 import SlideUpWhenVisible from "@/hooks/SlideUpWhenVisible";
 import Link from "next/link";
+import { MessageSquarePlus } from "lucide-react";
 
 export default function Home() {
   return (
@@ -26,6 +27,13 @@ export default function Home() {
           <YoutubeEmbed />
         </SlideUpWhenVisible>
         <Features />
+        <Link
+          href="/feedback"
+          className="fixed bottom-5 right-5 flex h-12 w-12 items-center justify-center rounded-full bg-black hover:cursor-pointer"
+          title="Submit Feedback"
+        >
+          <MessageSquarePlus size="24" className="text-gray-300" />
+        </Link>
       </div>
     </>
   );
