@@ -35,6 +35,8 @@ model User {
   documents                 Document[]
   messages                  Message[]
   collaboratorateddocuments Collaborator[]
+  createdAt                 DateTime       @default(now())
+  feedbacks                 Feedback[]
 }
 
 model Document {
@@ -49,6 +51,7 @@ model Document {
   note          String?        @db.Text
   messages      Message[]
   isVectorised  Boolean        @default(false)
+  createdAt     DateTime       @default(now())
 
   // lastscrolledposition => but has to be different for each user 
   // create new table storing lastscrolledposition, 
@@ -98,6 +101,7 @@ model Highlight {
   type       HighlightTypeEnum
   document   Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
+  createdAt  DateTime          @default(now())
 
   boundingRectangle Cordinate? @relation("boundingRectangle")
 
@@ -122,4 +126,15 @@ model Cordinate {
 
   highlightedBoundingRectangle   Highlight? @relation("boundingRectangle", fields: [highlightedBoundingRectangleId], references: [id], onDelete: Cascade)
   highlightedBoundingRectangleId String?    @unique
+}
+
+model Feedback {
+  id            String   @id @default(cuid())
+  message       String   @db.Text
+  // from the form
+  contact_email String?
+  type          String
+  createdAt     DateTime @default(now())
+  user          User?    @relation(fields: [userId], references: [id])
+  userId        String?
 }
