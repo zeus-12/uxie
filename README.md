@@ -48,7 +48,7 @@
 
 - [ ] update placeholder text to mention "++" for ai autocomplete.
 - [ ] fix docs stylin in "/f"
-- [ ] better error,loading pages.
+- [ ] better error,loading pages => abstract this logic to hook / component
 - [ ] editor loads with empty data before the data is loaded.
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users (also typing status for chat: [refer](https://github.com/konradhy/build-jotion/blob/master/components/editor.tsx#L93)) in the liveblocks room, (and display it at top)
