@@ -52,26 +52,41 @@ function Features() {
             </ul>
           </div>
           <div className="sticky top-0 flex h-screen w-full items-center">
-            <div className="relative aspect-video h-[25%] w-full rounded-2xl bg-gray-100 lg:h-[40%] [&:has(>_.active-card)]:bg-transparent">
-              {features.map((feature, id) => (
-                <FeatureCard key={id} id={id}>
-                  <Image
-                    alt="feature"
-                    src={feature.imageUrl}
-                    width={800}
-                    height={450}
-                    className="h-full w-full rounded-md"
-                    unoptimized={true}
-                  />
-                </FeatureCard>
-              ))}
-            </div>
+            <FeatureImage />
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+const FeatureImage = () => {
+  const inViewFeature = useFeatureStore((state) => state.inViewFeature);
+  console.log(inViewFeature);
+
+  const invalidFeature =
+    typeof inViewFeature !== "number" ||
+    !features[inViewFeature] ||
+    !features[inViewFeature]?.imageUrl ||
+    typeof features[inViewFeature]?.imageUrl !== "string";
+
+  return (
+    <div className="relative aspect-video h-[25%] w-full rounded-2xl bg-gray-100 lg:h-[40%] [&:has(>_.active-card)]:bg-transparent">
+      {!invalidFeature && (
+        <Image
+          alt="feature"
+          // throwing error for some reason ugh
+          // @ts-ignore
+          src={features[inViewFeature].imageUrl}
+          width={800}
+          height={450}
+          className="h-full w-full rounded-md"
+          unoptimized={true}
+        />
+      )}
+    </div>
+  );
+};
 
 export default Features;
 
@@ -117,35 +132,5 @@ export const FeatureData = ({ id, title, description }: FeatureDataProps) => {
         </span>
       )}
     </p>
-  );
-};
-
-type FeatureCardProps = {
-  children: React.ReactNode;
-} & CardProps;
-
-type CardProps = {
-  id: number;
-};
-
-const FeatureCard = ({ children, id }: FeatureCardProps) => {
-  const inViewFeature = useFeatureStore((state) => state.inViewFeature);
-
-  return (
-    <div
-      className={cn(
-        "absolute inset-0 h-full w-full rounded-2xl transition-opacity",
-        inViewFeature === id
-          ? "active-card opacity-100"
-          : "pointer-events-none opacity-0",
-      )}
-    >
-      <div
-        className={cn(
-          "gradient absolute inset-0 origin-bottom-left rounded-2xl bg-gradient-to-br",
-        )}
-      />
-      {children}
-    </div>
   );
 };

@@ -14,10 +14,10 @@ export default function Home() {
       <div className="px-4 py-2 lg:px-16">
         <SlideUpWhenVisible>
           <div className="flex flex-col items-center justify-center gap-2 py-8 lg:pt-16">
-            <p className="text-center text-4xl font-semibold tracking-tight lg:text-5xl">
+            <p className="text-center text-4xl font-bold text-gray-800 lg:text-5xl">
               Create. Collaborate. Captivate.
             </p>
-            <p className="text-base text-gray-400 md:text-lg">
+            <p className="text-base text-gray-500 md:text-lg">
               It&apos;s not just reading anymore, It&apos;s a conversation.
             </p>
             <Link href="/f">
