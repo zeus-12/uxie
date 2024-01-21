@@ -6,7 +6,7 @@ import {
   Popup,
   AreaHighlight,
 } from "react-pdf-highlighter";
-import { Spinner } from "@/components/Spinner";
+import { SpinnerPage } from "@/components/Spinner";
 import { ClipboardCopy, Highlighter, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -293,23 +293,21 @@ const DocViewer = ({
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <div className=" flex items-center justify-between">
-        <div className="flex items-center">
-          <Link
-            href="/f"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "w-fit justify-start",
-            )}
-          >
-            <ChevronLeftIcon className="mr-2 h-4 w-4" />
-          </Link>
+    <div className="flex h-full flex-1 flex-col">
+      <div className="flex items-center">
+        <Link
+          href="/f"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "w-fit justify-start",
+          )}
+        >
+          <ChevronLeftIcon className="mr-2 h-4 w-4" />
+        </Link>
 
-          <p className="font-semibold">{doc?.title ?? docId}</p>
-        </div>
+        <p className="font-semibold">{doc?.title ?? docId}</p>
       </div>
-      <div className="relative h-screen w-full ">
+      <div className="relative h-full w-full">
         <PdfReader
           deleteHighlight={deleteHighlight}
           docUrl={doc.url}
@@ -348,14 +346,7 @@ const PdfReader = ({
   };
 
   return (
-    <PdfLoader
-      url={docUrl}
-      beforeLoad={
-        <div className="flex h-full items-center justify-center">
-          <Spinner />
-        </div>
-      }
-    >
+    <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
       {(pdfDocument) => (
         <PdfHighlighter
           pdfDocument={pdfDocument}

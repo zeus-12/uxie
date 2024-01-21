@@ -1,4 +1,4 @@
-import { Spinner } from "@/components/Spinner";
+import { SpinnerPage } from "@/components/Spinner";
 import { ChevronLeftIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -17,12 +17,7 @@ const UserLibraryPage = () => {
   } = api.user.getUsersDocs.useQuery();
 
   if (isError) return <div>Something went wrong</div>;
-  if (isLoading)
-    return (
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform">
-        <Spinner />
-      </div>
-    );
+  if (isLoading) return <SpinnerPage />;
   if (!userDocs) return <div>Sorry no result found</div>;
 
   return (

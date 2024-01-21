@@ -20,11 +20,9 @@ const MyApp: AppType<{ session: Session | null }> = ({
     <SessionProvider session={session}>
       <DefaultSeo {...SEO} />
       {isReader ? (
-        <>
-          <Component {...pageProps} />
-        </>
+        <Component {...pageProps} />
       ) : (
-        <main className="min-h-screen">
+        <main>
           <Navbar />
           <div className="mx-auto flex flex-col">
             <Component {...pageProps} />

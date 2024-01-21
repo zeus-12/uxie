@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { RoomProvider } from "liveblocks.config";
 import { ClientSideSuspense } from "@liveblocks/react";
-import { Spinner } from "@/components/Spinner";
+import { SpinnerPage } from "@/components/Spinner";
 import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
 import { useState } from "react";
@@ -100,13 +100,7 @@ const Sidebar = ({
                   }
                 }
               >
-                <ClientSideSuspense
-                  fallback={
-                    <div className="flex min-h-screen items-center justify-center">
-                      <Spinner />
-                    </div>
-                  }
-                >
+                <ClientSideSuspense fallback={<SpinnerPage />}>
                   {() => (
                     <Editor
                       canEdit={canEdit ?? false}

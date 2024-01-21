@@ -1,6 +1,6 @@
 import DocViewer from "@/components/DocViewer";
 import Sidebar from "@/components/Sidebar";
-import { Spinner } from "@/components/Spinner";
+import { SpinnerPage } from "@/components/Spinner";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
@@ -43,11 +43,7 @@ const DocViewerPage = () => {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spinner />
-      </div>
-    );
+    return <SpinnerPage />;
   }
 
   if (isError) {
@@ -72,7 +68,7 @@ const DocViewerPage = () => {
       // TODO add support for touch movements
     >
       <div
-        className="h-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
+        className="h-[calc(100vh-0.5rem)] min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
         style={{ width: width ?? "50vw" }}
       >
         <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
@@ -83,7 +79,7 @@ const DocViewerPage = () => {
       >
         <div className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24 lg:w-1" />
       </div>
-      <div className="h-screen min-w-[25vw] flex-1">
+      <div className="h-full min-w-[25vw] flex-1">
         <Sidebar
           canEdit={doc.userPermissions.canEdit}
           username={doc.userPermissions.username}
