@@ -15,7 +15,7 @@ export default function Home() {
         <SlideUpWhenVisible>
           <div className="flex flex-col items-center justify-center gap-2 py-8 lg:pt-8">
             <a
-              className="group mx-auto flex max-w-fit items-center justify-center space-x-2 overflow-hidden rounded-full border border-gray-200 bg-white px-5 py-2 shadow-[inset_10px_-50px_94px_0_rgb(199,199,199,0.1)] backdrop-blur transition-all hover:border-gray-300 hover:bg-white/50"
+              className="group mx-auto flex max-w-fit items-center justify-center space-x-2 overflow-hidden rounded-full border border-gray-200 bg-white px-6 py-2 shadow-[inset_10px_-50px_94px_0_rgb(199,199,199,0.1)] backdrop-blur transition-all hover:border-gray-300 hover:bg-white/50"
               href="https://github.com/zeus-12/uxie"
             >
               <p className="text-sm font-semibold text-gray-700 [text-wrap:balance]">
