@@ -35,24 +35,26 @@ const features = [
 
 function Features() {
   return (
-    <div className="mx-auto hidden max-w-6xl px-4 md:block">
-      <div>
-        <div className="flex w-full items-start gap-20">
-          <div className="w-full py-[50vh]">
-            <ul>
-              {features.map((feature, index) => (
-                <li key={index}>
-                  <FeatureData
-                    id={index}
-                    title={feature.title}
-                    description={feature.description}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="sticky top-0 flex h-screen w-full items-center">
-            <FeatureImage />
+    <div className="bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+      <div className="mx-auto hidden max-w-6xl px-4 md:block">
+        <div>
+          <div className="flex w-full items-start gap-20">
+            <div className="w-full py-[50vh]">
+              <ul>
+                {features.map((feature, index) => (
+                  <li key={index}>
+                    <FeatureData
+                      id={index}
+                      title={feature.title}
+                      description={feature.description}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="sticky top-0 flex h-screen w-full items-center">
+              <FeatureImage />
+            </div>
           </div>
         </div>
       </div>
