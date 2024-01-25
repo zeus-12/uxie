@@ -8,20 +8,17 @@ const YoutubeEmbed: React.FC<YoutubeEmbedProps> = ({}) => {
   // };
 
   const opts: YouTubeProps["opts"] = {
-    height: "390",
-    width: "640",
-
     playerVars: {
       autoplay: 0,
     },
   };
+
   return (
-    <div className="flex flex-col items-center md:mb-48">
+    <div className="flex w-full flex-col items-center md:mb-48">
       <YouTube
-        iframeClassName="rounded-md aspect-video h-96  max-w-[90vw]"
+        iframeClassName="rounded-md aspect-[110/67] md:h-96 w-[90vw] md:w-auto"
         videoId="m97zcPWSceU"
         opts={opts}
-        // onReady={onPlayerReady}
       />
     </div>
   );
