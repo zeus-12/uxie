@@ -3,7 +3,7 @@ import YoutubeEmbed from "@/components/YoutubeEmbed";
 import { Button } from "@/components/ui/button";
 import SlideUpWhenVisible from "@/hooks/SlideUpWhenVisible";
 import Link from "next/link";
-import { MessageSquarePlus } from "lucide-react";
+import { ArrowRight, ChevronRight, MessageSquarePlus } from "lucide-react";
 
 export default function Home() {
   return (
@@ -13,8 +13,21 @@ export default function Home() {
       </div>
       <div className="px-4 py-2 lg:px-16">
         <SlideUpWhenVisible>
-          <div className="flex flex-col items-center justify-center gap-2 py-8 lg:pt-16">
-            <p className="text-center text-4xl font-bold text-gray-800 lg:text-5xl">
+          <div className="flex flex-col items-center justify-center gap-2 py-8 lg:pt-8">
+            <a
+              className="group mx-auto flex max-w-fit items-center justify-center space-x-2 overflow-hidden rounded-full border border-gray-200 bg-white px-5 py-2 shadow-[inset_10px_-50px_94px_0_rgb(199,199,199,0.1)] backdrop-blur transition-all hover:border-gray-300 hover:bg-white/50"
+              href="https://github.com/zeus-12/uxie"
+            >
+              <p className="text-sm font-semibold text-gray-700 [text-wrap:balance]">
+                Star the project on Github
+              </p>
+              <div className="group relative flex items-center">
+                <ChevronRight className="absolute -ml-1 h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:opacity-0" />
+                <ArrowRight className="absolute -ml-1 h-3.5 w-3.5 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
+              </div>
+            </a>
+
+            <p className="mt-2 text-center text-4xl font-bold text-gray-800 lg:text-5xl">
               Create. Collaborate. Captivate.
             </p>
             <p className="text-base text-gray-500 md:text-lg">
