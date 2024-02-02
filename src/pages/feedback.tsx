@@ -126,7 +126,7 @@ const Feedback = () => {
               </FormItem>
             )}
           />
-          <Button className="mt-2 w-full" type="submit">
+          <Button disabled={isLoading} className="mt-2 w-full" type="submit">
             Submit
           </Button>
         </form>
