@@ -46,7 +46,7 @@
     "langchain": "^0.0.171",
     "lucide-react": "^0.276.0",
     "next": "^13.4.13",
-    "next-auth": "^4.22.4",
+    "next-auth": "^4.24.5",
     "next-global-css": "^1.3.1",
     "next-seo": "^6.4.0",
     "openai": "^4.12.4",
