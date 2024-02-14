@@ -26,17 +26,18 @@ model Account {
 }
 
 model User {
-  id                        String         @id @default(cuid())
+  id                        String             @id @default(cuid())
   name                      String
-  email                     String?        @unique
+  email                     String?            @unique
   emailVerified             DateTime?
   image                     String?
   accounts                  Account[]
   documents                 Document[]
   messages                  Message[]
   collaboratorateddocuments Collaborator[]
-  createdAt                 DateTime       @default(now())
+  createdAt                 DateTime           @default(now())
   feedbacks                 Feedback[]
+  flashcardAttempts         FlashcardAttempt[]
 }
 
 model Document {
@@ -58,6 +59,7 @@ model Document {
   // along with userPreferences table which can be optional, if it exists, then it overrides users default(the one linked to user table) preferences (less priority)
 
   // pdf first page url => cloudinary provides this.
+  flashcards Flashcard[]
 }
 
 enum CollaboratorRole {
@@ -137,4 +139,36 @@ model Feedback {
   createdAt     DateTime @default(now())
   user          User?    @relation(fields: [userId], references: [id])
   userId        String?
+}
+
+model Flashcard {
+  id                String             @id @default(cuid())
+  question          String
+  answer            String
+  document          Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId        String
+  createdAt         DateTime           @default(now())
+  flashcardAttempts FlashcardAttempt[]
+}
+
+model FlashcardAttempt {
+  id          String    @id @default(cuid())
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id])
+  flashcardId String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  // option to remove the qn => maybe a hasMemorised boolean
+  createdAt   DateTime  @default(now())
+
+  // what user responded
+  userResponse String
+
+  // what user got right
+  correctResponse String?
+
+  // what user got wrong
+  incorrectResponse String?
+
+  // more info about the answer
+  moreInfo String?
 }
