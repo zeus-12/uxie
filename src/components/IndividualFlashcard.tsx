@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
+import { api } from "@/lib/api";
 import { RequestOptions } from "ai";
 import { useCompletion } from "ai/react";
 import {
@@ -48,28 +49,49 @@ const IndividualFlashcard = ({
 
   const { query } = useRouter();
   const documentId = query?.docId as string;
+  const utils = api.useContext();
 
-  const { complete, completion, isLoading, stop, setCompletion } =
-    useCompletion({
-      body: {
-        flashcardId: id,
-        docId: documentId,
-      },
+  const { complete, completion, isLoading, setCompletion } = useCompletion({
+    body: {
+      flashcardId: id,
+      docId: documentId,
+    },
 
-      onFinish: (_prompt, completion) => {},
-      onError: (err: any) => {
-        console.log(err.message);
-        toast({
-          title: "Error",
-          description: "Something went wrong with text generation",
-          variant: "destructive",
-          duration: 3000,
+    onFinish: (_prompt, completion) => {
+      utils.flashcard.getFlashcards.setData({ documentId }, (prev) => {
+        if (!prev) return prev;
+        return prev.map((flashcard) => {
+          if (flashcard.id === id) {
+            return {
+              ...flashcard,
+              flashcardAttempts: [
+                ...flashcard.flashcardAttempts,
+                {
+                  userResponse,
+                  correctResponse: completion.split("||")[0] ?? null,
+                  incorrectResponse: completion.split("||")[1] ?? null,
+                  moreInfo: completion.split("||")[2] ?? null,
+                  createdAt: new Date(),
+                },
+              ],
+            };
+          }
+          return flashcard;
         });
-      },
-      api: "/api/evaluate",
-    });
+      });
+    },
 
-  console.log(completion, "completion");
+    onError: (err: any) => {
+      console.log(err.message);
+      toast({
+        title: "Error",
+        description: "Something went wrong with text generation",
+        variant: "destructive",
+        duration: 3000,
+      });
+    },
+    api: "/api/evaluate",
+  });
 
   const toggleAttempt = () => {
     setHasAttempted((prev) => !prev);
@@ -223,7 +245,7 @@ const IndividualFlashcardQuestion = ({
               {attempts.map((attempt, index) => (
                 <AccordionItem value={index.toString()} key={index}>
                   <AccordionTrigger className="px-2 font-semibold">
-                    Attempt {index + 1}
+                    {index + 1}
                   </AccordionTrigger>
                   <AccordionContent className="rounded-md bg-gray-50 p-4">
                     <Feedback
