@@ -46,6 +46,8 @@
 
 ### Low priority
 
+- [ ] implement ratelimit using upstash kv
+- [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this
 - [ ] improve addcollab section
 - [ ] add a message similar to the one on flashcards tab for chat tab.
 - [ ] add download flashcards in csv,anki format.
