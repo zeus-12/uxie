@@ -1,6 +1,7 @@
 import IndividualFlashcard from "@/components/IndividualFlashcard";
 import { Spinner, SpinnerPage } from "@/components/Spinner";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -17,17 +18,10 @@ const Flashcards = () => {
     isError,
   } = api.flashcard.getFlashcards.useQuery({ documentId });
 
-  const {
-    refetch: generateFlashcards,
-    isInitialLoading: isGeneratingFlashcards,
-  } = api.flashcard.generateFlashcards.useQuery(
-    {
-      documentId,
-    },
-    {
-      enabled: false,
-    },
-  );
+  const { mutate: generateFlashcards, isLoading: isGeneratingFlashcards } =
+    api.flashcard.generateFlashcards.useMutation();
+
+  const utils = api.useContext();
 
   if (isError || !flashcards) return <div>Something went wrong</div>;
   if (isLoading) return <SpinnerPage />;
@@ -42,7 +36,28 @@ const Flashcards = () => {
             className="mt-2"
             disabled={isGeneratingFlashcards}
             onClick={() => {
-              generateFlashcards();
+              generateFlashcards(
+                { documentId },
+                {
+                  onSuccess: () => {
+                    utils.flashcard.getFlashcards.refetch();
+                    toast({
+                      title: "Success",
+                      description: "Generated flashcards",
+                      variant: "default",
+                      duration: 3000,
+                    });
+                  },
+                  onError: (err: any) => {
+                    toast({
+                      title: "Uh-oh",
+                      description: err?.message ?? "Something went wrong",
+                      variant: "destructive",
+                      duration: 3000,
+                    });
+                  },
+                },
+              );
             }}
           >
             {isGeneratingFlashcards && <Spinner />}

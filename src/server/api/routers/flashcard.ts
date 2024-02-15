@@ -70,7 +70,7 @@ export const flashcardRouter = createTRPCRouter({
         // numberOfQuestions: z.number(),
       }),
     )
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const res = await ctx.prisma.document.findUnique({
         where: {
           id: input.documentId,
@@ -99,7 +99,7 @@ export const flashcardRouter = createTRPCRouter({
 
       const flashcards = await generateFlashcardsHelper(res.url);
 
-      await prisma.flashcard.createMany({
+      const final = await prisma.flashcard.createMany({
         data: flashcards.map((flashcard) => ({
           question: flashcard.question,
           answer: flashcard.answer,
@@ -107,6 +107,6 @@ export const flashcardRouter = createTRPCRouter({
         })),
       });
 
-      return flashcards;
+      return final;
     }),
 });
