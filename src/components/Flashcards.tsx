@@ -29,11 +29,22 @@ const Flashcards = () => {
   return (
     <div className="h-full">
       {flashcards.length === 0 && (
-        <div className="mx-auto flex h-full max-w-[70%] flex-col items-center justify-center">
-          <p className="font-xl  text-center"></p>
+        <div className="mx-auto flex h-full w-[90%] max-w-[30rem] flex-col justify-center">
+          <p className="text-2xl font-bold tracking-tight">
+            Transform your study materials into dynamic flashcards!
+          </p>
+          <p className="my-2 text-lg font-medium text-gray-500">
+            Test your knowledge and receive instant feedback:
+          </p>
+
+          <ul>
+            <li>✅ Celebrate correct answers.</li>
+            <li>❌ Address misunderstandings.</li>
+            <li>ℹ️ Expand your understanding with additional insights.</li>
+          </ul>
 
           <Button
-            className="mt-2"
+            className="mt-4 md:mt-6"
             disabled={isGeneratingFlashcards}
             onClick={() => {
               generateFlashcards(
@@ -41,12 +52,6 @@ const Flashcards = () => {
                 {
                   onSuccess: () => {
                     utils.flashcard.getFlashcards.refetch();
-                    toast({
-                      title: "Success",
-                      description: "Generated flashcards",
-                      variant: "default",
-                      duration: 3000,
-                    });
                   },
                   onError: (err: any) => {
                     toast({
@@ -61,9 +66,8 @@ const Flashcards = () => {
             }}
           >
             {isGeneratingFlashcards && <Spinner />}
-            Generate Flashcards for this document?
+            Generate Flashcards?
           </Button>
-
           {/* choose pages, and number of qns */}
         </div>
       )}
