@@ -13,6 +13,7 @@ import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
 import { useState } from "react";
 import Flashcards from "@/components/Flashcards";
+import { Badge } from "@/components/ui/badge";
 
 const Sidebar = ({
   canEdit,
@@ -56,21 +57,35 @@ const Sidebar = ({
               {
                 value: "notes",
                 icon: <AlbumIcon size={20} />,
+                isNew: false,
               },
               {
                 value: "chat",
                 icon: <MessagesSquareIcon size={20} />,
+                isNew: false,
               },
               {
                 value: "flashcards",
                 icon: <Layers size={20} />,
+                isNew: true,
               },
               // {
               //   value: "highlights",
               //   icon: <MessagesSquareIcon size={20} />,
               // }
             ].map((item) => (
-              <TabsTrigger key={item.value} value={item.value}>
+              <TabsTrigger
+                key={item.value}
+                value={item.value}
+                className="relative"
+              >
+                {item.isNew && (
+                  <div className="absolute -bottom-2 -right-2">
+                    <Badge className="bg-blue-400 p-[0.05rem] text-[0.5rem] hover:bg-blue-600">
+                      NEW
+                    </Badge>
+                  </div>
+                )}
                 {item.icon}
               </TabsTrigger>
             ))}
