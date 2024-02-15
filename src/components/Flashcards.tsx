@@ -23,8 +23,8 @@ const Flashcards = () => {
 
   const utils = api.useContext();
 
-  if (isError || !flashcards) return <div>Something went wrong</div>;
   if (isLoading) return <SpinnerPage />;
+  if (isError || !flashcards) return <div>Something went wrong</div>;
 
   return (
     <div className="h-full">
