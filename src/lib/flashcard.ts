@@ -1,7 +1,6 @@
 import fireworks from "@/lib/fireworks";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import fs from "fs";
 
 export const generateFlashcards = async (fileUrl: string) => {
   const response = await fetch(fileUrl);
@@ -55,8 +54,6 @@ export const generateFlashcards = async (fileUrl: string) => {
       });
     }),
   );
-
-  fs.writeFileSync("./res.json", JSON.stringify(res, null, 2));
 
   const newRes = res.map(
     (item) => item.choices[0]?.message.content?.replaceAll("\n", ""),
