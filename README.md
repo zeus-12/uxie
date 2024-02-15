@@ -46,6 +46,10 @@
 
 ### Low priority
 
+- [ ] improve addcollab section
+- [ ] add a message similar to the one on flashcards tab for chat tab.
+- [ ] add download flashcards in csv,anki format.
+- [ ] update landing page => demo vid + features section to include flashcards.
 - [ ] display loading spinner inside the submit button while loading for feedback
 - [ ] update placeholder text to mention "++" for ai autocomplete.
 - [ ] fix docs stylin in "/f"
