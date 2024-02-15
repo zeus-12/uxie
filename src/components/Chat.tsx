@@ -86,10 +86,8 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
                 onSuccess: () => {
                   utils.document.getDocData.setData(
                     { docId: docId as string },
-                    // @ts-ignore
                     (old) => {
-                      // if (!old) return null;
-
+                      if (!old) return undefined;
                       return {
                         ...old,
                         isVectorised: true,

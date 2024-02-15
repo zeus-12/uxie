@@ -100,9 +100,8 @@ const DocViewer = ({
       await utils.document.getDocData.cancel();
       const prevData = utils.document.getDocData.getData();
 
-      // @ts-ignore
       utils.document.getDocData.setData({ docId: docId as string }, (old) => {
-        if (!old) return null;
+        if (!old) return undefined;
         return {
           ...old,
           highlights: [
