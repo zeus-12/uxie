@@ -1,6 +1,6 @@
 import Chat from "@/components/Chat";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlbumIcon, Download, MessagesSquareIcon } from "lucide-react";
+import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
 import Editor from "@/components/Editor";
 import { saveAs } from "file-saver";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { SpinnerPage } from "@/components/Spinner";
 import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
 import { useState } from "react";
+import Flashcards from "@/components/Flashcards";
 
 const Sidebar = ({
   canEdit,
@@ -59,6 +60,10 @@ const Sidebar = ({
               {
                 value: "chat",
                 icon: <MessagesSquareIcon size={20} />,
+              },
+              {
+                value: "flashcards",
+                icon: <Layers size={20} />,
               },
               // {
               //   value: "highlights",
@@ -115,6 +120,11 @@ const Sidebar = ({
             value: "chat",
             tw: " p-2 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
             children: <Chat isVectorised={isVectorised} />,
+          },
+          {
+            value: "flashcards",
+            tw: " p-2 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
+            children: <Flashcards />,
           },
         ].map((item) => (
           <TabsContent
