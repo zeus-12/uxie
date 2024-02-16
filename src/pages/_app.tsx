@@ -5,7 +5,7 @@ import "@/styles/globals.css";
 import { api } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/router";
-import "@blocknote/core/style.css";
+import "@blocknote/react/style.css";
 import { Toaster } from "@/components/ui/toaster";
 import { SEO } from "next-seo.config";
 import { DefaultSeo } from "next-seo";
