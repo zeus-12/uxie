@@ -16,6 +16,14 @@ import { useState } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { createId } from "@paralleldrive/cuid2";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CollaboratorRoleValuesUnion = keyof typeof CollaboratorRole;
 
@@ -158,28 +166,33 @@ const InviteCollab = () => {
         </DialogHeader>
 
         <>
-          <div className="flex gap-2 text-sm text-muted-foreground">
-            <input
-              className="flex-1 border-b-[1px] px-1"
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Input
+              className="flex-1 px-2"
+              value={email}
               placeholder="Email"
               type="email"
               inputMode="email"
-              value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <select
-              className="w-[180px] border-b-[1px] py-2"
+
+            <Select
               value={role}
-              onChange={(e) =>
-                setRole(e.target.value as CollaboratorRoleValuesUnion)
+              onValueChange={(value) =>
+                setRole(value as CollaboratorRoleValuesUnion)
               }
             >
-              {["VIEWER", "EDITOR"].map((role) => (
-                <option key={role} value={role}>
-                  {role[0] + role.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-[180px] px-2">
+                <SelectValue placeholder="Theme" />
+              </SelectTrigger>
+              <SelectContent className="mt-1 w-[180px] border-b-[1px]">
+                {["VIEWER", "EDITOR"].map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role[0] + role.slice(1).toLowerCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <button
               className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -189,7 +202,7 @@ const InviteCollab = () => {
             </button>
           </div>
 
-          <div className="mt-2 space-y-2 text-sm text-muted-foreground ">
+          <div className="mb-6 mt-4 space-y-2 text-sm text-muted-foreground">
             {collaborators?.map((user, id) => (
               <div key={id} className="flex items-center justify-between gap-2">
                 <span>{user.email}</span>
