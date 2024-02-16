@@ -1,4 +1,8 @@
-import { BlockNoteView, useBlockNote } from "@blocknote/react";
+import {
+  BlockNoteView,
+  ReactSlashMenuItem,
+  useBlockNote,
+} from "@blocknote/react";
 import { uploadToTmpFilesDotOrg_DEV_ONLY } from "@blocknote/core";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { useEffect, useRef, useState } from "react";
@@ -8,8 +12,14 @@ import { useRoom } from "liveblocks.config";
 import { getRandomLightColor } from "@/lib/utils";
 import { useCompletion } from "ai/react";
 import { toast } from "@/components/ui/use-toast";
-import { blockSpecs, slashMenuItems } from "@/lib/editor-utils";
-import { YjsEditorProps } from "@/types/editor";
+import {
+  blockSchema,
+  blockSpecs,
+  getPrevText,
+  slashMenuItems,
+} from "@/lib/editor-utils";
+import { BlockNoteEditorType, YjsEditorProps } from "@/types/editor";
+import { Bot } from "lucide-react";
 
 export default function Editor({
   canEdit,
@@ -91,6 +101,24 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
     },
   });
 
+  const generateAiContent = (editor: BlockNoteEditorType) => {
+    complete(
+      getPrevText(editor._tiptapEditor, {
+        chars: 500,
+        offset: 1,
+      }),
+    );
+  };
+  const insertAi: ReactSlashMenuItem<typeof blockSchema> = {
+    name: "Continue with AI",
+    // @ts-ignore
+    execute: generateAiContent,
+    aliases: ["ai", "fill"],
+    group: "AI",
+    icon: <Bot size={24} />,
+    hint: "Continue your idea with some extra inspiration!",
+  };
+
   const editor = useBlockNote(
     {
       // initialContent: data?.initialNotes
@@ -133,7 +161,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
           class: "my-6",
         },
       },
-      slashMenuItems,
+      slashMenuItems: [...slashMenuItems, insertAi],
     },
     [canEdit],
   );
