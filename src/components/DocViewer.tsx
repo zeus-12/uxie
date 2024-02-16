@@ -7,14 +7,18 @@ import {
   AreaHighlight,
 } from "react-pdf-highlighter";
 import { SpinnerPage } from "@/components/Spinner";
-import { ClipboardCopy, Highlighter, TrashIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  ClipboardCopy,
+  Highlighter,
+  TrashIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon } from "@/components/icons";
 import { createId } from "@paralleldrive/cuid2";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { HighlightTypeEnum } from "@prisma/client";

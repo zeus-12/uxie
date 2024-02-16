@@ -1,7 +1,8 @@
 import { Spinner } from "@/components/Spinner";
-import { BrainIcon, ChevronLeftIcon, GoogleIcon } from "@/components/icons";
+import { GoogleIcon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Brain, ChevronLeftIcon } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -25,7 +26,7 @@ const Login = () => {
       </Link>
       <div className="absolute left-1/2 top-1/2 mx-auto flex h-full flex-1 -translate-x-1/2 -translate-y-1/2 flex-col justify-center space-y-6  sm:w-[350px]">
         <div className="flex flex-col space-y-2 text-center">
-          <BrainIcon className="mx-auto h-6 w-6" />
+          <Brain className="mx-auto h-6 w-6" />
           <h1 className="text-2xl font-semibold tracking-tight">
             Welcome back
           </h1>

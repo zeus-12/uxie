@@ -1,11 +1,11 @@
 import { SpinnerPage } from "@/components/Spinner";
-import { ChevronLeftIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { UploadButton } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
+import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 
 const UserLibraryPage = () => {

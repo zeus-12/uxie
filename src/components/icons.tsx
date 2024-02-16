@@ -1,34 +1,5 @@
-import {
-  Brain,
-  // AlertTriangle,
-  // ArrowRight,
-  // Check,
-  ChevronLeft,
-  // ChevronRight,
-  // CreditCard,
-  // File,
-  // FileText,
-  // HelpCircle,
-  // Image,
-  // Laptop,
-  Loader2,
-  LucideProps,
-  // Moon,
-  // MoreVertical,
-  // Pizza,
-  // Plus,
-  // Settings,
-  // SunMedium,
-  // Trash,
-  // Twitter,
-  User,
-  // X,
-} from "lucide-react";
+import { LucideProps } from "lucide-react";
 
-export const BrainIcon = Brain;
-export const SpinnerIcon = Loader2;
-export const ChevronLeftIcon = ChevronLeft;
-export const UserIcon = User;
 export const GoogleIcon = ({ ...props }: LucideProps) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
