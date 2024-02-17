@@ -8,11 +8,12 @@ import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 import { authOptions } from "@/server/auth";
 import { getServerSession } from "next-auth";
 import fireworks from "@/lib/fireworks";
+import { db } from "@/db";
+import { sql } from "kysely";
 
 // export const runtime = "edge";
 export async function POST(req: Request, res: Response) {
   const { messages, docId } = await req.json();
-  // use zod validations here
 
   if (typeof docId !== "string")
     return new Response("Not found", { status: 404 });
@@ -36,6 +37,35 @@ export async function POST(req: Request, res: Response) {
       ],
     },
   });
+
+  // {
+  //   url: string;
+  //   id: string;
+  //   title: string;
+  //   ownerId: string;
+  //   note: string | null;
+  //   isVectorised: boolean;
+  //   createdAt: Date;
+  // }
+
+  // {
+  //   url: string;
+  //   id: string;
+  //   title: string;
+  //   ownerId: string;
+  //   note: string | null;
+  //   isVectorised: boolean;
+  //   createdAt: Date;
+  //   userId: string;
+  //   role: CollaboratorRole;
+  //   documentId: string;
+  // }
+  // [];
+
+  // where((eb) => eb.or([
+  // eb("ownerId", "=", "session.user.id"),
+  // eb("Coll", "some", { userId: "session.user.id" }),
+  // ])
 
   if (!doc?.isVectorised) {
     throw new Error("Document not vectorised.");
