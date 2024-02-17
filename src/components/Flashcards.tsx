@@ -33,7 +33,7 @@ const Flashcards = () => {
           <p className="text-2xl font-bold tracking-tight">
             Transform your study materials into dynamic flashcards!
           </p>
-          <p className="my-2 text-lg font-medium text-gray-500">
+          <p className="my-2 text-lg font-normal text-gray-400">
             Test your knowledge and receive instant feedback:
           </p>
 
