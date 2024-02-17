@@ -1,6 +1,6 @@
 import { CollaboratorRole } from "@prisma/client";
 import { useRouter } from "next/router";
-import { TrashIcon, UserPlus } from "lucide-react";
+import { TrashIcon, UserPlus, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { useState } from "react";
@@ -159,9 +160,19 @@ const InviteCollab = () => {
           <UserPlus size={20} />
         </div>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent hideClose={true}>
         <DialogHeader>
-          <DialogTitle>Invite to collaborate?</DialogTitle>
+          <div className="mb-2 flex items-center justify-between ">
+            <DialogTitle className="text-2xl">
+              Invite to collaborate?
+            </DialogTitle>
+            <DialogClose>
+              <XIcon
+                size={20}
+                className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none "
+              />
+            </DialogClose>
+          </div>
         </DialogHeader>
 
         <>
