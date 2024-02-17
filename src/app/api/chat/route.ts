@@ -7,6 +7,9 @@ import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 import { authOptions } from "@/server/auth";
 import { getServerSession } from "next-auth";
 import fireworks from "@/lib/fireworks";
+import { db } from "@/db/drizzle";
+import { collaborator, document } from "drizzle/schema";
+import { and, eq, inArray, or } from "drizzle-orm";
 
 // export const runtime = "edge";
 export async function POST(req: Request, res: Response) {
@@ -18,6 +21,10 @@ export async function POST(req: Request, res: Response) {
 
   const session = await getServerSession(authOptions);
   if (!session) return new Response("Not found", { status: 404 });
+
+  const userId = session?.user.id;
+
+  let start = Date.now();
 
   const doc = await prisma.document.findFirst({
     where: {
@@ -35,6 +42,31 @@ export async function POST(req: Request, res: Response) {
       ],
     },
   });
+
+  console.log("PRISMA");
+  console.log("took ", Date.now() - start, "ms");
+  console.log(doc);
+
+  start = Date.now();
+
+  const subQuery = db
+    .select({ documentId: collaborator.documentId })
+    .from(collaborator)
+    .where(eq(collaborator.userId, userId));
+
+  const result = await db.query.document.findFirst({
+    where: (doc, { eq, or, inArray }) =>
+      and(
+        eq(doc.id, docId),
+        or(eq(doc.ownerId, userId), inArray(doc.id, subQuery)),
+      ),
+  });
+
+  console.log("DRIZZLE");
+  console.log("took ", Date.now() - start, "ms");
+  console.log(result);
+
+  return;
 
   if (!doc?.isVectorised) {
     throw new Error("Document not vectorised.");
