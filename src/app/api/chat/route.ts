@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { OpenAIStream, StreamingTextResponse, Message } from "ai";
 import { getPineconeClient } from "@/lib/pinecone";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
@@ -130,23 +129,22 @@ export async function POST(req: Request, res: Response) {
     //   ],
   });
 
-  await prisma.message.create({
-    data: {
-      text: messages.at(-1).content,
-      isUserMessage: true,
-      documentId: docId,
-      userId: session?.user.id,
-    },
-  });
-
   const stream = OpenAIStream(response, {
     onCompletion: async (completion: string) => {
-      await prisma.message.create({
-        data: {
-          text: completion,
-          isUserMessage: false,
-          documentId: docId,
-        },
+      await prisma.message.createMany({
+        data: [
+          {
+            text: messages.at(-1).content,
+            isUserMessage: true,
+            documentId: docId,
+            userId: session?.user.id,
+          },
+          {
+            text: completion,
+            isUserMessage: false,
+            documentId: docId,
+          },
+        ],
       });
     },
   });
