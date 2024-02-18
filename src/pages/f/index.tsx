@@ -71,6 +71,7 @@ const UserLibraryPage = () => {
               console.log(error.message);
             }}
           />
+          <p className="text-xs max-w-[15rem] text-gray-500">&lt; 6 pages to use AI, flashcard.</p>
           {/* <p className="text-sm text-gray-400">
             Choose file &lt; 6 pages for AI
           </p> */}
