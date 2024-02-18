@@ -100,34 +100,37 @@ const IndividualFlashcard = ({
   const [userResponse, setUserResponse] = useState("");
 
   return (
-    <div className="flex h-full flex-col justify-between overflow-scroll ">
-      {hasAttempted ? (
-        <IndividualFlashcardReport
-          question={question}
-          answer={answer}
-          total={total}
-          current={current}
-          //   think whether or not to show previous attempts in the current report. also think whether to add along w. the question screen
-          completion={completion}
-          isLoading={isLoading}
-          toggleAttempt={toggleAttempt}
-          userResponse={userResponse}
-          setUserResponse={setUserResponse}
-        />
-      ) : (
-        <IndividualFlashcardQuestion
-          attempts={attempts}
-          setCompletion={setCompletion}
-          complete={complete}
-          question={question}
-          answer={answer}
-          toggleAttempt={toggleAttempt}
-          userResponse={userResponse}
-          setUserResponse={setUserResponse}
-        />
-      )}
+    <div className="flex h-full flex-col justify-between ">
+      <div className="flex-grow overflow-scroll">
+        {hasAttempted ? (
+          <IndividualFlashcardReport
+            question={question}
+            answer={answer}
+            total={total}
+            current={current}
+            //   think whether or not to show previous attempts in the current report. also think whether to add along w. the question screen
+            completion={completion}
+            isLoading={isLoading}
+            toggleAttempt={toggleAttempt}
+            userResponse={userResponse}
+            setUserResponse={setUserResponse}
+          />
+        ) : (
+          <IndividualFlashcardQuestion
+            attempts={attempts}
+            setCompletion={setCompletion}
+            complete={complete}
+            question={question}
+            answer={answer}
+            toggleAttempt={toggleAttempt}
+            userResponse={userResponse}
+            setUserResponse={setUserResponse}
+          />
+        )}
+      </div>
 
-      <div className="flex items-center justify-between">
+      {/* bottom navigation */}
+      <div className="flex h-8 items-center justify-between border-t border-gray-100 py-7">
         <Button
           className="flex items-center"
           variant="ghost"
@@ -145,8 +148,8 @@ const IndividualFlashcard = ({
           <span className="ml-2">Back</span>
         </Button>
 
-        <span className="text-gray-600">
-          {current} of {total}
+        <span className="text-gray-500">
+          {current} / {total}
         </span>
 
         <Button
@@ -194,10 +197,10 @@ const IndividualFlashcardQuestion = ({
   attempts: FlashcardAttemptType[];
 }) => {
   return (
-    <>
+    <div className="flex h-full flex-grow flex-col justify-between">
       <div>
-        <div className="mb-6">
-          <div className="rounded-t-lg bg-[#DFFFD6] p-4">
+        <div className="mb-4">
+          <div className="rounded-t-lg bg-gray-100 p-4">
             <h1 className="text-lg font-semibold">{question}</h1>
           </div>
           <div className="rounded-b-lg border border-t-0 p-4">
@@ -210,14 +213,14 @@ const IndividualFlashcardQuestion = ({
           </div>
         </div>
 
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between px-2">
           <Button
             disabled={!userResponse}
             onClick={() => {
               toggleAttempt();
               complete(userResponse);
             }}
-            className="bg-[#34D399] text-white hover:bg-[#2E8B57]"
+            className="bg-blue-400 text-white hover:bg-blue-500"
           >
             Answer
           </Button>
@@ -248,6 +251,12 @@ const IndividualFlashcardQuestion = ({
                     {index + 1}
                   </AccordionTrigger>
                   <AccordionContent className="rounded-md bg-gray-50 p-4">
+                    <div className="mb-4 rounded-md bg-[#F7F5FB] p-4">
+                      <h4 className="mb-2 flex items-center text-sm font-semibold text-[#5937AB]">
+                        Your Response
+                      </h4>
+                      <p className="text-sm">{attempt.userResponse}</p>
+                    </div>
                     <Feedback
                       correctResponse={attempt.correctResponse}
                       wrongResponse={attempt.incorrectResponse}
@@ -260,7 +269,7 @@ const IndividualFlashcardQuestion = ({
           </>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

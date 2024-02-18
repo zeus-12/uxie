@@ -138,7 +138,7 @@ const Sidebar = ({
           },
           {
             value: "flashcards",
-            tw: " p-2 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
+            tw: " p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
             children: <Flashcards />,
           },
         ].map((item) => (
