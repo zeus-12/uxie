@@ -41,6 +41,7 @@ model User {
 }
 
 model Document {
+// unique for url might be dumb => if someone uploads using url
   url           String         @unique
   id            String         @id @default(cuid())
   title         String
@@ -54,8 +55,11 @@ model Document {
   isVectorised  Boolean        @default(false)
   createdAt     DateTime       @default(now())
 
-  // lastscrolledposition => but has to be different for each user 
-  // create new table storing lastscrolledposition, 
+  // false if user adds document by url
+  is_uploaded Boolean @default(true)
+
+  // lastscrolledposition => but has to be different for each user
+  // create new table storing lastscrolledposition,
   // along with userPreferences table which can be optional, if it exists, then it overrides users default(the one linked to user table) preferences (less priority)
 
   // pdf first page url => cloudinary provides this.
@@ -88,6 +92,7 @@ model Message {
   userId        String?
   document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId    String
+  // this is redundant, check for userId
   isUserMessage Boolean
 }
 
