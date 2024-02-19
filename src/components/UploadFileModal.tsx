@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { XIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { z } from "zod";
+import { Spinner } from "@/components/Spinner";
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -178,6 +179,7 @@ const UploadFileModal = ({
               className="mt-4 w-full"
               onClick={uploadFile}
             >
+              {(isUploadthingUploading || isUrlUploading) && <Spinner />}
               Upload
             </Button>
           </div>
