@@ -298,16 +298,17 @@ const IndividualFlashcardReport = ({
   return (
     <>
       <div>
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between pl-2">
           <h3 className="text-lg font-semibold">{question}</h3>
           <Button
+            title="Try again"
             variant="ghost"
             onClick={() => {
               toggleAttempt();
               setUserResponse("");
             }}
           >
-            <RefreshCwIcon className="h-6 w-6" />
+            <RefreshCwIcon className="h-5 w-5" />
           </Button>
         </div>
         {/* <p className="mb-4 text-sm text-gray-500">From page 7</p> */}
