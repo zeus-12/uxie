@@ -2,7 +2,7 @@ import { CollaboratorRole } from "@prisma/client";
 import { useRouter } from "next/router";
 import { TrashIcon, UserPlus, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -163,9 +163,7 @@ const InviteCollab = () => {
       <DialogContent hideClose={true}>
         <DialogHeader>
           <div className="mb-2 flex items-center justify-between ">
-            <DialogTitle className="text-2xl">
-              Invite to collaborate?
-            </DialogTitle>
+            <DialogTitle className="text-2xl">Team</DialogTitle>
             <DialogClose>
               <XIcon
                 size={20}
@@ -175,63 +173,72 @@ const InviteCollab = () => {
           </div>
         </DialogHeader>
 
-        <>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Input
-              className="flex-1 px-2"
-              value={email}
-              placeholder="Email"
-              type="email"
-              inputMode="email"
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        <div className="space-y-2">
+          <div className="space-y-2 rounded-md border-[0.5px] border-gray-200 bg-[#fdfeff] p-3">
+            <p className="mb-2 font-semibold">Invite members</p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Input
+                className="flex-1 px-2"
+                value={email}
+                placeholder="Email"
+                type="email"
+                inputMode="email"
+                onChange={(e) => setEmail(e.target.value)}
+              />
 
-            <Select
-              value={role}
-              onValueChange={(value) =>
-                setRole(value as CollaboratorRoleValuesUnion)
-              }
-            >
-              <SelectTrigger className="w-[180px] px-2">
-                <SelectValue placeholder="Theme" />
-              </SelectTrigger>
-              <SelectContent className="mt-1 w-[180px] border-b-[1px]">
-                {["VIEWER", "EDITOR"].map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role[0] + role.slice(1).toLowerCase()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select
+                value={role}
+                onValueChange={(value) =>
+                  setRole(value as CollaboratorRoleValuesUnion)
+                }
+              >
+                <SelectTrigger className="w-[180px] px-2">
+                  <SelectValue placeholder="Theme" />
+                </SelectTrigger>
+                <SelectContent className="mt-1 w-[180px] border-b-[1px]">
+                  {["VIEWER", "EDITOR"].map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role[0] + role.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <button
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            <Button
+              className={cn(buttonVariants({ size: "sm" }))}
               onClick={addCollaborator}
             >
               Invite
-            </button>
+            </Button>
           </div>
 
-          <div className="mb-6 mt-4 space-y-2 text-sm text-muted-foreground">
-            {collaborators?.map((user, id) => (
-              <div key={id} className="flex items-center justify-between gap-2">
-                <span>{user.email}</span>
-                <div className="flex gap-2">
-                  <Badge>{user.role}</Badge>
-                  <TrashIcon
-                    className={cn(
-                      // && isOwner
-                      user.role === CollaboratorRole.OWNER && "invisible",
-                      "hover:cursor-pointer hover:fill-red-400 hover:text-red-400",
-                    )}
-                    size={20}
-                    onClick={() => removeCollaboratorById(user.id)}
-                  />
+          <div className="space-y-2 rounded-md border-[0.5px] border-gray-200 bg-gray-50 p-3">
+            <p className="mb-2 font-medium">Team members</p>
+            <div className="mb-6 mt-4 space-y-2 text-sm text-muted-foreground">
+              {collaborators?.map((user, id) => (
+                <div
+                  key={id}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <span>{user.email}</span>
+                  <div className="flex gap-2">
+                    <Badge>{user.role}</Badge>
+                    <TrashIcon
+                      className={cn(
+                        // && isOwner
+                        user.role === CollaboratorRole.OWNER && "invisible",
+                        "hover:cursor-pointer hover:fill-red-400 hover:text-red-400",
+                      )}
+                      size={20}
+                      onClick={() => removeCollaboratorById(user.id)}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </>
+        </div>
       </DialogContent>
     </Dialog>
   );
