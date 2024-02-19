@@ -99,7 +99,7 @@ export async function POST(req: Request, res: Response) {
         AI assistant will answer the questions in Markdown format.
         `,
       },
-      ...messages,
+      ...messages.filter((message: Message) => message.role === "user"),
     ],
     //   messages: [
     //     {
@@ -130,8 +130,7 @@ export async function POST(req: Request, res: Response) {
   });
 
   const stream = OpenAIStream(response, {
-    onCompletion: async (completion: string) => {
-      // add user message first then assistant message
+    onStart: async () => {
       await prisma.message.create({
         data: {
           text: messages.at(-1).content,
@@ -140,6 +139,9 @@ export async function POST(req: Request, res: Response) {
           userId: session?.user.id,
         },
       });
+    },
+    onCompletion: async (completion: string) => {
+      // add user message first then assistant message
 
       await prisma.message.create({
         data: {
