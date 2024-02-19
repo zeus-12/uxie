@@ -47,7 +47,6 @@ const UploadFileModal = ({
         title: "Success",
         description: "File uploaded successfully.",
       });
-      closeModal();
     },
     onUploadError: () => {
       toast({
@@ -107,9 +106,11 @@ const UploadFileModal = ({
           title: "Success",
           description: "File uploaded successfully.",
         });
-        setUrl("");
-        closeModal();
       }
+      closeModal();
+      setFile(undefined);
+      setUrl("");
+      refetchUserDocs();
     } catch (err: any) {
       console.log("error", err.message);
       toast({
