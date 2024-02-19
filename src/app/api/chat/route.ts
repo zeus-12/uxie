@@ -131,20 +131,22 @@ export async function POST(req: Request, res: Response) {
 
   const stream = OpenAIStream(response, {
     onCompletion: async (completion: string) => {
-      await prisma.message.createMany({
-        data: [
-          {
-            text: messages.at(-1).content,
-            isUserMessage: true,
-            documentId: docId,
-            userId: session?.user.id,
-          },
-          {
-            text: completion,
-            isUserMessage: false,
-            documentId: docId,
-          },
-        ],
+      // add user message first then assistant message
+      await prisma.message.create({
+        data: {
+          text: messages.at(-1).content,
+          isUserMessage: true,
+          documentId: docId,
+          userId: session?.user.id,
+        },
+      });
+
+      await prisma.message.create({
+        data: {
+          text: completion,
+          isUserMessage: false,
+          documentId: docId,
+        },
       });
     },
   });
