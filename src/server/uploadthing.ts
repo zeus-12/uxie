@@ -6,7 +6,7 @@ import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
 const f = createUploadthing();
 
 export const docUploader = {
-  docUploader: f({ pdf: { maxFileSize: "8MB" } })
+  docUploader: f({ pdf: { maxFileSize: "8MB", maxFileCount: 1 } })
     .middleware(async ({ req, res }) => {
       const session = await getServerAuthSession({ req, res });
 

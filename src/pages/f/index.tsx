@@ -1,9 +1,8 @@
 import { SpinnerPage } from "@/components/Spinner";
+import UploadFileModal from "@/components/UploadFileModal";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
-import { UploadButton } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
@@ -40,7 +39,7 @@ const UserLibraryPage = () => {
 
           {userDocs?.documents.length +
             userDocs?.collaboratorateddocuments.length ===
-          0 ? (
+            0 ? (
             <p className="text-muted-foreground">
               You have no files yet, upload one now!
             </p>
@@ -49,30 +48,7 @@ const UserLibraryPage = () => {
           )}
         </div>
 
-        <div>
-          <UploadButton
-            appearance={{
-              button: buttonVariants({ variant: "default" }),
-            }}
-            endpoint="docUploader"
-            onClientUploadComplete={async (res: any) => {
-              refetchUserDocs();
-              toast({
-                title: "Success",
-                description: "File uploaded successfully.",
-              });
-            }}
-            onUploadError={(error: Error) => {
-              toast({
-                title: "Error",
-                description: "Something went wrong, please try again later.",
-                variant: "destructive",
-              });
-              console.log(error.message);
-            }}
-          />
-          <p className="text-xs max-w-[15rem] text-gray-500">&lt; 6 pages to use AI, flashcard. (For now)</p>
-        </div>
+        <UploadFileModal refetchUserDocs={refetchUserDocs} />
       </div>
 
       <div className="mt-2 grid grid-cols-1 justify-items-center gap-2 xs:grid-cols-2 md:grid-cols-3 md:px-4 xl:grid-cols-4">
