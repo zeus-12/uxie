@@ -294,4 +294,45 @@ export const documentRouter = createTRPCRouter({
 
       return true;
     }),
+  addDocumentByLink: protectedProcedure
+    .input(
+      z.object({
+        url: z.string(),
+        title: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const newFile = await ctx.prisma.document.create({
+          data: {
+            title: input.title,
+            url: input.url,
+            is_uploaded: false,
+            owner: {
+              connect: {
+                id: ctx.session.user.id,
+              },
+            }
+          },
+        });
+
+        // nested try-catch to not throw error if vectorisation fails
+        try {
+          await vectoriseDocument(input.url, newFile.id);
+          return newFile;
+        }
+        catch (err: any) {
+          console.log(err.message)
+        }
+      }
+
+      catch (err: any) {
+        console.log(err.message)
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: err.message,
+        });
+      }
+
+    }),
 });
