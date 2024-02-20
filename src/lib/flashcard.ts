@@ -27,7 +27,7 @@ export const generateFlashcards = async (fileUrl: string) => {
     return doc.pageContent.replace(/\n/g, " ");
   });
 
-  const res = await Promise.all(
+  const res = await Promise.allSettled(
     docContents.map(async (doc) => {
       return fireworks.chat.completions.create({
         model: "accounts/fireworks/models/mixtral-8x7b-instruct",
@@ -55,8 +55,10 @@ export const generateFlashcards = async (fileUrl: string) => {
     }),
   );
 
-  const newRes = res.map(
-    (item) => item.choices[0]?.message.content?.replaceAll("\n", ""),
+  const newRes = res.map((item) =>
+    item.status === "fulfilled"
+      ? item.value.choices[0]?.message.content?.replaceAll("\n", "")
+      : "",
   );
 
   const formatted = newRes.map((item) => {
@@ -71,13 +73,13 @@ export const generateFlashcards = async (fileUrl: string) => {
       return "";
     }
   });
+
   const flatArr: FlashcardType[] = formatted.flat().filter((item) => {
     if (!item.question || !item.answer) {
       return false;
     }
     return true;
   });
-  console.log(flatArr);
   return flatArr;
 };
 
