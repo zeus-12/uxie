@@ -41,12 +41,11 @@ export async function POST(req: Request, res: Response) {
 
   if (!flashcard) return new Response("Not found", { status: 404 });
 
-  const reqPrompt = `Your task is to generate feedback on the user's response without explicit headings. Please format the information as follows:
-  1. Points the user got right, followed by a delimiter (||)
-  2. Mistakes or inaccuracies made by the user, followed by the same delimiter
-  3. Additional relevant information regarding the question and correct answer, followed by the delimiter.
-
-  If user didn't get either right, or made no mistakes, don't add anything. Don't use any numbered bullet points.
+  const reqPrompt = `Your task is to provide feedback on the user's response. Please format the information as follows:
+  - In the first section, mention the aspects the user accurately identified, followed by the delimiter "||".
+  - Then, the second section, where you highlight any mistakes or inaccuracies made by the user, followed by the delimiter "||".
+  - Then provide additional relevant information regarding the question and the correct answer.
+  
   Ensure that the data is presented in plain text and adheres to this specific format consistently.
   
   User response: ${prompt}
@@ -55,7 +54,7 @@ export async function POST(req: Request, res: Response) {
 
   const response = await fireworks.completions.create({
     model: "accounts/fireworks/models/mixtral-8x7b-instruct",
-    max_tokens: 2000,
+    max_tokens: 1000,
     stream: true,
     prompt: reqPrompt,
   });
