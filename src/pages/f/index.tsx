@@ -2,10 +2,12 @@ import { SpinnerPage } from "@/components/Spinner";
 import UploadFileModal from "@/components/UploadFileModal";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 const UserLibraryPage = () => {
   const {
@@ -14,10 +16,20 @@ const UserLibraryPage = () => {
     isLoading,
     refetch: refetchUserDocs,
   } = api.user.getUsersDocs.useQuery();
+  const [searchQuery, setSearchQuery] = useState("");
 
   if (isError) return <div>Something went wrong</div>;
   if (isLoading) return <SpinnerPage />;
   if (!userDocs) return <div>Sorry no result found</div>;
+
+  const combinedUserDocs = [
+    ...userDocs?.documents,
+    ...userDocs?.collaboratorateddocuments?.map((collab) => collab.document),
+  ]?.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+
+  const filteredUserDocs = combinedUserDocs?.filter((doc) =>
+    doc.title.trim().toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16">
@@ -39,7 +51,7 @@ const UserLibraryPage = () => {
 
           {userDocs?.documents.length +
             userDocs?.collaboratorateddocuments.length ===
-            0 ? (
+          0 ? (
             <p className="text-muted-foreground">
               You have no files yet, upload one now!
             </p>
@@ -51,20 +63,26 @@ const UserLibraryPage = () => {
         <UploadFileModal refetchUserDocs={refetchUserDocs} />
       </div>
 
-      <div className="mt-2 grid grid-cols-1 justify-items-center gap-2 xs:grid-cols-2 md:grid-cols-3 md:px-4 xl:grid-cols-4">
-        {/* both combined should be sorted => some array generating logic should be used. */}
-        {userDocs?.documents?.map((doc) => (
-          <Doc key={doc.id} id={doc.id} title={doc.title} isCollab={false} />
-        ))}
-
-        {userDocs.collaboratorateddocuments.map((collab) => (
-          <Doc
-            key={collab.document.id}
-            id={collab.document.id}
-            title={collab.document.title}
-            isCollab={true}
-          />
-        ))}
+      <div className="mt-2 flex flex-col justify-center md:px-4">
+        <Input
+          type="search"
+          placeholder="Search for a document"
+          className="my-4"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
+          {filteredUserDocs?.map((doc) => (
+            <Doc
+              key={doc.id}
+              id={doc.id}
+              title={doc.title}
+              isCollab={userDocs.collaboratorateddocuments.some(
+                (collab) => collab.document.id === doc.id,
+              )}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
