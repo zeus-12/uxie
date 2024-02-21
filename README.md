@@ -18,7 +18,7 @@
 - **Uploadthing** for storing pdfs
 - **Next Auth** for authentication
 - **React-pdf-highlighter** for pdf rendering,highlighting
-- **Vercel AI SDK, Langchain** for AI responses and streaming
+- **Vercel AI SDK, Langchain** for AI responses and streaming, generating flashcards + evaluating them
 - **Pinecone DB** for storing embeddings of pdfs
 - **Fireworks AI** for LLM
 - **Huggingface Model** for generating Embeddings
@@ -32,6 +32,7 @@
 - custom blocks in editor
 - highlights block which on click takes you to that highlight on the doc.
 - AI-powered text autocompletion
+- Craft simple flashcards to test your knowledge, answer questions, and receive instant feedback through AI evaluation.
 
 ## REGRETS
 
