@@ -4,7 +4,6 @@ import { authOptions } from "@/server/auth";
 import { getServerSession } from "next-auth";
 import fireworks from "@/lib/fireworks";
 
-// export const runtime = "edge";
 export async function POST(req: Request, res: Response) {
   const { flashcardId, docId, prompt } = await req.json();
 
