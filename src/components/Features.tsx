@@ -22,6 +22,11 @@ const features = [
     imageUrl: "/features/chatbot.gif",
   },
   {
+    title: "Generate Flashcards",
+    imageUrl: "/features/flashcard.gif",
+    description: "Answer the flashcard, and get feedbacks on what you missed.",
+  },
+  {
     title: "Collaborate with your team",
     imageUrl: "/features/collab.gif",
     description: "With real-time updates.",
