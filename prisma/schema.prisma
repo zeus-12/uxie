@@ -41,7 +41,7 @@ model User {
 }
 
 model Document {
-// unique for url might be dumb => if someone uploads using url
+  // unique for url might be dumb => if someone uploads using url
   url           String         @unique
   id            String         @id @default(cuid())
   title         String
@@ -158,7 +158,7 @@ model Flashcard {
 
 model FlashcardAttempt {
   id          String    @id @default(cuid())
-  flashcard   Flashcard @relation(fields: [flashcardId], references: [id])
+  flashcard   Flashcard @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
   flashcardId String
   user        User      @relation(fields: [userId], references: [id])
   userId      String
