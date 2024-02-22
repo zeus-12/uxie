@@ -38,21 +38,18 @@
 
 - [ ] 10s limit on serverless function SUCKS! Should've chosen drizzle/kysely over prisma (for edge functions) UGHGHH
       checkout [acme-corp project](https://github.com/juliusmarminge/acme-corp) => using both prisma and kysely
+- [ ] prob better to use a background runner or something and do long-polling
 
 ## BUGS
 
-- [ ] reduce pdfreader scrollbar height + width
-- [ ] remove the option to change page from url params, and the weird dragging thing on area-highlight => prob better to rebuile the library.
+- [ ] remove the option to change page from url params.
 
 ### Low priority
 
-- [ ] implement ratelimit using upstash kv
-- [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this
-- [ ] improve addcollab section
+- [ ] implement ratelimit using redis kv => checkout upstash
+- [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (pgvector?)
 - [ ] add a message similar to the one on flashcards tab for chat tab.
 - [ ] add download flashcards in csv,anki format.
-- [ ] update landing page => demo vid + features section to include flashcards.
-- [ ] fix docs stylin in "/f"
 - [ ] better error,loading pages => abstract this logic to hook / component
 - [ ] editor loads with empty data before the data is loaded.
 - [ ] setup permissions inside liveblocks dashboard
@@ -66,17 +63,14 @@
       1. it requries the types for the entire input, the only way seems to be putting any for the rest => losing typesafety for the whole route
       2. most times data is returned from this, so query will also run twice
 
-  solution seems to be => create separate helper functions
-
-- [ ] move all error messages to a helper fn
-- [ ] remove hardcoded heights using vh
+  solution seems to be => create separate helper functions (take where, select, etc as params: use relevant prisma types to match each.)
 
 ## New ideas
 
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] maybe swap uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
-- [ ] store highlights as plain jsonb. it was super dumb to store it as separate tables. => READ ON THIS. Deleting by id could be expensive if its stored as jsonb/json. (jsonb is better than json), but still could be worse than having it as separate tables.
-- [ ] have a "summarise" text option right next to highlight text on selecting the text.
+- [ ] have a "summarise", "explain" option right next to highlight text on selecting the text.
+- [ ] fix the size of the highlight popover on small screens
 
 ### Pinecone Setting up guide
 
