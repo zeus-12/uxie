@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { XIcon } from "lucide-react";
 import { api } from "@/lib/api";
 import { z } from "zod";
 import { Spinner } from "@/components/Spinner";
+import { cn } from "@/lib/utils";
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -124,7 +125,7 @@ const UploadFileModal = ({
   return (
     <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
       <DialogTrigger>
-        <Button>Upload File</Button>
+        <div className={cn(buttonVariants())}>Upload File</div>
       </DialogTrigger>
       <DialogContent hideClose={true}>
         <DialogHeader>
