@@ -130,7 +130,7 @@ const UploadFileModal = ({
       <DialogContent hideClose={true}>
         <DialogHeader>
           <DialogTitle>
-            <h1 className="text-xl">Upload File</h1>
+            <p className="text-xl">Upload File</p>
             <p className="text-sm font-normal text-gray-500">
               Choose files under 6 pages to use AI, flashcard. (For now)
             </p>
