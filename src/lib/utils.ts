@@ -35,3 +35,13 @@ export const FEEDBACK_FORM_DEFAULT_VALUES = {
   message: "",
   type: FEEDBACK_TYPES[0],
 };
+
+export const copyTextToClipboard = (
+  text: string | undefined,
+  callback: () => void,
+) => {
+  if (text) {
+    navigator.clipboard.writeText(text);
+  }
+  callback();
+};

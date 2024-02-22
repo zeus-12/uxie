@@ -18,7 +18,7 @@ import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, copyTextToClipboard } from "@/lib/utils";
 import { createId } from "@paralleldrive/cuid2";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { HighlightTypeEnum } from "@prisma/client";
@@ -503,14 +503,6 @@ const TextSelectionPopover = ({
   };
   hideTipAndSelection: () => void;
 }) => {
-  const copyTextToClipboard = () => {
-    // check how to copy image to clipboard
-    if (content.text) {
-      navigator.clipboard.writeText(content.text);
-    }
-    hideTipAndSelection();
-  };
-
   const OPTIONS = [
     {
       onClick: () => {
@@ -521,7 +513,7 @@ const TextSelectionPopover = ({
     },
     {
       onClick: () => {
-        copyTextToClipboard();
+        copyTextToClipboard(content.text, hideTipAndSelection);
       },
       icon: ClipboardCopy,
     },
