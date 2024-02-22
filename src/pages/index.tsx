@@ -3,7 +3,12 @@ import YoutubeEmbed from "@/components/YoutubeEmbed";
 import { Button } from "@/components/ui/button";
 import SlideUpWhenVisible from "@/hooks/SlideUpWhenVisible";
 import Link from "next/link";
-import { ArrowRight, ChevronRight, MessageSquarePlus } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronRight,
+  Github,
+  MessageSquarePlus,
+} from "lucide-react";
 
 export default function Home() {
   return (
@@ -16,12 +21,10 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center gap-2 py-4 lg:py-8">
             <a
               className="group mx-auto flex max-w-fit items-center justify-center space-x-2 overflow-hidden rounded-full border border-gray-200 bg-white px-6 py-2 shadow-[inset_10px_-50px_94px_0_rgb(199,199,199,0.1)] backdrop-blur transition-all hover:border-gray-300 hover:bg-white/50"
-              // href="https://github.com/zeus-12/uxie"
               href="https://www.youtube.com/watch?v=7viW-0fpOYY"
               target="_blank"
             >
               <p className="text-sm font-semibold text-gray-700 [text-wrap:balance]">
-                {/* Star the project on Github */}
                 Introducing Flashcards 📚
               </p>
               <div className="group relative flex items-center">
@@ -50,6 +53,25 @@ export default function Home() {
         >
           <MessageSquarePlus size="24" className="text-gray-300" />
         </Link>
+      </div>
+      <div className="flex h-screen flex-col items-center justify-center bg-black">
+        <h1 className="text-5xl font-semibold tracking-tighter text-white">
+          Proudly open-source
+        </h1>
+        <p className="my-5 max-w-md text-center text-gray-400">
+          Our source code is available on GitHub - feel free to read, review, or
+          contribute to it however you want!
+        </p>
+        <a
+          href="https://github.com/zeus-12/uxie"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Button className="">
+            <Github size="20" className="mr-2" />
+            View on GitHub
+          </Button>
+        </a>
       </div>
     </>
   );
