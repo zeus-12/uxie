@@ -312,6 +312,7 @@ const DocViewer = ({
       </div>
       <div className="relative h-full w-full">
         <PdfReader
+          docId={docId as string}
           deleteHighlight={deleteHighlight}
           docUrl={doc.url}
           getHighlightById={getHighlightById}
@@ -331,13 +332,60 @@ const PdfReader = ({
   addHighlight,
   deleteHighlight,
   highlights,
+  docId,
 }: {
+  docId: string;
   docUrl: string;
   getHighlightById: (id: string) => HighlightType | undefined;
   addHighlight: ({ content, position }: AddHighlighType) => Promise<void>;
   deleteHighlight: (id: string) => void;
   highlights: HighlightType[];
 }) => {
+  const utils = api.useContext();
+
+  const { mutate: updateAreaHighlightMutation } =
+    api.highlight.updateAreaHighlight.useMutation({
+      async onMutate(newHighlight) {
+        await utils.document.getDocData.cancel();
+        const prevData = utils.document.getDocData.getData();
+        //@ts-ignore
+        utils.document.getDocData.setData({ docId: docId as string }, (old) => {
+          if (!old) return undefined;
+          return {
+            ...old,
+            highlights: [
+              ...old.highlights.filter(
+                (highlight) => highlight.id !== newHighlight.id,
+              ),
+              {
+                position: {
+                  boundingRect: newHighlight.boundingRect,
+                  pageNumber: newHighlight.pageNumber,
+                  rects: [],
+                },
+              },
+            ],
+          };
+        });
+        return { prevData };
+      },
+      onError(err, newPost, ctx) {
+        toast({
+          title: "Error",
+          description: "Something went wrong",
+          variant: "destructive",
+          duration: 3000,
+        });
+        utils.document.getDocData.setData(
+          { docId: docId as string },
+          ctx?.prevData,
+        );
+      },
+      onSettled() {
+        utils.document.getDocData.invalidate();
+      },
+    });
+
   let scrollViewerTo = (highlight: any) => {};
 
   const scrollToHighlightFromHash = () => {
@@ -384,7 +432,7 @@ const PdfReader = ({
             screenshot,
             isScrolledTo,
           ) => {
-            const isTextHighlight = highlight.position.rects.length !== 0;
+            const isTextHighlight = highlight.position.rects?.length !== 0;
 
             const component = isTextHighlight ? (
               <div id={highlight.id}>
@@ -399,7 +447,17 @@ const PdfReader = ({
                 <AreaHighlight
                   isScrolledTo={isScrolledTo}
                   highlight={highlight}
-                  onChange={() => {}}
+                  onChange={(boundingRect) => {
+                    updateAreaHighlightMutation({
+                      id: highlight.id,
+                      boundingRect: viewportToScaled(boundingRect),
+                      type: HighlightTypeEnum.IMAGE,
+                      documentId: docId as string,
+                      ...(boundingRect.pageNumber
+                        ? { pageNumber: boundingRect.pageNumber }
+                        : {}),
+                    });
+                  }}
                 />
               </div>
             );
@@ -500,19 +558,33 @@ const HighlightedTextPopup = ({
   deleteHighlight: any;
   hideTip: () => void;
 }) => {
+  const OPTIONS = [
+    {
+      onClick: () => {
+        deleteHighlight(id);
+        hideTip();
+      },
+      icon: TrashIcon,
+    },
+  ];
+
   return (
-    <div className="flex rounded-md bg-black">
-      <div
-        className="p-2 hover:cursor-pointer"
-        onClick={() => {
-          deleteHighlight(id);
-          hideTip();
-        }}
-      >
-        <TrashIcon
-          size={18}
-          className="rounded-full text-gray-200 hover:cursor-pointer"
-        />
+    <div className="relative rounded-md bg-black">
+      <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
+
+      <div className="flex divide-x divide-gray-800">
+        {OPTIONS.map((option, id) => (
+          <div
+            className="group p-2 hover:cursor-pointer"
+            key={id}
+            onClick={option.onClick}
+          >
+            <option.icon
+              size={18}
+              className="rounded-full text-gray-300 group-hover:text-gray-50"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

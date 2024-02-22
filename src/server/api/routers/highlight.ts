@@ -63,8 +63,6 @@ export const highlightRouter = createTRPCRouter({
         });
       }
 
-      const content: any = {};
-
       const pageNumber =
         typeof input.boundingRect.pageNumber === "number" &&
         !isNaN(input.boundingRect.pageNumber)
@@ -108,7 +106,6 @@ export const highlightRouter = createTRPCRouter({
               id: input.documentId,
             },
           },
-          ...content,
         },
       });
 
@@ -153,6 +150,88 @@ export const highlightRouter = createTRPCRouter({
         where: {
           id: input.highlightId,
           documentId: input.documentId,
+        },
+      });
+
+      return true;
+    }),
+
+  updateAreaHighlight: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+        id: z.string(),
+        boundingRect: z.object({
+          x1: z.number(),
+          y1: z.number(),
+          x2: z.number(),
+          y2: z.number(),
+          width: z.number(),
+          height: z.number(),
+          pageNumber: z.number().optional(),
+        }),
+        pageNumber: z.number().optional(),
+        type: z.nativeEnum(HighlightTypeEnum),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          OR: [
+            {
+              ownerId: ctx.session.user.id,
+            },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                  role: CollaboratorRole.EDITOR,
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not authorized to edit this document",
+        });
+      }
+
+      const pageNumber =
+        typeof input.boundingRect.pageNumber === "number" &&
+        !isNaN(input.boundingRect.pageNumber)
+          ? { pageNumber: input.boundingRect.pageNumber }
+          : {};
+
+      await ctx.prisma.highlight.update({
+        where: {
+          id: input.id,
+        },
+
+        data: {
+          id: input.id,
+          boundingRectangle: {
+            create: {
+              x1: input.boundingRect.x1,
+              y1: input.boundingRect.y1,
+              x2: input.boundingRect.x2,
+              y2: input.boundingRect.y2,
+              width: input.boundingRect.width,
+              height: input.boundingRect.height,
+              ...pageNumber,
+            },
+          },
+          type: input.type,
+          ...pageNumber,
+          document: {
+            connect: {
+              id: input.documentId,
+            },
+          },
         },
       });
 
