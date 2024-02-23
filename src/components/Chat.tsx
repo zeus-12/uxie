@@ -183,8 +183,14 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
               <BanIcon size={24} className="text-gray-500" onClick={stop} />
             </button>
           ) : (
-            <button className="w-fit bg-gray-50 px-2" type="submit">
-              <Send size={24} />
+            <button
+              className="group w-fit rounded-ee-md rounded-se-md bg-blue-500 px-2"
+              type="submit"
+            >
+              <Send
+                size={24}
+                className="text-gray-100 group-hover:text-gray-200"
+              />
             </button>
           )}
         </div>
