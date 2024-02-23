@@ -15,6 +15,30 @@ import { useState } from "react";
 import Flashcards from "@/components/Flashcard";
 import { Badge } from "@/components/ui/badge";
 
+const TABS = [
+  {
+    value: "notes",
+    icon: <AlbumIcon size={20} />,
+    isNew: false,
+  },
+  {
+    value: "chat",
+    icon: <MessagesSquareIcon size={20} />,
+    isNew: false,
+  },
+  {
+    value: "flashcards",
+    icon: <Layers size={20} />,
+    isNew: true,
+  },
+  // {
+  //   value: "highlights",
+  //   icon: <MessagesSquareIcon size={20} />,
+  // }
+];
+
+const tabNames = TABS.map((tab) => tab.value);
+
 const Sidebar = ({
   canEdit,
   username,
@@ -26,8 +50,9 @@ const Sidebar = ({
   isOwner: boolean;
   isVectorised: boolean;
 }) => {
-  const { query } = useRouter();
+  const { query, push } = useRouter();
   const documentId = query?.docId as string;
+  const tab = query.tab as string;
 
   const { editor } = useBlocknoteEditorStore();
 
@@ -41,39 +66,33 @@ const Sidebar = ({
     saveAs(blob, "notes.md");
   };
 
-  const [activeIndex, setActiveIndex] = useState("notes");
+  const [activeIndex, setActiveIndex] = useState(
+    tab && tabNames.includes(tab) ? tab : "notes",
+  );
 
   return (
     <div className="bg-gray-50">
       <Tabs
         value={activeIndex}
-        onValueChange={(value) => setActiveIndex(value)}
+        onValueChange={(value) => {
+          setActiveIndex(value);
+          push(
+            {
+              query: {
+                ...query,
+                tab: value,
+              },
+            },
+            undefined,
+            { shallow: true },
+          );
+        }}
         defaultValue="notes"
         className="max-h-screen max-w-full overflow-hidden"
       >
         <div className="flex items-center justify-between pr-1">
           <TabsList className="h-12 rounded-md bg-gray-200">
-            {[
-              {
-                value: "notes",
-                icon: <AlbumIcon size={20} />,
-                isNew: false,
-              },
-              {
-                value: "chat",
-                icon: <MessagesSquareIcon size={20} />,
-                isNew: false,
-              },
-              {
-                value: "flashcards",
-                icon: <Layers size={20} />,
-                isNew: true,
-              },
-              // {
-              //   value: "highlights",
-              //   icon: <MessagesSquareIcon size={20} />,
-              // }
-            ].map((item) => (
+            {TABS.map((item) => (
               <TabsTrigger
                 key={item.value}
                 value={item.value}
