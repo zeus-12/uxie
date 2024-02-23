@@ -41,10 +41,10 @@ const features = [
 function Features() {
   return (
     <div className="bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-      <div className="mx-auto hidden max-w-6xl px-4 md:block">
+      <div className="mx-auto max-w-6xl px-4 md:block">
         <div>
           <div className="flex w-full items-start gap-20">
-            <div className="w-full py-[50vh]">
+            <div className="w-full md:py-[10vh]">
               <ul>
                 {features.map((feature, index) => (
                   <li key={index}>
@@ -57,7 +57,7 @@ function Features() {
                 ))}
               </ul>
             </div>
-            <div className="sticky top-0 flex h-screen w-full items-center">
+            <div className="sticky top-0 hidden h-screen w-full items-center md:flex">
               <FeatureImage />
             </div>
           </div>

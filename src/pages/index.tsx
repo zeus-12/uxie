@@ -32,8 +32,8 @@ export default function Home() {
           <MessageSquarePlus size="24" className="text-gray-300" />
         </Link>
       </div>
-      <div className="flex h-screen flex-col items-center justify-center bg-black">
-        <h1 className="text-5xl font-semibold tracking-tighter text-white">
+      <div className="flex h-screen flex-col items-center justify-center bg-black px-4 py-2 lg:px-16">
+        <h1 className="text-center text-5xl font-semibold tracking-tighter text-white">
           Proudly open-source
         </h1>
         <p className="my-5 max-w-md text-center text-gray-400">
@@ -72,9 +72,16 @@ const HeroSection = () => {
             <ArrowRight className="absolute -ml-1 h-3.5 w-3.5 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
           </div>
         </a>
-        <p className="mt-2 max-w-lg text-center text-4xl font-bold tracking-tight text-gray-800 lg:text-5xl">
-          <Balancer>Revolutionise your Learning Experience</Balancer>
+
+        <p className="mt-2 max-w-xl text-center text-4xl font-semibold tracking-tight text-gray-800 sm:text-5xl lg:text-[3.5rem] lg:leading-none">
+          <Balancer>
+            <span className="hero-underline underline	decoration-purple-300 decoration-solid ">
+              Revolutionise
+            </span>{" "}
+            your Learning Experience
+          </Balancer>
         </p>
+
         <p className="text-base text-gray-500 md:text-lg">
           Fueling your learning journey, every step of the way
         </p>

@@ -135,3 +135,10 @@
 .bouncing-loader > div:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+.hero-underline {
+  text-decoration-thickness: 1.2rem;
+  text-underline-offset: -0.2em;
+  text-decoration-skip-ink: none; /* works in Firefox & Chrome, not in Safari */
+  text-decoration-skip: none; /* works in Safari, not in Firefox & Chrome */
+}
