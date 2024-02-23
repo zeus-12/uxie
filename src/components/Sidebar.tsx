@@ -12,7 +12,7 @@ import { SpinnerPage } from "@/components/Spinner";
 import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
 import { useState } from "react";
-import Flashcards from "@/components/Flashcards";
+import Flashcards from "@/components/Flashcard";
 import { Badge } from "@/components/ui/badge";
 
 const Sidebar = ({
