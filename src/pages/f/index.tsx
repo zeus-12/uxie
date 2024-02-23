@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon } from "lucide-react";
+import { ChevronLeftIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -64,13 +64,17 @@ const UserLibraryPage = () => {
       </div>
 
       <div className="mt-2 flex flex-col justify-center md:px-4">
-        <Input
-          type="search"
-          placeholder="Search for a document"
-          className="my-4"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <div className="relative my-4">
+          <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
+          <Input
+            className="pl-9"
+            type="search"
+            placeholder="Search for a document"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
         <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
           {filteredUserDocs?.map((doc) => (
             <Doc
