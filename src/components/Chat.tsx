@@ -163,6 +163,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
       <form onSubmit={handleSubmit}>
         <div className="flex w-full rounded-md border shadow-xl">
           <TextareaAutosize
+            placeholder="Ask any question..."
             className="flex-1 resize-none rounded border-0 border-gray-300 p-2"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLoading) {
