@@ -5,9 +5,9 @@ export const SEO = {
     type: "website",
     locale: "en_US",
     url: "UXIE",
-    // // url: "https://www.uxie.vercel.app/",
+    // // url: "https://uxie.vercel.app/",
     siteName: "Uxie",
-    images: [{ url: "https://www.uxie.vercel.app/assets/logo.png" }],
+    images: [{ url: "https://uxie.vercel.app/assets/logo.png" }],
   },
 
   themeColor: "light",
@@ -25,7 +25,7 @@ export const SEO = {
   additionalLinkTags: [
     {
       rel: "icon",
-      href: "https://www.uxie.vercel.app/favicon.ico",
+      href: "https://uxie.vercel.app/favicon.ico",
     },
   ],
 };
