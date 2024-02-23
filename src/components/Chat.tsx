@@ -140,7 +140,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             key={m.id}
             className={cn(
               m.role === "user" && "ml-auto bg-blue-500 text-white",
-              m.role === "assistant" && "mr-auto bg-gray-200 text-black",
+              m.role === "assistant" && "mr-auto bg-gray-100 text-black",
               "max-w-[80%] rounded-xl px-3 py-1 text-left ",
             )}
           >
@@ -151,7 +151,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
         {isLoading && messages.at(-1)?.role === "user" && (
           <div
             className={cn(
-              "mr-auto bg-gray-200 text-black",
+              "mr-auto bg-gray-100 text-black",
               "max-w-[80%] rounded-xl px-3 py-2 text-left ",
             )}
           >
