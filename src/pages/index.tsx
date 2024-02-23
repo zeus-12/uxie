@@ -9,6 +9,7 @@ import {
   Github,
   MessageSquarePlus,
 } from "lucide-react";
+import Balancer from "react-wrap-balancer";
 
 export default function Home() {
   return (
@@ -64,22 +65,26 @@ const HeroSection = () => {
           target="_blank"
         >
           <p className="text-sm font-semibold text-gray-700 [text-wrap:balance]">
-            Introducing Flashcards 📚
+            Introducing AI Generated Flashcards 📚
           </p>
           <div className="group relative flex items-center">
             <ChevronRight className="absolute -ml-1 h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:opacity-0" />
             <ArrowRight className="absolute -ml-1 h-3.5 w-3.5 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
           </div>
         </a>
-
-        <p className="mt-2 text-center text-4xl font-bold text-gray-800 lg:text-5xl">
-          Create. Collaborate. Captivate.
+        <p className="mt-2 max-w-lg text-center text-4xl font-bold tracking-tight text-gray-800 lg:text-5xl">
+          <Balancer>Revolutionise your Learning Experience</Balancer>
         </p>
         <p className="text-base text-gray-500 md:text-lg">
-          It&apos;s not just reading anymore, It&apos;s a conversation.
+          Fueling your learning journey, every step of the way
         </p>
-        <Link href="/f">
-          <Button className="mt-2">Get started 🚀</Button>
+        <Link href="/f" className="group">
+          <Button className="mt-2">
+            Get started
+            <span className="ml-2 transition-all  group-hover:animate-pulse">
+              🚀
+            </span>
+          </Button>
         </Link>
       </div>
       <YoutubeEmbed />
