@@ -69,7 +69,7 @@ const UploadFileModal = ({
     }
     try {
       if (file) {
-        startUpload([file]);
+        await startUpload([file]);
       } else if (url) {
         const urlSchema = z.string().url();
         try {
