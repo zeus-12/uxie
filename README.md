@@ -42,16 +42,21 @@
 
 ### Low priority
 
+- [ ] for area highlights, create a custom component with:
+
+      - [ ] imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
+      update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. => [issue fixed!](https://github.com/TypeCellOS/BlockNote/issues/410)
+
+      - [ ] and the yellow leftborder which takes to the highlight on click
+
 - [ ] implement ratelimit using redis kv => checkout upstash
 - [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
-- [ ] add a message similar to the one on flashcards tab for chat tab.
 - [ ] add download flashcards in csv,anki format.
 - [ ] better error,loading pages => abstract this logic to hook / component
 - [ ] editor loads with empty data before the data is loaded.
 - [ ] setup permissions inside liveblocks dashboard
 - [ ] see if u can see all the users (also typing status for chat: [refer](https://github.com/konradhy/build-jotion/blob/master/components/editor.tsx#L93)) in the liveblocks room, (and display it at top)
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
-- [ ] areahighlight from pdf => imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. => [issue fixed!](https://github.com/TypeCellOS/BlockNote/issues/410)
 - [ ] abstract userIsOwner and userHasAccess (either collab or owner) logic.
       progress:
       => api called `experimental_standaloneMiddleware` but
