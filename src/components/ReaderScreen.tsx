@@ -4,28 +4,13 @@ import { SpinnerPage } from "@/components/Spinner";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import { MouseEvent, useState } from "react";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 const DocViewerPage = () => {
-  const [width, setWidth] = useState<null | number>();
-  const [mouseDown, setMouseDown] = useState(false);
-
-  const handleMouseDown = (event: MouseEvent<HTMLOrSVGElement>) => {
-    setMouseDown(true);
-    event.preventDefault();
-  };
-
-  const handleMouseUp = (_event: MouseEvent<HTMLDivElement>) => {
-    setMouseDown(false);
-  };
-
-  const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
-    // if (event.pageX < 300) return;
-    if (mouseDown) {
-      setWidth(event.pageX);
-    }
-  };
-
   const { query, push } = useRouter();
 
   const {
@@ -61,33 +46,28 @@ const DocViewerPage = () => {
   }
 
   return (
-    <div
-      className="flex"
-      onMouseUp={handleMouseUp}
-      onMouseMove={handleMouseMove}
-      // TODO add support for touch movements
-    >
-      <div
-        className="h-[calc(100vh-0.5rem)] min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg"
-        style={{ width: width ?? "50vw" }}
-      >
-        <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
-      </div>
-      <div
-        className="group flex w-2 cursor-col-resize items-center justify-center rounded-md bg-gray-50"
-        onMouseDown={handleMouseDown}
-      >
-        <div className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24 lg:w-1" />
-      </div>
-      <div className="h-full min-w-[25vw] flex-1">
-        <Sidebar
-          canEdit={doc.userPermissions.canEdit}
-          username={doc.userPermissions.username}
-          isOwner={doc.userPermissions.isOwner}
-          isVectorised={doc.isVectorised}
-        />
-      </div>
-    </div>
+    <>
+      <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
+        <ResizablePanel defaultSize={50}>
+          <div className="h-[calc(100vh-0.5rem)] min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
+            <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
+          </div>
+        </ResizablePanel>
+        <div className="group flex w-2 cursor-col-resize items-center justify-center rounded-md bg-gray-50">
+          <ResizableHandle className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24 lg:w-1" />
+        </div>
+        <ResizablePanel defaultSize={50}>
+          <div className="h-full min-w-[25vw] flex-1">
+            <Sidebar
+              canEdit={doc.userPermissions.canEdit}
+              username={doc.userPermissions.username}
+              isOwner={doc.userPermissions.isOwner}
+              isVectorised={doc.isVectorised}
+            />
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </>
   );
 };
 export default DocViewerPage;
