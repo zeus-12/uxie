@@ -77,7 +77,7 @@ const UserLibraryPage = () => {
 
         <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
           {filteredUserDocs?.map((doc) => (
-            <Doc
+            <DocCard
               key={doc.id}
               id={doc.id}
               title={doc.title}
@@ -92,7 +92,7 @@ const UserLibraryPage = () => {
   );
 };
 
-const Doc = ({
+const DocCard = ({
   title,
   id,
   isCollab,
