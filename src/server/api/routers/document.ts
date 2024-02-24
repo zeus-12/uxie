@@ -255,7 +255,7 @@ export const documentRouter = createTRPCRouter({
       ];
     }),
 
-  revectorise: protectedProcedure
+  vectorise: protectedProcedure
     .input(
       z.object({
         documentId: z.string(),
@@ -312,7 +312,7 @@ export const documentRouter = createTRPCRouter({
               connect: {
                 id: ctx.session.user.id,
               },
-            }
+            },
           },
         });
 
@@ -320,19 +320,15 @@ export const documentRouter = createTRPCRouter({
         try {
           await vectoriseDocument(input.url, newFile.id);
           return newFile;
+        } catch (err: any) {
+          console.log(err.message);
         }
-        catch (err: any) {
-          console.log(err.message)
-        }
-      }
-
-      catch (err: any) {
-        console.log(err.message)
+      } catch (err: any) {
+        console.log(err.message);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: err.message,
         });
       }
-
     }),
 });
