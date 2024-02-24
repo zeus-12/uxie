@@ -16,7 +16,7 @@ export const docUploader = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       try {
-        const newFile = await prisma.document.create({
+        await prisma.document.create({
           data: {
             owner: {
               connect: {
@@ -27,8 +27,6 @@ export const docUploader = {
             title: file.name,
           },
         });
-
-        await vectoriseDocument(file.url, newFile.id);
       } catch (err: any) {
         console.log(err.message, "error ");
       }
