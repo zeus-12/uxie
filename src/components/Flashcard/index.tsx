@@ -66,7 +66,7 @@ const Flashcards = () => {
             }}
           >
             {isGeneratingFlashcards && <Spinner />}
-            Generate Flashcards?
+            Generate Flashcards
           </Button>
           {/* choose pages, and number of qns */}
         </div>
