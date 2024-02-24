@@ -1,6 +1,5 @@
 import BouncingDotsLoader from "@/components/BouncingDotsLoader";
-import { Spinner } from "@/components/Spinner";
-import { Button } from "@/components/ui/button";
+import FeatureCard from "@/components/FeatureCard";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -59,64 +58,52 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
     }
   }, [messages]);
 
-  const {
-    mutate: reVectoriseDocMutation,
-    isLoading: isRevectorisingDocMutationLoading,
-  } = api.document.revectorise.useMutation();
+  const { mutate: vectoriseDocMutation, isLoading: isVectorising } =
+    api.document.vectorise.useMutation({
+      onSuccess: () => {
+        utils.document.getDocData.setData(
+          { docId: docId as string },
+          (prev) => {
+            if (!prev) return undefined;
+            return {
+              ...prev,
+              isVectorised: true,
+            };
+          },
+        );
+      },
+    });
 
   const utils = api.useContext();
 
   if (!isVectorised) {
     return (
-      <div className="mx-auto flex h-full max-w-[70%] flex-col items-center justify-center">
-        <p className="font-xl  text-center">
-          This document couldn&apos;t be vectorised, and therefore cannot be
-          used with the AI assistant.{" "}
-        </p>
-
-        <Button
-          className="mt-2"
-          disabled={isRevectorisingDocMutationLoading}
-          onClick={() => {
-            reVectoriseDocMutation(
-              {
-                documentId: docId as string,
+      <FeatureCard
+        isLoading={isVectorising}
+        bulletPoints={[
+          "🔍 Search and ask questions about any part of your PDF.",
+          "📝 Summarize content with ease.",
+          "📊 Analyze and extract data effortlessly.",
+        ]}
+        onClick={() => {
+          vectoriseDocMutation(
+            { documentId: docId as string },
+            {
+              onError: (err: any) => {
+                toast({
+                  title: "Uh-oh",
+                  description: err?.message ?? "Something went wrong",
+                  variant: "destructive",
+                  duration: 3000,
+                });
               },
-              {
-                onSuccess: () => {
-                  utils.document.getDocData.setData(
-                    { docId: docId as string },
-                    (old) => {
-                      if (!old) return undefined;
-                      return {
-                        ...old,
-                        isVectorised: true,
-                      };
-                    },
-                  );
-                  toast({
-                    title: "Success",
-                    description: "Document re-vectorised",
-                    variant: "default",
-                    duration: 3000,
-                  });
-                },
-                onError: (err: any) => {
-                  toast({
-                    title: "Uh-oh",
-                    description: err?.message ?? "Something went wrong",
-                    variant: "destructive",
-                    duration: 3000,
-                  });
-                },
-              },
-            );
-          }}
-        >
-          {isRevectorisingDocMutationLoading && <Spinner />}
-          Re-vectorise
-        </Button>
-      </div>
+            },
+          );
+        }}
+        buttonText="Turn PDF Interactive"
+        subtext="Easily extract key information and ask questions on the fly:"
+        title="Unleash the power of your PDF documents through interactive chat!"
+      />
     );
   }
 

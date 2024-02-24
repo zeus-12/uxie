@@ -1,3 +1,4 @@
+import FeatureCard from "@/components/FeatureCard";
 import IndividualFlashcard from "@/components/Flashcard/IndividualFlashcard";
 import { Spinner, SpinnerPage } from "@/components/Spinner";
 import { Button } from "@/components/ui/button";
@@ -29,47 +30,35 @@ const Flashcards = () => {
   return (
     <div className="h-full">
       {flashcards.length === 0 && (
-        <div className="mx-auto flex h-full w-[90%] max-w-[30rem] flex-col justify-center">
-          <p className="text-2xl font-bold tracking-tight">
-            Transform your study materials into dynamic flashcards!
-          </p>
-          <p className="my-2 text-lg font-normal text-gray-500">
-            Test your knowledge and receive instant feedback:
-          </p>
-
-          <ul>
-            <li>✅ Celebrate correct answers.</li>
-            <li>❌ Address misunderstandings.</li>
-            <li>ℹ️ Expand your understanding with additional insights.</li>
-          </ul>
-
-          <Button
-            className="mt-4 md:mt-6"
-            disabled={isGeneratingFlashcards}
-            onClick={() => {
-              generateFlashcards(
-                { documentId },
-                {
-                  onSuccess: () => {
-                    utils.flashcard.getFlashcards.refetch();
-                  },
-                  onError: (err: any) => {
-                    toast({
-                      title: "Uh-oh",
-                      description: err?.message ?? "Something went wrong",
-                      variant: "destructive",
-                      duration: 3000,
-                    });
-                  },
+        <FeatureCard
+          isLoading={isGeneratingFlashcards}
+          bulletPoints={[
+            "✅ Celebrate correct answers.",
+            "❌ Address misunderstandings.",
+            "ℹ️ Expand your understanding with additional insights.",
+          ]}
+          onClick={() => {
+            generateFlashcards(
+              { documentId },
+              {
+                onSuccess: () => {
+                  utils.flashcard.getFlashcards.refetch();
                 },
-              );
-            }}
-          >
-            {isGeneratingFlashcards && <Spinner />}
-            Generate Flashcards
-          </Button>
-          {/* choose pages, and number of qns */}
-        </div>
+                onError: (err: any) => {
+                  toast({
+                    title: "Uh-oh",
+                    description: err?.message ?? "Something went wrong",
+                    variant: "destructive",
+                    duration: 3000,
+                  });
+                },
+              },
+            );
+          }}
+          buttonText="Generate Flashcards"
+          subtext="Test your knowledge and receive instant feedback:"
+          title="Transform your study materials into dynamic flashcards!"
+        />
       )}
 
       {flashcards.length > 0 &&
