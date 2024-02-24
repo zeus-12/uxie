@@ -10,6 +10,7 @@ import {
   MessageSquarePlus,
 } from "lucide-react";
 import Balancer from "react-wrap-balancer";
+import ButtonRotatingBackgroundGradient from "@/components/ui/ButtonRotatingBackgroundGradient";
 
 export default function Home() {
   return (
@@ -45,10 +46,10 @@ export default function Home() {
           target="_blank"
           rel="noreferrer"
         >
-          <Button className="">
-            <Github size="20" className="mr-2" />
+          <ButtonRotatingBackgroundGradient>
+            <Github size="18" className="mr-2" />
             View on GitHub
-          </Button>
+          </ButtonRotatingBackgroundGradient>
         </a>
       </div>
     </>
