@@ -44,7 +44,7 @@ function Features() {
       <div className="mx-auto max-w-6xl px-4 md:block">
         <div>
           <div className="flex w-full items-start gap-20">
-            <div className="w-full md:py-[10vh]">
+            <div className="w-full md:py-[50vh]">
               <ul>
                 {features.map((feature, index) => (
                   <li key={index}>
