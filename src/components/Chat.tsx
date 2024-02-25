@@ -126,12 +126,21 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
           <div
             key={m.id}
             className={cn(
-              m.role === "user" && "ml-auto bg-blue-500 text-white",
-              m.role === "assistant" && "mr-auto bg-gray-100 text-black",
-              "max-w-[80%] rounded-xl px-3 py-1 text-left ",
+              m.role === "user" && "ml-auto",
+              m.role === "assistant" && "mr-auto",
+              "max-w-[80%] text-left ",
             )}
           >
-            <ReactMarkdown>{m.content}</ReactMarkdown>
+            <ReactMarkdown
+              className={cn(
+                m.role === "user" &&
+                  "prose-invert prose-code:text-gray-100 bg-blue-500 text-gray-50",
+                m.role === "assistant" && "bg-gray-100 ",
+                "prose rounded-xl px-3 py-1",
+              )}
+            >
+              {m.content}
+            </ReactMarkdown>
           </div>
         ))}
 
