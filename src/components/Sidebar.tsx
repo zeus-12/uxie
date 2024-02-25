@@ -100,7 +100,7 @@ const Sidebar = ({
               >
                 {item.isNew && (
                   <div className="absolute -bottom-2 -right-2">
-                    <Badge className="bg-blue-400 p-[0.05rem] text-[0.5rem] hover:bg-blue-600">
+                    <Badge className="bg-blue-400 p-[0.05rem] text-[0.5rem] hover:bg-blue-500">
                       NEW
                     </Badge>
                   </div>
