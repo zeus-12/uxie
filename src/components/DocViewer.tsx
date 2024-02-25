@@ -308,7 +308,7 @@ const DocViewer = ({
           <ChevronLeftIcon className="mr-2 h-4 w-4" />
         </Link>
 
-        <p className="font-semibold">{doc?.title ?? docId}</p>
+        <p className="line-clamp-1 font-semibold">{doc?.title ?? docId}</p>
       </div>
       <div className="relative h-full w-full">
         <PdfReader
