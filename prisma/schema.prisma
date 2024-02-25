@@ -56,7 +56,7 @@ model Document {
   createdAt     DateTime       @default(now())
 
   // false if user adds document by url
-  is_uploaded Boolean @default(true)
+  isUploaded Boolean @default(true)
 
   // lastscrolledposition => but has to be different for each user
   // create new table storing lastscrolledposition,

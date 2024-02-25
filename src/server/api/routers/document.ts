@@ -307,7 +307,7 @@ export const documentRouter = createTRPCRouter({
           data: {
             title: input.title,
             url: input.url,
-            is_uploaded: false,
+            isUploaded: false,
             owner: {
               connect: {
                 id: ctx.session.user.id,
