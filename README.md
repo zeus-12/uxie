@@ -36,12 +36,12 @@
 
 ## REGRETS
 
-- [ ] 10s limit on serverless function SUCKS! Should've chosen drizzle/kysely over prisma (for edge functions) UGHGHH
-      checkout [acme-corp project](https://github.com/juliusmarminge/acme-corp) => using both prisma and kysely
-- [ ] prob better to use a background runner or something and do long-polling
+- [ ] 10s limit on serverless function SUCKS! Should've chosen drizzle/kysely over prisma (for edge functions) UGHGHH <=> prob better to use a background runner or something and do long-polling
 
-### Low priority
+### Bugs
 
+- [ ] add max length for all input boxes. chat, feedback, notes.
+- [ ] Run the seogets script
 - [ ] for area highlights, create a custom component with:
 
       - [ ] imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
