@@ -48,7 +48,7 @@ const DocViewerPage = () => {
   return (
     <>
       <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
-        <ResizablePanel defaultSize={50}>
+        <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-[calc(100vh-0.5rem)] min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
             <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
           </div>
@@ -56,7 +56,7 @@ const DocViewerPage = () => {
         <div className="group flex w-2 cursor-col-resize items-center justify-center rounded-md bg-gray-50">
           <ResizableHandle className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24 lg:w-1" />
         </div>
-        <ResizablePanel defaultSize={50}>
+        <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full min-w-[25vw] flex-1">
             <Sidebar
               canEdit={doc.userPermissions.canEdit}
