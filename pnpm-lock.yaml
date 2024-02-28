@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-patchedDependencies:
-  react-pdf-highlighter@6.1.0:
-    hash: c5eyzzqg7gc3gyjqu5zv6plk6i
-    path: patches/react-pdf-highlighter@6.1.0.patch
-
 dependencies:
   '@blocknote/core':
     specifier: ^0.11.2
@@ -151,9 +146,9 @@ dependencies:
   react-markdown:
     specifier: ^9.0.0
     version: 9.0.0(@types/react@18.2.25)(react@18.2.0)
-  react-pdf-highlighter:
-    specifier: ^6.1.0
-    version: 6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.2.0)(react@18.2.0)
+  react-pdf-highlighter-extended:
+    specifier: ^8.0.0
+    version: 8.0.0(react-dom@18.2.0)(react@18.2.0)
   react-resizable-panels:
     specifier: ^2.0.10
     version: 2.0.10(react-dom@18.2.0)(react@18.2.0)
@@ -6416,11 +6411,11 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /react-pdf-highlighter@6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-PD7l+0q1v+pZahLA/2AeWIb0n8d1amL6o+mOKnldIqtyChBHSE3gfnY5ZNMSFrhWXdlM6l4Eet+aydnYo6Skow==}
+  /react-pdf-highlighter-extended@8.0.0(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-1qhm1m0t+7LFW875Pg/bZF/tJHeslLl0OeBwktoiscDrixoD6aquC0e5+z81AbQSDWwODoOgbjM7Gfa6pV376Q==}
     peerDependencies:
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
+      react: ^18.2.0
+      react-dom: ^18.2.0
     dependencies:
       lodash.debounce: 4.0.8
       pdfjs-dist: 2.16.105
@@ -6430,7 +6425,6 @@ packages:
     transitivePeerDependencies:
       - worker-loader
     dev: false
-    patched: true
 
   /react-remove-scroll-bar@2.3.4(@types/react@18.2.25)(react@18.2.0):
     resolution: {integrity: sha512-63C4YQBUt0m6ALadE9XV56hV8BgJWDmmTPY758iIJjfQKt2nYwoUrPk0LXRXcB/yIj82T1/Ixfdpdk68LwIB0A==}

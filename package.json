@@ -58,7 +58,7 @@
     "react-hook-form": "^7.46.2",
     "react-intersection-observer": "^9.5.3",
     "react-markdown": "^9.0.0",
-    "react-pdf-highlighter": "^6.1.0",
+    "react-pdf-highlighter-extended": "^8.0.0",
     "react-resizable-panels": "^2.0.10",
     "react-textarea-autosize": "^8.5.3",
     "react-wrap-balancer": "^1.1.0",
@@ -93,10 +93,5 @@
   },
   "ct3aMetadata": {
     "initVersion": "7.19.0"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "react-pdf-highlighter@6.1.0": "patches/react-pdf-highlighter@6.1.0.patch"
-    }
   }
 }

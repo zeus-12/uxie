@@ -1,22 +1,10 @@
 import { useEffect } from "react";
-import {
-  PdfLoader,
-  PdfHighlighter,
-  Highlight,
-  Popup,
-  AreaHighlight,
-} from "react-pdf-highlighter";
-import { SpinnerPage } from "@/components/Spinner";
-import {
-  ChevronLeftIcon,
-  ClipboardCopy,
-  Highlighter,
-  TrashIcon,
-} from "lucide-react";
+import { GhostHighlight, Highlight } from "react-pdf-highlighter-extended";
+import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
+import { HighlightContentType, CompactHighlight } from "@/types/highlight";
 import { buttonVariants } from "@/components/ui/button";
 import { cn, copyTextToClipboard } from "@/lib/utils";
 import { createId } from "@paralleldrive/cuid2";
@@ -25,23 +13,20 @@ import { HighlightTypeEnum } from "@prisma/client";
 import { toast } from "@/components/ui/use-toast";
 import { AppRouter } from "@/server/api/root";
 import { inferRouterOutputs } from "@trpc/server";
+import PdfReader from "@/components/PdfReader";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
-
-const resetHash = () => {
-  document.location.hash = "";
-};
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type HighlightType =
   RouterOutput["document"]["getDocData"]["highlights"][number];
 
-interface AddHighlighType {
+interface AddHighlightType {
   content: {
     text?: string;
     image?: string;
   };
-  position: HighlightPositionType;
+  position: CompactHighlight;
 }
 
 const DocViewer = ({
@@ -96,41 +81,6 @@ const DocViewer = ({
     },
     onSettled() {
       // Sync with server once mutation has settled
-      utils.document.getDocData.invalidate();
-    },
-  });
-  const { mutate: deleteHighlightMutation } = api.highlight.delete.useMutation({
-    async onMutate(oldHighlight) {
-      await utils.document.getDocData.cancel();
-      const prevData = utils.document.getDocData.getData();
-
-      utils.document.getDocData.setData({ docId: docId as string }, (old) => {
-        if (!old) return undefined;
-        return {
-          ...old,
-          highlights: [
-            ...old.highlights.filter(
-              (highlight) => highlight.id !== oldHighlight.highlightId,
-            ),
-          ],
-        };
-      });
-
-      return { prevData };
-    },
-    onError(err, newPost, ctx) {
-      toast({
-        title: "Error",
-        description: "Something went wrong",
-        variant: "destructive",
-        duration: 3000,
-      });
-      utils.document.getDocData.setData(
-        { docId: docId as string },
-        ctx?.prevData,
-      );
-    },
-    onSettled() {
       utils.document.getDocData.invalidate();
     },
   });
@@ -246,7 +196,7 @@ const DocViewer = ({
     return doc?.highlights?.find((highlight) => highlight.id === id);
   }
 
-  async function addHighlight({ content, position }: AddHighlighType) {
+  async function addHighlight({ content, position }: GhostHighlight) {
     const highlightId = createId();
 
     if (!content.text && !content.image) return;
@@ -259,7 +209,7 @@ const DocViewer = ({
       boundingRect: position.boundingRect,
       type: isTextHighlight ? HighlightTypeEnum.TEXT : HighlightTypeEnum.IMAGE,
       documentId: docId as string,
-      pageNumber: position.pageNumber,
+      pageNumber: position.boundingRect.pageNumber,
       rects: position.rects,
     });
 
@@ -278,14 +228,6 @@ const DocViewer = ({
       );
     }
   }
-
-  const deleteHighlight = (id: string) => {
-    // todo check if user has edit/admin access
-    deleteHighlightMutation({
-      documentId: docId as string,
-      highlightId: id,
-    });
-  };
 
   // if (isError) {
   //   return <>error</>;
@@ -313,10 +255,10 @@ const DocViewer = ({
       <div className="relative h-full w-full">
         <PdfReader
           docId={docId as string}
-          deleteHighlight={deleteHighlight}
           docUrl={doc.url}
           getHighlightById={getHighlightById}
           addHighlight={addHighlight}
+          // @ts-ignore
           highlights={doc.highlights ?? []}
         />
       </div>
@@ -326,258 +268,157 @@ const DocViewer = ({
 
 export default DocViewer;
 
-const PdfReader = ({
-  docUrl,
-  getHighlightById,
-  addHighlight,
-  deleteHighlight,
-  highlights,
-  docId,
-}: {
-  docId: string;
-  docUrl: string;
-  getHighlightById: (id: string) => HighlightType | undefined;
-  addHighlight: ({ content, position }: AddHighlighType) => Promise<void>;
-  deleteHighlight: (id: string) => void;
-  highlights: HighlightType[];
-}) => {
-  const utils = api.useContext();
+// const PdfReader = ({
+// docUrl,
+// getHighlightById,
+// addHighlight,
+// deleteHighlight,
+// highlights,
+// docId,
+// }: {
+//   docId: string;
+//   docUrl: string;
+//   getHighlightById: (id: string) => HighlightType | undefined;
+//   addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
+//   deleteHighlight: (id: string) => void;
+//   highlights: HighlightType[];
+// }) => {
+//   const utils = api.useContext();
 
-  const { mutate: updateAreaHighlightMutation } =
-    api.highlight.updateAreaHighlight.useMutation({
-      async onMutate(newHighlight) {
-        await utils.document.getDocData.cancel();
-        const prevData = utils.document.getDocData.getData();
-        //@ts-ignore
-        utils.document.getDocData.setData({ docId: docId as string }, (old) => {
-          if (!old) return undefined;
-          return {
-            ...old,
-            highlights: [
-              ...old.highlights.filter(
-                (highlight) => highlight.id !== newHighlight.id,
-              ),
-              {
-                position: {
-                  boundingRect: newHighlight.boundingRect,
-                  pageNumber: newHighlight.pageNumber,
-                  rects: [],
-                },
-              },
-            ],
-          };
-        });
-        return { prevData };
-      },
-      onError(err, newPost, ctx) {
-        toast({
-          title: "Error",
-          description: "Something went wrong",
-          variant: "destructive",
-          duration: 3000,
-        });
-        utils.document.getDocData.setData(
-          { docId: docId as string },
-          ctx?.prevData,
-        );
-      },
-      onSettled() {
-        utils.document.getDocData.invalidate();
-      },
-    });
+//   const { mutate: updateAreaHighlightMutation } =
+//     api.highlight.updateAreaHighlight.useMutation({
+//       async onMutate(newHighlight) {
+//         await utils.document.getDocData.cancel();
+//         const prevData = utils.document.getDocData.getData();
+//         //@ts-ignore
+//         utils.document.getDocData.setData({ docId: docId as string }, (old) => {
+//           if (!old) return undefined;
+//           return {
+//             ...old,
+//             highlights: [
+//               ...old.highlights.filter(
+//                 (highlight) => highlight.id !== newHighlight.id,
+//               ),
+//               {
+//                 position: {
+//                   boundingRect: newHighlight.boundingRect,
+//                   pageNumber: newHighlight.pageNumber,
+//                   rects: [],
+//                 },
+//               },
+//             ],
+//           };
+//         });
+//         return { prevData };
+//       },
+//       onError(err, newPost, ctx) {
+//         toast({
+//           title: "Error",
+//           description: "Something went wrong",
+//           variant: "destructive",
+//           duration: 3000,
+//         });
+//         utils.document.getDocData.setData(
+//           { docId: docId as string },
+//           ctx?.prevData,
+//         );
+//       },
+//       onSettled() {
+//         utils.document.getDocData.invalidate();
+//       },
+//     });
 
-  let scrollViewerTo = (highlight: any) => {};
+//   return (
+//     <PdfReaderApp />
 
-  const scrollToHighlightFromHash = () => {
-    const highlight = getHighlightById(parseIdFromHash());
+// <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
+//   {(pdfDocument) => (
+//     <PdfHighlighter
+//       pdfDocument={pdfDocument}
+//       enableAreaSelection={(event) => event.altKey}
+//       onScrollChange={resetHash}
+//       // pdfScaleValue="page-width"
+//       scrollRef={(scrollTo) => {
+//         scrollViewerTo = scrollTo;
+//         scrollToHighlightFromHash();
+//       }}
+//       onSelectionFinished={(
+//         position,
+//         content,
+//         hideTipAndSelection,
+//         transformSelection,
+//       ) => {
+//         return (
+//           <TextSelectionPopover
+//             content={content}
+//             hideTipAndSelection={hideTipAndSelection}
+//             position={position}
+//             addHighlight={() => addHighlight({ content, position })}
+//           />
+//         );
+//       }}
+//       highlightTransform={(
+//         highlight,
+//         index,
+//         setTip,
+//         hideTip,
+//         viewportToScaled,
+//         screenshot,
+//         isScrolledTo,
+//       ) => {
+//         const isTextHighlight = highlight.position.rects?.length !== 0;
 
-    if (highlight) {
-      scrollViewerTo(highlight);
-    }
-  };
+// const component = isTextHighlight ? (
+//   <div id={highlight.id}>
+//     {/* @ts-ignore */}
+//     <Highlight
+//       isScrolledTo={isScrolledTo}
+//       position={highlight.position}
+//     />
+//   </div>
+// ) : (
+//   <div id={highlight.id}>
+//     <AreaHighlight
+//       isScrolledTo={isScrolledTo}
+//       highlight={highlight}
+//       onChange={(boundingRect) => {
+//         updateAreaHighlightMutation({
+//           id: highlight.id,
+//           boundingRect: viewportToScaled(boundingRect),
+//           type: HighlightTypeEnum.IMAGE,
+//           documentId: docId as string,
+//           ...(boundingRect.pageNumber
+//             ? { pageNumber: boundingRect.pageNumber }
+//             : {}),
+//         });
+//       }}
+//     />
+//   </div>
+// );
 
-  return (
-    <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
-      {(pdfDocument) => (
-        <PdfHighlighter
-          pdfDocument={pdfDocument}
-          enableAreaSelection={(event) => event.altKey}
-          onScrollChange={resetHash}
-          // pdfScaleValue="page-width"
-          scrollRef={(scrollTo) => {
-            scrollViewerTo = scrollTo;
-            scrollToHighlightFromHash();
-          }}
-          onSelectionFinished={(
-            position,
-            content,
-            hideTipAndSelection,
-            transformSelection,
-          ) => {
-            return (
-              <TextSelectionPopover
-                content={content}
-                hideTipAndSelection={hideTipAndSelection}
-                position={position}
-                addHighlight={() => addHighlight({ content, position })}
-              />
-            );
-          }}
-          highlightTransform={(
-            highlight,
-            index,
-            setTip,
-            hideTip,
-            viewportToScaled,
-            screenshot,
-            isScrolledTo,
-          ) => {
-            const isTextHighlight = highlight.position.rects?.length !== 0;
-
-            const component = isTextHighlight ? (
-              <div id={highlight.id}>
-                {/* @ts-ignore */}
-                <Highlight
-                  isScrolledTo={isScrolledTo}
-                  position={highlight.position}
-                />
-              </div>
-            ) : (
-              <div id={highlight.id}>
-                <AreaHighlight
-                  isScrolledTo={isScrolledTo}
-                  highlight={highlight}
-                  onChange={(boundingRect) => {
-                    updateAreaHighlightMutation({
-                      id: highlight.id,
-                      boundingRect: viewportToScaled(boundingRect),
-                      type: HighlightTypeEnum.IMAGE,
-                      documentId: docId as string,
-                      ...(boundingRect.pageNumber
-                        ? { pageNumber: boundingRect.pageNumber }
-                        : {}),
-                    });
-                  }}
-                />
-              </div>
-            );
-
-            return (
-              <Popup
-                popupContent={
-                  <HighlightedTextPopup
-                    id={highlight.id}
-                    deleteHighlight={deleteHighlight}
-                    hideTip={hideTip}
-                  />
-                }
-                onMouseOver={(popupContent) =>
-                  setTip(highlight, (highlight) => popupContent)
-                }
-                onMouseOut={hideTip}
-                key={index}
-              >
-                {component}
-              </Popup>
-            );
-          }}
-          // @ts-ignore
-          highlights={highlights}
-        />
-      )}
-    </PdfLoader>
-  );
-};
-
-const TextSelectionPopover = ({
-  content,
-  hideTipAndSelection,
-  position,
-  addHighlight,
-}: {
-  position: any;
-  addHighlight: () => void;
-  content: {
-    text?: string | undefined;
-    image?: string | undefined;
-  };
-  hideTipAndSelection: () => void;
-}) => {
-  const OPTIONS = [
-    {
-      onClick: () => {
-        addHighlight();
-        hideTipAndSelection();
-      },
-      icon: Highlighter,
-    },
-    {
-      onClick: () => {
-        copyTextToClipboard(content.text, hideTipAndSelection);
-      },
-      icon: ClipboardCopy,
-    },
-  ];
-
-  return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
-
-      <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => (
-          <div
-            className="group p-2 hover:cursor-pointer"
-            key={id}
-            onClick={option.onClick}
-          >
-            <option.icon
-              size={18}
-              className="rounded-full text-gray-300 group-hover:text-gray-50"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const HighlightedTextPopup = ({
-  id,
-  deleteHighlight,
-  hideTip,
-}: {
-  id: string;
-  deleteHighlight: any;
-  hideTip: () => void;
-}) => {
-  const OPTIONS = [
-    {
-      onClick: () => {
-        deleteHighlight(id);
-        hideTip();
-      },
-      icon: TrashIcon,
-    },
-  ];
-
-  return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
-
-      <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => (
-          <div
-            className="group p-2 hover:cursor-pointer"
-            key={id}
-            onClick={option.onClick}
-          >
-            <option.icon
-              size={18}
-              className="rounded-full text-gray-300 group-hover:text-gray-50"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+//         return (
+//           <Popup
+//             popupContent={
+//               <HighlightedTextPopup
+//                 id={highlight.id}
+//                 deleteHighlight={deleteHighlight}
+//                 hideTip={hideTip}
+//               />
+//             }
+//             onMouseOver={(popupContent) =>
+//               setTip(highlight, (highlight) => popupContent)
+//             }
+//             onMouseOut={hideTip}
+//             key={index}
+//           >
+//             {component}
+//           </Popup>
+//         );
+//       }}
+//       // @ts-ignore
+//       highlights={highlights}
+//     />
+//   )}
+// </PdfLoader>
+//   );
+// };

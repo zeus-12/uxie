@@ -142,3 +142,33 @@
   text-decoration-skip-ink: none; /* works in Firefox & Chrome, not in Safari */
   text-decoration-skip: none; /* works in Safari, not in Firefox & Chrome */
 }
+
+.Highlight__popup {
+  background-color: #2c3e50;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 1rem;
+  border-radius: 4px;
+  max-width: 300px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.Highlight__popup::-webkit-scrollbar {
+  width: 8px;
+}
+
+.Highlight__popup::-webkit-scrollbar-thumb {
+  background-color: #4b6270;
+  border-radius: 5px;
+}
+
+.Highlight__popup::-webkit-scrollbar-thumb:hover {
+  background-color: #576c7a;
+}
+
+.Highlight__popup::-webkit-scrollbar-track {
+  background-color: #2c3e50;
+  border-radius: 5px;
+}
