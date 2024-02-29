@@ -41,7 +41,7 @@ const features = [
 function Features() {
   return (
     <div className="bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
-      <div className="mx-auto max-w-6xl px-4 md:block">
+      <div className="mx-auto max-w-6xl px-4 md:block 2xl:max-w-[80%]">
         <div>
           <div className="flex w-full items-start gap-20">
             <div className="w-full md:py-[50vh]">
@@ -122,7 +122,7 @@ export const FeatureData = ({ id, title, description }: FeatureDataProps) => {
     <p
       ref={ref}
       className={cn(
-        "feature-title font-heading py-16 text-4xl font-semibold tracking-tight transition-colors xl:text-5xl",
+        "feature-title font-heading py-16 text-4xl font-semibold tracking-tight transition-colors xl:text-5xl 2xl:text-6xl",
         isInView ? "text-black" : "text-gray-300",
       )}
     >
@@ -130,7 +130,7 @@ export const FeatureData = ({ id, title, description }: FeatureDataProps) => {
       {description && (
         <span
           className={cn(
-            "mt-3 block text-lg font-normal tracking-tight text-gray-400",
+            "mt-3 block text-lg font-normal tracking-tight text-gray-400 2xl:text-3xl",
             isInView ? "text-gray-400" : "text-white",
           )}
         >

@@ -34,10 +34,10 @@ export default function Home() {
         </Link>
       </div>
       <div className="flex h-screen flex-col items-center justify-center bg-black px-4 py-2 lg:px-16">
-        <h1 className="text-center text-5xl font-semibold tracking-tighter text-white">
+        <h1 className="text-center text-5xl font-semibold tracking-tighter text-white 2xl:text-7xl">
           Proudly open-source
         </h1>
-        <p className="my-5 max-w-md text-center text-gray-400">
+        <p className="my-5 max-w-md text-center text-gray-400 2xl:max-w-lg 2xl:text-2xl">
           Our source code is available on GitHub - feel free to read, review, or
           contribute to it however you want!
         </p>
@@ -74,16 +74,16 @@ const HeroSection = () => {
           </div>
         </a>
 
-        <p className="mt-2 max-w-xl text-center text-4xl font-semibold tracking-tight text-gray-800 sm:text-5xl lg:text-[3.5rem] lg:leading-none">
+        <p className="2xl:text-[5rem mt-2 max-w-xl text-center text-4xl font-semibold tracking-tight text-gray-800 sm:text-5xl lg:text-[3.5rem] lg:leading-none">
           <Balancer>
-            <span className="hero-underline underline	decoration-purple-300 decoration-solid ">
+            <span className="hero-underline underline	decoration-purple-300 decoration-solid">
               Revolutionise
             </span>{" "}
             your Learning Experience
           </Balancer>
         </p>
 
-        <p className="text-base text-gray-500 md:text-lg">
+        <p className="2xl:text-md text-base text-gray-500 md:text-lg">
           Fueling your learning journey, every step of the way
         </p>
         <Link href="/f" className="group">

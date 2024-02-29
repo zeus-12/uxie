@@ -8,7 +8,7 @@ const Navbar = () => {
   const { data: session } = useSession();
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col px-4 py-4 lg:px-16">
+    <div className="mx-auto flex max-w-5xl flex-col px-4 py-4 lg:px-16 2xl:max-w-7xl">
       <div className="flex items-center justify-between bg-opacity-30 backdrop-blur-lg backdrop-filter">
         <Link href="/">
           <div className="flex items-center gap-2">
