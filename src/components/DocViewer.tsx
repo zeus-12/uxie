@@ -343,12 +343,13 @@ const PdfReader = ({
 }) => {
   const utils = api.useContext();
 
-  const { mutate: updateAreaHighlightMutation } =
+  const { mutate: updateAreaHighlight } =
     api.highlight.updateAreaHighlight.useMutation({
       async onMutate(newHighlight) {
         await utils.document.getDocData.cancel();
         const prevData = utils.document.getDocData.getData();
-        //@ts-ignore
+
+        // @ts-ignore
         utils.document.getDocData.setData({ docId: docId as string }, (old) => {
           if (!old) return undefined;
           return {
@@ -448,7 +449,7 @@ const PdfReader = ({
                   isScrolledTo={isScrolledTo}
                   highlight={highlight}
                   onChange={(boundingRect) => {
-                    updateAreaHighlightMutation({
+                    updateAreaHighlight({
                       id: highlight.id,
                       boundingRect: viewportToScaled(boundingRect),
                       type: HighlightTypeEnum.IMAGE,
