@@ -15,6 +15,7 @@
     "@blocknote/react": "^0.11.2",
     "@hookform/resolvers": "^3.3.1",
     "@huggingface/inference": "1",
+    "@langchain/community": "^0.0.34",
     "@liveblocks/client": "^1.7.0",
     "@liveblocks/react": "^1.7.0",
     "@liveblocks/yjs": "^1.7.0",

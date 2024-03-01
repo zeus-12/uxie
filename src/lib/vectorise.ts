@@ -1,9 +1,9 @@
-import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 import { env } from "@/env.mjs";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
-import { getPineconeClient } from "@/lib/pinecone";
 import { prisma } from "@/server/db";
+import { PrismaVectorStore } from "@langchain/community/vectorstores/prisma";
+import { Embedding, Prisma } from "@prisma/client";
 
 export const vectoriseDocument = async (fileUrl: string, newFileId: string) => {
   const response = await fetch(fileUrl);
@@ -20,33 +20,67 @@ export const vectoriseDocument = async (fileUrl: string, newFileId: string) => {
     );
   }
 
-  const pinecone = getPineconeClient();
-  const pineconeIndex = pinecone.Index("uxie");
+  const formattedDocs = pageLevelDocs.map((document, index) => {
+    return {
+      content: document.pageContent,
+      pageNumber: document.metadata?.loc?.pageNumber ?? index,
+    };
+  });
 
-  const combinedData = pageLevelDocs.map((document) => {
+  const vectorStore = PrismaVectorStore.withModel<Embedding>(prisma).create(
+    new HuggingFaceInferenceEmbeddings({
+      apiKey: env.HUGGINGFACE_API_KEY,
+    }),
+    {
+      prisma: Prisma,
+      tableName: "Embedding",
+      vectorColumnName: "vector",
+      columns: {
+        id: PrismaVectorStore.IdColumn,
+        content: PrismaVectorStore.ContentColumn,
+      },
+    },
+  );
+
+  await vectorStore.addModels(
+    await prisma.$transaction(
+      formattedDocs.map((doc, index) =>
+        prisma.embedding.create({
+          data: {
+            content: doc.content,
+            pageNumber: index,
+            document: {
+              connect: {
+                id: newFileId,
+              },
+            },
+          },
+        }),
+      ),
+    ),
+  );
+
+  const qn = "Tell me more about the author.";
+
+  vectorStore.similaritySearch(qn, 4, {
+    documentId: {
+      equals: newFileId,
+    },
+  });
+
+  return;
+
+  // const pinecone = getPineconeClient();
+  // const pineconeIndex = pinecone.Index("uxie");
+
+  const combinedData = pageLevelDocs.map((document, index) => {
     return {
       ...document,
       metadata: {
         fileId: newFileId,
+        page: index,
       },
       dataset: "pdf", // Use a field to indicate the source dataset (e.g., 'pdf')
     };
-  });
-
-  const embeddings = new HuggingFaceInferenceEmbeddings({
-    apiKey: env.HUGGINGFACE_API_KEY,
-  });
-
-  await PineconeStore.fromDocuments(combinedData, embeddings, {
-    pineconeIndex,
-  });
-
-  await prisma.document.update({
-    where: {
-      id: newFileId,
-    },
-    data: {
-      isVectorised: true,
-    },
   });
 };
