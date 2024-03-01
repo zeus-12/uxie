@@ -117,7 +117,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
           {
             id: "id",
             content:
-              "Welcome to Uxie! I'm here to assist you. Feel free to ask questions or discuss topics based on the data provided. Whether it's clarifying information, diving deeper into a subject, or exploring related topics, I'm ready to help. Let's make the most out of your PDF experience!",
+              "Welcome to **Uxie**! I'm here to assist you. Feel free to ask questions or discuss topics based on the data provided. Whether it's clarifying information, diving deeper into a subject, or exploring related topics, I'm ready to help. Let's make the most out of your learning!",
 
             role: "assistant",
           },
