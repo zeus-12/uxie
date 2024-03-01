@@ -116,7 +116,9 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
         {[
           {
             id: "id",
-            content: `Hello! I'm AI assistant, your friendly and knowledgeable AI friend. I'm here to help you with any questions or topics you'd like to discuss. I've been trained on a vast amount of information, including the context you provided, and I'm eager to share my knowledge with you.`,
+            content:
+              "Welcome to Uxie! I'm here to assist you. Feel free to ask questions or discuss topics based on the data provided. Whether it's clarifying information, diving deeper into a subject, or exploring related topics, I'm ready to help. Let's make the most out of your PDF experience!",
+
             role: "assistant",
           },
           ...(prevChatMessages ?? []),
@@ -134,7 +136,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             <ReactMarkdown
               className={cn(
                 m.role === "user" &&
-                  "prose-invert prose-code:text-gray-100 bg-blue-500 text-gray-50",
+                  "prose-invert bg-blue-500 text-gray-50 prose-code:text-gray-100",
                 m.role === "assistant" && "bg-gray-100 ",
                 "prose rounded-xl px-3 py-1",
               )}
