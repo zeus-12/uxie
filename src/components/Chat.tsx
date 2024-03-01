@@ -51,12 +51,11 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const messageWindowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // this is not the best way to do this, but it works for now
-    if (messageWindowRef.current) {
-      messageWindowRef.current.scrollTop =
-        messageWindowRef.current.scrollHeight;
-    }
-  }, [messages]);
+    messageWindowRef.current?.scrollTo(
+      0,
+      messageWindowRef.current.scrollHeight,
+    );
+  }, [messages, prevChatMessages]);
 
   const { mutate: vectoriseDocMutation, isLoading: isVectorising } =
     api.document.vectorise.useMutation({
