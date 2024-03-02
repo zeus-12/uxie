@@ -209,12 +209,7 @@ const Uploader = ({
   permittedFileInfo: any;
 }) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (
-      !acceptedFiles ||
-      acceptedFiles.length === 0 ||
-      acceptedFiles.length > 1 ||
-      !acceptedFiles[0]
-    ) {
+    if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
       toast({
         title: "Error",
         description: "Please upload a single file.",
