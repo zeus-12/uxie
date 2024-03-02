@@ -73,6 +73,7 @@
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] maybe swap uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
 - [ ] have a "summarise", "explain" option right next to highlight text on selecting the text.
+- [ ] export to anki (apkg format)
 
 ### Pinecone Setting up guide
 
