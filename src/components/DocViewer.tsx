@@ -8,9 +8,11 @@ import {
 } from "react-pdf-highlighter";
 import { SpinnerPage } from "@/components/Spinner";
 import {
+  BookOpenCheck,
   ChevronLeftIcon,
   ClipboardCopy,
   Highlighter,
+  Lightbulb,
   TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -20,11 +22,17 @@ import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
 import { buttonVariants } from "@/components/ui/button";
 import { cn, copyTextToClipboard } from "@/lib/utils";
 import { createId } from "@paralleldrive/cuid2";
-import { useBlocknoteEditorStore } from "@/lib/store";
+import { useBlocknoteEditorStore, useChatStore } from "@/lib/store";
 import { HighlightTypeEnum } from "@prisma/client";
 import { toast } from "@/components/ui/use-toast";
 import { AppRouter } from "@/server/api/root";
 import { inferRouterOutputs } from "@trpc/server";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -397,6 +405,8 @@ const PdfReader = ({
     }
   };
 
+  const { sendMessage } = useChatStore();
+
   return (
     <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
       {(pdfDocument) => (
@@ -417,6 +427,7 @@ const PdfReader = ({
           ) => {
             return (
               <TextSelectionPopover
+                sendMessage={sendMessage}
                 content={content}
                 hideTipAndSelection={hideTipAndSelection}
                 position={position}
@@ -495,6 +506,7 @@ const TextSelectionPopover = ({
   hideTipAndSelection,
   position,
   addHighlight,
+  sendMessage,
 }: {
   position: any;
   addHighlight: () => void;
@@ -503,6 +515,7 @@ const TextSelectionPopover = ({
     image?: string | undefined;
   };
   hideTipAndSelection: () => void;
+  sendMessage: ((message: string) => void) | null;
 }) => {
   const OPTIONS = [
     {
@@ -511,32 +524,60 @@ const TextSelectionPopover = ({
         hideTipAndSelection();
       },
       icon: Highlighter,
+      tooltip: "Highlight",
     },
     {
       onClick: () => {
         copyTextToClipboard(content.text, hideTipAndSelection);
+        hideTipAndSelection();
       },
       icon: ClipboardCopy,
+      tooltip: "Copy the text",
     },
-  ];
+    sendMessage && {
+      onClick: () => {
+        sendMessage("**Explain**: " + content.text);
+        hideTipAndSelection();
+      },
+      icon: Lightbulb,
+      tooltip: "Explain the text",
+    },
+    sendMessage && {
+      onClick: () => {
+        sendMessage("**Summarise**: " + content.text);
+        hideTipAndSelection();
+      },
+      icon: BookOpenCheck,
+      tooltip: "Summarise the text",
+    },
+  ].filter(Boolean);
 
   return (
     <div className="relative rounded-md bg-black">
       <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
 
       <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => (
-          <div
-            className="group p-2 hover:cursor-pointer"
-            key={id}
-            onClick={option.onClick}
-          >
-            <option.icon
-              size={18}
-              className="rounded-full text-gray-300 group-hover:text-gray-50"
-            />
-          </div>
-        ))}
+        {OPTIONS.map((option, id) => {
+          if (!option) return null;
+          return (
+            <div
+              className="group p-2 hover:cursor-pointer"
+              key={id}
+              onClick={option.onClick}
+            >
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <option.icon className="h-5 w-5 rounded-full text-gray-300 group-hover:text-gray-50" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{option.tooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
