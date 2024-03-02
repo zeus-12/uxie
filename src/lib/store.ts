@@ -22,3 +22,13 @@ export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
   editor: null,
   setEditor: (editor: any) => set({ editor }),
 }));
+
+interface ChatMessageStore {
+  sendMessage: null | ((message: string) => void);
+  setSendMessage: (sendMessage: (message: string) => void) => void;
+}
+export const useChatStore = create<ChatMessageStore>((set) => ({
+  sendMessage: null,
+  setSendMessage: (sendMessage: (message: string) => void) =>
+    set({ sendMessage }),
+}));

@@ -3,6 +3,7 @@ import FeatureCard from "@/components/FeatureCard";
 import { SpinnerCentered } from "@/components/Spinner";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
+import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
 import { BanIcon, Send } from "lucide-react";
@@ -24,6 +25,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
     isLoading,
     stop,
     error,
+    append,
   } = useChat({
     body: {
       docId: docId as string,
@@ -38,6 +40,20 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
       });
     },
   });
+
+  const { setSendMessage } = useChatStore();
+
+  useEffect(() => {
+    const sendMessage = (message: string) => {
+      append({
+        id: crypto.randomUUID(),
+        content: message,
+        role: "user",
+      });
+    };
+
+    setSendMessage(sendMessage);
+  }, []);
 
   //implement autoscrolling, and infinite loading => also fetch the messages from prev session and display
   const { data: prevChatMessages, isLoading: isChatsLoading } =
