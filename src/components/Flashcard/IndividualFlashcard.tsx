@@ -312,11 +312,12 @@ const IndividualFlashcardReport = ({
           </Button>
         </div>
         {/* <p className="mb-4 text-sm text-gray-500">From page 7</p> */}
-        <div className="mb-6 rounded-md bg-[#f7fafc] p-4">
-          <p className="mb-2 font-semibold">Your answer</p>
-          <p className="text-sm">{userResponse}</p>
-        </div>
-
+        {userResponse && (
+          <div className="mb-6 rounded-md bg-[#f7fafc] p-4">
+            <p className="mb-2 font-semibold">Your answer</p>
+            <p className="text-sm">{userResponse}</p>
+          </div>
+        )}
         {(isLoading || completion) && (
           <>
             <h2 className="mb-2 px-2 font-semibold text-gray-600">Feedback</h2>
@@ -327,7 +328,6 @@ const IndividualFlashcardReport = ({
             />
           </>
         )}
-
         <Accordion
           type="single"
           collapsible
