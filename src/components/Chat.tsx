@@ -1,5 +1,6 @@
 import BouncingDotsLoader from "@/components/BouncingDotsLoader";
 import FeatureCard from "@/components/FeatureCard";
+import { SpinnerCentered } from "@/components/Spinner";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -39,24 +40,24 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   });
 
   //implement autoscrolling, and infinite loading => also fetch the messages from prev session and display
-  const { data: prevChatMessages } = api.message.getAllByDocId.useQuery(
-    {
-      docId: docId as string,
-    },
-    {
-      refetchOnWindowFocus: false,
-    },
-  );
+  const { data: prevChatMessages, isLoading: isChatsLoading } =
+    api.message.getAllByDocId.useQuery(
+      {
+        docId: docId as string,
+      },
+      {
+        refetchOnWindowFocus: false,
+      },
+    );
 
   const messageWindowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // this is not the best way to do this, but it works for now
-    if (messageWindowRef.current) {
-      messageWindowRef.current.scrollTop =
-        messageWindowRef.current.scrollHeight;
-    }
-  }, [messages]);
+    messageWindowRef.current?.scrollTo(
+      0,
+      messageWindowRef.current.scrollHeight,
+    );
+  }, [messages, prevChatMessages]);
 
   const { mutate: vectoriseDocMutation, isLoading: isVectorising } =
     api.document.vectorise.useMutation({
@@ -105,6 +106,10 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
         title="Unleash the power of your PDF documents through interactive chat!"
       />
     );
+  }
+
+  if (isChatsLoading) {
+    return <SpinnerCentered />;
   }
 
   return (
