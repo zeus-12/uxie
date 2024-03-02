@@ -42,16 +42,12 @@
 
 - [ ] add max length for all input boxes. chat, feedback, notes.
 - [ ] Run the seogets script
-- [ ] for area highlights, create a custom component with:
-
-      - [ ] imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
-      update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. => [issue fixed!](https://github.com/TypeCellOS/BlockNote/issues/410)
-
-      - [ ] and the yellow leftborder which takes to the highlight on click
+- [ ] for area highlights, create a custom component with: - [ ] imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
+      update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. => [issue fixed!](https://github.com/TypeCellOS/BlockNote/issues/410) - [ ] and the yellow leftborder which takes to the highlight on click
 
 - [ ] implement ratelimit using redis kv => checkout upstash
 - [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
-- [ ] add download flashcards in csv,anki format.
+- [ ] add download flashcards in csv,anki format ( apkg format), also add dl notes in pdf format ([html2pdf lib](https://ekoopmans.github.io/html2pdf.js/) should work)
 - [ ] better error,loading pages => abstract this logic to hook / component
 - [ ] editor loads with empty data before the data is loaded.
 - [ ] setup permissions inside liveblocks dashboard
@@ -72,8 +68,6 @@
 
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] maybe swap uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing. (see whether i should save this or call this every time => on how much resource it takes)
-- [ ] have a "summarise", "explain" option right next to highlight text on selecting the text.
-- [ ] export to anki (apkg format)
 
 ### Pinecone Setting up guide
 
