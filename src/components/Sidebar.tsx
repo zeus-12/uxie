@@ -71,6 +71,7 @@ const Sidebar = ({
   );
 
   useEffect(() => {
+    // update activeIndex when tab changes externally (using switchSidebarTabToChat fn)
     if (tab && tabNames.includes(tab)) {
       setActiveIndex(tab);
     }
