@@ -517,6 +517,17 @@ const TextSelectionPopover = ({
   hideTipAndSelection: () => void;
   sendMessage: ((message: string) => void) | null;
 }) => {
+  const router = useRouter();
+
+  const switchSidebarTabToChat = () => {
+    router.push({
+      query: {
+        ...router.query,
+        tab: "chat",
+      },
+    });
+  };
+
   const OPTIONS = [
     {
       onClick: () => {
@@ -537,6 +548,7 @@ const TextSelectionPopover = ({
     sendMessage && {
       onClick: () => {
         sendMessage("**Explain**: " + content.text);
+        switchSidebarTabToChat();
         hideTipAndSelection();
       },
       icon: Lightbulb,
@@ -545,6 +557,7 @@ const TextSelectionPopover = ({
     sendMessage && {
       onClick: () => {
         sendMessage("**Summarise**: " + content.text);
+        switchSidebarTabToChat();
         hideTipAndSelection();
       },
       icon: BookOpenCheck,
