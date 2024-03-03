@@ -11,7 +11,7 @@ import { ClientSideSuspense } from "@liveblocks/react";
 import { SpinnerPage } from "@/components/Spinner";
 import { useRouter } from "next/router";
 import InviteCollab from "./InviteCollab";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Flashcards from "@/components/Flashcard";
 import { Badge } from "@/components/ui/badge";
 
@@ -69,6 +69,12 @@ const Sidebar = ({
   const [activeIndex, setActiveIndex] = useState(
     tab && tabNames.includes(tab) ? tab : "notes",
   );
+
+  useEffect(() => {
+    if (tab && tabNames.includes(tab)) {
+      setActiveIndex(tab);
+    }
+  }, [tab]);
 
   return (
     <div className="bg-gray-50">
