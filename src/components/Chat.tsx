@@ -180,10 +180,11 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="my-1 flex w-full ">
+        <div className="mb-2 mt-1 flex w-full ">
           <TextareaAutosize
-            placeholder="Ask any question..."
-            className="flex-1 resize-none rounded-2xl border border-gray-300 p-2 "
+            maxLength={1000}
+            placeholder="Enter your question (max 1,000 characters)"
+            className="flex-1 resize-none rounded-3xl border border-gray-300 px-3 py-2 font-normal"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                 e.preventDefault();
