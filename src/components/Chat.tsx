@@ -159,7 +159,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
                 m.role === "user" &&
                   "prose-invert bg-blue-500 text-gray-50 prose-code:text-gray-100",
                 m.role === "assistant" && "bg-gray-100 ",
-                "prose rounded-xl px-3 py-1 prose-ul:pl-2 prose-li:px-1",
+                "prose rounded-xl px-3 py-1 prose-ul:pl-2 prose-li:px-2",
               )}
             >
               {m.content}
