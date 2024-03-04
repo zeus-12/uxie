@@ -134,7 +134,7 @@ const Sidebar = ({
         {[
           {
             value: "notes",
-            tw: "flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll",
+            tw: "flex-1 overflow-scroll border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll",
             children: (
               <RoomProvider
                 id={`doc-${documentId}`}
@@ -159,12 +159,12 @@ const Sidebar = ({
           },
           {
             value: "chat",
-            tw: " p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
+            tw: " p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll ",
             children: <Chat isVectorised={isVectorised} />,
           },
           {
             value: "flashcards",
-            tw: " p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-4rem)] w-full overflow-scroll ",
+            tw: " p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll ",
             children: <Flashcards />,
           },
         ].map((item) => (
