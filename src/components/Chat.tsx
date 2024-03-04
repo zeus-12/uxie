@@ -131,7 +131,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   return (
     <div className="flex h-full w-full flex-col gap-2 overflow-hidden">
       <div
-        className="hideScrollbar flex flex-1 flex-col gap-2 overflow-auto"
+        className="hideScrollbar flex flex-1 flex-col gap-3 overflow-auto"
         ref={messageWindowRef}
       >
         {[
@@ -159,7 +159,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
                 m.role === "user" &&
                   "prose-invert bg-blue-500 text-gray-50 prose-code:text-gray-100",
                 m.role === "assistant" && "bg-gray-100 ",
-                "prose rounded-xl px-3 py-1",
+                "prose rounded-2xl px-3 py-1 prose-li:px-0",
               )}
             >
               {m.content}
@@ -180,10 +180,10 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="flex w-full rounded-md border shadow-xl">
+        <div className="my-1 flex w-full ">
           <TextareaAutosize
             placeholder="Ask any question..."
-            className="flex-1 resize-none rounded border-0 border-gray-300 p-2"
+            className="flex-1 resize-none rounded-2xl border border-gray-300 p-2 "
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                 e.preventDefault();
@@ -199,17 +199,17 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             maxRows={4}
           />
           {isLoading ? (
-            <button className="w-fit bg-gray-50 px-2">
+            <button className="w-fit px-2">
               <BanIcon size={24} className="text-gray-500" onClick={stop} />
             </button>
           ) : (
             <button
-              className="group w-fit rounded-ee-md rounded-se-md bg-blue-500 px-2"
+              className="group w-fit rounded-ee-md rounded-se-md px-2"
               type="submit"
             >
               <Send
                 size={24}
-                className="text-gray-100 group-hover:text-gray-200"
+                className=" text-gray-600 group-hover:text-gray-700"
               />
             </button>
           )}
