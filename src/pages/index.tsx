@@ -83,7 +83,7 @@ const HeroSection = () => {
           </Balancer>
         </p>
 
-        <p className="2xl:text-md text-base text-gray-500 md:text-lg">
+        <p className="2xl:text-md text-center text-base text-gray-500 md:text-lg">
           Fueling your learning journey, every step of the way
         </p>
         <Link href="/f" className="group">
