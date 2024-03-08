@@ -1,6 +1,6 @@
 export const SEO = {
   title: "Uxie",
-  description: "Create. Collaborate. Captivate.",
+  description: "Revolutionise your Learning Experience.",
   openGraph: {
     type: "website",
     locale: "en_US",
