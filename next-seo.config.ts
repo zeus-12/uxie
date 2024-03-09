@@ -8,7 +8,7 @@ export const SEO = {
     // // url: "https://uxie.vercel.app/",
     siteName: "Uxie",
     images: [
-      { url: "https://uxie.vercel.app/logo.png" },
+      // { url: "https://uxie.vercel.app/logo.png" },
       {
         url: "https://uxie.vercel.app/og.png",
         width: 800,
