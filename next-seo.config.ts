@@ -7,7 +7,16 @@ export const SEO = {
     url: "UXIE",
     // // url: "https://uxie.vercel.app/",
     siteName: "Uxie",
-    images: [{ url: "https://uxie.vercel.app/assets/logo.png" }],
+    images: [
+      { url: "https://uxie.vercel.app/logo.png" },
+      {
+        url: "https://uxie.vercel.app/og.png",
+        width: 800,
+        height: 600,
+        alt: "Og Image",
+        type: "image/jpeg",
+      },
+    ],
   },
 
   themeColor: "light",
