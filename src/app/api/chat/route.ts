@@ -98,7 +98,7 @@ export async function POST(req: Request, res: Response) {
         AI assistant will answer the questions in Markdown format with clear headings and lists.
         `,
       },
-      ...messages.filter((message: Message) => message.role === "user"),
+      ...messages,
     ],
     //   messages: [
     //     {
