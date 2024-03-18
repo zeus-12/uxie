@@ -184,7 +184,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
           <TextareaAutosize
             maxLength={1000}
             placeholder="Enter your question (max 1,000 characters)"
-            className="flex-1 resize-none rounded-3xl border border-gray-300 px-3 py-2 font-normal"
+            className="flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2 font-normal"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                 e.preventDefault();
