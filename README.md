@@ -77,6 +77,7 @@ Best part? It's completely free (for as long as I can bear the cost XD) and [ope
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] maybe swap uploadthing with `cloudinary` => also provides the getFirstPage of pdf thing, and use ocr (document the prices.)
 - [ ] Run the seogets script
+- [ ] add turbopack
 
 ### Pinecone Setting up guide
 
