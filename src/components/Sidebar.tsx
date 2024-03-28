@@ -1,19 +1,19 @@
 import Chat from "@/components/Chat";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
 import Editor from "@/components/Editor";
-import { saveAs } from "file-saver";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
-import { useBlocknoteEditorStore } from "@/lib/store";
-import { RoomProvider } from "liveblocks.config";
-import { ClientSideSuspense } from "@liveblocks/react";
-import { SpinnerPage } from "@/components/Spinner";
-import { useRouter } from "next/router";
-import InviteCollab from "./InviteCollab";
-import { useEffect, useState } from "react";
 import Flashcards from "@/components/Flashcard";
+import { SpinnerPage } from "@/components/Spinner";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useBlocknoteEditorStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { ClientSideSuspense } from "@liveblocks/react";
+import { saveAs } from "file-saver";
+import { RoomProvider } from "liveblocks.config";
+import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import InviteCollab from "./InviteCollab";
 
 const TABS = [
   {

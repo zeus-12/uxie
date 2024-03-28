@@ -1,12 +1,21 @@
-import { useEffect } from "react";
-import {
-  PdfLoader,
-  PdfHighlighter,
-  Highlight,
-  Popup,
-  AreaHighlight,
-} from "react-pdf-highlighter";
 import { SpinnerPage } from "@/components/Spinner";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "@/components/ui/use-toast";
+import { api } from "@/lib/api";
+import { useBlocknoteEditorStore, useChatStore } from "@/lib/store";
+import { cn, copyTextToClipboard } from "@/lib/utils";
+import { AppRouter } from "@/server/api/root";
+import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
+import { insertOrUpdateBlock } from "@blocknote/core";
+import { createId } from "@paralleldrive/cuid2";
+import { HighlightTypeEnum } from "@prisma/client";
+import { inferRouterOutputs } from "@trpc/server";
 import {
   BookOpenCheck,
   ChevronLeftIcon,
@@ -16,24 +25,15 @@ import {
   TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
-import { buttonVariants } from "@/components/ui/button";
-import { cn, copyTextToClipboard } from "@/lib/utils";
-import { createId } from "@paralleldrive/cuid2";
-import { useBlocknoteEditorStore, useChatStore } from "@/lib/store";
-import { HighlightTypeEnum } from "@prisma/client";
-import { toast } from "@/components/ui/use-toast";
-import { AppRouter } from "@/server/api/root";
-import { inferRouterOutputs } from "@trpc/server";
+import { useEffect } from "react";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { insertOrUpdateBlock } from "@blocknote/core";
+  AreaHighlight,
+  Highlight,
+  PdfHighlighter,
+  PdfLoader,
+  Popup,
+} from "react-pdf-highlighter";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 

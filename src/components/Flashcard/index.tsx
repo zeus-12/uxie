@@ -1,7 +1,6 @@
 import FeatureCard from "@/components/FeatureCard";
 import IndividualFlashcard from "@/components/Flashcard/IndividualFlashcard";
-import { Spinner, SpinnerPage } from "@/components/Spinner";
-import { Button } from "@/components/ui/button";
+import { SpinnerPage } from "@/components/Spinner";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";

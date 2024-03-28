@@ -1,12 +1,12 @@
-import { OpenAIStream, StreamingTextResponse, Message } from "ai";
-import { getPineconeClient } from "@/lib/pinecone";
-import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { env } from "@/env.mjs";
-import { prisma } from "@/server/db";
-import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
-import { authOptions } from "@/server/auth";
-import { getServerSession } from "next-auth";
 import fireworks from "@/lib/fireworks";
+import { getPineconeClient } from "@/lib/pinecone";
+import { authOptions } from "@/server/auth";
+import { prisma } from "@/server/db";
+import { OpenAIStream, StreamingTextResponse } from "ai";
+import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
+import { PineconeStore } from "langchain/vectorstores/pinecone";
+import { getServerSession } from "next-auth";
 
 // export const runtime = "edge";
 export async function POST(req: Request, res: Response) {

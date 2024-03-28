@@ -1,6 +1,6 @@
 import {
-  generateUploadDropzone,
   generateReactHelpers,
+  generateUploadDropzone,
 } from "@uploadthing/react";
 
 import type { OurFileRouter } from "@/server/uploadthing";

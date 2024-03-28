@@ -1,7 +1,3 @@
-import { defaultProps, insertOrUpdateBlock } from "@blocknote/core";
-import { createReactBlockSpec } from "@blocknote/react";
-import { AlertCircle, Ban, Check, Info, ShieldAlertIcon } from "lucide-react";
-import { createElement } from "react";
 import {
   Select,
   SelectContent,
@@ -11,6 +7,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BlockNoteEditorType } from "@/types/editor";
+import { defaultProps, insertOrUpdateBlock } from "@blocknote/core";
+import { createReactBlockSpec } from "@blocknote/react";
+import { AlertCircle, Ban, Check, Info, ShieldAlertIcon } from "lucide-react";
+import { createElement } from "react";
 
 const alertTypes = {
   warning: {

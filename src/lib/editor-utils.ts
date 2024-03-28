@@ -6,8 +6,8 @@ import {
 import { HighlighBlock } from "@/components/Editor/CustomBlocks/Highlight";
 import { BlockNoteEditorType } from "@/types/editor";
 import {
-  defaultBlockSpecs,
   BlockNoteSchema,
+  defaultBlockSpecs,
   defaultInlineContentSpecs,
 } from "@blocknote/core";
 import {

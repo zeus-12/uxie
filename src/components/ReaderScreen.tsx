@@ -1,14 +1,14 @@
 import DocViewer from "@/components/DocViewer";
 import Sidebar from "@/components/Sidebar";
 import { SpinnerPage } from "@/components/Spinner";
-import { toast } from "@/components/ui/use-toast";
-import { api } from "@/lib/api";
-import { useRouter } from "next/router";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { toast } from "@/components/ui/use-toast";
+import { api } from "@/lib/api";
+import { useRouter } from "next/router";
 
 const DocViewerPage = () => {
   const { query, push } = useRouter();

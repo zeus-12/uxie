@@ -1,21 +1,13 @@
-import { CollaboratorRole } from "@prisma/client";
-import { useRouter } from "next/router";
-import { TrashIcon, UserPlus, XIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog";
-import { api } from "@/lib/api";
-import { useState } from "react";
-import { toast } from "@/components/ui/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { createId } from "@paralleldrive/cuid2";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -24,6 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { createId } from "@paralleldrive/cuid2";
+import { CollaboratorRole } from "@prisma/client";
+import { TrashIcon, UserPlus, XIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import { useState } from "react";
 
 type CollaboratorRoleValuesUnion = keyof typeof CollaboratorRole;
 

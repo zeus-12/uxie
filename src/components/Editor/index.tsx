@@ -1,39 +1,39 @@
-import {
-  BlockNoteView,
-  useCreateBlockNote,
-  SuggestionMenuController,
-  BasicTextStyleButton,
-  BlockTypeSelect,
-  ColorStyleButton,
-  CreateLinkButton,
-  FormattingToolbar,
-  FormattingToolbarController,
-  ImageCaptionButton,
-  NestBlockButton,
-  ReplaceImageButton,
-  TextAlignButton,
-  UnnestBlockButton,
-  BlockColorsItem,
-  DragHandleMenu,
-  DragHandleMenuItem,
-  SideMenu,
-  SideMenuController,
-  RemoveBlockItem,
-} from "@blocknote/react";
-import { useBlocknoteEditorStore } from "@/lib/store";
-import { useEffect, useRef, useState } from "react";
-import * as Y from "yjs";
-import LiveblocksProvider from "@liveblocks/yjs";
-import { useRoom } from "liveblocks.config";
-import { getRandomLightColor } from "@/lib/utils";
-import { useCompletion } from "ai/react";
 import { toast } from "@/components/ui/use-toast";
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
+import { useBlocknoteEditorStore } from "@/lib/store";
+import { getRandomLightColor } from "@/lib/utils";
 import { YjsEditorProps } from "@/types/editor";
 import {
   filterSuggestionItems,
   uploadToTmpFilesDotOrg_DEV_ONLY,
 } from "@blocknote/core";
+import {
+  BasicTextStyleButton,
+  BlockColorsItem,
+  BlockNoteView,
+  BlockTypeSelect,
+  ColorStyleButton,
+  CreateLinkButton,
+  DragHandleMenu,
+  DragHandleMenuItem,
+  FormattingToolbar,
+  FormattingToolbarController,
+  ImageCaptionButton,
+  NestBlockButton,
+  RemoveBlockItem,
+  ReplaceImageButton,
+  SideMenu,
+  SideMenuController,
+  SuggestionMenuController,
+  TextAlignButton,
+  UnnestBlockButton,
+  useCreateBlockNote,
+} from "@blocknote/react";
+import LiveblocksProvider from "@liveblocks/yjs";
+import { useCompletion } from "ai/react";
+import { useRoom } from "liveblocks.config";
+import { useEffect, useRef, useState } from "react";
+import * as Y from "yjs";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
 import AiPopover, { AiPopoverPropsRect } from "@/components/Editor/AiPopover";
 

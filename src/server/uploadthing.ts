@@ -1,4 +1,3 @@
-import { vectoriseDocument } from "@/lib/vectorise";
 import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";

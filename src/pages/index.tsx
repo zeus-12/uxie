@@ -1,16 +1,16 @@
 import Features from "@/components/Features";
-import YoutubeEmbed from "@/components/YoutubeEmbed";
-import { Button } from "@/components/ui/button";
 import SlideUpWhenVisible from "@/components/SlideUpWhenVisible";
-import Link from "next/link";
+import YoutubeEmbed from "@/components/YoutubeEmbed";
+import ButtonRotatingBackgroundGradient from "@/components/ui/ButtonRotatingBackgroundGradient";
+import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   ChevronRight,
   Github,
   MessageSquarePlus,
 } from "lucide-react";
+import Link from "next/link";
 import Balancer from "react-wrap-balancer";
-import ButtonRotatingBackgroundGradient from "@/components/ui/ButtonRotatingBackgroundGradient";
 
 export default function Home() {
   return (
