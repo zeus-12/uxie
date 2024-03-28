@@ -11,11 +11,11 @@ patchedDependencies:
 
 dependencies:
   '@blocknote/core':
-    specifier: ^0.12.1
-    version: 0.12.1
+    specifier: ^0.12.3
+    version: 0.12.3
   '@blocknote/react':
-    specifier: ^0.12.2
-    version: 0.12.2(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
+    specifier: ^0.12.3
+    version: 0.12.3(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
   '@hookform/resolvers':
     specifier: ^3.3.1
     version: 3.3.1(react-hook-form@7.47.0)
@@ -321,8 +321,8 @@ packages:
       to-fast-properties: 2.0.0
     dev: false
 
-  /@blocknote/core@0.12.1:
-    resolution: {integrity: sha512-J2cVTshMtCjBZgwOUUXntDZ2vq2Szg0L3U+95iJ10l/Gb0bRtBkW+gXN4mpNTNgAdPOIG9010nGnd8M904+gYw==}
+  /@blocknote/core@0.12.3:
+    resolution: {integrity: sha512-ohluHfdyPgdoy2+TnRcuRAqagIcGb25sVqcR7UI7qFH+Zg66emAbLEdGvJEliuAj41XxcNnmeGUm+g9uEUg8FQ==}
     dependencies:
       '@tiptap/core': 2.1.11(@tiptap/pm@2.1.11)
       '@tiptap/extension-bold': 2.1.11(@tiptap/core@2.1.11)
@@ -367,13 +367,13 @@ packages:
       - supports-color
     dev: false
 
-  /@blocknote/react@0.12.2(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
-    resolution: {integrity: sha512-oDIBeXHpj4y6KnAbbvqXXV/vDF0QOjfizqi3mJ+vhVHMCrznDeIAsWx0UG9sCiK/zUcYysxSAyQUADAGFbDdUQ==}
+  /@blocknote/react@0.12.3(@tiptap/pm@2.1.11)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-J/5YDnrUJ8iQsRLaIyn+qU8rvDQPIyVC/Q7FM1VMG+eWqvaeW0WfQHWxYe2+pdzXcyShVwM+hkU87bHy0uZs6A==}
     peerDependencies:
       react: ^18
       react-dom: ^18
     dependencies:
-      '@blocknote/core': 0.12.1
+      '@blocknote/core': 0.12.3
       '@floating-ui/react': 0.26.9(react-dom@18.2.0)(react@18.2.0)
       '@mantine/core': 7.5.3(@mantine/hooks@7.5.3)(@types/react@18.2.25)(react-dom@18.2.0)(react@18.2.0)
       '@mantine/hooks': 7.5.3(react@18.2.0)
