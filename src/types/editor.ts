@@ -1,8 +1,7 @@
-import { blockSchema } from "@/lib/editor-utils";
-import { BlockNoteEditor } from "@blocknote/core";
+import { schema } from "@/lib/editor-utils";
 import * as Y from "yjs";
 
-export type BlockNoteEditorType = BlockNoteEditor<typeof blockSchema>;
+export type BlockNoteEditorType = typeof schema.BlockNoteEditor;
 
 export type YjsEditorProps = {
   doc: Y.Doc;
