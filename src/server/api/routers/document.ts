@@ -1,8 +1,8 @@
-import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { TRPCError } from "@trpc/server";
-import { CollaboratorRole } from "@prisma/client";
 import { vectoriseDocument } from "@/lib/vectorise";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { CollaboratorRole } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 export const documentRouter = createTRPCRouter({
   getDocData: protectedProcedure

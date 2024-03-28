@@ -1,12 +1,21 @@
-import { useEffect } from "react";
-import {
-  PdfLoader,
-  PdfHighlighter,
-  Highlight,
-  Popup,
-  AreaHighlight,
-} from "react-pdf-highlighter";
 import { SpinnerPage } from "@/components/Spinner";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "@/components/ui/use-toast";
+import { api } from "@/lib/api";
+import { useBlocknoteEditorStore, useChatStore } from "@/lib/store";
+import { cn, copyTextToClipboard } from "@/lib/utils";
+import { AppRouter } from "@/server/api/root";
+import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
+import { insertOrUpdateBlock } from "@blocknote/core";
+import { createId } from "@paralleldrive/cuid2";
+import { HighlightTypeEnum } from "@prisma/client";
+import { inferRouterOutputs } from "@trpc/server";
 import {
   BookOpenCheck,
   ChevronLeftIcon,
@@ -16,23 +25,15 @@ import {
   TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { api } from "@/lib/api";
 import { useRouter } from "next/router";
-import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
-import { buttonVariants } from "@/components/ui/button";
-import { cn, copyTextToClipboard } from "@/lib/utils";
-import { createId } from "@paralleldrive/cuid2";
-import { useBlocknoteEditorStore, useChatStore } from "@/lib/store";
-import { HighlightTypeEnum } from "@prisma/client";
-import { toast } from "@/components/ui/use-toast";
-import { AppRouter } from "@/server/api/root";
-import { inferRouterOutputs } from "@trpc/server";
+import { useEffect } from "react";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  AreaHighlight,
+  Highlight,
+  PdfHighlighter,
+  PdfLoader,
+  Popup,
+} from "react-pdf-highlighter";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -173,65 +174,23 @@ const DocViewer = ({
     if (type === HighlightContentType.TEXT) {
       if (!content || !highlightId) return;
 
-      const block = editor.getTextCursorPosition().block;
-      // hack
-      const blockIsEmpty = (block.content as any[])?.length === 0;
-
-      if (blockIsEmpty) {
-        editor.updateBlock(block, {
-          content: content,
-          props: {
-            highlightId: highlightId,
-          },
-          type: "highlight",
-        });
-      } else {
-        editor.insertBlocks(
-          [
-            {
-              content: content,
-              props: {
-                highlightId: highlightId,
-              },
-              type: "highlight",
-            },
-          ],
-          editor.getTextCursorPosition().block,
-          "after",
-        );
-        editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
-      }
+      insertOrUpdateBlock(editor, {
+        content,
+        props: {
+          highlightId,
+        },
+        type: "highlight",
+      });
     } else {
       if (!content || !highlightId) return;
 
       try {
-        const block = editor.getTextCursorPosition().block;
-        const blockIsEmpty = (block.content as any[])?.length === 0;
-
-        if (blockIsEmpty) {
-          editor.updateBlock(block, {
-            props: {
-              url: content,
-            },
-            type: "image",
-          });
-        } else {
-          editor.insertBlocks(
-            [
-              {
-                props: {
-                  url: content,
-                },
-                type: "image",
-              },
-            ],
-            editor.getTextCursorPosition().block,
-            "after",
-          );
-          editor.setTextCursorPosition(
-            editor.getTextCursorPosition().nextBlock!,
-          );
-        }
+        insertOrUpdateBlock(editor, {
+          props: {
+            url: content,
+          },
+          type: "image",
+        });
       } catch (err: any) {
         console.log(err.message, "errnes");
       }
@@ -580,8 +539,8 @@ const TextSelectionPopover = ({
             >
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
-                    <option.icon className="h-5 w-5 rounded-full text-gray-300 group-hover:text-gray-50" />
+                  <TooltipTrigger asChild>
+                    <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{option.tooltip}</p>

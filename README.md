@@ -2,23 +2,24 @@
 
 [![thumbnail](./public/thumbnail.png)](https://www.youtube.com/watch?v=m97zcPWSceU)
 
-a PDF reader app designed to revolutionise your learning experience!
+PDF reader app designed to revolutionise your learning experience!
 
-🚀 Developed with features like:  
-📝 Annotation, note-taking, and collaboration tools  
-📚 Integrates with LLM for enhanced learning  
-💡 Generates flashcards with LLM feedback
+🚀 Developed with features like:
 
-Originally started as a hackathon project and ended up winning 🥇!, Uxie has since evolved with even more exciting features.  
-Best part? It's completely free (for as long as I can bear the cost XD) and [open-source](https://github.com/zeus-12/uxie). I'd love for you to give Uxie a try and share your valuable feedback.
+- 📝 Annotation, note-taking, and collaboration tools
+- 📚 Integrates with LLM for enhanced learning
+- 💡 Generates flashcards with LLM feedback
+
+Originally started as a hackathon project which I ended up winning 🥇!Uxie has since evolved with even more exciting features.  
+I'd love for you to give Uxie a try and share your valuable [feedback](https://uxie.vercel.app/feedback).
 
 ### Built using
 
-- **Nextjs** App dir For the frontend and serverless api routes
-- **tRPC** For typesafe api routes
-- **zod** For validation
+- **Nextjs** Frontend and Serverless api routes
+- **tRPC** For typesafe apis
+- **Zod** For validation
 - **Typescript** For type safety
-- **Tailwind CSS** For styling
+- **Tailwind CSS** For CSS
 - **React Query** for data fetching
 - **React Hook Form** for form handling
 - **Shadcn UI + Radix UI** For UI components
@@ -70,6 +71,7 @@ Best part? It's completely free (for as long as I can bear the cost XD) and [ope
   solution seems to be => create separate helper functions (take where, select, etc as params: use relevant prisma types to match each.)
 
 - [ ] fix the size of the highlight popover on small screens
+- [ ] remove the empty block => https://github.com/TypeCellOS/BlockNote/issues/631
 
 ## New ideas
 

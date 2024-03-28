@@ -1,9 +1,9 @@
-import { PineconeStore } from "langchain/vectorstores/pinecone";
-import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 import { env } from "@/env.mjs";
-import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { getPineconeClient } from "@/lib/pinecone";
 import { prisma } from "@/server/db";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
+import { PineconeStore } from "langchain/vectorstores/pinecone";
 
 export const vectoriseDocument = async (fileUrl: string, newFileId: string) => {
   const response = await fetch(fileUrl);

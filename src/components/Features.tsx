@@ -1,9 +1,8 @@
-import { useEffect } from "react";
-import { useInView } from "framer-motion";
-import React, { useRef } from "react";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { useFeatureStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { useInView } from "framer-motion";
+import Image from "next/image";
+import { useEffect, useRef } from "react";
 
 const features = [
   {

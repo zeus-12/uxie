@@ -1,7 +1,3 @@
-import { defaultProps } from "@blocknote/core";
-import { ReactSlashMenuItem, createReactBlockSpec } from "@blocknote/react";
-import { AlertCircle, Ban, Check, Info, ShieldAlertIcon } from "lucide-react";
-import { createElement } from "react";
 import {
   Select,
   SelectContent,
@@ -10,7 +6,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { blockSchema } from "@/lib/editor-utils";
+import { BlockNoteEditorType } from "@/types/editor";
+import { defaultProps, insertOrUpdateBlock } from "@blocknote/core";
+import { createReactBlockSpec } from "@blocknote/react";
+import { AlertCircle, Ban, Check, Info, ShieldAlertIcon } from "lucide-react";
+import { createElement } from "react";
 
 const alertTypes = {
   warning: {
@@ -35,7 +35,9 @@ const alertTypes = {
   },
 } as const;
 
-export const alertBlock = createReactBlockSpec(
+type AlertTypeKeys = keyof typeof alertTypes;
+
+export const AlertBlock = createReactBlockSpec(
   {
     type: "alert",
     propSchema: {
@@ -57,22 +59,18 @@ export const alertBlock = createReactBlockSpec(
         }}
       >
         <Select
-          // NOT WORKING PROPERLY
           onValueChange={(value) => {
-            // console.log(props.block.props.type);
-            props.block.props.type = value as
-              | "warning"
-              | "error"
-              | "info"
-              | "success";
+            props.editor.updateBlock(props.block, {
+              type: "alert",
+              props: { type: value as AlertTypeKeys },
+            });
           }}
-          // value={props.block.props.type}
         >
           <SelectTrigger className="w-fit">
             <SelectValue>
               <div
+                className="mx-[12px] flex h-[18px] w-[18px] select-none items-center justify-center rounded-[16px] hover:cursor-pointer"
                 style={{
-                  ...alertIconWrapperStyles,
                   backgroundColor: alertTypes[props.block.props.type].color,
                 }}
                 contentEditable={false}
@@ -114,40 +112,14 @@ export const alertBlock = createReactBlockSpec(
   },
 );
 
-const alertIconWrapperStyles = {
-  borderRadius: "16px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  marginLeft: "12px",
-  marginRight: "12px",
-  height: "18px",
-  width: "18px",
-  userSelect: "none",
-  cursor: "pointer",
-} as const;
-
-export const insertAlert: ReactSlashMenuItem<typeof blockSchema> = {
-  name: "Alert",
-  execute: (editor) => {
-    const block = editor.getTextCursorPosition().block;
-    const blockIsEmpty = (block.content as any[])?.length === 0;
-
-    if (blockIsEmpty) {
-      editor.updateBlock(block, { type: "alert" });
-    } else {
-      editor.insertBlocks(
-        [
-          {
-            type: "alert",
-          },
-        ],
-        editor.getTextCursorPosition().block,
-        "after",
-      );
-      editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
-    }
+export const insertAlert = (editor: BlockNoteEditorType) => ({
+  title: "Alert",
+  onItemClick: () => {
+    insertOrUpdateBlock(editor, {
+      type: "alert",
+    });
   },
+
   aliases: [
     "alert",
     "notification",
@@ -161,4 +133,4 @@ export const insertAlert: ReactSlashMenuItem<typeof blockSchema> = {
   group: "Other",
   icon: <AlertCircle />,
   hint: "Used to emphasize text",
-};
+});

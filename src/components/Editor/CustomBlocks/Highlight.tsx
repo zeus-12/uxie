@@ -9,7 +9,7 @@ export const highlightPropSchema = {
   },
 } satisfies PropSchema;
 
-export const highlightBlock = createReactBlockSpec(
+export const HighlighBlock = createReactBlockSpec(
   {
     type: "highlight",
     propSchema: {
@@ -32,7 +32,7 @@ export const highlightBlock = createReactBlockSpec(
           className="h-full w-2 rounded-full bg-yellow-400 hover:cursor-pointer"
         />
         <div className="flex-1">
-          <div className={"inline-content"} ref={props.contentRef} />
+          <div className="inline-content" ref={props.contentRef} />
         </div>
       </div>
     ),

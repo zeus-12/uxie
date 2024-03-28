@@ -1,6 +1,6 @@
-import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 export const messageRouter = createTRPCRouter({
   getAllByDocId: protectedProcedure
