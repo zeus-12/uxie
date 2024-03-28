@@ -33,6 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { insertOrUpdateBlock } from "@blocknote/core";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -173,65 +174,23 @@ const DocViewer = ({
     if (type === HighlightContentType.TEXT) {
       if (!content || !highlightId) return;
 
-      const block = editor.getTextCursorPosition().block;
-      // hack
-      const blockIsEmpty = (block.content as any[])?.length === 0;
-
-      if (blockIsEmpty) {
-        editor.updateBlock(block, {
-          content: content,
-          props: {
-            highlightId: highlightId,
-          },
-          type: "highlight",
-        });
-      } else {
-        editor.insertBlocks(
-          [
-            {
-              content: content,
-              props: {
-                highlightId: highlightId,
-              },
-              type: "highlight",
-            },
-          ],
-          editor.getTextCursorPosition().block,
-          "after",
-        );
-        editor.setTextCursorPosition(editor.getTextCursorPosition().nextBlock!);
-      }
+      insertOrUpdateBlock(editor, {
+        content,
+        props: {
+          highlightId,
+        },
+        type: "highlight",
+      });
     } else {
       if (!content || !highlightId) return;
 
       try {
-        const block = editor.getTextCursorPosition().block;
-        const blockIsEmpty = (block.content as any[])?.length === 0;
-
-        if (blockIsEmpty) {
-          editor.updateBlock(block, {
-            props: {
-              url: content,
-            },
-            type: "image",
-          });
-        } else {
-          editor.insertBlocks(
-            [
-              {
-                props: {
-                  url: content,
-                },
-                type: "image",
-              },
-            ],
-            editor.getTextCursorPosition().block,
-            "after",
-          );
-          editor.setTextCursorPosition(
-            editor.getTextCursorPosition().nextBlock!,
-          );
-        }
+        insertOrUpdateBlock(editor, {
+          props: {
+            url: content,
+          },
+          type: "image",
+        });
       } catch (err: any) {
         console.log(err.message, "errnes");
       }

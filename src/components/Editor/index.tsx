@@ -1,9 +1,25 @@
 import {
   BlockNoteView,
-  ReactSlashMenuItem,
-  useBlockNote,
+  useCreateBlockNote,
+  SuggestionMenuController,
+  BasicTextStyleButton,
+  BlockTypeSelect,
+  ColorStyleButton,
+  CreateLinkButton,
+  FormattingToolbar,
+  FormattingToolbarController,
+  ImageCaptionButton,
+  NestBlockButton,
+  ReplaceImageButton,
+  TextAlignButton,
+  UnnestBlockButton,
+  BlockColorsItem,
+  DragHandleMenu,
+  DragHandleMenuItem,
+  SideMenu,
+  SideMenuController,
+  RemoveBlockItem,
 } from "@blocknote/react";
-import { uploadToTmpFilesDotOrg_DEV_ONLY } from "@blocknote/core";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
@@ -12,14 +28,15 @@ import { useRoom } from "liveblocks.config";
 import { getRandomLightColor } from "@/lib/utils";
 import { useCompletion } from "ai/react";
 import { toast } from "@/components/ui/use-toast";
+import { getSlashMenuItems, schema } from "@/lib/editor-utils";
+import { YjsEditorProps } from "@/types/editor";
 import {
-  blockSchema,
-  blockSpecs,
-  getPrevText,
-  slashMenuItems,
-} from "@/lib/editor-utils";
-import { BlockNoteEditorType, YjsEditorProps } from "@/types/editor";
-import { Bot } from "lucide-react";
+  filterSuggestionItems,
+  uploadToTmpFilesDotOrg_DEV_ONLY,
+} from "@blocknote/core";
+// import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
+
+import AiPopover from "@/components/Editor/AiPopover";
 
 export default function Editor({
   canEdit,
@@ -86,10 +103,12 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
   const { complete, completion, isLoading, stop } = useCompletion({
     onFinish: (_prompt, completion) => {
       // select the text that was just inserted
-      // editor?.commands.setTextSelection({
-      //   from: editor.state.selection.from - completion.length,
-      //   to: editor.state.selection.from,
+      // editor?._tiptapEditor.commands.setTextSelection({
+      //   from: editor._tiptapEditor.state.selection.from - completion.length,
+      //   to: editor._tiptapEditor.state.selection.from,
       // });
+
+      editor._tiptapEditor.commands.focus("end");
     },
     onError: (err) => {
       toast({
@@ -101,59 +120,39 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
     },
   });
 
-  const generateAiContent = (editor: BlockNoteEditorType) => {
-    complete(
-      getPrevText(editor._tiptapEditor, {
-        chars: 500,
-        offset: 1,
-      }),
-    );
-  };
-  const insertAi: ReactSlashMenuItem<typeof blockSchema> = {
-    name: "Continue with AI",
-    // @ts-ignore
-    execute: generateAiContent,
-    aliases: ["ai", "fill"],
-    group: "AI",
-    icon: <Bot size={24} />,
-    hint: "Continue your idea with some extra inspiration!",
-  };
+  // const generateAiContent = (editor: BlockNoteEditorType) => {
+  //   complete(
+  //     getPrevText(editor._tiptapEditor, {
+  //       chars: 500,
+  //       offset: 1,
+  //     }),
+  //   );
+  // };
+  // const insertAi: ReactSlashMenuItem<typeof blockSchema> = {
+  //   name: "Continue with AI",
+  //   // @ts-ignore
+  //   execute: generateAiContent,
+  //   aliases: ["ai", "fill"],
+  //   group: "AI",
+  //   icon: <Bot size={24} />,
+  //   hint: "Continue your idea with some extra inspiration!",
+  // };
 
-  const editor = useBlockNote(
+  const editor = useCreateBlockNote(
     {
-      // initialContent: data?.initialNotes
-      //   ? JSON.parse(data.initialNotes)
-      //   : undefined,
       // onEditorContentChange: (editor) => {
       //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       // },
+      schema,
+      // collaboration: {
+      //   provider,
+      //   fragment: doc.getXmlFragment("document-store"),
+      //   user: {
+      //     name: username || "User",
+      //     color: getRandomLightColor(),
+      //   },
+      // },
 
-      editable: canEdit,
-      collaboration: {
-        provider,
-        fragment: doc.getXmlFragment("document-store"),
-        user: {
-          name: username || "User",
-          color: getRandomLightColor(),
-        },
-      },
-
-      onEditorReady: (editor) => {
-        setEditor(editor);
-      },
-      onEditorContentChange: async (editor) => {
-        const block = editor.getTextCursorPosition().block;
-        const blockText = (await editor.blocksToMarkdownLossy([block])).trim();
-        const lastTwo = blockText?.slice(-2);
-        if (lastTwo === "++" && !isLoading) {
-          editor.updateBlock(block, {
-            id: block.id,
-            content: blockText?.slice(0, -2) + " ",
-          });
-          complete(blockText?.slice(-500) ?? "");
-        }
-      },
-      blockSpecs: blockSpecs,
       // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
       domAttributes: {
@@ -161,15 +160,20 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
           class: "my-6",
         },
       },
-      slashMenuItems: [...slashMenuItems, insertAi],
     },
-    [canEdit],
+    [],
   );
+
+  useEffect(() => {
+    if (!editor) return;
+
+    setEditor(editor);
+  }, [editor]);
 
   const prev = useRef("");
 
   useEffect(() => {
-    if (!editor || !editor.ready) return;
+    if (!editor) return;
 
     const streamCompletion = async () => {
       const diff = completion?.slice(prev.current.length);
@@ -185,56 +189,172 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
     };
 
     streamCompletion();
-  }, [isLoading, editor, completion]);
+  }, [isLoading, completion]);
 
-  // add once text selection is available
+  useEffect(() => {
+    if (!editor) return;
 
-  // useEffect(() => {
-  //   if (!editor || !editor.ready) return;
+    // if user presses escape or cmd + z and it's loading,
+    // stop the request, delete the completion, and insert back the "++"
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
+        stop();
+        if (e.key === "Escape") {
+          editor?._tiptapEditor.commands.deleteRange({
+            from: editor._tiptapEditor.state.selection.from - completion.length,
+            to: editor._tiptapEditor.state.selection.from,
+          });
+        }
+        editor?._tiptapEditor.commands.insertContent("++");
+      }
+    };
+    const mousedownHandler = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stop();
+    };
+    if (isLoading) {
+      document.addEventListener("keydown", onKeyDown);
+      window.addEventListener("mousedown", mousedownHandler);
+    } else {
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mousedown", mousedownHandler);
+    }
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mousedown", mousedownHandler);
+    };
+  }, [stop, isLoading, editor, complete, completion.length]);
 
-  //   // if user presses escape or cmd + z and it's loading,
-  //   // stop the request, delete the completion, and insert back the "++"
-  //   const onKeyDown = (e: KeyboardEvent) => {
-  //     if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
-  //       stop();
-  //       if (e.key === "Escape") {
-  //         // editor?.commands.deleteRange({
-  //         //   from: editor.state.selection.from - completion.length,
-  //         //   to: editor.state.selection.from,
-  //         // });
-  //       }
-  //       // editor?.commands.insertContent("++");
-  //     }
-  //   };
-  //   const mousedownHandler = (e: MouseEvent) => {
-  //     e.preventDefault();
-  //     e.stopPropagation();
-  //     stop();
-  //     if (window.confirm("AI writing paused. Continue?")) {
-  //       // complete(editor?.getText() || "");
-  //     }
-  //   };
-  //   if (isLoading) {
-  //     document.addEventListener("keydown", onKeyDown);
-  //     window.addEventListener("mousedown", mousedownHandler);
-  //   } else {
-  //     document.removeEventListener("keydown", onKeyDown);
-  //     window.removeEventListener("mousedown", mousedownHandler);
-  //   }
-  //   return () => {
-  //     document.removeEventListener("keydown", onKeyDown);
-  //     window.removeEventListener("mousedown", mousedownHandler);
-  //   };
-  // }, [stop, isLoading, editor, complete, completion.length]);
+  const [rect, setRect] = useState<null | any>(null);
 
-  if (editor.ready) {
-    return (
+  return (
+    <div>
       <BlockNoteView
+        sideMenu={false}
+        onChange={async () => {
+          const block = editor.getTextCursorPosition().block;
+          const blockText = (
+            await editor.blocksToMarkdownLossy([block])
+          ).trim();
+
+          const lastTwo = blockText?.slice(-2);
+          if (lastTwo === "++" && !isLoading) {
+            editor.updateBlock(block, {
+              id: block.id,
+              content: blockText?.slice(0, -2),
+            });
+            complete(blockText?.slice(-500) ?? "");
+          }
+        }}
         className="w-full flex-1"
         theme={"light"}
         editor={editor}
-      />
-    );
-  }
-  return <></>;
+        slashMenu={false}
+        editable={canEdit}
+        formattingToolbar={false}
+      >
+        <SuggestionMenuController
+          triggerCharacter={"/"}
+          getItems={async (query) =>
+            filterSuggestionItems(getSlashMenuItems(editor), query)
+          }
+        />
+
+        <FormattingToolbarController
+          formattingToolbar={() => (
+            <FormattingToolbar>
+              <BlockTypeSelect key={"blockTypeSelect"} />
+
+              {/* <CommentFormattingToolbarButton key={"customButton"} /> */}
+
+              <ImageCaptionButton key={"imageCaptionButton"} />
+              <ReplaceImageButton key={"replaceImageButton"} />
+
+              <BasicTextStyleButton
+                basicTextStyle={"bold"}
+                key={"boldStyleButton"}
+              />
+              <BasicTextStyleButton
+                basicTextStyle={"italic"}
+                key={"italicStyleButton"}
+              />
+              <BasicTextStyleButton
+                basicTextStyle={"underline"}
+                key={"underlineStyleButton"}
+              />
+              <BasicTextStyleButton
+                basicTextStyle={"strike"}
+                key={"strikeStyleButton"}
+              />
+              <BasicTextStyleButton
+                key={"codeStyleButton"}
+                basicTextStyle={"code"}
+              />
+
+              <TextAlignButton
+                textAlignment={"left"}
+                key={"textAlignLeftButton"}
+              />
+              <TextAlignButton
+                textAlignment={"center"}
+                key={"textAlignCenterButton"}
+              />
+              <TextAlignButton
+                textAlignment={"right"}
+                key={"textAlignRightButton"}
+              />
+
+              <ColorStyleButton key={"colorStyleButton"} />
+
+              <NestBlockButton key={"nestBlockButton"} />
+              <UnnestBlockButton key={"unnestBlockButton"} />
+
+              <CreateLinkButton key={"createLinkButton"} />
+            </FormattingToolbar>
+          )}
+        />
+
+        <SideMenuController
+          sideMenu={(props) => (
+            <SideMenu
+              {...props}
+              dragHandleMenu={(props) => (
+                <DragHandleMenu {...props}>
+                  <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
+                  <DragHandleMenuItem
+                    onClick={() => {
+                      const block = editor.getTextCursorPosition().block;
+                      // TODO select the entire block with the cursor
+
+                      const blockDiv = document.querySelector(
+                        `div[data-id="${block.id}"]`,
+                      ) as HTMLElement;
+
+                      if (!blockDiv) return;
+
+                      const rect = blockDiv.getBoundingClientRect();
+                      const top = rect.top + rect.height;
+                      const left = rect.left;
+                      const width = rect.width;
+
+                      setRect({
+                        top,
+                        left,
+                        width,
+                      });
+                    }}
+                  >
+                    AI
+                  </DragHandleMenuItem>
+                  <BlockColorsItem {...props}>Colors</BlockColorsItem>
+                </DragHandleMenu>
+              )}
+            />
+          )}
+        />
+        {rect && <AiPopover rect={rect} setRect={setRect} />}
+      </BlockNoteView>
+    </div>
+  );
 }
