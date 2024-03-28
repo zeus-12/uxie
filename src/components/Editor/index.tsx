@@ -144,14 +144,14 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
       //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       // },
       schema,
-      // collaboration: {
-      //   provider,
-      //   fragment: doc.getXmlFragment("document-store"),
-      //   user: {
-      //     name: username || "User",
-      //     color: getRandomLightColor(),
-      //   },
-      // },
+      collaboration: {
+        provider,
+        fragment: doc.getXmlFragment("document-store"),
+        user: {
+          name: username || "User",
+          color: getRandomLightColor(),
+        },
+      },
 
       // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
