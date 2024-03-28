@@ -1,7 +1,7 @@
 import Features from "@/components/Features";
 import YoutubeEmbed from "@/components/YoutubeEmbed";
 import { Button } from "@/components/ui/button";
-import SlideUpWhenVisible from "@/hooks/SlideUpWhenVisible";
+import SlideUpWhenVisible from "@/components/SlideUpWhenVisible";
 import Link from "next/link";
 import {
   ArrowRight,
