@@ -35,8 +35,7 @@ import {
   uploadToTmpFilesDotOrg_DEV_ONLY,
 } from "@blocknote/core";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
-
-import AiPopover from "@/components/Editor/AiPopover";
+import AiPopover, { AiPopoverPropsRect } from "@/components/Editor/AiPopover";
 
 export default function Editor({
   canEdit,
@@ -226,7 +225,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
     };
   }, [stop, isLoading, editor, complete, completion.length]);
 
-  const [rect, setRect] = useState<null | any>(null);
+  const [rect, setRect] = useState<null | AiPopoverPropsRect>(null);
 
   return (
     <div>
@@ -342,6 +341,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
                         top,
                         left,
                         width,
+                        blockId: block.id,
                       });
                     }}
                   >
