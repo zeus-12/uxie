@@ -1,4 +1,5 @@
-import { Popover, PopoverContent } from "@/components/ui/popover";
+import BouncingDotsLoader from "@/components/BouncingDotsLoader";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,15 +7,14 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { useCompletion } from "ai/react";
+import { Popover, PopoverContent } from "@/components/ui/popover";
 import { toast } from "@/components/ui/use-toast";
+import { useElementSize } from "@/hooks/useElementSize";
+import { useBlockNoteEditor } from "@blocknote/react";
+import { useCompletion } from "ai/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useElementSize } from "@/hooks/useElementSize";
-import BouncingDotsLoader from "@/components/BouncingDotsLoader";
-import { useBlockNoteEditor } from "@blocknote/react";
 
 type AiPopoverProps = {
   rect: AiPopoverPropsRect;
@@ -70,10 +70,8 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
       title: "Replace selection",
 
       onClick: () => {
-        console.log("clicked", curIndex);
         if (curIndex === null) return;
         const text = completions[curIndex];
-        console.log(text);
         editor.updateBlock(rect.blockId, {
           content: text,
         });
