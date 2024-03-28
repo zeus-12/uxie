@@ -533,14 +533,14 @@ const TextSelectionPopover = ({
           if (!option) return null;
           return (
             <div
-              className="group p-2 hover:cursor-pointer"
+              className="group px-2 py-[0.3rem] hover:cursor-pointer"
               key={id}
               onClick={option.onClick}
             >
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
-                    <option.icon className="h-5 w-5 rounded-full text-gray-300 group-hover:text-gray-50" />
+                    <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{option.tooltip}</p>
