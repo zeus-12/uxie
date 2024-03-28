@@ -2,7 +2,7 @@ import {
   AlertBlock,
   insertAlert,
 } from "@/components/Editor/CustomBlocks/Alert";
-import { Comment } from "@/components/Editor/CustomBlocks/Comment";
+// import { Comment } from "@/components/Editor/CustomBlocks/Comment";
 import { HighlighBlock } from "@/components/Editor/CustomBlocks/Highlight";
 import { BlockNoteEditorType } from "@/types/editor";
 import {
@@ -40,7 +40,7 @@ export const schema = BlockNoteSchema.create({
   },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
-    comment: Comment,
+    // comment: Comment,
   },
 });
 
