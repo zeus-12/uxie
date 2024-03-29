@@ -12,8 +12,8 @@ import { toast } from "@/components/ui/use-toast";
 import { useElementSize } from "@/hooks/useElementSize";
 import { useBlockNoteEditor } from "@blocknote/react";
 import { useCompletion } from "ai/react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 type AiPopoverProps = {
@@ -36,6 +36,7 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
   const { complete, completion, stop, isLoading } = useCompletion({
     onFinish: (_prompt, completion) => {
       setCompletions((prev) => [...prev, completion]);
+      inputRef.current?.focus();
     },
     onError: (err) => {
       toast({
@@ -61,6 +62,8 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
   const incrementCur = () => {
     setCurIndex(completions.length);
   };
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   if (!rect) return;
 
@@ -118,7 +121,7 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
       >
         <div ref={ref}>
           {(isLoading || responseExists) && (
-            <ReactMarkdown className="px-2 py-1">
+            <ReactMarkdown className="px-2 py-1 prose ">
               {responseExists ? completions[curIndex] : completion}
             </ReactMarkdown>
           )}
@@ -137,6 +140,7 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                 <Button
                   variant="ghost"
                   onClick={stop}
+                  size="sm"
                   className="p-1 hover:cursor-pointer"
                 >
                   <p>Stop</p>
@@ -145,30 +149,35 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
             </div>
           ) : (
             <div className="flex justify-between">
-              <Input
-                className="shadow-0 flex-1 resize-none rounded-md border-0 px-3 py-2 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                autoFocus={true}
-                placeholder={
-                  responseExists
-                    ? "Tell AI what to do next"
-                    : "Ask AI to edit or generate..."
-                }
-                onKeyDown={async (e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    incrementCur();
-                    const block = editor.getBlock(rect.blockId);
-                    if (!block) return;
-                    const text = await editor.blocksToMarkdownLossy([block]);
-                    // @ts-ignore
-                    complete(`${e.target.value}: ${text}`);
+              <div className="flex items-center gap-2 px-3 py-2 w-full">
+                <Sparkles className="w-5 h-5 text-gray-600" />
+                <Input
+                  ref={inputRef}
+                  className="shadow-0 flex-1 resize-none rounded-md border-0 px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 "
+                  autoFocus={true}
+                  placeholder={
+                    responseExists
+                      ? "Tell AI what to do next"
+                      : "Ask AI to edit or generate..."
                   }
-                }}
-              />
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      incrementCur();
+                      const block = editor.getBlock(rect.blockId);
+                      if (!block) return;
+                      const text = await editor.blocksToMarkdownLossy([block]);
+                      // @ts-ignore
+                      complete(`${e.target.value}: ${text}`);
+                    }
+                  }}
+                />
+              </div>
 
               {curIndex !== null && (
                 <div className="flex items-center">
                   <Button
-                    className="bg-white p-0 hover:cursor-pointer"
+                    variant="ghost"
+                    className="bg-white p-0 hover:cursor-pointer "
                     disabled={curIndex === 0}
                     onClick={() => {
                       if (curIndex > 0) {
@@ -180,6 +189,7 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                   </Button>
                   {curIndex + 1} of {completions.length}
                   <Button
+                    variant="ghost"
                     className="bg-white p-0 hover:cursor-pointer"
                     disabled={curIndex >= completions.length - 1}
                     onClick={() => {
