@@ -322,12 +322,9 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
                 <DragHandleMenu {...props}>
                   <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
                   <DragHandleMenuItem
-                    onClick={() => {
-                      const block = editor.getTextCursorPosition().block;
-                      // TODO select the entire block with the cursor
-
+                    onClick={async () => {
                       const blockDiv = document.querySelector(
-                        `div[data-id="${block.id}"]`,
+                        `div[data-id="${props.block.id}"]`,
                       ) as HTMLElement;
 
                       if (!blockDiv) return;
@@ -337,11 +334,16 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
                       const left = rect.left;
                       const width = rect.width;
 
+                      const text = await editor.blocksToMarkdownLossy([
+                        props.block,
+                      ]);
+
                       setRect({
                         top,
                         left,
                         width,
-                        blockId: block.id,
+                        blockId: props.block.id,
+                        text,
                       });
                     }}
                   >

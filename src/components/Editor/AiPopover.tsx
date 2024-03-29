@@ -9,8 +9,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { toast } from "@/components/ui/use-toast";
-import { useElementSize } from "@/hooks/useElementSize";
 import { useBlockNoteEditor } from "@blocknote/react";
+import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { useCompletion } from "ai/react";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
@@ -26,6 +26,7 @@ export type AiPopoverPropsRect = {
   left: number;
   width: number;
   blockId: string;
+  text: string;
 } | null;
 
 const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
@@ -51,8 +52,6 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
   const closePopover = () => {
     setRect(null);
   };
-
-  const { ref, height: aiTextBoxHeight } = useElementSize();
 
   const responseExists =
     curIndex !== null &&
@@ -119,105 +118,100 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
         }}
         className="absolute z-[1000] border-gray-300 bg-white p-0 text-black"
       >
-        <div ref={ref}>
-          {(isLoading || responseExists) && (
-            <ReactMarkdown className="px-2 py-1 prose ">
-              {responseExists ? completions[curIndex] : completion}
-            </ReactMarkdown>
-          )}
-          {isLoading ? (
-            <div className="flex items-center justify-between px-2 py-1">
-              <div className="flex items-center gap-1">
-                <p>AI is writing</p>
-                <div className="scale-75">
-                  <BouncingDotsLoader />
+        <DropdownMenu modal={false} open={!isLoading}>
+          <DropdownMenuTrigger className="w-full hover:cursor-auto items-start flex flex-col">
+            {(isLoading || responseExists) && (
+              <ReactMarkdown className="px-2 py-1 prose ">
+                {responseExists ? completions[curIndex] : completion}
+              </ReactMarkdown>
+            )}
+            {isLoading ? (
+              <div className="flex w-full items-center justify-between px-2 py-1">
+                <div className="flex items-center gap-1">
+                  <p>AI is writing</p>
+                  <div className="scale-75">
+                    <BouncingDotsLoader />
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                {/* <Button variant="ghost" className="p-1 hover:cursor-pointer">
+                <div className="flex gap-2">
+                  {/* <Button variant="ghost" className="p-1 hover:cursor-pointer">
                   <p>Try again</p>
                 </Button> */}
-                <Button
-                  variant="ghost"
-                  onClick={stop}
-                  size="sm"
-                  className="p-1 hover:cursor-pointer"
-                >
-                  <p>Stop</p>
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-between">
-              <div className="flex items-center gap-2 px-3 py-2 w-full">
-                <Sparkles className="w-5 h-5 text-gray-600" />
-                <Input
-                  ref={inputRef}
-                  className="shadow-0 flex-1 resize-none rounded-md border-0 px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 "
-                  autoFocus={true}
-                  placeholder={
-                    responseExists
-                      ? "Tell AI what to do next"
-                      : "Ask AI to edit or generate..."
-                  }
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      incrementCur();
-                      const block = editor.getBlock(rect.blockId);
-                      if (!block) return;
-                      const text = await editor.blocksToMarkdownLossy([block]);
-                      // @ts-ignore
-                      complete(`${e.target.value}: ${text}`);
-                    }
-                  }}
-                />
-              </div>
-
-              {curIndex !== null && (
-                <div className="flex items-center">
                   <Button
                     variant="ghost"
-                    className="bg-white p-0 hover:cursor-pointer "
-                    disabled={curIndex === 0}
-                    onClick={() => {
-                      if (curIndex > 0) {
-                        setCurIndex(curIndex - 1);
-                      }
-                    }}
+                    onClick={stop}
+                    size="sm"
+                    className="p-1 hover:cursor-pointer"
                   >
-                    <ChevronLeft className="size-6 text-black" />
-                  </Button>
-                  {curIndex + 1} of {completions.length}
-                  <Button
-                    variant="ghost"
-                    className="bg-white p-0 hover:cursor-pointer"
-                    disabled={curIndex >= completions.length - 1}
-                    onClick={() => {
-                      if (curIndex < completions.length - 1) {
-                        setCurIndex(curIndex + 1);
-                      }
-                    }}
-                  >
-                    <ChevronRight className="size-6 text-black" />
+                    <p>Stop</p>
                   </Button>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            ) : (
+              <div className="flex justify-between w-full">
+                <div className="flex flex-1 items-center gap-2 w-full px-2 py-1">
+                  <Sparkles className="w-4 h-4 text-gray-600 fill-gray-600" />
+                  <Input
+                    ref={inputRef}
+                    className="shadow-0 flex-1 resize-none rounded-md border-0 px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-8"
+                    autoFocus={true}
+                    placeholder={
+                      responseExists
+                        ? "Tell AI what to do next"
+                        : "Ask AI to edit or generate..."
+                    }
+                    onKeyDown={async (e) => {
+                      if (e.key === " ") {
+                        // Input under Dropdown.Item does not accept space (OPEN ISSUE)
+                        e.stopPropagation();
+                      } else if (e.key === "Enter") {
+                        incrementCur();
+                        // @ts-ignore
+                        complete(`${e.target.value}: ${rect.text}`);
+                      }
+                    }}
+                  />
+                  {/* <ArrowUpCircle className="w-5 h-5 text-gray-100 fill-gray-600" /> */}
+                </div>
 
-        {aiTextBoxHeight && (
-          <DropdownMenu modal={false} open={!isLoading}>
-            <DropdownMenuContent
-              className="absolute z-[1000]"
-              style={{
-                top: rect.top + aiTextBoxHeight + 5,
-                left: rect.left,
-                minWidth: "20rem",
-              }}
-            >
-              {responseExists
-                ? AI_OPTIONS_AFTER_COMPLETION.map((item) => (
+                {curIndex !== null && (
+                  <div className="flex items-center">
+                    <Button
+                      variant="ghost"
+                      className="bg-white p-0 hover:cursor-pointer"
+                      disabled={curIndex === 0}
+                      onClick={() => {
+                        if (curIndex > 0) {
+                          setCurIndex(curIndex - 1);
+                        }
+                      }}
+                    >
+                      <ChevronLeft className="size-6 text-black" />
+                    </Button>
+                    <p className="w-fit inline text-sm text-gray-500">
+                      {curIndex + 1} of {completions.length}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      className="bg-white p-0 hover:cursor-pointer"
+                      disabled={curIndex >= completions.length - 1}
+                      onClick={() => {
+                        if (curIndex < completions.length - 1) {
+                          setCurIndex(curIndex + 1);
+                        }
+                      }}
+                    >
+                      <ChevronRight className="size-6 text-black" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[20rem] max-w-[80%]">
+            {responseExists
+              ? AI_OPTIONS_AFTER_COMPLETION.map((item) => (
+                  <div key={item.title}>
                     <DropdownMenuItem
                       onClick={() => {
                         item.onClick();
@@ -226,35 +220,30 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                     >
                       {item.title}
                     </DropdownMenuItem>
-                  ))
-                : AI_COMPLETIONS.filter((item) => item.items.length > 0).map(
-                    (item) => (
-                      <div key={item.category}>
-                        <DropdownMenuLabel key={item.category}>
-                          {item.category}
-                        </DropdownMenuLabel>
-                        {item.items.map((item) => (
-                          <DropdownMenuItem
-                            onClick={async () => {
-                              incrementCur();
-                              const block = editor.getBlock(rect.blockId);
-                              if (!block) return;
-                              const text = await editor.blocksToMarkdownLossy([
-                                block,
-                              ]);
-                              complete(`${item.title}: ${text}`);
-                            }}
-                            key={item.title}
-                          >
-                            {item.title}
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                    ),
-                  )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+                  </div>
+                ))
+              : AI_COMPLETIONS.filter((item) => item.items.length > 0).map(
+                  (item) => (
+                    <div key={item.category}>
+                      <DropdownMenuLabel key={item.category}>
+                        {item.category}
+                      </DropdownMenuLabel>
+                      {item.items.map((item) => (
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            incrementCur();
+                            complete(`${item.title}: ${rect.text}`);
+                          }}
+                          key={item.title}
+                        >
+                          {item.title}
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  ),
+                )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </PopoverContent>
     </Popover>
   );
