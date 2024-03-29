@@ -51,7 +51,6 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
     setRect(null);
   };
 
-  // const isLoading = true;
   const { ref, height: aiTextBoxHeight } = useElementSize();
 
   const responseExists =
