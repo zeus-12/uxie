@@ -154,10 +154,14 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                     ? "Tell AI what to do next"
                     : "Ask AI to edit or generate..."
                 }
-                onKeyDown={(e) => {
+                onKeyDown={async (e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     incrementCur();
-                    complete(e.currentTarget.value);
+                    const block = editor.getBlock(rect.blockId);
+                    if (!block) return;
+                    const text = await editor.blocksToMarkdownLossy([block]);
+                    // @ts-ignore
+                    complete(`${e.target.value}: ${text}`);
                   }
                 }}
               />
@@ -222,9 +226,14 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                         </DropdownMenuLabel>
                         {item.items.map((item) => (
                           <DropdownMenuItem
-                            onClick={() => {
+                            onClick={async () => {
                               incrementCur();
-                              complete(item.title);
+                              const block = editor.getBlock(rect.blockId);
+                              if (!block) return;
+                              const text = await editor.blocksToMarkdownLossy([
+                                block,
+                              ]);
+                              complete(`${item.title}: ${text}`);
                             }}
                             key={item.title}
                           >
