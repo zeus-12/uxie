@@ -1,3 +1,4 @@
+import { env } from "@/env.mjs";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import * as z from "zod";
@@ -45,3 +46,5 @@ export const copyTextToClipboard = (
   }
   callback();
 };
+
+export const isDev = env.NEXT_PUBLIC_ENV === "development";
