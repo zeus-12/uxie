@@ -34,7 +34,7 @@ import { useRoom } from "liveblocks.config";
 import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
-import AiPopover, { AiPopoverPropsRect } from "@/components/editor/ai-popover";
+import AiPopover, { AiPopoverPropsRect } from "@/components/editors/ai-popover";
 import { getRandomLightColor } from "@/lib/utils";
 
 export default function Editor({

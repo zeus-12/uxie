@@ -1,4 +1,4 @@
-import IndividualFlashcard from "@/components/flashcard/card";
+import IndividualFlashcard from "@/components/flashcards/card";
 import FeatureCard from "@/components/other/feature-card";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/use-toast";

@@ -1,6 +1,6 @@
 import Chat from "@/components/chat";
-import Editor from "@/components/editor";
-import Flashcards from "@/components/flashcard";
+import Editor from "@/components/editors";
+import Flashcards from "@/components/flashcards";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { SpinnerPage } from "@/components/ui/spinner";

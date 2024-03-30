@@ -1,9 +1,9 @@
 import {
   AlertBlock,
   insertAlert,
-} from "@/components/editor/custom-blocks/alert";
+} from "@/components/editors/custom-blocks/alert";
 // import { Comment } from "@/components/Editor/CustomBlocks/Comment";
-import { HighlighBlock } from "@/components/editor/custom-blocks/highlight";
+import { HighlighBlock } from "@/components/editors/custom-blocks/highlight";
 import { BlockNoteEditorType } from "@/types/editor";
 import {
   BlockNoteSchema,
