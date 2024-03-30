@@ -1,4 +1,4 @@
-import FeatureCard from "@/components/features/card";
+import FeatureCard from "@/components/other/feature-card";
 import BouncingLoader from "@/components/ui/bouncing-loader";
 import { SpinnerCentered } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/use-toast";

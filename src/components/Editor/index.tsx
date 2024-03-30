@@ -35,6 +35,7 @@ import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
 import AiPopover, { AiPopoverPropsRect } from "@/components/editor/ai-popover";
+import { getRandomLightColor } from "@/lib/utils";
 
 export default function Editor({
   canEdit,
@@ -142,14 +143,14 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
       //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       // },
       schema,
-      // collaboration: {
-      //   provider,
-      //   fragment: doc.getXmlFragment("document-store"),
-      //   user: {
-      //     name: username || "User",
-      //     color: getRandomLightColor(),
-      //   },
-      // },
+      collaboration: {
+        provider,
+        fragment: doc.getXmlFragment("document-store"),
+        user: {
+          name: username || "User",
+          color: getRandomLightColor(),
+        },
+      },
 
       // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,

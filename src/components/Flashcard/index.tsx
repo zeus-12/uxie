@@ -1,5 +1,5 @@
-import FeatureCard from "@/components/features/card";
 import IndividualFlashcard from "@/components/flashcard/card";
+import FeatureCard from "@/components/other/feature-card";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";

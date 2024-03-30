@@ -1,4 +1,4 @@
-import Features from "@/components/features";
+import Features from "@/components/other/features";
 import YoutubeEmbed from "@/components/other/youtube-embed";
 import { Button } from "@/components/ui/button";
 import ButtonRotatingBackgroundGradient from "@/components/ui/button-rotating-bg-gradient";
