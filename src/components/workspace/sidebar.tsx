@@ -1,9 +1,9 @@
-import Chat from "@/components/Chat";
-import Editor from "@/components/Editor";
-import Flashcards from "@/components/Flashcard";
-import { SpinnerPage } from "@/components/Spinner";
+import Chat from "@/components/chat";
+import Editor from "@/components/editor";
+import Flashcards from "@/components/flashcard";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { SpinnerPage } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { RoomProvider } from "liveblocks.config";
 import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import InviteCollab from "./InviteCollab";
+import InviteCollab from "./invite-collab-modal";
 
 const TABS = [
   {
@@ -31,10 +31,6 @@ const TABS = [
     icon: <Layers size={20} />,
     isNew: true,
   },
-  // {
-  //   value: "highlights",
-  //   icon: <MessagesSquareIcon size={20} />,
-  // }
 ];
 
 const tabNames = TABS.map((tab) => tab.value);

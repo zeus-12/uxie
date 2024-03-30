@@ -1,4 +1,4 @@
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/navbar";
 import { Toaster } from "@/components/ui/toaster";
 import { api } from "@/lib/api";
 import "@/styles/globals.css";

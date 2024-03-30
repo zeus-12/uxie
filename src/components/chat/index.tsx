@@ -1,6 +1,6 @@
-import BouncingDotsLoader from "@/components/BouncingDotsLoader";
-import FeatureCard from "@/components/FeatureCard";
-import { SpinnerCentered } from "@/components/Spinner";
+import FeatureCard from "@/components/features/card";
+import BouncingLoader from "@/components/ui/bouncing-loader";
+import { SpinnerCentered } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
@@ -174,7 +174,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
               "max-w-[80%] rounded-xl px-3 py-2 text-left ",
             )}
           >
-            <BouncingDotsLoader />
+            <BouncingLoader />
           </div>
         )}
       </div>

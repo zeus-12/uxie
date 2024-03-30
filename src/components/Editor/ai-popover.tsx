@@ -1,4 +1,4 @@
-import BouncingDotsLoader from "@/components/BouncingDotsLoader";
+import BouncingLoader from "@/components/ui/bouncing-loader";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -130,7 +130,7 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                 <div className="flex items-center gap-1">
                   <p>AI is writing</p>
                   <div className="scale-75">
-                    <BouncingDotsLoader />
+                    <BouncingLoader />
                   </div>
                 </div>
                 <div className="flex gap-2">

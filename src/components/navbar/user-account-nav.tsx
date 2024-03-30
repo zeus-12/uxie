@@ -1,3 +1,4 @@
+import { UserAvatar } from "@/components/navbar/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -5,7 +6,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserAvatar } from "@/components/user-avatar";
 import { User } from "next-auth";
 import { signOut } from "next-auth/react";
 

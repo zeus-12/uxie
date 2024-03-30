@@ -1,12 +1,12 @@
-import DocViewer from "@/components/DocViewer";
-import Sidebar from "@/components/Sidebar";
-import { SpinnerPage } from "@/components/Spinner";
+import DocViewer from "@/components/pdf-reader";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { SpinnerPage } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/use-toast";
+import Sidebar from "@/components/workspace/sidebar";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 

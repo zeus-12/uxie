@@ -1,6 +1,6 @@
-import { Spinner } from "@/components/Spinner";
-import { GoogleIcon } from "@/components/icons";
+import { GoogleIcon } from "@/components/other/icons";
 import { buttonVariants } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { Brain, ChevronLeftIcon } from "lucide-react";
 import { signIn } from "next-auth/react";

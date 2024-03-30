@@ -3,10 +3,6 @@ import YouTube, { YouTubeProps } from "react-youtube";
 interface YoutubeEmbedProps {}
 
 const YoutubeEmbed: React.FC<YoutubeEmbedProps> = ({}) => {
-  // const onPlayerReady: YouTubeProps["onReady"] = (event: YouTubeEvent<any>) => {
-  //   event.target.pauseVideo();
-  // };
-
   const opts: YouTubeProps["opts"] = {
     playerVars: {
       autoplay: 0,

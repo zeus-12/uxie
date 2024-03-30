@@ -1,7 +1,6 @@
 import { toast } from "@/components/ui/use-toast";
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { getRandomLightColor } from "@/lib/utils";
 import { YjsEditorProps } from "@/types/editor";
 import {
   filterSuggestionItems,
@@ -35,7 +34,7 @@ import { useRoom } from "liveblocks.config";
 import { useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
-import AiPopover, { AiPopoverPropsRect } from "@/components/Editor/AiPopover";
+import AiPopover, { AiPopoverPropsRect } from "@/components/editor/ai-popover";
 
 export default function Editor({
   canEdit,
@@ -143,14 +142,14 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
       //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
       // },
       schema,
-      collaboration: {
-        provider,
-        fragment: doc.getXmlFragment("document-store"),
-        user: {
-          name: username || "User",
-          color: getRandomLightColor(),
-        },
-      },
+      // collaboration: {
+      //   provider,
+      //   fragment: doc.getXmlFragment("document-store"),
+      //   user: {
+      //     name: username || "User",
+      //     color: getRandomLightColor(),
+      //   },
+      // },
 
       // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
@@ -225,11 +224,40 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
     };
   }, [stop, isLoading, editor, complete, completion.length]);
 
-  const [rect, setRect] = useState<null | AiPopoverPropsRect>(null);
+  const [rect, setRect] = useState<AiPopoverPropsRect>(null);
+
+  // const editorRef = useRef<HTMLDivElement>(null);
+
+  // useEffect(() => {
+  // const scrollContainer = editorRef.current;
+  // if (!rect || !scrollContainer) return;
+
+  // const handleScroll = () => {
+  //   console.log("SCROLLINN");
+
+  //   const newRect = scrollContainer.getBoundingClientRect();
+  //   setRect((prev) => {
+  //     if (!prev) return null;
+  //     return {
+  //       ...prev,
+  //       top: newRect.top + newRect.height,
+  //       left: newRect.left,
+  //       width: newRect.width,
+  //     };
+  //   });
+  // };
+
+  //   scrollContainer.addEventListener("scroll", handleScroll);
+
+  //   return () => {
+  //     scrollContainer.removeEventListener("scroll", handleScroll);
+  //   };
+  // }, []);
 
   return (
     <div>
       <BlockNoteView
+        // ref={editorRef}
         sideMenu={false}
         onChange={async () => {
           const block = editor.getTextCursorPosition().block;
@@ -328,6 +356,19 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
                       ) as HTMLElement;
 
                       if (!blockDiv) return;
+
+                      // select the div
+                      const selection = window.getSelection();
+                      const range = document.createRange();
+                      range.selectNodeContents(blockDiv);
+                      selection?.removeAllRanges();
+                      selection?.addRange(range);
+
+                      // scroll to the div
+                      blockDiv.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
 
                       const rect = blockDiv.getBoundingClientRect();
                       const top = rect.top + rect.height;
