@@ -1,10 +1,5 @@
 import { SpinnerPage } from "@/components/ui/spinner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { CustomTooltip } from "@/components/ui/tooltip";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
@@ -291,16 +286,9 @@ const TextSelectionPopover = ({
               key={id}
               onClick={option.onClick}
             >
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{option.tooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <CustomTooltip content={option.tooltip}>
+                <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
+              </CustomTooltip>
             </div>
           );
         })}

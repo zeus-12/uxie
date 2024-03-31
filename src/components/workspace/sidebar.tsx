@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CustomTooltip } from "@/components/ui/tooltip";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ClientSideSuspense } from "@liveblocks/react";
@@ -18,18 +19,21 @@ import InviteCollab from "./invite-collab-modal";
 const TABS = [
   {
     value: "notes",
+    tooltip: "Take notes",
     icon: <AlbumIcon size={20} />,
     isNew: false,
   },
   {
     value: "chat",
+    tooltip: "Chat with the pdf",
     icon: <MessagesSquareIcon size={20} />,
     isNew: false,
   },
   {
     value: "flashcards",
+    tooltip: "Generate flashcards from the pdf",
     icon: <Layers size={20} />,
-    isNew: true,
+    isNew: false,
   },
 ];
 
@@ -96,20 +100,18 @@ const Sidebar = ({
         <div className="flex items-center justify-between pr-1">
           <TabsList className="h-12 rounded-md bg-gray-200">
             {TABS.map((item) => (
-              <TabsTrigger
-                key={item.value}
-                value={item.value}
-                className="relative"
-              >
-                {item.isNew && (
-                  <div className="absolute -bottom-2 -right-2">
-                    <Badge className="bg-blue-400 p-[0.05rem] text-[0.5rem] hover:bg-blue-500">
-                      NEW
-                    </Badge>
-                  </div>
-                )}
-                {item.icon}
-              </TabsTrigger>
+              <CustomTooltip content={item.tooltip} key={item.value}>
+                <TabsTrigger value={item.value} className="relative">
+                  {item.isNew && (
+                    <div className="absolute -bottom-2 -right-2">
+                      <Badge className="bg-blue-400 p-[0.05rem] text-[0.5rem] hover:bg-blue-500">
+                        NEW
+                      </Badge>
+                    </div>
+                  )}
+                  {item.icon}
+                </TabsTrigger>
+              </CustomTooltip>
             ))}
           </TabsList>
           <div className="flex items-center gap-1">
