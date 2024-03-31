@@ -1,8 +1,8 @@
 import Features from "@/components/other/features";
+import SlideUpWhenVisible from "@/components/other/slide-up-when-visible";
 import YoutubeEmbed from "@/components/other/youtube-embed";
 import { Button } from "@/components/ui/button";
 import ButtonRotatingBackgroundGradient from "@/components/ui/button-rotating-bg-gradient";
-import SlideUpWhenVisible from "@/components/ui/slide-up-when-visible";
 import {
   ArrowRight,
   ChevronRight,
