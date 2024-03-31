@@ -64,6 +64,8 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [query, setQuery] = useState("");
+
   if (!rect) return;
 
   const AI_OPTIONS_AFTER_COMPLETION = [
@@ -152,6 +154,8 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                 <div className="flex flex-1 items-center gap-2 w-full px-2 py-1">
                   <Sparkles className="w-4 h-4 text-gray-600 fill-gray-600" />
                   <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
                     ref={inputRef}
                     className="shadow-0 flex-1 resize-none rounded-md border-0 px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-8"
                     autoFocus={true}
@@ -208,7 +212,10 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
               </div>
             )}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[20rem] max-w-[80%]">
+          <DropdownMenuContent
+            align="start"
+            className="w-[20rem] max-w-[80%] empty:hidden"
+          >
             {responseExists
               ? AI_OPTIONS_AFTER_COMPLETION.map((item) => (
                   <div key={item.title}>
@@ -222,26 +229,34 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
                     </DropdownMenuItem>
                   </div>
                 ))
-              : AI_COMPLETIONS.filter((item) => item.items.length > 0).map(
-                  (item) => (
+              : AI_COMPLETIONS.map((item) => {
+                  const newItems = item.items.filter((inner) =>
+                    inner.toLowerCase().includes(query.trim().toLowerCase()),
+                  );
+                  return {
+                    ...item,
+                    items: newItems,
+                  };
+                })
+                  .filter((item) => item.items.length > 0)
+                  .map((item) => (
                     <div key={item.category}>
                       <DropdownMenuLabel key={item.category}>
                         {item.category}
                       </DropdownMenuLabel>
-                      {item.items.map((item) => (
+                      {item.items.map((inner) => (
                         <DropdownMenuItem
                           onClick={async () => {
                             incrementCur();
-                            complete(`${item.title}: ${rect.text}`);
+                            complete(`${inner}: ${rect.text}`);
                           }}
-                          key={item.title}
+                          key={inner}
                         >
-                          {item.title}
+                          {inner}
                         </DropdownMenuItem>
                       ))}
                     </div>
-                  ),
-                )}
+                  ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </PopoverContent>
@@ -255,21 +270,26 @@ const AI_COMPLETIONS = [
   {
     category: "Edit or review selection",
     items: [
-      {
-        title: "Improve writing",
-      },
-      {
-        title: "Fix spelling & grammar",
-      },
-      {
-        title: "Summarise",
-      },
-      {
-        title: "Explain this",
-      },
-      {
-        title: "Find action items",
-      },
+      "Improve writing",
+      "Fix spelling & grammar",
+      "Summarise",
+      "Explain this",
+      "Find action items",
+      // {
+      //   title: "Improve writing",
+      // },
+      // {
+      //   title: "Fix spelling & grammar",
+      // },
+      // {
+      //   title: "Summarise",
+      // },
+      // {
+      //   title: "Explain this",
+      // },
+      // {
+      //   title: "Find action items",
+      // },
     ],
   },
 ];
