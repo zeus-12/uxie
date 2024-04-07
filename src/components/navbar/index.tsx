@@ -1,8 +1,8 @@
+import { UserAccountNav } from "@/components/navbar/user-account-nav";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { UserAccountNav } from "@/components/user-account-nav";
 
 const Navbar = () => {
   const { data: session } = useSession();

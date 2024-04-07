@@ -1,8 +1,8 @@
-import { SpinnerPage } from "@/components/Spinner";
-import UploadFileModal from "@/components/UploadFileModal";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SpinnerPage } from "@/components/ui/spinner";
+import UploadFileModal from "@/components/workspace/upload-file-modal";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, SearchIcon } from "lucide-react";

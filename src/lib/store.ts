@@ -1,6 +1,5 @@
-import { BlockNoteEditor } from "@blocknote/core";
-import { create } from "zustand";
 import { BlockNoteEditorType } from "@/types/editor";
+import { create } from "zustand";
 
 type FeaturesStore = {
   inViewFeature: number | null;

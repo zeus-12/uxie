@@ -1,4 +1,4 @@
-const BouncingDotsLoader = () => {
+const BouncingLoader = () => {
   return (
     <>
       <div className="bouncing-loader">
@@ -10,4 +10,4 @@ const BouncingDotsLoader = () => {
   );
 };
 
-export default BouncingDotsLoader;
+export default BouncingLoader;

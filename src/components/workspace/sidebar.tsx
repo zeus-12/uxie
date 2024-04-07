@@ -1,40 +1,40 @@
-import Chat from "@/components/Chat";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
-import Editor from "@/components/Editor";
-import { saveAs } from "file-saver";
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
-import { useBlocknoteEditorStore } from "@/lib/store";
-import { RoomProvider } from "liveblocks.config";
-import { ClientSideSuspense } from "@liveblocks/react";
-import { SpinnerPage } from "@/components/Spinner";
-import { useRouter } from "next/router";
-import InviteCollab from "./InviteCollab";
-import { useEffect, useState } from "react";
-import Flashcards from "@/components/Flashcard";
+import Chat from "@/components/chat";
+import Editor from "@/components/editor";
+import Flashcards from "@/components/flashcard";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { SpinnerPage } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CustomTooltip } from "@/components/ui/tooltip";
+import { useBlocknoteEditorStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { ClientSideSuspense } from "@liveblocks/react";
+import { saveAs } from "file-saver";
+import { RoomProvider } from "liveblocks.config";
+import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import InviteCollab from "./invite-collab-modal";
 
 const TABS = [
   {
     value: "notes",
+    tooltip: "Take notes",
     icon: <AlbumIcon size={20} />,
     isNew: false,
   },
   {
     value: "chat",
+    tooltip: "Chat with the pdf",
     icon: <MessagesSquareIcon size={20} />,
     isNew: false,
   },
   {
     value: "flashcards",
+    tooltip: "Generate flashcards from the pdf",
     icon: <Layers size={20} />,
-    isNew: true,
+    isNew: false,
   },
-  // {
-  //   value: "highlights",
-  //   icon: <MessagesSquareIcon size={20} />,
-  // }
 ];
 
 const tabNames = TABS.map((tab) => tab.value);
@@ -100,20 +100,18 @@ const Sidebar = ({
         <div className="flex items-center justify-between pr-1">
           <TabsList className="h-12 rounded-md bg-gray-200">
             {TABS.map((item) => (
-              <TabsTrigger
-                key={item.value}
-                value={item.value}
-                className="relative"
-              >
-                {item.isNew && (
-                  <div className="absolute -bottom-2 -right-2">
-                    <Badge className="bg-blue-400 p-[0.05rem] text-[0.5rem] hover:bg-blue-500">
-                      NEW
-                    </Badge>
-                  </div>
-                )}
-                {item.icon}
-              </TabsTrigger>
+              <CustomTooltip content={item.tooltip} key={item.value}>
+                <TabsTrigger value={item.value} className="relative">
+                  {item.isNew && (
+                    <div className="absolute -bottom-2 -right-2">
+                      <Badge className="bg-blue-400 p-[0.05rem] text-[0.5rem] hover:bg-blue-500">
+                        NEW
+                      </Badge>
+                    </div>
+                  )}
+                  {item.icon}
+                </TabsTrigger>
+              </CustomTooltip>
             ))}
           </TabsList>
           <div className="flex items-center gap-1">

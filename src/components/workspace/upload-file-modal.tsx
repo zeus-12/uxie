@@ -1,4 +1,5 @@
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -7,17 +8,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/use-toast";
+import { api } from "@/lib/api";
 import { useUploadThing } from "@/lib/uploadthing";
+import { cn } from "@/lib/utils";
+import { useDropzone } from "@uploadthing/react";
+import { XIcon } from "lucide-react";
 import { useCallback, useState } from "react";
 import { generateClientDropzoneAccept } from "uploadthing/client";
-import { useDropzone } from "@uploadthing/react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { XIcon } from "lucide-react";
-import { api } from "@/lib/api";
 import { z } from "zod";
-import { Spinner } from "@/components/Spinner";
-import { cn } from "@/lib/utils";
 
 const UploadFileModal = ({
   refetchUserDocs,
