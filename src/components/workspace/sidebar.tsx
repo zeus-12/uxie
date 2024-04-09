@@ -58,9 +58,7 @@ const Sidebar = ({
 
   const handleDownloadMarkdownAsFile = async () => {
     if (!editor) return;
-    const markdownContent = await editor.blocksToMarkdownLossy(
-      editor.topLevelBlocks,
-    );
+    const markdownContent = await editor.blocksToMarkdownLossy(editor.document);
 
     const blob = new Blob([markdownContent], { type: "text/markdown" });
     saveAs(blob, "notes.md");
