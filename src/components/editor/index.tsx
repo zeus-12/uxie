@@ -19,14 +19,12 @@ import {
   FormattingToolbar,
   FormattingToolbarController,
   ImageCaptionButton,
-  NestBlockButton,
   RemoveBlockItem,
   ReplaceImageButton,
   SideMenu,
   SideMenuController,
   SuggestionMenuController,
   TextAlignButton,
-  UnnestBlockButton,
   useCreateBlockNote,
 } from "@blocknote/react";
 import LiveblocksProvider from "@liveblocks/yjs";
@@ -231,36 +229,39 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
     };
   }, [stop, isLoading, editor, complete, completion.length]);
 
-  const [rect, setRect] = useState<AiPopoverPropsRect>(null);
-
-  // const editorRef = useRef<HTMLDivElement>(null);
+  const [rect, setRect] = useState<AiPopoverPropsRect | null>(null);
 
   // useEffect(() => {
-  // const scrollContainer = editorRef.current;
-  // if (!rect || !scrollContainer) return;
+  //   if (!rect) return;
 
-  // const handleScroll = () => {
-  //   console.log("SCROLLINN");
+  //   const handleScroll = () => {
+  //     console.log("SCROLLINN");
 
-  //   const newRect = scrollContainer.getBoundingClientRect();
-  //   setRect((prev) => {
-  //     if (!prev) return null;
-  //     return {
-  //       ...prev,
-  //       top: newRect.top + newRect.height,
-  //       left: newRect.left,
-  //       width: newRect.width,
-  //     };
-  //   });
-  // };
+  //     const blockDiv = document.querySelector(
+  //       `div[data-id="${rect.blockId}"]`,
+  //     ) as HTMLElement;
 
-  //   scrollContainer.addEventListener("scroll", handleScroll);
+  //     if (!blockDiv) return;
+
+  //     const newRect = blockDiv.getBoundingClientRect();
+
+  //     setRect((prev) => {
+  //       if (!prev) return null;
+  //       return {
+  //         ...prev,
+  //         top: newRect.top + newRect.height,
+  //         left: newRect.left,
+  //         width: newRect.width,
+  //       };
+  //     });
+  //   };
+
+  //   editor.domElement.addEventListener("scroll", handleScroll);
 
   //   return () => {
-  //     scrollContainer.removeEventListener("scroll", handleScroll);
+  //     editor.domElement.removeEventListener("scroll", handleScroll);
   //   };
   // }, []);
-
   return (
     <div>
       <BlockNoteView
@@ -341,8 +342,8 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
 
               <ColorStyleButton key={"colorStyleButton"} />
 
-              <NestBlockButton key={"nestBlockButton"} />
-              <UnnestBlockButton key={"unnestBlockButton"} />
+              {/* <NestBlockButton key={"nestBlockButton"} />
+              <UnnestBlockButton key={"unnestBlockButton"} /> */}
 
               <CreateLinkButton key={"createLinkButton"} />
             </FormattingToolbar>
@@ -365,17 +366,17 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
                       if (!blockDiv) return;
 
                       // select the div
-                      const selection = window.getSelection();
-                      const range = document.createRange();
-                      range.selectNodeContents(blockDiv);
-                      selection?.removeAllRanges();
-                      selection?.addRange(range);
+                      // const selection = window.getSelection();
+                      // const range = document.createRange();
+                      // range.selectNodeContents(blockDiv);
+                      // selection?.removeAllRanges();
+                      // selection?.addRange(range);
 
                       // scroll to the div
-                      blockDiv.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
+                      // blockDiv.scrollIntoView({
+                      //   behavior: "smooth",
+                      //   block: "center",
+                      // });
 
                       const rect = blockDiv.getBoundingClientRect();
                       const top = rect.top + rect.height;
@@ -397,6 +398,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
                   >
                     AI
                   </DragHandleMenuItem>
+
                   <BlockColorsItem {...props}>Colors</BlockColorsItem>
                 </DragHandleMenu>
               )}

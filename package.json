@@ -46,6 +46,7 @@
     "ai": "^2.2.35",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "cmdk": "^1.0.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^10.16.4",
     "langchain": "^0.0.171",
