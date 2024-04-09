@@ -275,14 +275,14 @@ const TextSelectionPopover = ({
 
   return (
     <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
+      <div className="absolute -bottom-[7px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[7px] border-r-[7px] border-t-[7px] border-solid border-black border-l-transparent border-r-transparent " />
 
       <div className="flex divide-x divide-gray-800">
         {OPTIONS.map((option, id) => {
           if (!option) return null;
           return (
             <div
-              className="group p-2 hover:cursor-pointer"
+              className="group p-[0.3rem] hover:cursor-pointer"
               key={id}
               onClick={option.onClick}
             >
