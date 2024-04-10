@@ -12,8 +12,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "dependencies": {
-    "@blocknote/core": "^0.12.3",
-    "@blocknote/react": "^0.12.3",
+    "@blocknote/core": "^0.12.4",
+    "@blocknote/react": "^0.12.4",
     "@hookform/resolvers": "^3.3.1",
     "@huggingface/inference": "1",
     "@liveblocks/client": "^1.7.0",
