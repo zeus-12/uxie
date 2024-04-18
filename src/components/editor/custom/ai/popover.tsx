@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { toast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 import { useBlockNoteEditor } from "@blocknote/react";
 import { useCompletion } from "ai/react";
 import { useCommandState } from "cmdk";
@@ -52,9 +53,9 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
           left: rect.left,
           width: rect.width,
         }}
-        className="absolute z-[1000] border-gray-300 bg-white p-0 text-black"
+        className="absolute z-[1000] p-0 text-black bg-transparent border-0 shadow-none"
       >
-        <Command>
+        <Command className="bg-transparent">
           <CommandBody closePopover={closePopover} rect={rect} />
         </Command>
       </PopoverContent>
@@ -106,6 +107,7 @@ const CommandBody = ({
   };
 
   const editor = useBlockNoteEditor();
+
   const AI_OPTIONS_AFTER_COMPLETION = [
     {
       title: "Replace selection",
@@ -165,14 +167,14 @@ const CommandBody = ({
     !!completions[curIndex];
   return (
     <>
-      <div className="w-full hover:cursor-auto items-start flex flex-col">
+      <div className="w-full hover:cursor-auto items-start flex flex-col bg-white max-h-[300px] overflow-y-auto overflow-x-hidden border border-gray-200 rounded-md shadow-md">
         {(isLoading || responseExists) && (
           <ReactMarkdown className="px-2 py-1 prose-sm ">
             {responseExists ? completions[curIndex] : completion}
           </ReactMarkdown>
         )}
         {isLoading ? (
-          <div className="flex w-full items-center justify-between px-2 py-1">
+          <div className="flex w-full items-center justify-between px-2">
             <div className="flex items-center gap-1 text">
               <p className="text-sm">AI is writing</p>
               <div className="scale-[80%]">
@@ -181,8 +183,8 @@ const CommandBody = ({
             </div>
             <div className="flex gap-2">
               {/* <Button variant="ghost" className="p-1 hover:cursor-pointer">
-          <p>Try again</p>
-        </Button> */}
+                <p>Try again</p>
+              </Button> */}
               <Button
                 variant="ghost"
                 onClick={stop}
@@ -196,6 +198,7 @@ const CommandBody = ({
         ) : (
           <div className="flex justify-between w-full">
             <CommandInput
+              rootClassName="border-0"
               leftIcon={
                 <Sparkles className="w-4 h-4 text-gray-600 fill-gray-600" />
               }
@@ -236,8 +239,7 @@ const CommandBody = ({
               }
               value={query}
               onValueChange={(value) => setQuery(value)}
-              className="rounded-md border-0 px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-8 flex-1"
-              //
+              className="px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-8 flex-1 bg-white border-0"
               autoFocus={true}
               placeholder={
                 responseExists
@@ -259,11 +261,14 @@ const CommandBody = ({
       </div>
 
       {!isLoading && (
-        <div
-        // className="empty:hidden"
-        >
+        <>
           {responseExists ? (
-            <CommandList>
+            <CommandList
+              className={cn(
+                "w-[20rem] bg-white border border-gray-200 mt-1 rounded-md shadow-md max-w-[80%]",
+                filteredCount === 0 && "border-0",
+              )}
+            >
               {AI_OPTIONS_AFTER_COMPLETION.map((item: any) => (
                 <CommandItem
                   key={item.title}
@@ -276,39 +281,35 @@ const CommandBody = ({
               ))}
             </CommandList>
           ) : (
-            <CommandList>
-              {AI_COMPLETIONS
-                // .map((item) => {
-                // const newItems = item.items.filter((inner) =>
-                //   inner.toLowerCase().includes(query.trim().toLowerCase()),
-                // );
-                // return {
-                //   ...item,
-                //   items: newItems,
-                // };
-                // })
-                // .filter((item) => item.items.length > 0)
-                .map((item) => (
-                  <CommandGroup heading={item.category} key={item.category}>
-                    {item.items.map((inner) => (
-                      <CommandItem
-                        onSelect={async () => {
-                          incrementCur();
-                          complete(`${inner}: ${rect.text}`);
-                        }}
-                        key={inner}
-                      >
-                        {inner}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                ))}
+            <CommandList
+              className={cn(
+                "w-[20rem] bg-white border border-gray-200 mt-1 rounded-md shadow-md max-w-[80%]",
+                filteredCount === 0 && "border-0",
+              )}
+            >
+              {AI_COMPLETIONS.map((item) => (
+                <CommandGroup
+                  className="bg-transparent"
+                  heading={item.category}
+                  key={item.category}
+                >
+                  {item.items.map((inner) => (
+                    <CommandItem
+                      onSelect={async () => {
+                        incrementCur();
+                        complete(`${inner}: ${rect.text}`);
+                      }}
+                      key={inner}
+                    >
+                      {inner}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
             </CommandList>
           )}
-        </div>
+        </>
       )}
     </>
   );
 };
-
-//   className="w-[20rem] max-w-[80%] empty:hidden"
