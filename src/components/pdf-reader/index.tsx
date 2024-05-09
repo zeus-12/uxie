@@ -1,4 +1,4 @@
-import PdfReader from "@/components/pdf-reader/pdf-reader";
+import PdfReader from "@/components/pdf-reader/reader";
 import { buttonVariants } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
