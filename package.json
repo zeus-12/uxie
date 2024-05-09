@@ -70,6 +70,7 @@
     "superjson": "^1.13.1",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.9.3",
     "uploadthing": "^6.4.1",
     "use-debounce": "^9.0.4",
     "yjs": "^13.6.8",
