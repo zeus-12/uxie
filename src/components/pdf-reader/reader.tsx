@@ -282,7 +282,7 @@ const TextSelectionPopover = ({
           if (!option) return null;
           return (
             <div
-              className="group px-[0.3rem] pt-[0.3rem] hover:cursor-pointer"
+              className="group px-[0.5rem] pb-[0.2rem] pt-[0.5rem] hover:cursor-pointer"
               key={id}
               onClick={option.onClick}
             >
