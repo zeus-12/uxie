@@ -27,10 +27,17 @@ export default function Home() {
 
         <Link
           href="/feedback"
-          className="fixed bottom-5 right-5 flex h-12 w-12 items-center justify-center rounded-full bg-black hover:cursor-pointer"
+          className="fixed bottom-5 right-5 flex items-center justify-center rounded-full bg-black hover:cursor-pointer"
           title="Submit Feedback"
         >
-          <MessageSquarePlus size="24" className="text-gray-300" />
+          <button className="group relative inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-neutral-950 font-medium text-neutral-200 transition-all duration-300 hover:w-32 ">
+            <div className="inline-flex whitespace-nowrap opacity-0 transition-all duration-200 group-hover:-translate-x-3 group-hover:opacity-100">
+              Feedback
+            </div>
+            <div className="absolute right-3">
+              <MessageSquarePlus size="22" className="text-gray-300" />
+            </div>
+          </button>
         </Link>
       </div>
       <div className="flex h-screen flex-col items-center justify-center bg-black px-4 py-2 lg:px-16">

@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 
 const features = [
   {
-    title: "Annotate your notes w. ease",
+    title: "Annotate your documents w. ease",
     imageUrl: "/features/annotation.gif",
     description:
       "To create area highlight hold ⌥ Option key (Alt), then click and drag.",
@@ -14,7 +14,7 @@ const features = [
   {
     title: "Take notes with a notion like editor",
     imageUrl: "/features/editor.gif",
-    description: "With export to Markdown.",
+    description: "With AI features, and export to Markdown.",
   },
   {
     title: "Ask the chatbot anything pdf related",
@@ -29,11 +29,6 @@ const features = [
     title: "Collaborate with your team",
     imageUrl: "/features/collab.gif",
     description: "With real-time updates.",
-  },
-  {
-    title: "AI-powered autocompletion",
-    imageUrl: "/features/completion.gif",
-    description: "Add '++' to the end of a sentence to autocomplete.",
   },
 ];
 
