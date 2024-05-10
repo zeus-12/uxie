@@ -1,3 +1,4 @@
+import Feedback from "@/components/flashcard/feedback";
 import {
   Accordion,
   AccordionContent,
@@ -10,14 +11,7 @@ import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { RequestOptions } from "ai";
 import { useCompletion } from "ai/react";
-import {
-  BugIcon,
-  CheckCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  InfoIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 
@@ -210,31 +204,31 @@ const IndividualFlashcardQuestion = ({
               className="h-24 w-full p-2"
               placeholder="Enter your answer..."
             />
+
+            <div className="mt-2 flex items-center justify-between ">
+              <Button
+                size="sm"
+                disabled={!userResponse}
+                onClick={() => {
+                  toggleAttempt();
+                  complete(userResponse);
+                }}
+                className="bg-blue-400 text-white hover:bg-blue-500"
+              >
+                Answer
+              </Button>
+              <Button
+                onClick={() => {
+                  toggleAttempt();
+                  setCompletion("");
+                }}
+                variant="ghost"
+              >
+                Don&apos;t know
+              </Button>
+            </div>
           </div>
         </div>
-
-        <div className="mb-8 flex items-center justify-between px-2">
-          <Button
-            disabled={!userResponse}
-            onClick={() => {
-              toggleAttempt();
-              complete(userResponse);
-            }}
-            className="bg-blue-400 text-white hover:bg-blue-500"
-          >
-            Answer
-          </Button>
-          <Button
-            onClick={() => {
-              toggleAttempt();
-              setCompletion("");
-            }}
-            variant="ghost"
-          >
-            Don&apos;t know
-          </Button>
-        </div>
-        {/* <div className="flex items-center justify-between border-t pt-4"> */}
       </div>
 
       <div>
@@ -344,47 +338,5 @@ const IndividualFlashcardReport = ({
         </Accordion>
       </div>
     </>
-  );
-};
-
-const Feedback = ({
-  correctResponse,
-  wrongResponse,
-  moreInfo,
-}: {
-  correctResponse?: string | null;
-  wrongResponse?: string | null;
-  moreInfo?: string | null;
-}) => {
-  return (
-    <div className="space-y-4">
-      {correctResponse && (
-        <div className="rounded-md bg-[#f0fff4] p-4">
-          <h4 className="mb-2 flex items-center text-sm font-semibold text-green-700">
-            <CheckCircleIcon className="mr-2" />
-            What you got right
-          </h4>
-          <p className="text-sm">{correctResponse}</p>
-        </div>
-      )}
-      {wrongResponse && (
-        <div className="rounded-md bg-[#fef2f2] p-4">
-          <h4 className="mb-2 flex items-center text-sm font-semibold text-red-700">
-            <BugIcon className="mr-2" />
-            What you got wrong
-          </h4>
-          <p className="text-sm">{wrongResponse}</p>
-        </div>
-      )}
-      {moreInfo && (
-        <div className="rounded-md bg-[#ebf4ff] p-4">
-          <h4 className="mb-2 flex items-center text-sm font-semibold text-blue-700">
-            <InfoIcon className="mr-2" />
-            More info
-          </h4>
-          <p className="text-sm">{moreInfo}</p>
-        </div>
-      )}
-    </div>
   );
 };
