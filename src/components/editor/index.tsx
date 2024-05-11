@@ -1,4 +1,3 @@
-import { toast } from "@/components/ui/use-toast";
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { getRandomLightColor, isDev } from "@/lib/utils";
@@ -31,6 +30,7 @@ import LiveblocksProvider from "@liveblocks/yjs";
 import { useCompletion } from "ai/react";
 import { useRoom } from "liveblocks.config";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import * as Y from "yjs";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
 import AiPopover, {
@@ -110,10 +110,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
       editor._tiptapEditor.commands.focus("end");
     },
     onError: (err) => {
-      toast({
-        title: "Error",
-        description: "Something went wrong with text generation",
-        variant: "destructive",
+      toast.error("Something went wrong with text generation", {
         duration: 3000,
       });
     },

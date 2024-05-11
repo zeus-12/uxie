@@ -5,10 +5,10 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { SpinnerPage } from "@/components/ui/spinner";
-import { toast } from "@/components/ui/use-toast";
 import Sidebar from "@/components/workspace/sidebar";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
+import { toast } from "sonner";
 
 const DocViewerPage = () => {
   const { query, push } = useRouter();
@@ -35,11 +35,8 @@ const DocViewerPage = () => {
     if (error?.data?.code === "UNAUTHORIZED") {
       push("/f");
 
-      toast({
-        title: "Unauthorized",
-        description: error.message,
-        variant: "destructive",
-        duration: 4000,
+      toast.error(error.message, {
+        duration: 3000,
       });
     }
     return <>Something went wrong :( </>;

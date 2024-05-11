@@ -1,6 +1,5 @@
 import { SpinnerPage } from "@/components/ui/spinner";
 import { CustomTooltip } from "@/components/ui/tooltip";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { copyTextToClipboard } from "@/lib/utils";
@@ -23,6 +22,7 @@ import {
   PdfLoader,
   Popup,
 } from "react-pdf-highlighter";
+import { toast } from "sonner";
 
 const parseIdFromHash = () => document.location.hash.slice(1);
 
@@ -87,12 +87,10 @@ const PdfReader = ({
         return { prevData };
       },
       onError(err, newPost, ctx) {
-        toast({
-          title: "Error",
-          description: "Something went wrong",
-          variant: "destructive",
+        toast.error("Something went wrong", {
           duration: 3000,
         });
+
         utils.document.getDocData.setData(
           { docId: docId as string },
           ctx?.prevData,

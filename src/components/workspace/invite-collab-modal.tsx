@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { createId } from "@paralleldrive/cuid2";
@@ -24,6 +23,7 @@ import { CollaboratorRole } from "@prisma/client";
 import { TrashIcon, UserPlus, XIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { toast } from "sonner";
 
 type CollaboratorRoleValuesUnion = keyof typeof CollaboratorRole;
 
@@ -61,12 +61,12 @@ const InviteCollab = () => {
         return { prevData };
       },
       onError(err, newPost, ctx) {
-        toast({
-          title: "Error",
-          description: "Make sure user exists, and is not already added.",
-          variant: "destructive",
-          duration: 4000,
-        });
+        toast.error(
+          "Something went wrong, please make sure user exists, and isn't already added.",
+          {
+            duration: 3000,
+          },
+        );
 
         utils.document.getCollaborators.setData(
           { documentId: documentId as string },
@@ -95,12 +95,12 @@ const InviteCollab = () => {
         return { prevData };
       },
       onError(err, newPost, ctx) {
-        toast({
-          title: "Error",
-          description: "Make sure user exists, and is not already added.",
-          variant: "destructive",
-          duration: 4000,
-        });
+        toast.error(
+          "Something went wrong, please make sure user exists, and isn't already added.",
+          {
+            duration: 3000,
+          },
+        );
 
         utils.document.getCollaborators.setData(
           { documentId: documentId as string },
@@ -132,11 +132,8 @@ const InviteCollab = () => {
       setEmail("");
       setRole(CollaboratorRole.VIEWER);
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message,
-        variant: "destructive",
-        duration: 4000,
+      toast.error(err.message, {
+        duration: 3000,
       });
     }
   };

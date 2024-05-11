@@ -1,7 +1,6 @@
 import FeatureCard from "@/components/other/feature-card";
 import BouncingLoader from "@/components/ui/bouncing-loader";
 import { SpinnerCentered } from "@/components/ui/spinner";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -11,6 +10,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import TextareaAutosize from "react-textarea-autosize";
+import { toast } from "sonner";
 
 export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { query } = useRouter();
@@ -32,10 +32,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
     },
 
     onError: (err: any) => {
-      toast({
-        title: "Error",
-        description: error?.message ?? "Something went wrong",
-        variant: "destructive",
+      toast.error(err?.message, {
         duration: 3000,
       });
     },
@@ -107,10 +104,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             { documentId: docId as string },
             {
               onError: (err: any) => {
-                toast({
-                  title: "Uh-oh",
-                  description: err?.message ?? "Something went wrong",
-                  variant: "destructive",
+                toast.error(err?.message, {
                   duration: 3000,
                 });
               },

@@ -7,13 +7,13 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { RequestOptions } from "ai";
 import { useCompletion } from "ai/react";
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface FlashcardAttemptType {
   userResponse: string;
@@ -77,10 +77,8 @@ const IndividualFlashcard = ({
 
     onError: (err: any) => {
       console.log(err.message);
-      toast({
-        title: "Error",
-        description: "Something went wrong with text generation",
-        variant: "destructive",
+
+      toast.error("Something went wrong with text generation", {
         duration: 3000,
       });
     },

@@ -1,10 +1,10 @@
 import IndividualFlashcard from "@/components/flashcard/card";
 import FeatureCard from "@/components/other/feature-card";
 import { SpinnerPage } from "@/components/ui/spinner";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const Flashcards = () => {
   const { query } = useRouter();
@@ -44,10 +44,7 @@ const Flashcards = () => {
                   utils.flashcard.getFlashcards.refetch();
                 },
                 onError: (err: any) => {
-                  toast({
-                    title: "Uh-oh",
-                    description: err?.message ?? "Something went wrong",
-                    variant: "destructive",
+                  toast.error(err.message, {
                     duration: 3000,
                   });
                 },

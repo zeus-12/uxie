@@ -8,7 +8,6 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent } from "@/components/ui/popover";
-import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { useBlockNoteEditor } from "@blocknote/react";
 import { useCompletion } from "ai/react";
@@ -16,6 +15,7 @@ import { useCommandState } from "cmdk";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 type AiPopoverProps = {
   rect: AiPopoverPropsRect | null;
@@ -152,10 +152,7 @@ const CommandBody = ({
       setQuery("");
     },
     onError: (err) => {
-      toast({
-        title: "Error",
-        description: "Something went wrong with text generation",
-        variant: "destructive",
+      toast.error("Something went wrong with text generation", {
         duration: 3000,
       });
     },

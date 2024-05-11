@@ -1,5 +1,5 @@
 import Navbar from "@/components/navbar";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/lib/api";
 import "@/styles/globals.css";
 import "@blocknote/react/style.css";

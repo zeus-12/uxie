@@ -1,6 +1,5 @@
 import PdfReader from "@/components/pdf-reader/reader";
 import { buttonVariants } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -14,6 +13,7 @@ import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type HighlightType =
@@ -65,10 +65,7 @@ const DocViewer = ({
       return { prevData };
     },
     onError(err, newPost, ctx) {
-      toast({
-        title: "Error",
-        description: "Something went wrong",
-        variant: "destructive",
+      toast.error("Something went wrong", {
         duration: 3000,
       });
 
@@ -102,10 +99,7 @@ const DocViewer = ({
       return { prevData };
     },
     onError(err, newPost, ctx) {
-      toast({
-        title: "Error",
-        description: "Something went wrong",
-        variant: "destructive",
+      toast.error("Something went wrong", {
         duration: 3000,
       });
       utils.document.getDocData.setData(
@@ -126,22 +120,19 @@ const DocViewer = ({
     type: HighlightContentType,
   ) => {
     if (!editor) {
-      toast({
-        title: "Error",
-        description: "Something went wrong",
-        variant: "destructive",
+      toast.error("Something went wrong.", {
         duration: 3000,
       });
       return;
     }
 
     if (!canEdit) {
-      toast({
-        title: "Error",
-        description: "User can't edit this document",
-        variant: "destructive",
-        duration: 3000,
-      });
+      toast.error(
+        "User doesn't have the required permission to edit the document",
+        {
+          duration: 3000,
+        },
+      );
       return;
     }
 

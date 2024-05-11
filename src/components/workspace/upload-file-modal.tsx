@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "@/components/ui/use-toast";
 import { api } from "@/lib/api";
 import { useUploadThing } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "@uploadthing/react";
 import { XIcon } from "lucide-react";
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { generateClientDropzoneAccept } from "uploadthing/client";
 import { z } from "zod";
 
@@ -44,26 +44,19 @@ const UploadFileModal = ({
     isUploading: isUploadthingUploading,
   } = useUploadThing("docUploader", {
     onClientUploadComplete: () => {
-      toast({
-        title: "Success",
-        description: "File uploaded successfully.",
-      });
+      toast.success("File uploaded successfully.");
     },
     onUploadError: () => {
-      toast({
-        title: "Error",
-        description: "error occurred while uploading",
-        variant: "destructive",
+      toast.error("Error occurred while uploading", {
+        duration: 3000,
       });
     },
   });
 
   const uploadFile = async () => {
     if ((file && url) || (!file && !url)) {
-      toast({
-        title: "Error",
-        description: "Please upload a file or enter a URL.",
-        variant: "destructive",
+      toast.error("Please upload a file or enter a URL.", {
+        duration: 3000,
       });
       return;
     }
@@ -75,10 +68,8 @@ const UploadFileModal = ({
         try {
           urlSchema.parse(url);
         } catch (err) {
-          toast({
-            title: "Error",
-            description: "Invalid URL",
-            variant: "destructive",
+          toast.error("Invalid URL", {
+            duration: 3000,
           });
           return;
         }
@@ -86,10 +77,8 @@ const UploadFileModal = ({
         const res = await fetch(url);
         const contentType = res.headers.get("Content-Type");
         if (contentType !== "application/pdf") {
-          toast({
-            title: "Error",
-            description: "URL is not a PDF",
-            variant: "destructive",
+          toast.error("URL is not a PDF", {
+            duration: 3000,
           });
           return;
         }
@@ -103,9 +92,8 @@ const UploadFileModal = ({
           url,
         });
 
-        toast({
-          title: "Success",
-          description: "File uploaded successfully.",
+        toast.success("File uploaded successfully.", {
+          duration: 3000,
         });
       }
       closeModal();
@@ -114,11 +102,13 @@ const UploadFileModal = ({
       refetchUserDocs();
     } catch (err: any) {
       console.log("error", err.message);
-      toast({
-        title: "Error",
-        description: "Error occurred while uploading",
-        variant: "destructive",
-      });
+
+      toast.error(
+        "Error occurred while uploading. Please make sure the PDF is accessible.",
+        {
+          duration: 3000,
+        },
+      );
     }
   };
 
@@ -210,11 +200,10 @@ const Uploader = ({
 }) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
-      toast({
-        title: "Error",
-        description: "Please upload a single file.",
-        variant: "destructive",
+      toast.error("Please upload a single file.", {
+        duration: 3000,
       });
+
       return;
     }
 
