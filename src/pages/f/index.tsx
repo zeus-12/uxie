@@ -49,9 +49,7 @@ const UserLibraryPage = () => {
             Hello, {userDocs?.name || "User"}
           </p>
 
-          {userDocs?.documents.length +
-            userDocs?.collaboratorateddocuments.length ===
-          0 ? (
+          {combinedUserDocs.length === 0 ? (
             <p className="text-muted-foreground">
               You have no files yet, upload one now!
             </p>
@@ -66,31 +64,33 @@ const UserLibraryPage = () => {
         />
       </div>
 
-      <div className="mt-2 flex flex-col justify-center md:px-4">
-        <div className="relative my-4">
-          <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
-          <Input
-            className="pl-9"
-            type="search"
-            placeholder="Search for a document"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
-          {filteredUserDocs?.map((doc) => (
-            <DocCard
-              key={doc.id}
-              id={doc.id}
-              title={doc.title}
-              isCollab={userDocs.collaboratorateddocuments.some(
-                (collab) => collab.document.id === doc.id,
-              )}
+      {combinedUserDocs.length > 0 && (
+        <div className="mt-2 flex flex-col justify-center md:px-4">
+          <div className="relative my-4">
+            <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
+            <Input
+              className="pl-9"
+              type="search"
+              placeholder="Search for a document"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-          ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
+            {filteredUserDocs?.map((doc) => (
+              <DocCard
+                key={doc.id}
+                id={doc.id}
+                title={doc.title}
+                isCollab={userDocs.collaboratorateddocuments.some(
+                  (collab) => collab.document.id === doc.id,
+                )}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
