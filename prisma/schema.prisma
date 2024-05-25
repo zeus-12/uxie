@@ -38,6 +38,13 @@ model User {
   createdAt                 DateTime           @default(now())
   feedbacks                 Feedback[]
   flashcardAttempts         FlashcardAttempt[]
+
+  plan Plan @default(FREE)
+}
+
+enum Plan {
+  FREE
+  PRO
 }
 
 model Document {
