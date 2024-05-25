@@ -1,3 +1,4 @@
+import { PLANS } from "@/lib/constants";
 import { vectoriseDocument } from "@/lib/vectorise";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { CollaboratorRole } from "@prisma/client";
@@ -267,6 +268,16 @@ export const documentRouter = createTRPCRouter({
           id: input.documentId,
           ownerId: ctx.session.user.id,
         },
+        select: {
+          owner: {
+            select: {
+              plan: true,
+            },
+          },
+          isVectorised: true,
+          url: true,
+          id: true,
+        },
       });
 
       if (!doc) {
@@ -283,8 +294,11 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
+      const docOwnerPlan = doc.owner.plan;
+      const maxPagesAllowed = PLANS[docOwnerPlan].maxPagesPerDoc;
+
       try {
-        await vectoriseDocument(doc.url, doc.id);
+        await vectoriseDocument(doc.url, doc.id, maxPagesAllowed);
       } catch (err: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -303,6 +317,39 @@ export const documentRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       try {
+        const user = await ctx.prisma.user.findUnique({
+          where: {
+            id: ctx.session.user.id,
+          },
+          select: {
+            plan: true,
+            _count: {
+              select: {
+                documents: true,
+              },
+            },
+          },
+        });
+
+        if (!user) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "User not found.",
+          });
+        }
+
+        const docCount = user._count.documents;
+        const docOwnerPlan = user.plan;
+        const maxPagesAllowed = PLANS[docOwnerPlan].maxPagesPerDoc;
+
+        if (docCount >= PLANS[user.plan].maxDocs) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              "You have reached the maximum number of documents allowed. Please upgrade your plan to add more documents.",
+          });
+        }
+
         const newFile = await ctx.prisma.document.create({
           data: {
             title: input.title,
@@ -316,9 +363,8 @@ export const documentRouter = createTRPCRouter({
           },
         });
 
-        // nested try-catch to not throw error if vectorisation fails
         try {
-          await vectoriseDocument(input.url, newFile.id);
+          await vectoriseDocument(input.url, newFile.id, maxPagesAllowed);
           return newFile;
         } catch (err: any) {
           console.log(err.message);
