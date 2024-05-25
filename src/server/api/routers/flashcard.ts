@@ -1,3 +1,4 @@
+import { PLANS } from "@/lib/constants";
 import { generateFlashcards as generateFlashcardsHelper } from "@/lib/flashcard";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { prisma } from "@/server/db";
@@ -87,6 +88,11 @@ export const flashcardRouter = createTRPCRouter({
         },
         select: {
           url: true,
+          owner: {
+            select: {
+              plan: true,
+            },
+          },
         },
       });
 
@@ -97,7 +103,13 @@ export const flashcardRouter = createTRPCRouter({
         });
       }
 
-      const flashcards = await generateFlashcardsHelper(res.url);
+      const docOwnerPlan = res.owner.plan;
+      const maxPagesAllowed = PLANS[docOwnerPlan].maxPagesPerDoc;
+
+      const flashcards = await generateFlashcardsHelper(
+        res.url,
+        maxPagesAllowed,
+      );
 
       const final = await prisma.flashcard.createMany({
         data: flashcards.map((flashcard) => ({

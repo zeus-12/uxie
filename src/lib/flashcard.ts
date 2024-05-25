@@ -2,7 +2,10 @@ import fireworks from "@/lib/fireworks";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
-export const generateFlashcards = async (fileUrl: string) => {
+export const generateFlashcards = async (
+  fileUrl: string,
+  maxPagesAllowed: number,
+) => {
   const response = await fetch(fileUrl);
   const blob = await response.blob();
   const loader = new PDFLoader(blob);
@@ -11,9 +14,9 @@ export const generateFlashcards = async (fileUrl: string) => {
   // better to add pagecount to db, so that "5 page" limit can be checked easily.
   const pageCount = pageLevelDocs.length;
 
-  if (pageCount > 5) {
+  if (pageCount > maxPagesAllowed) {
     throw new Error(
-      "Document to be vectorised can have at max 5 pages for now.",
+      `Document to generate flashcards can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
     );
   }
 

@@ -5,18 +5,22 @@ import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 
-export const vectoriseDocument = async (fileUrl: string, newFileId: string) => {
+export const vectoriseDocument = async (
+  fileUrl: string,
+  newFileId: string,
+  maxPagesAllowed: number,
+) => {
+  // TODO better to add pagecount to db, so that page count limit can be checked easily.
   const response = await fetch(fileUrl);
   const blob = await response.blob();
   const loader = new PDFLoader(blob);
 
   const pageLevelDocs = await loader.load();
-  // better to add pagecount to db, so that "5 page" limit can be checked easily.
   const pageCount = pageLevelDocs.length;
 
-  if (pageCount > 5) {
+  if (pageCount > maxPagesAllowed) {
     throw new Error(
-      "Document to be vectorised can have at max 5 pages for now.",
+      `Document to be vectorised can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
     );
   }
 
@@ -29,7 +33,7 @@ export const vectoriseDocument = async (fileUrl: string, newFileId: string) => {
       metadata: {
         fileId: newFileId,
       },
-      dataset: "pdf", // Use a field to indicate the source dataset (e.g., 'pdf')
+      dataset: "pdf",
     };
   });
 
