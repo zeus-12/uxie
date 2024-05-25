@@ -16,7 +16,8 @@ export default function Home() {
   return (
     <>
       <div className="absolute top-0 -z-10 h-full w-full bg-white">
-        <div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-60 blur-[80px]" />
+        <div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[20%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-40 blur-[80px]" />
+        <div className="absolute  left-0 bottom-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-20 blur-[80px]" />
       </div>
       <div className="px-4 py-2 lg:px-16">
         <div className="h-screen ">
@@ -81,20 +82,19 @@ const HeroSection = () => {
           </div>
         </a>
 
-        <p className="2xl:text-[5rem mt-2 max-w-xl text-center text-4xl font-semibold tracking-tight text-gray-800 sm:text-5xl lg:text-[3.5rem] lg:leading-none">
+        <p className="2xl:text-[5rem mt-2 max-w-xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
           <Balancer>
-            <span className="hero-underline underline	decoration-purple-300 decoration-solid">
-              Revolutionise
-            </span>{" "}
-            your Learning Experience
+            {/* <span className="hero-underline underline	decoration-purple-300 decoration-solid"> */}
+            Revolutionise <span className="opacity-[.32]">your</span> Learning{" "}
+            <span className="opacity-[0.32]">Experience</span>
           </Balancer>
         </p>
 
         <p className="2xl:text-md text-center text-base text-gray-500 md:text-lg">
           Fueling your learning journey, every step of the way
         </p>
-        <Link href="/f" className="group">
-          <Button className="mt-2">
+        <Link href="/f" className="group mt-2">
+          <Button>
             Get started
             <span className="ml-2 transition-all  group-hover:animate-pulse">
               🚀
