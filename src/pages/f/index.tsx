@@ -60,7 +60,10 @@ const UserLibraryPage = () => {
           )}
         </div>
 
-        <UploadFileModal refetchUserDocs={refetchUserDocs} />
+        <UploadFileModal
+          docsCount={userDocs.documents.length}
+          refetchUserDocs={refetchUserDocs}
+        />
       </div>
 
       <div className="mt-2 flex flex-col justify-center md:px-4">
