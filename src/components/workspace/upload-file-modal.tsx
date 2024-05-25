@@ -10,10 +10,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
+import { PLANS } from "@/lib/constants";
 import { useUploadThing } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "@uploadthing/react";
 import { XIcon } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { generateClientDropzoneAccept } from "uploadthing/client";
@@ -21,9 +23,13 @@ import { z } from "zod";
 
 const UploadFileModal = ({
   refetchUserDocs,
+  docsCount,
 }: {
   refetchUserDocs: () => void;
+  docsCount: number;
 }) => {
+  const session = useSession();
+
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
 
@@ -115,7 +121,25 @@ const UploadFileModal = ({
   return (
     <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
       <DialogTrigger>
-        <div className={cn(buttonVariants())}>Upload File</div>
+        <div
+          onClick={(e) => {
+            const userPlan = session?.data?.user?.plan;
+            if (!userPlan) return;
+            const allowedDocsCount = PLANS[userPlan].maxDocs;
+
+            if (docsCount >= allowedDocsCount) {
+              e.preventDefault();
+              toast.error("Free upload limit exceeded.", {
+                duration: 3000,
+                description: `Upgrade your plan to upload more than ${allowedDocsCount} document.`,
+              });
+              return;
+            }
+          }}
+          className={cn(buttonVariants())}
+        >
+          Upload File
+        </div>
       </DialogTrigger>
       <DialogContent hideClose={true}>
         <DialogHeader>
