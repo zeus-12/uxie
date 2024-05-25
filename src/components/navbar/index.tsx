@@ -19,7 +19,7 @@ const Navbar = () => {
         {session ? (
           <UserAccountNav user={session.user} />
         ) : (
-          <Button>
+          <Button size="sm">
             <Link href="/login">Sign in</Link>
           </Button>
         )}
