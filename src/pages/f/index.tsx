@@ -110,12 +110,12 @@ const DocCard = ({
       href={`/f/${id}`}
       className={cn(
         buttonVariants({ variant: "ghost" }),
-        "flex w-full flex-col gap-2 border py-8",
+        "flex flex-col gap-2 border py-8",
       )}
     >
-      <p className="mr-auto">
-        {title?.slice(0, 30) + (title.length > 30 ? "..." : "") ?? "Untitled"}{" "}
-      </p>
+      <div className="w-full">
+        <p className="mr-auto min-w-0 truncate">{title}</p>
+      </div>
 
       {isCollab && (
         <Badge className="mr-auto" variant="outline">
