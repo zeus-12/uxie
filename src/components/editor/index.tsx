@@ -28,10 +28,10 @@ import {
 } from "@blocknote/react";
 import LiveblocksProvider from "@liveblocks/yjs";
 import { useCompletion } from "ai/react";
-import { useRoom } from "liveblocks.config";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import * as Y from "yjs";
+import { useRoom } from "../../../liveblocks.config";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
 import AiPopover, {
   AiPopoverPropsRect,

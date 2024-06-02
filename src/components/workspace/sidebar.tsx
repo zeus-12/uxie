@@ -10,10 +10,10 @@ import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ClientSideSuspense } from "@liveblocks/react";
 import { saveAs } from "file-saver";
-import { RoomProvider } from "liveblocks.config";
 import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { RoomProvider } from "../../../liveblocks.config";
 import InviteCollab from "./invite-collab-modal";
 
 const TABS = [
