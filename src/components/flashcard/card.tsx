@@ -191,15 +191,15 @@ const IndividualFlashcardQuestion = ({
   return (
     <div className="flex h-full flex-grow flex-col justify-between">
       <div>
-        <div className="mb-4">
-          <div className="rounded-t-lg bg-gray-100 p-4">
+        <div className="mb-4 px-2">
+          <div className="rounded-t-lg bg-gray-100 p-3">
             <h1 className="text-lg font-semibold">{question}</h1>
           </div>
-          <div className="rounded-b-lg border border-t-0 p-4">
+          <div>
             <Textarea
               value={userResponse}
               onChange={(e) => setUserResponse(e.target.value)}
-              className="h-24 w-full p-2"
+              className="h-24 w-full p-2 border-t-0 rounded-b-lg rounded-t-none focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder="Enter your answer..."
             />
 

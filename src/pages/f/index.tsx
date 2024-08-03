@@ -2,10 +2,11 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SpinnerPage } from "@/components/ui/spinner";
+import { CustomTooltip } from "@/components/ui/tooltip";
 import UploadFileModal from "@/components/workspace/upload-file-modal";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon, SearchIcon } from "lucide-react";
+import { ChevronLeftIcon, SearchIcon, Sparkle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -69,7 +70,7 @@ const UserLibraryPage = () => {
           <div className="relative my-4">
             <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
             <Input
-              className="pl-9"
+              className="pl-9 border-gray-200"
               type="search"
               placeholder="Search for a document"
               value={searchQuery}
@@ -80,6 +81,7 @@ const UserLibraryPage = () => {
           <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
             {filteredUserDocs?.map((doc) => (
               <DocCard
+                isVectorised={doc.isVectorised}
                 key={doc.id}
                 id={doc.id}
                 title={doc.title}
@@ -99,10 +101,12 @@ const DocCard = ({
   title,
   id,
   isCollab,
+  isVectorised,
 }: {
   title: string;
   id: string;
   isCollab: boolean;
+  isVectorised: boolean;
 }) => {
   return (
     <Link
@@ -110,11 +114,25 @@ const DocCard = ({
       href={`/f/${id}`}
       className={cn(
         buttonVariants({ variant: "ghost" }),
-        "flex flex-col gap-2 border py-8",
+        "flex flex-col gap-2 border py-8 hover:border-blue-300",
       )}
     >
-      <div className="w-full">
+      <div className="w-full flex justify-between">
         <p className="mr-auto min-w-0 truncate">{title}</p>
+        <CustomTooltip
+          content={
+            isVectorised
+              ? "Document is AI vectorised"
+              : "Document isn't AI vectorised"
+          }
+        >
+          <Sparkle
+            className={cn(
+              "h-4 w-4",
+              isVectorised ? "text-primary" : "text-gray-200",
+            )}
+          />
+        </CustomTooltip>
       </div>
 
       {isCollab && (
