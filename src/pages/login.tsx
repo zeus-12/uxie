@@ -2,7 +2,7 @@ import { GoogleIcon } from "@/components/other/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import { Brain, ChevronLeftIcon } from "lucide-react";
+import { Brain, ChevronLeftIcon, GithubIcon } from "lucide-react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -42,6 +42,18 @@ const Login = () => {
           disabled={isLoading}
         >
           {isLoading ? <Spinner /> : <GoogleIcon className="mr-2 h-4 w-4" />}{" "}
+          Google
+        </button>
+        <button
+          type="button"
+          className={cn(buttonVariants({ variant: "outline" }))}
+          onClick={() => {
+            setIsLoading(true);
+            signIn("github");
+          }}
+          disabled={isLoading}
+        >
+          {isLoading ? <Spinner /> : <GithubIcon className="mr-2 h-4 w-4" />}{" "}
           Google
         </button>
       </div>

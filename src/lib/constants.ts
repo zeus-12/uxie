@@ -13,7 +13,7 @@ export const PLANS: Record<Plan, PlanData> = {
   FREE: {
     title: "Free",
     price: 0,
-    maxDocs: 1,
+    maxDocs: 10,
     maxPagesPerDoc: 5,
     maxFileSizePerDoc: "8MB",
     maxCollaboratorsPerDoc: 0,
