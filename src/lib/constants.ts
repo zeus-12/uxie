@@ -18,6 +18,15 @@ export const PLANS: Record<Plan, PlanData> = {
     maxFileSizePerDoc: "8MB",
     maxCollaboratorsPerDoc: 0,
   },
+
+  FREE_PLUS: {
+    title: "Free",
+    price: 0,
+    maxDocs: 5,
+    maxPagesPerDoc: 5,
+    maxFileSizePerDoc: "8MB",
+    maxCollaboratorsPerDoc: 0,
+  },
   PRO: {
     title: "Pro",
     price: 9.99,
