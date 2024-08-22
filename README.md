@@ -34,6 +34,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - **Fireworks AI** for LLM
 - **Huggingface Model** for generating Embeddings
 - **Liveblocks** for realtime collaboration
+- **Nuqs** for type-safe search params
 
 ## Features:
 

@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, SearchIcon, Sparkle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useQueryState } from "nuqs";
 
 const UserLibraryPage = () => {
   const {
@@ -17,7 +17,9 @@ const UserLibraryPage = () => {
     isLoading,
     refetch: refetchUserDocs,
   } = api.user.getUsersDocs.useQuery();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useQueryState("q", {
+    defaultValue: "",
+  });
 
   if (isError) return <div>Something went wrong</div>;
   if (isLoading) return <SpinnerPage />;
@@ -78,19 +80,25 @@ const UserLibraryPage = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
-            {filteredUserDocs?.map((doc) => (
-              <DocCard
-                isVectorised={doc.isVectorised}
-                key={doc.id}
-                id={doc.id}
-                title={doc.title}
-                isCollab={userDocs.collaboratorateddocuments.some(
-                  (collab) => collab.document.id === doc.id,
-                )}
-              />
-            ))}
-          </div>
+          {filteredUserDocs && filteredUserDocs.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
+              {filteredUserDocs?.map((doc) => (
+                <DocCard
+                  isVectorised={doc.isVectorised}
+                  key={doc.id}
+                  id={doc.id}
+                  title={doc.title}
+                  isCollab={userDocs.collaboratorateddocuments.some(
+                    (collab) => collab.document.id === doc.id,
+                  )}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground">
+              No documents found, try changing your search query.
+            </p>
+          )}
         </div>
       )}
     </div>
