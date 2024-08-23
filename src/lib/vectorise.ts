@@ -3,6 +3,7 @@ import { getPineconeClient } from "@/lib/pinecone";
 import { prisma } from "@/server/db";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
 
 export const vectoriseDocument = async (
@@ -27,7 +28,14 @@ export const vectoriseDocument = async (
   const pinecone = getPineconeClient();
   const pineconeIndex = pinecone.Index("uxie");
 
-  const combinedData = pageLevelDocs.map((document) => {
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 200,
+  });
+
+  const splitDocs = await textSplitter.splitDocuments(pageLevelDocs);
+
+  const combinedData = splitDocs.map((document) => {
     return {
       ...document,
       metadata: {
