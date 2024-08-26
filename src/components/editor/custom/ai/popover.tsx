@@ -246,8 +246,9 @@ const CommandBody = ({
               onKeyDown={async (e) => {
                 if (e.key === "Enter" && filteredCount === 0) {
                   incrementCur();
-                  // @ts-ignore
-                  complete(`${e.target.value}: ${rect.text}`);
+                  complete(
+                    `${(e.target as HTMLInputElement).value}: ${rect.text}`,
+                  );
                 }
               }}
             />

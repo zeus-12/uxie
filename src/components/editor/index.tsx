@@ -126,7 +126,6 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
   // };
   // const insertAi: ReactSlashMenuItem<typeof blockSchema> = {
   //   name: "Continue with AI",
-  //   // @ts-ignore
   //   execute: generateAiContent,
   //   aliases: ["ai", "fill"],
   //   group: "AI",
