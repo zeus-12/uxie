@@ -182,8 +182,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                 e.preventDefault();
-                // @ts-ignore
-                handleSubmit(e);
+                handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
               } else if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
               }
