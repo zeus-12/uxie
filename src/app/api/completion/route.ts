@@ -7,18 +7,18 @@ export const runtime = "edge";
 export async function POST(req: Request) {
   if (env.NODE_ENV === "development") {
     return new StreamingTextResponse(
-      {
-        // @ts-ignore
-        async *[Symbol.asyncIterator]() {
+      new ReadableStream({
+        async start(controller) {
           let i = 0;
           while (i < 15) {
-            yield `${i}`;
+            controller.enqueue(`${i}`);
             i++;
             await new Promise((resolve) => setTimeout(resolve, 100));
           }
-          yield `done, time: ${new Date().toISOString()}`;
+          controller.enqueue(`done, time: ${new Date().toISOString()}`);
+          controller.close();
         },
-      },
+      }),
       {
         headers: {
           "Content-Type": "text/plain",
