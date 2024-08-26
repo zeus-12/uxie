@@ -1,3 +1,4 @@
+import { getHighlightById } from "@/components/pdf-reader";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
@@ -24,16 +25,6 @@ import {
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
 
-const parseIdFromHash = () => document.location.hash.slice(1);
-
-const resetHash = () => {
-  document.location.hash = "";
-};
-
-type RouterOutput = inferRouterOutputs<AppRouter>;
-type HighlightType =
-  RouterOutput["document"]["getDocData"]["highlights"][number];
-
 interface AddHighlighType {
   content: {
     text?: string;
@@ -42,22 +33,36 @@ interface AddHighlighType {
   position: HighlightPositionType;
 }
 
+const parseIdFromHash = () => document.location.hash.slice(1);
+
+const resetHash = () => {
+  document.location.hash = "";
+};
+
+let scrollViewerTo = (highlight: any) => {};
+const scrollToHighlightFromHash = (
+  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"],
+) => {
+  const highlight = getHighlightById(parseIdFromHash(), doc);
+
+  if (highlight) {
+    scrollViewerTo(highlight);
+  }
+};
+
 const PdfReader = ({
-  docUrl,
-  getHighlightById,
   addHighlight,
   deleteHighlight,
-  highlights,
-  docId,
+  doc,
 }: {
-  docId: string;
-  docUrl: string;
-  getHighlightById: (id: string) => HighlightType | undefined;
   addHighlight: ({ content, position }: AddHighlighType) => Promise<void>;
   deleteHighlight: (id: string) => void;
-  highlights: HighlightType[];
+  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
 }) => {
   const utils = api.useContext();
+
+  const { url: docUrl, id: docId } = doc;
+  const highlights = doc.highlights ?? [];
 
   const { mutate: updateAreaHighlight } =
     api.highlight.updateAreaHighlight.useMutation({
@@ -66,7 +71,7 @@ const PdfReader = ({
         const prevData = utils.document.getDocData.getData();
 
         // @ts-ignore
-        utils.document.getDocData.setData({ docId: docId as string }, (old) => {
+        utils.document.getDocData.setData({ docId: docId }, (old) => {
           if (!old) return undefined;
           return {
             ...old,
@@ -91,25 +96,12 @@ const PdfReader = ({
           duration: 3000,
         });
 
-        utils.document.getDocData.setData(
-          { docId: docId as string },
-          ctx?.prevData,
-        );
+        utils.document.getDocData.setData({ docId: docId }, ctx?.prevData);
       },
       onSettled() {
         utils.document.getDocData.invalidate();
       },
     });
-
-  let scrollViewerTo = (highlight: any) => {};
-
-  const scrollToHighlightFromHash = () => {
-    const highlight = getHighlightById(parseIdFromHash());
-
-    if (highlight) {
-      scrollViewerTo(highlight);
-    }
-  };
 
   const { sendMessage } = useChatStore();
 
@@ -123,7 +115,7 @@ const PdfReader = ({
           // pdfScaleValue="page-width"
           scrollRef={(scrollTo) => {
             scrollViewerTo = scrollTo;
-            scrollToHighlightFromHash();
+            scrollToHighlightFromHash(doc);
           }}
           onSelectionFinished={(
             position,
@@ -170,7 +162,7 @@ const PdfReader = ({
                       id: highlight.id,
                       boundingRect: viewportToScaled(boundingRect),
                       type: HighlightTypeEnum.IMAGE,
-                      documentId: docId as string,
+                      documentId: docId,
                       ...(boundingRect.pageNumber
                         ? { pageNumber: boundingRect.pageNumber }
                         : {}),
