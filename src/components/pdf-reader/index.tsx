@@ -5,7 +5,7 @@ import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
 import { BlockNoteEditorType } from "@/types/editor";
-import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
+import { CompactHighlight, HighlightContentType } from "@/types/highlight";
 import { insertOrUpdateBlock } from "@blocknote/core";
 import { createId } from "@paralleldrive/cuid2";
 import { HighlightTypeEnum } from "@prisma/client";
@@ -21,7 +21,7 @@ interface AddHighlightType {
     text?: string;
     image?: string;
   };
-  position: HighlightPositionType;
+  position: CompactHighlight["position"];
 }
 
 const addHighlightToNotes = (
@@ -187,7 +187,7 @@ const DocViewer = ({
       boundingRect: position.boundingRect,
       type: isTextHighlight ? HighlightTypeEnum.TEXT : HighlightTypeEnum.IMAGE,
       documentId: docId,
-      pageNumber: position.pageNumber,
+      pageNumber: position.boundingRect.pageNumber,
       rects: position.rects,
     });
 

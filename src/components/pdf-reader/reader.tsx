@@ -1,12 +1,13 @@
 import { getHighlightById } from "@/components/pdf-reader";
+import MyExpandableTip from "@/components/pdf-reader/expandable-tip";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { copyTextToClipboard } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
-import { HighlightPositionType } from "@/types/highlight";
-import { HighlightTypeEnum } from "@prisma/client";
+import { CompactHighlight } from "@/types/highlight";
+// import { HighlightPositionType } from "@/types/highlight";
 import { inferRouterOutputs } from "@trpc/server";
 import {
   BookOpenCheck,
@@ -16,21 +17,30 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import { useRef } from "react";
 import {
   AreaHighlight,
   Highlight,
   PdfHighlighter,
+  PdfHighlighterUtils,
   PdfLoader,
-  Popup,
-} from "react-pdf-highlighter";
+  TextHighlight,
+  useHighlightContainerContext,
+  usePdfHighlighterContext,
+} from "react-pdf-highlighter-extended";
 import { toast } from "sonner";
+
+// The pdfjs library used by the client - it must match our pdfjs-dist version exactly
+// the default behaviour of react-pdf-highlighter is to use unpkg
+// with hardcoded version in the URL.
+// import pdfJSWorkerSrc from "pdfjs-dist/build/pdf.worker?url";
 
 interface AddHighlighType {
   content: {
     text?: string;
     image?: string;
   };
-  position: HighlightPositionType;
+  position: CompactHighlight["position"];
 }
 
 const parseIdFromHash = () => document.location.hash.slice(1);
@@ -60,6 +70,7 @@ const PdfReader = ({
   doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
 }) => {
   const utils = api.useContext();
+  const highlighterUtilsRef = useRef<PdfHighlighterUtils>();
 
   const { url: docUrl, id: docId } = doc;
   const highlights = doc.highlights ?? [];
@@ -106,94 +117,106 @@ const PdfReader = ({
   const { sendMessage } = useChatStore();
 
   return (
-    <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
+    <PdfLoader
+      document={docUrl}
+      beforeLoad={() => <SpinnerPage />}
+      // workerSrc={pdfJSWorkerSrc}
+    >
       {(pdfDocument) => (
         <PdfHighlighter
-          pdfDocument={pdfDocument}
-          enableAreaSelection={(event) => event.altKey}
-          onScrollChange={resetHash}
-          // pdfScaleValue="page-width"
-          scrollRef={(scrollTo) => {
-            scrollViewerTo = scrollTo;
-            scrollToHighlightFromHash(doc);
-          }}
-          onSelectionFinished={(
-            position,
-            content,
-            hideTipAndSelection,
-            transformSelection,
-          ) => {
-            return (
-              <TextSelectionPopover
-                sendMessage={sendMessage}
-                content={content}
-                hideTipAndSelection={hideTipAndSelection}
-                position={position}
-                addHighlight={() => addHighlight({ content, position })}
-              />
-            );
-          }}
-          highlightTransform={(
-            highlight,
-            index,
-            setTip,
-            hideTip,
-            viewportToScaled,
-            screenshot,
-            isScrolledTo,
-          ) => {
-            const isTextHighlight = highlight.position.rects?.length !== 0;
-
-            const component = isTextHighlight ? (
-              <div id={highlight.id}>
-                {/* @ts-ignore */}
-                <Highlight
-                  isScrolledTo={isScrolledTo}
-                  position={highlight.position}
-                />
-              </div>
-            ) : (
-              <div id={highlight.id}>
-                <AreaHighlight
-                  isScrolledTo={isScrolledTo}
-                  highlight={highlight}
-                  onChange={(boundingRect) => {
-                    updateAreaHighlight({
-                      id: highlight.id,
-                      boundingRect: viewportToScaled(boundingRect),
-                      type: HighlightTypeEnum.IMAGE,
-                      documentId: docId,
-                      ...(boundingRect.pageNumber
-                        ? { pageNumber: boundingRect.pageNumber }
-                        : {}),
-                    });
-                  }}
-                />
-              </div>
-            );
-
-            return (
-              <Popup
-                popupContent={
-                  <HighlightedTextPopup
-                    id={highlight.id}
-                    deleteHighlight={deleteHighlight}
-                    hideTip={hideTip}
-                  />
-                }
-                onMouseOver={(popupContent) =>
-                  setTip(highlight, (highlight) => popupContent)
-                }
-                onMouseOut={hideTip}
-                key={index}
-              >
-                {component}
-              </Popup>
-            );
-          }}
           // @ts-ignore
           highlights={highlights}
-        />
+          pdfDocument={pdfDocument}
+          enableAreaSelection={(event) => event.altKey}
+          utilsRef={(_pdfHighlighterUtils) => {
+            highlighterUtilsRef.current = _pdfHighlighterUtils;
+          }}
+          onScrollChange={resetHash}
+          selectionTip={<MyExpandableTip />} // Component will render as a tip upon any selection
+
+          // pdfScaleValue="page-width"
+          // scrollRef={(scrollTo) => {
+          //   scrollViewerTo = scrollTo;
+          //   scrollToHighlightFromHash(doc);
+          // }}
+
+          // onSelectionFinished={(
+          //   position,
+          //   content,
+          //   hideTipAndSelection,
+          //   transformSelection,
+          // ) => {
+          //   return (
+          //     <TextSelectionPopover
+          //       sendMessage={sendMessage}
+          //       content={content}
+          //       hideTipAndSelection={hideTipAndSelection}
+          //       position={position}
+          //       addHighlight={() => addHighlight({ content, position })}
+          //     />
+          //   );
+          // }}
+          // highlightTransform={(
+          //   highlight,
+          //   index,
+          //   setTip,
+          //   hideTip,
+          //   viewportToScaled,
+          //   screenshot,
+          //   isScrolledTo,
+          // ) => {
+          //   const isTextHighlight = highlight.position.rects?.length !== 0;
+
+          //   const component = isTextHighlight ? (
+          //     <div id={highlight.id}>
+          //       {/* @ts-ignore */}
+          //       <Highlight
+          //         isScrolledTo={isScrolledTo}
+          //         position={highlight.position}
+          //       />
+          //     </div>
+          //   ) : (
+          //     <div id={highlight.id}>
+          //       <AreaHighlight
+          //         isScrolledTo={isScrolledTo}
+          //         highlight={highlight}
+          //         onChange={(boundingRect) => {
+          //           updateAreaHighlight({
+          //             id: highlight.id,
+          //             boundingRect: viewportToScaled(boundingRect),
+          //             type: HighlightTypeEnum.IMAGE,
+          //             documentId: docId,
+          //             ...(boundingRect.pageNumber
+          //               ? { pageNumber: boundingRect.pageNumber }
+          //               : {}),
+          //           });
+          //         }}
+          //       />
+          //     </div>
+          //   );
+
+          //   return (
+          //     <Popup
+          //       popupContent={
+          //         <HighlightedTextPopup
+          //           id={highlight.id}
+          //           deleteHighlight={deleteHighlight}
+          //           hideTip={hideTip}
+          //         />
+          //       }
+          //       onMouseOver={(popupContent) =>
+          //         setTip(highlight, (highlight) => popupContent)
+          //       }
+          //       onMouseOut={hideTip}
+          //       key={index}
+          //     >
+          //       {component}
+          //     </Popup>
+          //   );
+          // }}
+        >
+          <MyHighlightContainer editHighlight={() => {}} />
+        </PdfHighlighter>
       )}
     </PdfLoader>
   );
@@ -328,3 +351,55 @@ const HighlightedTextPopup = ({
   );
 };
 export default PdfReader;
+
+interface MyHighlightContainerProps {
+  editHighlight: (idToUpdate: string, edit: Partial<Highlight>) => void; // This could update highlights in the parent
+}
+
+const MyHighlightContainer = ({ editHighlight }: MyHighlightContainerProps) => {
+  const {
+    highlight, // The highlight being rendred
+    viewportToScaled, // Convert a highlight position to platform agnostic coords (useful for saving edits)
+    screenshot, // Screenshot a bounding rectangle
+    isScrolledTo, // Whether the highlight has been auto-scrolled to
+    highlightBindings, // Whether the highlight has been auto-scrolled to
+  } = useHighlightContainerContext();
+
+  // const { currentTip,  } =
+  //   useTipViewerUtils();
+
+  const { toggleEditInProgress, setTip, isEditInProgress } =
+    usePdfHighlighterContext();
+
+  const isTextHighlight = !Boolean(
+    highlight.content && highlight.content.image,
+  );
+
+  const component = isTextHighlight ? (
+    <TextHighlight isScrolledTo={isScrolledTo} highlight={highlight} />
+  ) : (
+    <AreaHighlight
+      isScrolledTo={isScrolledTo}
+      highlight={highlight}
+      onChange={(boundingRect) => {
+        const edit = {
+          position: {
+            boundingRect: viewportToScaled(boundingRect),
+            rects: [],
+          },
+          content: {
+            image: screenshot(boundingRect),
+          },
+        };
+
+        // @ts-ignore
+        editHighlight(highlight.id, edit);
+        toggleEditInProgress(false);
+      }}
+      bounds={highlightBindings.textLayer}
+      onEditStart={() => toggleEditInProgress(true)}
+    />
+  );
+
+  return component;
+};
