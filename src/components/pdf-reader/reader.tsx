@@ -1,21 +1,20 @@
 import { getHighlightById } from "@/components/pdf-reader";
+import ReaderBottomToolbar from "@/components/pdf-reader/bottom-toolbar";
+import {
+  HighlightedTextPopover,
+  TextSelectionPopover,
+} from "@/components/pdf-reader/highlight-popover";
+import { Button } from "@/components/ui/button";
 import { SpinnerPage } from "@/components/ui/spinner";
-import { CustomTooltip } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
-import { copyTextToClipboard } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
 import { HighlightPositionType } from "@/types/highlight";
 import { HighlightTypeEnum } from "@prisma/client";
 import { inferRouterOutputs } from "@trpc/server";
-import {
-  BookOpenCheck,
-  ClipboardCopy,
-  Highlighter,
-  Lightbulb,
-  TrashIcon,
-} from "lucide-react";
-import { useRouter } from "next/router";
+import { Ban, Pause, Play } from "lucide-react";
+import { type PDFDocumentProxy } from "pdfjs-dist";
+import { useEffect, useRef, useState } from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -50,6 +49,14 @@ const scrollToHighlightFromHash = (
   }
 };
 
+enum READING_STATUS {
+  IDLE = "IDLE",
+  READING = "READING",
+  PAUSED = "PAUSED",
+}
+
+const READING_SPEEDS = [1, 1.2, 1.4, 1.6, 1.8, 2];
+
 const PdfReader = ({
   addHighlight,
   deleteHighlight,
@@ -60,6 +67,8 @@ const PdfReader = ({
   doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
 }) => {
   const utils = api.useContext();
+
+  const browserSupportsSpeechSynthesis = "speechSynthesis" in window;
 
   const { url: docUrl, id: docId } = doc;
   const highlights = doc.highlights ?? [];
@@ -105,226 +114,270 @@ const PdfReader = ({
 
   const { sendMessage } = useChatStore();
 
-  return (
-    <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
-      {(pdfDocument) => (
-        <PdfHighlighter
-          pdfDocument={pdfDocument}
-          enableAreaSelection={(event) => event.altKey}
-          onScrollChange={resetHash}
-          // pdfScaleValue="page-width"
-          scrollRef={(scrollTo) => {
-            scrollViewerTo = scrollTo;
-            scrollToHighlightFromHash(doc);
-          }}
-          onSelectionFinished={(
-            position,
-            content,
-            hideTipAndSelection,
-            transformSelection,
-          ) => {
-            return (
-              <TextSelectionPopover
-                sendMessage={sendMessage}
-                content={content}
-                hideTipAndSelection={hideTipAndSelection}
-                position={position}
-                addHighlight={() => addHighlight({ content, position })}
-              />
-            );
-          }}
-          highlightTransform={(
-            highlight,
-            index,
-            setTip,
-            hideTip,
-            viewportToScaled,
-            screenshot,
-            isScrolledTo,
-          ) => {
-            const isTextHighlight = highlight.position.rects?.length !== 0;
-
-            const component = isTextHighlight ? (
-              <div id={highlight.id}>
-                {/* @ts-ignore */}
-                <Highlight
-                  isScrolledTo={isScrolledTo}
-                  position={highlight.position}
-                />
-              </div>
-            ) : (
-              <div id={highlight.id}>
-                <AreaHighlight
-                  isScrolledTo={isScrolledTo}
-                  highlight={highlight}
-                  onChange={(boundingRect) => {
-                    updateAreaHighlight({
-                      id: highlight.id,
-                      boundingRect: viewportToScaled(boundingRect),
-                      type: HighlightTypeEnum.IMAGE,
-                      documentId: docId,
-                      ...(boundingRect.pageNumber
-                        ? { pageNumber: boundingRect.pageNumber }
-                        : {}),
-                    });
-                  }}
-                />
-              </div>
-            );
-
-            return (
-              <Popup
-                popupContent={
-                  <HighlightedTextPopup
-                    id={highlight.id}
-                    deleteHighlight={deleteHighlight}
-                    hideTip={hideTip}
-                  />
-                }
-                onMouseOver={(popupContent) =>
-                  setTip(highlight, (highlight) => popupContent)
-                }
-                onMouseOut={hideTip}
-                key={index}
-              >
-                {component}
-              </Popup>
-            );
-          }}
-          // @ts-ignore
-          highlights={highlights}
-        />
-      )}
-    </PdfLoader>
+  const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
+    READING_STATUS.IDLE,
   );
-};
+  const [readingSpeed, setReadingSpeed] = useState(1);
+  const [pageNumberToRead, setPageNumberToRead] = useState(1);
+  const [currentWord, setCurrentWord] = useState("");
+  const [pdfContent, setPdfContent] = useState("");
 
-const TextSelectionPopover = ({
-  content,
-  hideTipAndSelection,
-  position,
-  addHighlight,
-  sendMessage,
-}: {
-  position: any;
-  addHighlight: () => void;
-  content: {
-    text?: string | undefined;
-    image?: string | undefined;
-  };
-  hideTipAndSelection: () => void;
-  sendMessage: ((message: string) => void) | null;
-}) => {
-  const router = useRouter();
+  const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const switchSidebarTabToChat = () => {
-    router.push({
-      query: {
-        ...router.query,
-        tab: "chat",
-      },
+  const setPdfContentByPage = async (pageNumber: number) => {
+    if (!pdf) return;
+    const page = await pdf.getPage(pageNumber);
+    const text = (await page.getTextContent()).items.map((item) => {
+      if ("str" in item) return item.str;
+      else {
+        console.log("TextMarkedContent::: ", item);
+      }
     });
+    setPdfContent(text.join(" "));
   };
 
-  const OPTIONS = [
-    {
-      onClick: () => {
-        addHighlight();
-        hideTipAndSelection();
-      },
-      icon: Highlighter,
-      tooltip: "Highlight",
-    },
-    {
-      onClick: () => {
-        copyTextToClipboard(content.text, hideTipAndSelection);
-        hideTipAndSelection();
-      },
-      icon: ClipboardCopy,
-      tooltip: "Copy the text",
-    },
-    sendMessage && {
-      onClick: () => {
-        sendMessage("**Explain**: " + content.text);
-        switchSidebarTabToChat();
-        hideTipAndSelection();
-      },
-      icon: Lightbulb,
-      tooltip: "Explain the text",
-    },
-    sendMessage && {
-      onClick: () => {
-        sendMessage("**Summarise**: " + content.text);
-        switchSidebarTabToChat();
-        hideTipAndSelection();
-      },
-      icon: BookOpenCheck,
-      tooltip: "Summarise the text",
-    },
-  ].filter(Boolean);
+  const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
+  // pdf?.getMetadata().then((metadata) => {
+  //   console.log(metadata);
+  // });
+
+  useEffect(() => {
+    if (!pdf) return;
+    speechSynthesisRef.current = window.speechSynthesis;
+    return () => {
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    };
+  }, [pdf]);
+
+  useEffect(() => {
+    if (!pdf) return;
+
+    setPdfContentByPage(pageNumberToRead);
+  }, [pdf, pageNumberToRead]);
+
+  const startReading = () => {
+    if (!speechSynthesisRef.current || !pdfContent) return;
+
+    setReadingStatus(READING_STATUS.READING);
+
+    const utterance = new SpeechSynthesisUtterance(pdfContent);
+    utterance.voice =
+      speechSynthesisRef.current
+        .getVoices()
+        .find((voice) => voice.name === "Aaron") || null;
+    utterance.rate = readingSpeed;
+    utteranceRef.current = utterance;
+
+    utterance.onboundary = (event) => {
+      if (event.name === "word") {
+        const word = pdfContent.slice(
+          event.charIndex,
+          event.charIndex + event.charLength,
+        );
+        setCurrentWord(word);
+      }
+    };
+
+    utterance.onend = () => {
+      setReadingStatus(READING_STATUS.IDLE);
+      setCurrentWord("");
+    };
+
+    speechSynthesisRef.current.speak(utterance);
+  };
+
+  const pauseReading = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.pause();
+      setReadingStatus(READING_STATUS.PAUSED);
+    }
+  };
+
+  const stopReading = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
+    }
+    setReadingStatus(READING_STATUS.IDLE);
+    setCurrentWord("");
+  };
+
+  const resumeReading = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.resume();
+      setReadingStatus(READING_STATUS.READING);
+    }
+  };
 
   return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[7px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[7px] border-r-[7px] border-t-[7px] border-solid border-black border-l-transparent border-r-transparent " />
+    <>
+      <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
+        {(pdfDocument) => (
+          <PdfHighlighter
+            pdfDocument={pdfDocument}
+            ref={() => {
+              // theres prob a better way to set this
+              setPdf(pdfDocument);
+            }}
+            enableAreaSelection={(event) => event.altKey}
+            onScrollChange={resetHash}
+            // pdfScaleValue="page-width"
+            scrollRef={(scrollTo) => {
+              scrollViewerTo = scrollTo;
+              scrollToHighlightFromHash(doc);
+            }}
+            onSelectionFinished={(
+              position,
+              content,
+              hideTipAndSelection,
+              transformSelection,
+            ) => {
+              return (
+                <TextSelectionPopover
+                  sendMessage={sendMessage}
+                  content={content}
+                  hideTipAndSelection={hideTipAndSelection}
+                  position={position}
+                  addHighlight={() => addHighlight({ content, position })}
+                />
+              );
+            }}
+            highlightTransform={(
+              highlight,
+              index,
+              setTip,
+              hideTip,
+              viewportToScaled,
+              screenshot,
+              isScrolledTo,
+            ) => {
+              const isTextHighlight = highlight.position.rects?.length !== 0;
 
-      <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => {
-          if (!option) return null;
-          return (
-            <div
-              className="group px-[0.5rem] pb-[0.2rem] pt-[0.5rem] hover:cursor-pointer"
-              key={id}
-              onClick={option.onClick}
+              const component = isTextHighlight ? (
+                <div id={highlight.id}>
+                  {/* @ts-ignore */}
+                  <Highlight
+                    isScrolledTo={isScrolledTo}
+                    position={highlight.position}
+                  />
+                </div>
+              ) : (
+                <div id={highlight.id}>
+                  <AreaHighlight
+                    isScrolledTo={isScrolledTo}
+                    highlight={highlight}
+                    onChange={(boundingRect) => {
+                      updateAreaHighlight({
+                        id: highlight.id,
+                        boundingRect: viewportToScaled(boundingRect),
+                        type: HighlightTypeEnum.IMAGE,
+                        documentId: docId,
+                        ...(boundingRect.pageNumber
+                          ? { pageNumber: boundingRect.pageNumber }
+                          : {}),
+                      });
+                    }}
+                  />
+                </div>
+              );
+
+              return (
+                <Popup
+                  popupContent={
+                    <HighlightedTextPopover
+                      id={highlight.id}
+                      deleteHighlight={deleteHighlight}
+                      hideTip={hideTip}
+                    />
+                  }
+                  onMouseOver={(popupContent) =>
+                    setTip(highlight, (highlight) => popupContent)
+                  }
+                  onMouseOut={hideTip}
+                  key={index}
+                >
+                  {component}
+                </Popup>
+              );
+            }}
+            // @ts-ignore
+            highlights={highlights}
+          />
+        )}
+      </PdfLoader>
+      <ReaderBottomToolbar isAudioDisabled={!browserSupportsSpeechSynthesis}>
+        <div className="gap-2 relative z-50 flex items-center rounded-lg">
+          {readingStatus === READING_STATUS.IDLE && (
+            <Button
+              onClick={startReading}
+              disabled={!pdfContent}
+              variant="ghost"
+              className="px-4 py-2"
             >
-              <CustomTooltip content={option.tooltip}>
-                <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
-              </CustomTooltip>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+              <Play className="h-5 w-5" />
+            </Button>
+          )}
+          {readingStatus === READING_STATUS.READING && (
+            <Button
+              onClick={pauseReading}
+              variant="ghost"
+              className="px-4 py-2"
+            >
+              <Pause className="h-5 w-5" />
+            </Button>
+          )}
 
-const HighlightedTextPopup = ({
-  id,
-  deleteHighlight,
-  hideTip,
-}: {
-  id: string;
-  deleteHighlight: any;
-  hideTip: () => void;
-}) => {
-  const OPTIONS = [
-    {
-      onClick: () => {
-        deleteHighlight(id);
-        hideTip();
-      },
-      icon: TrashIcon,
-    },
-  ];
+          {readingStatus === READING_STATUS.PAUSED && (
+            <Button
+              onClick={resumeReading}
+              variant="ghost"
+              className="px-4 py-2"
+            >
+              <Play className="h-5 w-5" />
+            </Button>
+          )}
 
-  return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
+          {readingStatus !== READING_STATUS.IDLE && (
+            <p className="text-lg font-semibold text-blue-600">{currentWord}</p>
+          )}
 
-      <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => (
-          <div
-            className="group p-2 hover:cursor-pointer"
-            key={id}
-            onClick={option.onClick}
+          <Button
+            onClick={stopReading}
+            disabled={readingStatus === READING_STATUS.IDLE}
+            className="rounded px-4 py-2 text-black bg-white hover:bg-muted disabled:opacity-50"
           >
-            <option.icon
-              size={18}
-              className="rounded-full text-gray-300 group-hover:text-gray-50"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
+            <Ban className="h-5 w-5" />
+          </Button>
+
+          <Button
+            onClick={() => {
+              const nextSpeed =
+                (READING_SPEEDS.indexOf(readingSpeed) + 1) %
+                READING_SPEEDS.length;
+              const newSpeed = READING_SPEEDS[nextSpeed];
+              if (!newSpeed) return;
+              setReadingSpeed(newSpeed);
+
+              if (utteranceRef.current && speechSynthesisRef.current) {
+                speechSynthesisRef.current.pause();
+
+                utteranceRef.current.rate = newSpeed;
+                if (readingStatus === READING_STATUS.READING) {
+                  speechSynthesisRef.current.resume();
+                }
+              }
+            }}
+            variant="ghost"
+            className="px-4 py-2"
+          >
+            {readingSpeed}x
+          </Button>
+        </div>
+      </ReaderBottomToolbar>
+    </>
   );
 };
+
 export default PdfReader;
