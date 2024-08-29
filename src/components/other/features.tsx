@@ -9,7 +9,7 @@ const features = [
     title: "Annotate your documents w. ease",
     imageUrl: "/features/annotation.gif",
     description:
-      "To create area highlight hold ⌥ Option key (Alt), then click and drag. (Also with text-to-speech support)",
+      "With text and area highlights (hold ⌥ Option key (Alt), then click and drag), and text-to-speech support",
   },
   {
     title: "Take notes with a notion like editor",
