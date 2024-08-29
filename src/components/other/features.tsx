@@ -9,12 +9,13 @@ const features = [
     title: "Annotate your documents w. ease",
     imageUrl: "/features/annotation.gif",
     description:
-      "To create area highlight hold ⌥ Option key (Alt), then click and drag.",
+      "To create area highlight hold ⌥ Option key (Alt), then click and drag. (Also with text-to-speech support)",
   },
   {
     title: "Take notes with a notion like editor",
     imageUrl: "/features/editor.gif",
-    description: "With AI features, and export to Markdown.",
+    description:
+      "With AI text autocompletion, text enhancement, and export to Markdown.",
   },
   {
     title: "Ask the chatbot anything pdf related",
