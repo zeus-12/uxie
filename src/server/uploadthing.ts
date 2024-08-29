@@ -17,6 +17,7 @@ export const docUploader = {
       try {
         const numPages = await getDocument(file.url).promise.then((doc) => {
           return doc.numPages;
+          // pdfMetadata: await doc.getMetadata(),
         });
 
         await prisma.document.create({
