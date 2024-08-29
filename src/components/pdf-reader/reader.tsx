@@ -118,72 +118,94 @@ const PdfReader = ({
     READING_STATUS.IDLE,
   );
   const [readingSpeed, setReadingSpeed] = useState(1);
-  const [pageNumberToRead, setPageNumberToRead] = useState(1);
+  const [currentPageNumber, setCurrentPageNumber] = useState(1);
   const [currentWord, setCurrentWord] = useState("");
-  const [pdfContent, setPdfContent] = useState("");
+  const [currentPosition, setCurrentPosition] = useState(0);
+
+  // TODO need to figure this out somehow
+  const totalPagesInPdf = 2;
 
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const setPdfContentByPage = async (pageNumber: number) => {
+  const getPdfContentByPage = async (pageNumber: number) => {
     if (!pdf) return;
     const page = await pdf.getPage(pageNumber);
-    const text = (await page.getTextContent()).items.map((item) => {
+    const textContent = await page.getTextContent();
+
+    const words = textContent.items.map((item) => {
       if ("str" in item) return item.str;
-      else {
-        console.log("TextMarkedContent::: ", item);
-      }
     });
-    setPdfContent(text.join(" "));
+
+    return words.join(" ");
   };
 
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
-  // pdf?.getMetadata().then((metadata) => {
-  //   console.log(metadata);
-  // });
 
   useEffect(() => {
-    if (!pdf) return;
     speechSynthesisRef.current = window.speechSynthesis;
+
     return () => {
       if (speechSynthesisRef.current) {
         speechSynthesisRef.current.cancel();
       }
     };
-  }, [pdf]);
+  }, []);
 
-  useEffect(() => {
-    if (!pdf) return;
+  // continueReadingFromLastPosition => used in changing-speed: here we want to continue reading from the last position
+  const readDocument = async (
+    pageNumber: number,
+    continueReadingFromLastPosition?: boolean,
+  ) => {
+    if (!speechSynthesisRef.current || pageNumber > totalPagesInPdf) {
+      setReadingStatus(READING_STATUS.IDLE);
+      return;
+    }
 
-    setPdfContentByPage(pageNumberToRead);
-  }, [pdf, pageNumberToRead]);
+    if (speechSynthesisRef.current.speaking) {
+      speechSynthesisRef.current.cancel();
+    }
 
-  const startReading = () => {
-    if (!speechSynthesisRef.current || !pdfContent) return;
+    const content = await getPdfContentByPage(pageNumber);
+    if (!content) {
+      return;
+    }
 
     setReadingStatus(READING_STATUS.READING);
 
-    const utterance = new SpeechSynthesisUtterance(pdfContent);
+    const textToRead = continueReadingFromLastPosition
+      ? content.substring(currentPosition)
+      : content;
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+
     utterance.voice =
       speechSynthesisRef.current
         .getVoices()
         .find((voice) => voice.name === "Aaron") || null;
+
     utterance.rate = readingSpeed;
     utteranceRef.current = utterance;
 
     utterance.onboundary = (event) => {
       if (event.name === "word") {
-        const word = pdfContent.slice(
+        setCurrentPosition(currentPosition + event.charIndex);
+
+        const word = textToRead.slice(
           event.charIndex,
           event.charIndex + event.charLength,
         );
-        setCurrentWord(word);
-      }
-    };
 
-    utterance.onend = () => {
-      setReadingStatus(READING_STATUS.IDLE);
-      setCurrentWord("");
+        setCurrentWord(word);
+
+        // onend wont work as it'd get called everytime speed is changed (as it calls cancel) => we need to continue reading from the currentIndex in that case
+        if (event.charIndex + event.charLength >= textToRead.length) {
+          setCurrentPosition(0);
+          readDocument(pageNumber + 1);
+          setCurrentPageNumber(pageNumber + 1);
+          setCurrentWord("");
+        }
+      }
     };
 
     speechSynthesisRef.current.speak(utterance);
@@ -202,12 +224,30 @@ const PdfReader = ({
     }
     setReadingStatus(READING_STATUS.IDLE);
     setCurrentWord("");
+    setCurrentPosition(0);
   };
 
   const resumeReading = () => {
     if (speechSynthesisRef.current) {
       speechSynthesisRef.current.resume();
       setReadingStatus(READING_STATUS.READING);
+    }
+  };
+
+  const handleChangeReadingSpeed = () => {
+    const nextSpeed =
+      (READING_SPEEDS.indexOf(readingSpeed) + 1) % READING_SPEEDS.length;
+    const newSpeed = READING_SPEEDS[nextSpeed];
+
+    if (!newSpeed) return;
+    setReadingSpeed(newSpeed);
+
+    if (utteranceRef.current && speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
+
+      if (readingStatus === READING_STATUS.READING) {
+        readDocument(currentPageNumber, true);
+      }
     }
   };
 
@@ -307,70 +347,47 @@ const PdfReader = ({
           />
         )}
       </PdfLoader>
-      <ReaderBottomToolbar isAudioDisabled={!browserSupportsSpeechSynthesis}>
-        <div className="gap-2 relative z-50 flex items-center rounded-lg">
+      <ReaderBottomToolbar
+        isAudioDisabled={!browserSupportsSpeechSynthesis}
+        currentWord={
+          readingStatus !== READING_STATUS.IDLE ? currentWord : undefined
+        }
+      >
+        <div className="gap-1 relative z-50 flex items-center rounded-lg">
           {readingStatus === READING_STATUS.IDLE && (
             <Button
-              onClick={startReading}
-              disabled={!pdfContent}
+              onClick={() => readDocument(1)}
               variant="ghost"
-              className="px-4 py-2"
+              className="px-3"
             >
               <Play className="h-5 w-5" />
             </Button>
           )}
           {readingStatus === READING_STATUS.READING && (
-            <Button
-              onClick={pauseReading}
-              variant="ghost"
-              className="px-4 py-2"
-            >
+            <Button onClick={pauseReading} variant="ghost" className="px-3">
               <Pause className="h-5 w-5" />
             </Button>
           )}
 
           {readingStatus === READING_STATUS.PAUSED && (
-            <Button
-              onClick={resumeReading}
-              variant="ghost"
-              className="px-4 py-2"
-            >
+            <Button onClick={resumeReading} variant="ghost" className="px-3">
               <Play className="h-5 w-5" />
             </Button>
-          )}
-
-          {readingStatus !== READING_STATUS.IDLE && (
-            <p className="text-lg font-semibold text-blue-600">{currentWord}</p>
           )}
 
           <Button
             onClick={stopReading}
             disabled={readingStatus === READING_STATUS.IDLE}
-            className="rounded px-4 py-2 text-black bg-white hover:bg-muted disabled:opacity-50"
+            variant="ghost"
+            className="px-3"
           >
             <Ban className="h-5 w-5" />
           </Button>
 
           <Button
-            onClick={() => {
-              const nextSpeed =
-                (READING_SPEEDS.indexOf(readingSpeed) + 1) %
-                READING_SPEEDS.length;
-              const newSpeed = READING_SPEEDS[nextSpeed];
-              if (!newSpeed) return;
-              setReadingSpeed(newSpeed);
-
-              if (utteranceRef.current && speechSynthesisRef.current) {
-                speechSynthesisRef.current.pause();
-
-                utteranceRef.current.rate = newSpeed;
-                if (readingStatus === READING_STATUS.READING) {
-                  speechSynthesisRef.current.resume();
-                }
-              }
-            }}
+            onClick={handleChangeReadingSpeed}
             variant="ghost"
-            className="px-4 py-2"
+            className="px-3"
           >
             {readingSpeed}x
           </Button>
