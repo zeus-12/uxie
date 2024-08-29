@@ -20,6 +20,8 @@ export const docUploader = {
           // pdfMetadata: await doc.getMetadata(),
         });
 
+        // figure out some way to take a snapshot of the first page of the pdf and store that
+
         await prisma.document.create({
           data: {
             owner: {
