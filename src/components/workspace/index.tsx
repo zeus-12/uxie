@@ -50,7 +50,7 @@ const DocViewerPage = () => {
             <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
           </div>
         </ResizablePanel>
-        <div className="group flex w-2 cursor-col-resize items-center justify-center rounded-md bg-gray-50">
+        <div className="group flex w-2 items-center justify-center rounded-md bg-gray-50">
           <ResizableHandle className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24 lg:w-1" />
         </div>
         <ResizablePanel defaultSize={50} minSize={30}>

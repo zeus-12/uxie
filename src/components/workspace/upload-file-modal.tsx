@@ -224,7 +224,7 @@ const Uploader = ({
 }) => {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
-      toast.error("Please upload a single file.", {
+      toast.error("Please upload a single PDF file.", {
         duration: 3000,
       });
 

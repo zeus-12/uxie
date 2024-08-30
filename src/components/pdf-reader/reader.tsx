@@ -1,21 +1,20 @@
 import { getHighlightById } from "@/components/pdf-reader";
+import ReaderBottomToolbar from "@/components/pdf-reader/bottom-toolbar";
+import {
+  HighlightedTextPopover,
+  TextSelectionPopover,
+} from "@/components/pdf-reader/highlight-popover";
+import { Button } from "@/components/ui/button";
 import { SpinnerPage } from "@/components/ui/spinner";
-import { CustomTooltip } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
-import { copyTextToClipboard } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
 import { HighlightPositionType } from "@/types/highlight";
 import { HighlightTypeEnum } from "@prisma/client";
 import { inferRouterOutputs } from "@trpc/server";
-import {
-  BookOpenCheck,
-  ClipboardCopy,
-  Highlighter,
-  Lightbulb,
-  TrashIcon,
-} from "lucide-react";
-import { useRouter } from "next/router";
+import { Ban, Pause, Play } from "lucide-react";
+import { type PDFDocumentProxy } from "pdfjs-dist";
+import { useEffect, useRef, useState } from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -50,6 +49,14 @@ const scrollToHighlightFromHash = (
   }
 };
 
+enum READING_STATUS {
+  IDLE = "IDLE",
+  READING = "READING",
+  PAUSED = "PAUSED",
+}
+
+const READING_SPEEDS = [1, 1.2, 1.4, 1.6, 1.8, 2];
+
 const PdfReader = ({
   addHighlight,
   deleteHighlight,
@@ -61,7 +68,10 @@ const PdfReader = ({
 }) => {
   const utils = api.useContext();
 
-  const { url: docUrl, id: docId } = doc;
+  const browserSupportsSpeechSynthesis = "speechSynthesis" in window;
+
+  const { url: docUrl, id: docId, pageCount } = doc;
+
   const highlights = doc.highlights ?? [];
 
   const { mutate: updateAreaHighlight } =
@@ -105,226 +115,284 @@ const PdfReader = ({
 
   const { sendMessage } = useChatStore();
 
-  return (
-    <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
-      {(pdfDocument) => (
-        <PdfHighlighter
-          pdfDocument={pdfDocument}
-          enableAreaSelection={(event) => event.altKey}
-          onScrollChange={resetHash}
-          // pdfScaleValue="page-width"
-          scrollRef={(scrollTo) => {
-            scrollViewerTo = scrollTo;
-            scrollToHighlightFromHash(doc);
-          }}
-          onSelectionFinished={(
-            position,
-            content,
-            hideTipAndSelection,
-            transformSelection,
-          ) => {
-            return (
-              <TextSelectionPopover
-                sendMessage={sendMessage}
-                content={content}
-                hideTipAndSelection={hideTipAndSelection}
-                position={position}
-                addHighlight={() => addHighlight({ content, position })}
-              />
-            );
-          }}
-          highlightTransform={(
-            highlight,
-            index,
-            setTip,
-            hideTip,
-            viewportToScaled,
-            screenshot,
-            isScrolledTo,
-          ) => {
-            const isTextHighlight = highlight.position.rects?.length !== 0;
-
-            const component = isTextHighlight ? (
-              <div id={highlight.id}>
-                {/* @ts-ignore */}
-                <Highlight
-                  isScrolledTo={isScrolledTo}
-                  position={highlight.position}
-                />
-              </div>
-            ) : (
-              <div id={highlight.id}>
-                <AreaHighlight
-                  isScrolledTo={isScrolledTo}
-                  highlight={highlight}
-                  onChange={(boundingRect) => {
-                    updateAreaHighlight({
-                      id: highlight.id,
-                      boundingRect: viewportToScaled(boundingRect),
-                      type: HighlightTypeEnum.IMAGE,
-                      documentId: docId,
-                      ...(boundingRect.pageNumber
-                        ? { pageNumber: boundingRect.pageNumber }
-                        : {}),
-                    });
-                  }}
-                />
-              </div>
-            );
-
-            return (
-              <Popup
-                popupContent={
-                  <HighlightedTextPopup
-                    id={highlight.id}
-                    deleteHighlight={deleteHighlight}
-                    hideTip={hideTip}
-                  />
-                }
-                onMouseOver={(popupContent) =>
-                  setTip(highlight, (highlight) => popupContent)
-                }
-                onMouseOut={hideTip}
-                key={index}
-              >
-                {component}
-              </Popup>
-            );
-          }}
-          // @ts-ignore
-          highlights={highlights}
-        />
-      )}
-    </PdfLoader>
+  const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
+    READING_STATUS.IDLE,
   );
-};
+  const [readingSpeed, setReadingSpeed] = useState(1);
+  const [currentPageNumber, setCurrentPageNumber] = useState(1);
+  const [currentWord, setCurrentWord] = useState("");
+  const [currentPosition, setCurrentPosition] = useState(0);
 
-const TextSelectionPopover = ({
-  content,
-  hideTipAndSelection,
-  position,
-  addHighlight,
-  sendMessage,
-}: {
-  position: any;
-  addHighlight: () => void;
-  content: {
-    text?: string | undefined;
-    image?: string | undefined;
-  };
-  hideTipAndSelection: () => void;
-  sendMessage: ((message: string) => void) | null;
-}) => {
-  const router = useRouter();
+  const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const switchSidebarTabToChat = () => {
-    router.push({
-      query: {
-        ...router.query,
-        tab: "chat",
-      },
+  const getPdfContentByPage = async (pageNumber: number) => {
+    if (!pdf) return;
+    const page = await pdf.getPage(pageNumber);
+    const textContent = await page.getTextContent();
+
+    const words = textContent.items.map((item) => {
+      if ("str" in item) return item.str;
     });
+
+    return words.join(" ");
   };
 
-  const OPTIONS = [
-    {
-      onClick: () => {
-        addHighlight();
-        hideTipAndSelection();
-      },
-      icon: Highlighter,
-      tooltip: "Highlight",
-    },
-    {
-      onClick: () => {
-        copyTextToClipboard(content.text, hideTipAndSelection);
-        hideTipAndSelection();
-      },
-      icon: ClipboardCopy,
-      tooltip: "Copy the text",
-    },
-    sendMessage && {
-      onClick: () => {
-        sendMessage("**Explain**: " + content.text);
-        switchSidebarTabToChat();
-        hideTipAndSelection();
-      },
-      icon: Lightbulb,
-      tooltip: "Explain the text",
-    },
-    sendMessage && {
-      onClick: () => {
-        sendMessage("**Summarise**: " + content.text);
-        switchSidebarTabToChat();
-        hideTipAndSelection();
-      },
-      icon: BookOpenCheck,
-      tooltip: "Summarise the text",
-    },
-  ].filter(Boolean);
+  const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
+
+  useEffect(() => {
+    speechSynthesisRef.current = window.speechSynthesis;
+
+    return () => {
+      if (speechSynthesisRef.current) {
+        speechSynthesisRef.current.cancel();
+      }
+    };
+  }, []);
+
+  // continueReadingFromLastPosition => used in changing-speed: here we want to continue reading from the last position
+  const readDocument = async (
+    pageNumber: number,
+    continueReadingFromLastPosition?: boolean,
+  ) => {
+    if (!speechSynthesisRef.current || pageNumber > pageCount) {
+      setReadingStatus(READING_STATUS.IDLE);
+      return;
+    }
+
+    if (speechSynthesisRef.current.speaking) {
+      speechSynthesisRef.current.cancel();
+    }
+
+    const content = await getPdfContentByPage(pageNumber);
+    if (!content) {
+      return;
+    }
+
+    setReadingStatus(READING_STATUS.READING);
+
+    const textToRead = continueReadingFromLastPosition
+      ? content.substring(currentPosition)
+      : content;
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+
+    utterance.voice =
+      speechSynthesisRef.current
+        .getVoices()
+        .find((voice) => voice.name === "Aaron") || null;
+
+    utterance.rate = readingSpeed;
+    utteranceRef.current = utterance;
+
+    utterance.onboundary = (event) => {
+      if (event.name === "word") {
+        setCurrentPosition(currentPosition + event.charIndex);
+
+        const word = textToRead.slice(
+          event.charIndex,
+          event.charIndex + event.charLength,
+        );
+
+        setCurrentWord(word);
+
+        // onend wont work as it'd get called everytime speed is changed (as it calls cancel) => we need to continue reading from the currentIndex in that case
+        if (event.charIndex + event.charLength >= textToRead.length) {
+          setCurrentPosition(0);
+          readDocument(pageNumber + 1);
+          setCurrentPageNumber(pageNumber + 1);
+          setCurrentWord("");
+        }
+      }
+    };
+
+    speechSynthesisRef.current.speak(utterance);
+  };
+
+  const pauseReading = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.pause();
+      setReadingStatus(READING_STATUS.PAUSED);
+    }
+  };
+
+  const stopReading = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
+    }
+    setReadingStatus(READING_STATUS.IDLE);
+    setCurrentWord("");
+    setCurrentPosition(0);
+  };
+
+  const resumeReading = () => {
+    if (speechSynthesisRef.current) {
+      speechSynthesisRef.current.resume();
+      setReadingStatus(READING_STATUS.READING);
+    }
+  };
+
+  const handleChangeReadingSpeed = () => {
+    const nextSpeed =
+      (READING_SPEEDS.indexOf(readingSpeed) + 1) % READING_SPEEDS.length;
+    const newSpeed = READING_SPEEDS[nextSpeed];
+
+    if (!newSpeed) return;
+    setReadingSpeed(newSpeed);
+
+    if (utteranceRef.current && speechSynthesisRef.current) {
+      speechSynthesisRef.current.cancel();
+
+      if (readingStatus === READING_STATUS.READING) {
+        readDocument(currentPageNumber, true);
+      }
+    }
+  };
 
   return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[7px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[7px] border-r-[7px] border-t-[7px] border-solid border-black border-l-transparent border-r-transparent " />
+    <>
+      <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
+        {(pdfDocument) => (
+          <PdfHighlighter
+            pdfDocument={pdfDocument}
+            ref={() => {
+              // theres prob a better way to set this
+              setPdf(pdfDocument);
+            }}
+            enableAreaSelection={(event) => event.altKey}
+            onScrollChange={resetHash}
+            // pdfScaleValue="page-width"
+            scrollRef={(scrollTo) => {
+              scrollViewerTo = scrollTo;
+              scrollToHighlightFromHash(doc);
+            }}
+            onSelectionFinished={(
+              position,
+              content,
+              hideTipAndSelection,
+              transformSelection,
+            ) => {
+              return (
+                <TextSelectionPopover
+                  sendMessage={sendMessage}
+                  content={content}
+                  hideTipAndSelection={hideTipAndSelection}
+                  position={position}
+                  addHighlight={() => addHighlight({ content, position })}
+                />
+              );
+            }}
+            highlightTransform={(
+              highlight,
+              index,
+              setTip,
+              hideTip,
+              viewportToScaled,
+              screenshot,
+              isScrolledTo,
+            ) => {
+              const isTextHighlight = highlight.position.rects?.length !== 0;
 
-      <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => {
-          if (!option) return null;
-          return (
-            <div
-              className="group px-[0.5rem] pb-[0.2rem] pt-[0.5rem] hover:cursor-pointer"
-              key={id}
-              onClick={option.onClick}
+              const component = isTextHighlight ? (
+                <div id={highlight.id}>
+                  {/* @ts-ignore */}
+                  <Highlight
+                    isScrolledTo={isScrolledTo}
+                    position={highlight.position}
+                  />
+                </div>
+              ) : (
+                <div id={highlight.id}>
+                  <AreaHighlight
+                    isScrolledTo={isScrolledTo}
+                    highlight={highlight}
+                    onChange={(boundingRect) => {
+                      updateAreaHighlight({
+                        id: highlight.id,
+                        boundingRect: viewportToScaled(boundingRect),
+                        type: HighlightTypeEnum.IMAGE,
+                        documentId: docId,
+                        ...(boundingRect.pageNumber
+                          ? { pageNumber: boundingRect.pageNumber }
+                          : {}),
+                      });
+                    }}
+                  />
+                </div>
+              );
+
+              return (
+                <Popup
+                  popupContent={
+                    <HighlightedTextPopover
+                      id={highlight.id}
+                      deleteHighlight={deleteHighlight}
+                      hideTip={hideTip}
+                    />
+                  }
+                  onMouseOver={(popupContent) =>
+                    setTip(highlight, (highlight) => popupContent)
+                  }
+                  onMouseOut={hideTip}
+                  key={index}
+                >
+                  {component}
+                </Popup>
+              );
+            }}
+            // @ts-ignore
+            highlights={highlights}
+          />
+        )}
+      </PdfLoader>
+      <ReaderBottomToolbar
+        isAudioDisabled={!browserSupportsSpeechSynthesis}
+        currentWord={
+          readingStatus !== READING_STATUS.IDLE ? currentWord : undefined
+        }
+      >
+        <div className="gap-1 relative z-50 flex items-center rounded-lg">
+          {readingStatus === READING_STATUS.IDLE && (
+            <Button
+              onClick={() => readDocument(1)}
+              variant="ghost"
+              className="px-3"
             >
-              <CustomTooltip content={option.tooltip}>
-                <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
-              </CustomTooltip>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+              <Play className="h-5 w-5" />
+            </Button>
+          )}
+          {readingStatus === READING_STATUS.READING && (
+            <Button onClick={pauseReading} variant="ghost" className="px-3">
+              <Pause className="h-5 w-5" />
+            </Button>
+          )}
 
-const HighlightedTextPopup = ({
-  id,
-  deleteHighlight,
-  hideTip,
-}: {
-  id: string;
-  deleteHighlight: any;
-  hideTip: () => void;
-}) => {
-  const OPTIONS = [
-    {
-      onClick: () => {
-        deleteHighlight(id);
-        hideTip();
-      },
-      icon: TrashIcon,
-    },
-  ];
+          {readingStatus === READING_STATUS.PAUSED && (
+            <Button onClick={resumeReading} variant="ghost" className="px-3">
+              <Play className="h-5 w-5" />
+            </Button>
+          )}
 
-  return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
-
-      <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => (
-          <div
-            className="group p-2 hover:cursor-pointer"
-            key={id}
-            onClick={option.onClick}
+          <Button
+            onClick={stopReading}
+            disabled={readingStatus === READING_STATUS.IDLE}
+            variant="ghost"
+            className="px-3"
           >
-            <option.icon
-              size={18}
-              className="rounded-full text-gray-300 group-hover:text-gray-50"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
+            <Ban className="h-5 w-5" />
+          </Button>
+
+          <Button
+            onClick={handleChangeReadingSpeed}
+            variant="ghost"
+            className="px-3"
+          >
+            {readingSpeed}x
+          </Button>
+        </div>
+      </ReaderBottomToolbar>
+    </>
   );
 };
+
 export default PdfReader;

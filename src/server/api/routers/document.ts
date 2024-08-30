@@ -3,6 +3,7 @@ import { vectoriseDocument } from "@/lib/vectorise";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { CollaboratorRole } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { getDocument } from "pdfjs-dist";
 import { z } from "zod";
 
 export const documentRouter = createTRPCRouter({
@@ -86,6 +87,7 @@ export const documentRouter = createTRPCRouter({
       const isOwner = res.owner.id === ctx.session.user.id;
       const canEdit = isOwner || collaborator?.role === CollaboratorRole.EDITOR;
       const username = isOwner ? res.owner.name : collaborator?.user.name || "";
+      const pageCount = res.pageCount;
 
       return {
         id: res.id,
@@ -101,6 +103,7 @@ export const documentRouter = createTRPCRouter({
           username,
           isOwner: res.owner.id === ctx.session.user.id,
         },
+        pageCount,
       };
     }),
 
@@ -350,11 +353,17 @@ export const documentRouter = createTRPCRouter({
           });
         }
 
+        const numPages = await getDocument(input.url).promise.then((doc) => {
+          return doc.numPages;
+          // pdfMetadata: await doc.getMetadata(),
+        });
+
         const newFile = await ctx.prisma.document.create({
           data: {
             title: input.title,
             url: input.url,
             isUploaded: false,
+            pageCount: numPages,
             owner: {
               connect: {
                 id: ctx.session.user.id,

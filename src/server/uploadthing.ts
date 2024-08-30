@@ -1,5 +1,6 @@
 import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
+import { getDocument } from "pdfjs-dist";
 import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
 
 const f = createUploadthing();
@@ -10,22 +11,17 @@ export const docUploader = {
     .middleware(async ({ req, res, files, input }) => {
       const session = await getServerAuthSession({ req, res });
       if (!session?.user) throw new Error("Unauthorized");
-
-      // get pdf page count, and then check for plan limits, if its fine the pagecount to db as well.
-
-      // const response = await fetch(fileUrl);
-      // const blob = await response.blob();
-      // const loader = new PDFLoader(blob);
-
-      // const pageLevelDocs = await loader.load();
-      // // better to add pagecount to db, so that "5 page" limit can be checked easily.
-      // const pageCount = pageLevelDocs.length;
-
-      // TODO check for doc counts based on plan
       return { userId: session?.user?.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
       try {
+        const numPages = await getDocument(file.url).promise.then((doc) => {
+          return doc.numPages;
+          // pdfMetadata: await doc.getMetadata(),
+        });
+
+        // figure out some way to take a snapshot of the first page of the pdf and store that
+
         await prisma.document.create({
           data: {
             owner: {
@@ -35,6 +31,7 @@ export const docUploader = {
             },
             url: file.url,
             title: file.name,
+            pageCount: numPages,
           },
         });
       } catch (err: any) {
