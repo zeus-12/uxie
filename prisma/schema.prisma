@@ -62,6 +62,7 @@ model Document {
   messages      Message[]
   isVectorised  Boolean        @default(false)
   createdAt     DateTime       @default(now())
+  pageCount     Int
 
   // false if user adds document by url
   isUploaded Boolean @default(true)
