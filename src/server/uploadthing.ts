@@ -31,6 +31,7 @@ export const docUploader = {
             },
             url: file.url,
             title: file.name,
+            pageCount: numPages,
           },
         });
       } catch (err: any) {

@@ -70,7 +70,8 @@ const PdfReader = ({
 
   const browserSupportsSpeechSynthesis = "speechSynthesis" in window;
 
-  const { url: docUrl, id: docId } = doc;
+  const { url: docUrl, id: docId, pageCount } = doc;
+
   const highlights = doc.highlights ?? [];
 
   const { mutate: updateAreaHighlight } =
@@ -122,9 +123,6 @@ const PdfReader = ({
   const [currentWord, setCurrentWord] = useState("");
   const [currentPosition, setCurrentPosition] = useState(0);
 
-  // TODO need to figure this out somehow
-  const totalPagesInPdf = 2;
-
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -157,7 +155,7 @@ const PdfReader = ({
     pageNumber: number,
     continueReadingFromLastPosition?: boolean,
   ) => {
-    if (!speechSynthesisRef.current || pageNumber > totalPagesInPdf) {
+    if (!speechSynthesisRef.current || pageNumber > pageCount) {
       setReadingStatus(READING_STATUS.IDLE);
       return;
     }
