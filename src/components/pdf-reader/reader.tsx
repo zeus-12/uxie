@@ -155,17 +155,28 @@ const PdfReader = ({
     pageNumber: number,
     continueReadingFromLastPosition?: boolean,
   ) => {
-    if (!speechSynthesisRef.current || pageNumber > pageCount) {
+    if (!speechSynthesisRef.current || pageNumber > pageCount || !pdf) {
       setReadingStatus(READING_STATUS.IDLE);
       return;
     }
+
+    // @ts-ignore
+    window.PdfViewer.viewer.scrollPageIntoView({
+      pageNumber: pageNumber,
+    });
 
     if (speechSynthesisRef.current.speaking) {
       speechSynthesisRef.current.cancel();
     }
 
     const content = await getPdfContentByPage(pageNumber);
+
+    // happens if the given page has no content
     if (!content) {
+      setCurrentPosition(0);
+      readDocument(pageNumber + 1);
+      setCurrentPageNumber(pageNumber + 1);
+      setCurrentWord("");
       return;
     }
 
