@@ -11,7 +11,6 @@ export const generateFlashcards = async (
   const loader = new PDFLoader(blob);
 
   const pageLevelDocs = await loader.load();
-  // better to add pagecount to db, so that "5 page" limit can be checked easily.
   const pageCount = pageLevelDocs.length;
 
   if (pageCount > maxPagesAllowed) {
