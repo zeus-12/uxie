@@ -64,21 +64,16 @@ function Features() {
 
 const FeatureImage = () => {
   const inViewFeature = useFeatureStore((state) => state.inViewFeature);
+  console.log(inViewFeature);
 
-  const invalidFeature =
-    typeof inViewFeature !== "number" ||
-    !features[inViewFeature] ||
-    !features[inViewFeature]?.imageUrl ||
-    typeof features[inViewFeature]?.imageUrl !== "string";
+  const curFeature = inViewFeature !== null ? features[inViewFeature] : null;
 
   return (
     <div className="relative aspect-video h-[25%] w-full rounded-2xl bg-gray-100 lg:h-[40%] [&:has(>_.active-card)]:bg-transparent">
-      {!invalidFeature && (
+      {curFeature && (
         <Image
           alt="feature"
-          // throwing error for some reason ugh
-          // @ts-ignore
-          src={features[inViewFeature].imageUrl}
+          src={curFeature.imageUrl}
           width={800}
           height={450}
           className="h-full w-full rounded-md"
