@@ -1,4 +1,5 @@
 import { env } from "@/env.mjs";
+import { StreamingTextResponse } from "ai";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import * as z from "zod";
@@ -48,3 +49,25 @@ export const copyTextToClipboard = (
 };
 
 export const isDev = env.NEXT_PUBLIC_ENV === "development";
+
+export const generateDummyStream = () => {
+  return new StreamingTextResponse(
+    new ReadableStream({
+      async start(controller) {
+        let i = 0;
+        while (i < 15) {
+          controller.enqueue(`${i}`);
+          i++;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        controller.enqueue(`done, time: ${new Date().toISOString()}`);
+        controller.close();
+      },
+    }),
+    {
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    },
+  );
+};
