@@ -386,4 +386,36 @@ export const documentRouter = createTRPCRouter({
         });
       }
     }),
+
+  updateNotes: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+        note: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          ownerId: ctx.session.user.id,
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you are not the owner.",
+        });
+      }
+
+      return await ctx.prisma.document.update({
+        where: {
+          id: input.documentId,
+        },
+        data: {
+          note: input.note,
+        },
+      });
+    }),
 });

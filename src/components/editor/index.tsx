@@ -36,6 +36,9 @@ import { useRoom } from "../../../liveblocks.config";
 import AiPopover, {
   AiPopoverPropsRect,
 } from "@/components/editor/custom/ai/popover";
+import { api } from "@/lib/api";
+import { useRouter } from "next/router";
+import { useDebouncedCallback } from "use-debounce";
 
 export default function Editor({
   canEdit,
@@ -77,8 +80,11 @@ export default function Editor({
 }
 
 function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
-  // const { mutate: updateNotesMutation } =
-  //   api.document.updateNotes.useMutation();
+  const { mutate: updateNotesMutation } =
+    api.document.updateNotes.useMutation();
+
+  const { query } = useRouter();
+  const documentId = query?.docId as string;
 
   // const { data, error, isError } = api.document.getNotesData.useQuery(
   //   {
@@ -90,12 +96,12 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
   //   },
   // );
 
-  // const debounced = useDebouncedCallback((value) => {
-  //   updateNotesMutation({
-  //     markdown: value,
-  //     documentId: query?.docId as string,
-  //   });
-  // }, 3000);
+  const debounced = useDebouncedCallback((value) => {
+    updateNotesMutation({
+      note: value,
+      documentId,
+    });
+  }, 3000);
 
   const { setEditor } = useBlocknoteEditorStore();
 
@@ -135,9 +141,6 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
 
   const editor = useCreateBlockNote(
     {
-      // onEditorContentChange: (editor) => {
-      //   debounced(JSON.stringify(editor.topLevelBlocks, null, 2));
-      // },
       schema,
       ...(isDev
         ? {}
@@ -277,6 +280,8 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
             });
             complete(blockText?.slice(-500) ?? "");
           }
+
+          debounced(JSON.stringify(editor.document, null, 2));
         }}
         className="w-full flex-1"
         theme={"light"}
