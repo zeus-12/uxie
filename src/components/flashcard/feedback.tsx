@@ -1,6 +1,6 @@
 import { BugIcon, InfoIcon, ThumbsUp } from "lucide-react";
 
-const Feedback = ({
+const FlashcardFeedback = ({
   correctResponse,
   wrongResponse,
   moreInfo,
@@ -42,4 +42,4 @@ const Feedback = ({
   );
 };
 
-export default Feedback;
+export default FlashcardFeedback;
