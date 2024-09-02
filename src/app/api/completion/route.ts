@@ -7,7 +7,7 @@ export const runtime = "edge";
 
 export async function POST(req: Request) {
   if (env.NODE_ENV === "development") {
-    generateDummyStream();
+    return generateDummyStream();
   } else {
     const { prompt } = await req.json();
 

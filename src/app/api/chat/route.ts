@@ -12,7 +12,7 @@ import { getServerSession } from "next-auth";
 export async function POST(req: Request, res: Response) {
   try {
     if (env.NODE_ENV === "development") {
-      generateDummyStream();
+      return generateDummyStream();
     } else {
       const { messages, docId } = await req.json();
 
