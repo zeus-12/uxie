@@ -7,6 +7,15 @@ export default withAuth(
     const token = await getToken({ req });
     const isAuth = !!token;
     const isAuthPage = req.nextUrl.pathname.startsWith("/login");
+    const isHomePage = req.nextUrl.pathname === "/";
+
+    if (isHomePage) {
+      if (isAuth) {
+        return NextResponse.redirect(new URL("/f", req.url));
+      } else {
+        return null;
+      }
+    }
 
     if (isAuthPage) {
       if (isAuth) {
@@ -40,5 +49,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/f/:path*", "/settings", "/login"],
+  matcher: ["/f/:path*", "/login", "/"],
 };
