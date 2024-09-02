@@ -75,10 +75,10 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ### TTS Tasks left:
 
-- maybe add multi-language support (works only for english now, atleast mention this somewhere ig)
+- add multi-language support (works only for english now, atleast mention this somewhere ig)
 - experiment with the voice (changing pitch, etc)
-- maybe add an onboarding flow for this? just explaining what it is and all
-- maybe a way to hide the bottom-toolbar (separate settings page or just drag to side?)
+- add an onboarding flow for this? just explaining what it is and all
+- some way to hide the bottom-toolbar (separate settings page or just drag to side?)
 
 ## New ideas
 
