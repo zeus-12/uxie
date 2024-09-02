@@ -6,7 +6,7 @@ import { CustomTooltip } from "@/components/ui/tooltip";
 import UploadFileModal from "@/components/workspace/upload-file-modal";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { ChevronLeftIcon, SearchIcon, Sparkle } from "lucide-react";
+import { SearchIcon, Sparkle } from "lucide-react";
 import Link from "next/link";
 import { useQueryState } from "nuqs";
 
@@ -35,8 +35,8 @@ const UserLibraryPage = () => {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16">
-      <Link
+    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16 mt-2 md:mt-4 xl:mt-6">
+      {/* <Link
         href="/"
         className={cn(
           buttonVariants({ variant: "ghost" }),
@@ -45,8 +45,8 @@ const UserLibraryPage = () => {
       >
         <ChevronLeftIcon className="mr-2 h-4 w-4" />
         Back
-      </Link>
-      <div className="flex items-start justify-between md:px-4">
+      </Link> */}
+      <div className="flex items-start justify-between">
         <div>
           <p className="mb-1 text-2xl font-semibold tracking-tighter">
             Hello, {userDocs?.name || "User"}
@@ -68,7 +68,7 @@ const UserLibraryPage = () => {
       </div>
 
       {combinedUserDocs.length > 0 && (
-        <div className="mt-2 flex flex-col justify-center md:px-4">
+        <div className="mt-2 flex flex-col justify-center">
           <div className="relative my-4">
             <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
             <Input
@@ -156,8 +156,7 @@ const DocCard = ({
 
 const UserLibrarySkeleton = () => {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16">
-      <Skeleton className="h-8 w-32 my-2" />
+    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16 mt-4 sm:mt-8">
       <div className="flex items-start justify-between md:px-4">
         <div>
           <Skeleton className="h-8 w-48 mb-1" />
