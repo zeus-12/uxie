@@ -49,7 +49,6 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ### Bugs
 
-- [ ] add max length for all input boxes chat, flashcards, feedback, notes.
 - [ ] for area highlights, create a custom component with:
 
 1. imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
@@ -85,7 +84,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 - [ ] use background runner or something and do long-polling
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
-  - [ ] for now -> If no collab then fetch from DB, else fetch from liveblocks. Also, Always store notes to DB
+  - [ ] for now -> If no collab then fetch from DB, else fetch from liveblocks.
 - [ ] Run the seogets script
 - [ ] figure out saving the first page, and doing ocr (maybe locally)
 
