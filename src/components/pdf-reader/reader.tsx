@@ -14,6 +14,7 @@ import { HighlightTypeEnum } from "@prisma/client";
 import { inferRouterOutputs } from "@trpc/server";
 import { Ban, Pause, Play } from "lucide-react";
 import { type PDFDocumentProxy } from "pdfjs-dist";
+import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import { useEffect, useRef, useState } from "react";
 import {
   AreaHighlight,
@@ -118,7 +119,7 @@ const PdfReader = ({
   const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
     READING_STATUS.IDLE,
   );
-  const [readingSpeed, setReadingSpeed] = useState(1);
+  const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
   const [currentWord, setCurrentWord] = useState("");
   const [currentPosition, setCurrentPosition] = useState(0);
@@ -153,6 +154,7 @@ const PdfReader = ({
   // continueReadingFromLastPosition => used in changing-speed: here we want to continue reading from the last position
   const readDocument = async (
     pageNumber: number,
+    readingSpeed: number,
     continueReadingFromLastPosition?: boolean,
   ) => {
     if (!speechSynthesisRef.current || pageNumber > pageCount || !pdf) {
@@ -161,9 +163,13 @@ const PdfReader = ({
     }
 
     // @ts-ignore
-    window.PdfViewer.viewer.scrollPageIntoView({
-      pageNumber: pageNumber,
-    });
+    const pdfViewer = window.PdfViewer.viewer as PDFViewer;
+
+    if (pdfViewer) {
+      pdfViewer.scrollPageIntoView({
+        pageNumber: pageNumber,
+      });
+    }
 
     if (speechSynthesisRef.current.speaking) {
       speechSynthesisRef.current.cancel();
@@ -174,7 +180,7 @@ const PdfReader = ({
     // happens if the given page has no content
     if (!content) {
       setCurrentPosition(0);
-      readDocument(pageNumber + 1);
+      readDocument(pageNumber + 1, currentReadingSpeed);
       setCurrentPageNumber(pageNumber + 1);
       setCurrentWord("");
       return;
@@ -210,7 +216,7 @@ const PdfReader = ({
         // onend wont work as it'd get called everytime speed is changed (as it calls cancel) => we need to continue reading from the currentIndex in that case
         if (event.charIndex + event.charLength >= textToRead.length) {
           setCurrentPosition(0);
-          readDocument(pageNumber + 1);
+          readDocument(pageNumber + 1, readingSpeed);
           setCurrentPageNumber(pageNumber + 1);
           setCurrentWord("");
         }
@@ -237,25 +243,34 @@ const PdfReader = ({
   };
 
   const resumeReading = () => {
-    if (speechSynthesisRef.current) {
-      speechSynthesisRef.current.resume();
+    if (speechSynthesisRef.current && utteranceRef.current) {
       setReadingStatus(READING_STATUS.READING);
+      const isSpeaking = speechSynthesisRef.current.speaking;
+
+      // it just works :)
+      // cases ive tested: `pause-change_speed-play, pause-play`
+      if (!isSpeaking) {
+        readDocument(currentPageNumber, currentReadingSpeed, true);
+      } else {
+        speechSynthesisRef.current.resume();
+      }
     }
   };
 
   const handleChangeReadingSpeed = () => {
-    const nextSpeed =
-      (READING_SPEEDS.indexOf(readingSpeed) + 1) % READING_SPEEDS.length;
-    const newSpeed = READING_SPEEDS[nextSpeed];
+    const nextSpeedIndex =
+      (READING_SPEEDS.indexOf(currentReadingSpeed) + 1) % READING_SPEEDS.length;
+    const newSpeed = READING_SPEEDS[nextSpeedIndex];
 
     if (!newSpeed) return;
-    setReadingSpeed(newSpeed);
+    setCurrentReadingSpeed(newSpeed);
 
     if (utteranceRef.current && speechSynthesisRef.current) {
       speechSynthesisRef.current.cancel();
+      utteranceRef.current.rate = newSpeed;
 
       if (readingStatus === READING_STATUS.READING) {
-        readDocument(currentPageNumber, true);
+        readDocument(currentPageNumber, newSpeed, true);
       }
     }
   };
@@ -365,7 +380,7 @@ const PdfReader = ({
         <div className="gap-1 relative z-50 flex items-center rounded-lg">
           {readingStatus === READING_STATUS.IDLE && (
             <Button
-              onClick={() => readDocument(1)}
+              onClick={() => readDocument(1, currentReadingSpeed)}
               variant="ghost"
               className="px-3"
             >
@@ -398,7 +413,7 @@ const PdfReader = ({
             variant="ghost"
             className="px-3"
           >
-            {readingSpeed}x
+            {currentReadingSpeed}x
           </Button>
         </div>
       </ReaderBottomToolbar>
