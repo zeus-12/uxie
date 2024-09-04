@@ -300,6 +300,7 @@ const PdfReader = ({
             ) => {
               return (
                 <TextSelectionPopover
+                  showAiFeatures={doc.isVectorised}
                   sendMessage={sendMessage}
                   content={content}
                   hideTipAndSelection={hideTipAndSelection}

@@ -15,6 +15,7 @@ export const TextSelectionPopover = ({
   position,
   addHighlight,
   sendMessage,
+  showAiFeatures,
 }: {
   position: any;
   addHighlight: () => void;
@@ -24,6 +25,7 @@ export const TextSelectionPopover = ({
   };
   hideTipAndSelection: () => void;
   sendMessage: ((message: string) => void) | null;
+  showAiFeatures: boolean;
 }) => {
   const router = useRouter();
 
@@ -53,24 +55,26 @@ export const TextSelectionPopover = ({
       icon: ClipboardCopy,
       tooltip: "Copy the text",
     },
-    sendMessage && {
-      onClick: () => {
-        sendMessage("**Explain**: " + content.text);
-        switchSidebarTabToChat();
-        hideTipAndSelection();
+    showAiFeatures &&
+      sendMessage && {
+        onClick: () => {
+          sendMessage("**Explain**: " + content.text);
+          switchSidebarTabToChat();
+          hideTipAndSelection();
+        },
+        icon: Lightbulb,
+        tooltip: "Explain the text",
       },
-      icon: Lightbulb,
-      tooltip: "Explain the text",
-    },
-    sendMessage && {
-      onClick: () => {
-        sendMessage("**Summarise**: " + content.text);
-        switchSidebarTabToChat();
-        hideTipAndSelection();
+    showAiFeatures &&
+      sendMessage && {
+        onClick: () => {
+          sendMessage("**Summarise**: " + content.text);
+          switchSidebarTabToChat();
+          hideTipAndSelection();
+        },
+        icon: BookOpenCheck,
+        tooltip: "Summarise the text",
       },
-      icon: BookOpenCheck,
-      tooltip: "Summarise the text",
-    },
   ].filter(Boolean);
 
   return (
