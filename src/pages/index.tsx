@@ -82,18 +82,19 @@ const HeroSection = () => {
           </div>
         </a>
 
-        <p className="2xl:text-[5rem mt-2 max-w-xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
+        <p className="2xl:text-[5rem] mt-2 max-w-4xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
           <Balancer>
-            {/* <span className="hero-underline underline	decoration-purple-300 decoration-solid"> */}
-            Revolutionise <span className="opacity-[.32]">your</span> Learning{" "}
-            <span className="opacity-[0.32]">Experience</span>
+            <span className="opacity-[.32]">The</span> AI-Powered PDF Reader{" "}
+            <span className="opacity-[.32]">That</span> Supercharges{" "}
+            <span className="opacity-[.32]">Your</span> Learning
           </Balancer>
         </p>
 
-        <p className="2xl:text-md text-center text-base text-gray-500 md:text-lg">
-          Fueling your learning journey, every step of the way
+        <p className="text-center text-md text-gray-500 md:text-xl max-w-xl md:my-3">
+          Uxie turns PDFs into interactive learning tools with AI-powered
+          summaries and flashcards
         </p>
-        <Link href="/f" className="group mt-2">
+        <Link href="/f" className="group">
           <Button>
             Get started
             <span className="ml-2 transition-all  group-hover:animate-pulse">
