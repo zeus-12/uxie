@@ -1,6 +1,7 @@
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { copyTextToClipboard } from "@/lib/utils";
 import {
+  AudioLines,
   BookOpenCheck,
   ClipboardCopy,
   Highlighter,
@@ -16,6 +17,7 @@ export const TextSelectionPopover = ({
   addHighlight,
   sendMessage,
   showAiFeatures,
+  readSelectedText,
 }: {
   position: any;
   addHighlight: () => void;
@@ -26,8 +28,18 @@ export const TextSelectionPopover = ({
   hideTipAndSelection: () => void;
   sendMessage: ((message: string) => void) | null;
   showAiFeatures: boolean;
+  readSelectedText: ({
+    text,
+    readingSpeed,
+    continueReadingFromLastPosition,
+  }: {
+    text?: string;
+    readingSpeed?: number;
+    continueReadingFromLastPosition?: boolean;
+  }) => void;
 }) => {
   const router = useRouter();
+  const isTextHighlight = content.text !== undefined;
 
   const switchSidebarTabToChat = () => {
     router.push({
@@ -39,6 +51,22 @@ export const TextSelectionPopover = ({
   };
 
   const OPTIONS = [
+    isTextHighlight && {
+      onClick: () => {
+        copyTextToClipboard(content.text, hideTipAndSelection);
+        hideTipAndSelection();
+      },
+      icon: ClipboardCopy,
+      tooltip: "Copy the text",
+    },
+    {
+      onClick: () => {
+        readSelectedText({ text: content.text });
+        hideTipAndSelection();
+      },
+      icon: AudioLines,
+      tooltip: "Read the text",
+    },
     {
       onClick: () => {
         addHighlight();
@@ -46,14 +74,6 @@ export const TextSelectionPopover = ({
       },
       icon: Highlighter,
       tooltip: "Highlight",
-    },
-    {
-      onClick: () => {
-        copyTextToClipboard(content.text, hideTipAndSelection);
-        hideTipAndSelection();
-      },
-      icon: ClipboardCopy,
-      tooltip: "Copy the text",
     },
     showAiFeatures &&
       sendMessage && {
@@ -118,6 +138,22 @@ export const HighlightedTextPopover = ({
       },
       icon: TrashIcon,
     },
+
+    // {
+    //   onClick: () => {
+    //     copyTextToClipboard(content.text, hideTipAndSelection);
+    //     hideTipAndSelection();
+    //   },
+    //   icon: ClipboardCopy,
+    //   tooltip: "Copy the text",
+    // },
+    // isTextHighlight && {
+    //   onClick: () => {
+    //     readSelectedText({ text: content.text });
+    //   },
+    //   icon: AudioLines,
+    //   tooltip: "Read the text",
+    // },
   ];
 
   return (
@@ -125,18 +161,22 @@ export const HighlightedTextPopover = ({
       <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent " />
 
       <div className="flex divide-x divide-gray-800">
-        {OPTIONS.map((option, id) => (
-          <div
-            className="group p-2 hover:cursor-pointer"
-            key={id}
-            onClick={option.onClick}
-          >
-            <option.icon
-              size={18}
-              className="rounded-full text-gray-300 group-hover:text-gray-50"
-            />
-          </div>
-        ))}
+        {OPTIONS.map((option, id) => {
+          if (!option) return null;
+
+          return (
+            <div
+              className="group p-2 hover:cursor-pointer"
+              key={id}
+              onClick={option.onClick}
+            >
+              <option.icon
+                size={18}
+                className="rounded-full text-gray-300 group-hover:text-gray-50"
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

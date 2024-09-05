@@ -58,6 +58,11 @@ enum READING_STATUS {
 
 const READING_SPEEDS = [1, 1.2, 1.4, 1.6, 1.8, 2];
 
+enum READING_MODE {
+  PAGE,
+  TEXT,
+}
+
 const PdfReader = ({
   addHighlight,
   deleteHighlight,
@@ -120,9 +125,16 @@ const PdfReader = ({
     READING_STATUS.IDLE,
   );
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
-  const [currentPageNumber, setCurrentPageNumber] = useState(1);
+
+  const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
+  const [selectedTextToRead, setSelectedTextToRead] = useState<string>("");
+  const [readingMode, setReadingMode] = useState<READING_MODE>(
+    READING_MODE.PAGE,
+  );
+
   const [currentWord, setCurrentWord] = useState("");
   const [currentPosition, setCurrentPosition] = useState(0);
+  const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
 
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -139,8 +151,6 @@ const PdfReader = ({
     return words.join(" ");
   };
 
-  const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
-
   useEffect(() => {
     speechSynthesisRef.current = window.speechSynthesis;
 
@@ -154,13 +164,15 @@ const PdfReader = ({
   // continueReadingFromLastPosition => used in changing-speed: here we want to continue reading from the last position
   const readDocument = async (
     pageNumber: number,
-    readingSpeed: number,
+    readingSpeed?: number,
     continueReadingFromLastPosition?: boolean,
   ) => {
     if (!speechSynthesisRef.current || pageNumber > pageCount || !pdf) {
       setReadingStatus(READING_STATUS.IDLE);
       return;
     }
+
+    setReadingMode(READING_MODE.PAGE);
 
     // @ts-ignore
     const pdfViewer = window.PdfViewer.viewer as PDFViewer;
@@ -180,7 +192,7 @@ const PdfReader = ({
     // happens if the given page has no content
     if (!content) {
       setCurrentPosition(0);
-      readDocument(pageNumber + 1, currentReadingSpeed);
+      readDocument(pageNumber + 1);
       setCurrentPageNumber(pageNumber + 1);
       setCurrentWord("");
       return;
@@ -199,7 +211,7 @@ const PdfReader = ({
         .getVoices()
         .find((voice) => voice.name === "Aaron") || null;
 
-    utterance.rate = readingSpeed;
+    utterance.rate = readingSpeed ?? currentReadingSpeed;
     utteranceRef.current = utterance;
 
     utterance.onboundary = (event) => {
@@ -216,9 +228,72 @@ const PdfReader = ({
         // onend wont work as it'd get called everytime speed is changed (as it calls cancel) => we need to continue reading from the currentIndex in that case
         if (event.charIndex + event.charLength >= textToRead.length) {
           setCurrentPosition(0);
-          readDocument(pageNumber + 1, readingSpeed);
+          readDocument(pageNumber + 1);
           setCurrentPageNumber(pageNumber + 1);
           setCurrentWord("");
+        }
+      }
+    };
+
+    speechSynthesisRef.current.speak(utterance);
+  };
+
+  const readSelectedText = ({
+    text,
+    readingSpeed,
+    continueReadingFromLastPosition,
+  }: {
+    text?: string | null;
+    readingSpeed?: number;
+    continueReadingFromLastPosition?: boolean;
+  }) => {
+    if (!speechSynthesisRef.current) return;
+
+    const selectedText = text ?? window.getSelection()?.toString();
+    if (!selectedText) return;
+
+    setReadingMode(READING_MODE.TEXT);
+
+    if (!continueReadingFromLastPosition) {
+      setSelectedTextToRead(selectedText);
+    }
+
+    const textToRead = continueReadingFromLastPosition
+      ? selectedText.substring(currentPosition)
+      : selectedText;
+
+    if (speechSynthesisRef.current.speaking) {
+      speechSynthesisRef.current.cancel();
+    }
+
+    setReadingStatus(READING_STATUS.READING);
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+
+    utterance.voice =
+      speechSynthesisRef.current
+        .getVoices()
+        .find((voice) => voice.name === "Aaron") || null;
+
+    utterance.rate = readingSpeed ?? currentReadingSpeed;
+    utteranceRef.current = utterance;
+
+    utterance.onboundary = (event) => {
+      if (event.name === "word") {
+        setCurrentPosition(currentPosition + event.charIndex);
+
+        const word = textToRead.slice(
+          event.charIndex,
+          event.charIndex + event.charLength,
+        );
+
+        setCurrentWord(word);
+
+        // onend wont work as it'd get called everytime speed is changed (as it calls cancel) => we need to continue reading from the currentIndex in that case
+        if (event.charIndex + event.charLength >= textToRead.length) {
+          setCurrentPosition(0);
+          setCurrentWord("");
+          setReadingStatus(READING_STATUS.IDLE);
         }
       }
     };
@@ -248,9 +323,16 @@ const PdfReader = ({
       const isSpeaking = speechSynthesisRef.current.speaking;
 
       // it just works :)
-      // cases ive tested: `pause-change_speed-play, pause-play`
+      // cases ive tested: `pause->change_speed->play, pause->play`
       if (!isSpeaking) {
-        readDocument(currentPageNumber, currentReadingSpeed, true);
+        if (readingMode === READING_MODE.TEXT) {
+          readSelectedText({
+            text: selectedTextToRead,
+            continueReadingFromLastPosition: true,
+          });
+        } else {
+          readDocument(currentPageNumber, currentReadingSpeed, true);
+        }
       } else {
         speechSynthesisRef.current.resume();
       }
@@ -270,7 +352,15 @@ const PdfReader = ({
       utteranceRef.current.rate = newSpeed;
 
       if (readingStatus === READING_STATUS.READING) {
-        readDocument(currentPageNumber, newSpeed, true);
+        if (readingMode === READING_MODE.TEXT) {
+          readSelectedText({
+            text: selectedTextToRead,
+            readingSpeed: newSpeed,
+            continueReadingFromLastPosition: true,
+          });
+        } else {
+          readDocument(currentPageNumber, newSpeed, true);
+        }
       }
     }
   };
@@ -306,6 +396,7 @@ const PdfReader = ({
                   hideTipAndSelection={hideTipAndSelection}
                   position={position}
                   addHighlight={() => addHighlight({ content, position })}
+                  readSelectedText={readSelectedText}
                 />
               );
             }}
@@ -381,7 +472,7 @@ const PdfReader = ({
         <div className="gap-1 relative z-50 flex items-center rounded-lg">
           {readingStatus === READING_STATUS.IDLE && (
             <Button
-              onClick={() => readDocument(1, currentReadingSpeed)}
+              onClick={() => readDocument(1)}
               variant="ghost"
               className="px-3"
             >
