@@ -49,8 +49,7 @@ enum Plan {
 }
 
 model Document {
-  // unique for url might be dumb => if someone uploads using url
-  url           String         @unique
+  url           String
   id            String         @id @default(cuid())
   title         String
   owner         User           @relation(fields: [ownerId], references: [id])
