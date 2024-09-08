@@ -56,22 +56,15 @@ model Document {
   highlights    Highlight[]
   collaborators Collaborator[]
   ownerId       String
-  // notes seems to be stored on yjs, so no need to store it here
   note          String?        @db.Text
   messages      Message[]
   isVectorised  Boolean        @default(false)
   createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
   pageCount     Int
-
   // false if user adds document by url
-  isUploaded Boolean @default(true)
-
-  // lastscrolledposition => but has to be different for each user
-  // create new table storing lastscrolledposition,
-  // along with userPreferences table which can be optional, if it exists, then it overrides users default(the one linked to user table) preferences (less priority)
-
-  // pdf first page url => cloudinary provides this.
-  flashcards Flashcard[]
+  isUploaded    Boolean        @default(true)
+  flashcards    Flashcard[]
 }
 
 enum CollaboratorRole {
@@ -85,9 +78,8 @@ model Collaborator {
   role       CollaboratorRole
   document   Document         @relation(fields: [documentId], references: [id])
   documentId String
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  userId     String
+  user       User             @relation(fields: [userId], references: [id])
 
   @@unique([documentId, userId])
 }
