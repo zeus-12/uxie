@@ -3,7 +3,7 @@ import { vectoriseDocument } from "@/lib/vectorise";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { CollaboratorRole } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { getDocument } from "pdfjs-dist";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { z } from "zod";
 
 export const documentRouter = createTRPCRouter({
@@ -353,10 +353,23 @@ export const documentRouter = createTRPCRouter({
           });
         }
 
-        const numPages = await getDocument(input.url).promise.then((doc) => {
-          return doc.numPages;
-          // pdfMetadata: await doc.getMetadata(),
-        });
+        const fileUrl = input.url;
+        const response = await fetch(fileUrl);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (
+          !response.headers.get("content-type")?.includes("application/pdf")
+        ) {
+          throw new Error("Invalid file type. Only PDFs are allowed.");
+        }
+
+        const blob = await response.blob();
+        const loader = new PDFLoader(blob);
+
+        const pageLevelDocs = await loader.load();
+        const numPages = pageLevelDocs.length;
 
         const newFile = await ctx.prisma.document.create({
           data: {
@@ -371,13 +384,7 @@ export const documentRouter = createTRPCRouter({
             },
           },
         });
-
-        try {
-          await vectoriseDocument(input.url, newFile.id, maxPagesAllowed);
-          return newFile;
-        } catch (err: any) {
-          console.log(err.message);
-        }
+        return newFile;
       } catch (err: any) {
         console.log(err.message);
         throw new TRPCError({

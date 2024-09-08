@@ -16,6 +16,11 @@ export const vectoriseDocument = async (
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    if (!response.headers.get("content-type")?.includes("application/pdf")) {
+      throw new Error("Invalid file type. Only PDFs are allowed.");
+    }
+
     const blob = await response.blob();
     const loader = new PDFLoader(blob);
 
