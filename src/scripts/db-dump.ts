@@ -2,7 +2,6 @@ import { env } from "@/env.mjs";
 import { createClient } from "@supabase/supabase-js";
 import { exec } from "child_process";
 import fs from "fs";
-import type { NextApiRequest, NextApiResponse } from "next";
 import util from "util";
 
 const execPromise = util.promisify(exec);
@@ -57,26 +56,4 @@ async function backupDatabase() {
   }
 }
 
-export default async function handler(
-  request: NextApiRequest,
-  response: NextApiResponse,
-) {
-  try {
-    const authHeader = request.headers["authorization"];
-
-    if (
-      !process.env.CRON_SECRET ||
-      authHeader !== `Bearer ${process.env.CRON_SECRET}`
-    ) {
-      return response
-        .status(401)
-        .json({ success: false, error: "Invalid or missing auth header" });
-    }
-
-    await backupDatabase();
-    response.status(200).json({ success: true });
-  } catch (error: any) {
-    console.log(error.message);
-    return response.status(401).json({ success: false, error: error.message });
-  }
-}
+backupDatabase();
