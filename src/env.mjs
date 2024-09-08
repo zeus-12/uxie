@@ -21,12 +21,14 @@ export const env = createEnv({
     PINECONE_ENVIRONMENT: z.string(),
     PINECONE_API_KEY: z.string(),
     HUGGINGFACE_API_KEY: z.string(),
+    SUPABASE_SERVICE_KEY: z.string(),
+    CRON_SECRET: z.string(),
   },
 
   client: {
     NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY: z.string().min(1),
     NEXT_PUBLIC_ENV: z.enum(["development", "test", "production"]).optional(),
-    // NEXT_PUBLIC_CLIENTVAR: z.string().min(1),
+    NEXT_PUBLIC_SUPABASE_URL: z.string().min(1),
   },
 
   runtimeEnv: {
@@ -45,6 +47,9 @@ export const env = createEnv({
     HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
     NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY:
       process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
+    CRON_SECRET: process.env.CRON_SECRET,
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
