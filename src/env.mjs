@@ -22,7 +22,6 @@ export const env = createEnv({
     PINECONE_API_KEY: z.string(),
     HUGGINGFACE_API_KEY: z.string(),
     SUPABASE_SERVICE_KEY: z.string(),
-    CRON_SECRET: z.string(),
   },
 
   client: {
@@ -49,7 +48,6 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
-    CRON_SECRET: process.env.CRON_SECRET,
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
