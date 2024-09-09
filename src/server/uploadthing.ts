@@ -1,7 +1,7 @@
 import { FREE_PLAN, PLANS } from "@/lib/constants";
 import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
-import { getDocument } from "pdfjs-dist";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
 
 const f = createUploadthing();
@@ -34,10 +34,21 @@ export const docUploader = {
     })
     .onUploadComplete(async ({ metadata, file }) => {
       try {
-        const numPages = await getDocument(file.url).promise.then((doc) => {
-          return doc.numPages;
-          // pdfMetadata: await doc.getMetadata(),
-        });
+        const response = await fetch(file.url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (
+          !response.headers.get("content-type")?.includes("application/pdf")
+        ) {
+          throw new Error("Invalid file type. Only PDFs are allowed.");
+        }
+
+        const blob = await response.blob();
+        const loader = new PDFLoader(blob);
+        const pageLevelDocs = await loader.load();
+        const numPages = pageLevelDocs.length;
 
         // figure out some way to take a snapshot of the first page of the pdf and store that
 
