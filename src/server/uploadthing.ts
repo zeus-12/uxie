@@ -1,3 +1,4 @@
+import { FREE_PLAN, PLANS } from "@/lib/constants";
 import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { getDocument } from "pdfjs-dist";
@@ -11,6 +12,24 @@ export const docUploader = {
     .middleware(async ({ req, res, files, input }) => {
       const session = await getServerAuthSession({ req, res });
       if (!session?.user) throw new Error("Unauthorized");
+
+      const userFilesCount = await prisma.document.count({
+        where: {
+          owner: {
+            id: session.user.id,
+          },
+        },
+      });
+
+      const userPlan = session?.user.plan ?? FREE_PLAN;
+      const allowedDocsCount = PLANS[userPlan].maxDocs;
+
+      if (userFilesCount >= allowedDocsCount) {
+        throw new Error(
+          "You have reached the maximum number of documents allowed for your plan",
+        );
+      }
+
       return { userId: session?.user?.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {

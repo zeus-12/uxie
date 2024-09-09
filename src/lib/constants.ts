@@ -36,3 +36,5 @@ export const PLANS: Record<Plan, PlanData> = {
     maxCollaboratorsPerDoc: 5,
   },
 };
+
+export const FREE_PLAN = "FREE";
