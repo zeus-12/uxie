@@ -1,6 +1,7 @@
 import Chat from "@/components/chat";
 import Editor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
+import SemanticSearch from "@/components/pdf-reader/semantic-search";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { SpinnerPage } from "@/components/ui/spinner";
@@ -10,7 +11,13 @@ import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ClientSideSuspense } from "@liveblocks/react";
 import { saveAs } from "file-saver";
-import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
+import {
+  AlbumIcon,
+  Download,
+  Layers,
+  MessagesSquareIcon,
+  ScanSearch,
+} from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { RoomProvider } from "../../../liveblocks.config";
@@ -34,6 +41,12 @@ const TABS = [
     tooltip: "Generate flashcards from the pdf",
     icon: <Layers size={20} />,
     isNew: false,
+  },
+  {
+    value: "semantic-search",
+    tooltip: "Search for similar content",
+    icon: <ScanSearch size={20} />,
+    isNew: true,
   },
 ];
 
@@ -160,8 +173,13 @@ const Sidebar = ({
           },
           {
             value: "flashcards",
-            tw: " p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll ",
+            tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll ",
             children: <Flashcards />,
+          },
+          {
+            value: "semantic-search",
+            tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll",
+            children: <SemanticSearch />,
           },
         ].map((item) => (
           <TabsContent

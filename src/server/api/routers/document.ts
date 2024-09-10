@@ -1,9 +1,13 @@
+import { env } from "@/env.mjs";
 import { PLANS } from "@/lib/constants";
+import { getPineconeClient } from "@/lib/pinecone";
 import { vectoriseDocument } from "@/lib/vectorise";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { CollaboratorRole } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
+import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { z } from "zod";
 
 export const documentRouter = createTRPCRouter({
@@ -424,5 +428,55 @@ export const documentRouter = createTRPCRouter({
           note: input.note,
         },
       });
+    }),
+
+  // giving poor results. possibly cause of large chunks of text
+  getSemanticSearch: protectedProcedure
+    .input(
+      z.object({
+        docId: z.string(),
+        query: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.docId,
+          ownerId: ctx.session.user.id,
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you are not the owner.",
+        });
+      }
+
+      if (!doc.isVectorised) {
+        throw new Error("Document not vectorized.");
+      }
+
+      const pinecone = getPineconeClient();
+      const pineconeIndex = pinecone.Index("uxie");
+
+      const embeddings = new HuggingFaceInferenceEmbeddings({
+        apiKey: env.HUGGINGFACE_API_KEY,
+      });
+      const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
+        pineconeIndex,
+        filter: {
+          fileId: input.docId,
+        },
+      });
+
+      const results = await vectorStore.similaritySearchWithScore(
+        input.query,
+        20,
+      );
+
+      const updatedResults = results.filter((result) => result[1] > 0.3);
+
+      return updatedResults;
     }),
 });
