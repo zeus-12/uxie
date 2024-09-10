@@ -9,26 +9,28 @@ import {
 import {
   BasicTextStyleButton,
   BlockColorsItem,
-  BlockNoteView,
   BlockTypeSelect,
   ColorStyleButton,
   CreateLinkButton,
   DragHandleMenu,
-  DragHandleMenuItem,
+  DragHandleMenuProps,
+  FileCaptionButton,
+  FileReplaceButton,
   FormattingToolbar,
   FormattingToolbarController,
-  ImageCaptionButton,
   RemoveBlockItem,
-  ReplaceImageButton,
   SideMenu,
   SideMenuController,
   SuggestionMenuController,
   TextAlignButton,
+  useBlockNoteEditor,
+  useComponentsContext,
   useCreateBlockNote,
 } from "@blocknote/react";
-import LiveblocksProvider from "@liveblocks/yjs";
+import { BlockNoteView } from "@blocknote/shadcn";
+import { LiveblocksYjsProvider } from "@liveblocks/yjs";
 import { useCompletion } from "ai/react";
-import { useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import * as Y from "yjs";
 import { useRoom } from "../../../liveblocks.config";
@@ -54,7 +56,7 @@ export default function Editor({
   // Set up Liveblocks Yjs provider
   useEffect(() => {
     const yDoc = new Y.Doc();
-    const yProvider = new LiveblocksProvider(room, yDoc);
+    const yProvider = new LiveblocksYjsProvider(room, yDoc);
 
     setDoc(yDoc);
     setProvider(yProvider);
@@ -264,6 +266,12 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
   return (
     <div>
       <BlockNoteView
+        //  shadCNComponents={
+        //   {
+        //     // Pass modified ShadCN components from your project here.
+        //     // Otherwise, the default ShadCN components will be used.
+        //   }
+        // }
         // ref={editorRef}
         sideMenu={false}
         onChange={async () => {
@@ -304,8 +312,8 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
 
               {/* <CommentFormattingToolbarButton key={"customButton"} /> */}
 
-              <ImageCaptionButton key={"imageCaptionButton"} />
-              <ReplaceImageButton key={"replaceImageButton"} />
+              <FileCaptionButton key={"fileCaptionButton"} />
+              <FileReplaceButton key={"replaceFileButton"} />
 
               <BasicTextStyleButton
                 basicTextStyle={"bold"}
@@ -358,48 +366,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
               dragHandleMenu={(props) => (
                 <DragHandleMenu {...props}>
                   <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
-                  <DragHandleMenuItem
-                    onClick={async () => {
-                      const blockDiv = document.querySelector(
-                        `div[data-id="${props.block.id}"]`,
-                      ) as HTMLElement;
-
-                      if (!blockDiv) return;
-
-                      // select the div
-                      // const selection = window.getSelection();
-                      // const range = document.createRange();
-                      // range.selectNodeContents(blockDiv);
-                      // selection?.removeAllRanges();
-                      // selection?.addRange(range);
-
-                      // scroll to the div
-                      // blockDiv.scrollIntoView({
-                      //   behavior: "smooth",
-                      //   block: "center",
-                      // });
-
-                      const rect = blockDiv.getBoundingClientRect();
-                      const top = rect.top + rect.height;
-                      const left = rect.left;
-                      const width = rect.width;
-
-                      const text = await editor.blocksToMarkdownLossy([
-                        props.block,
-                      ]);
-
-                      setRect({
-                        top,
-                        left,
-                        width,
-                        blockId: props.block.id,
-                        text,
-                      });
-                    }}
-                  >
-                    AI
-                  </DragHandleMenuItem>
-
+                  <DragHandleAiButton {...props} setRect={setRect} />
                   <BlockColorsItem {...props}>Colors</BlockColorsItem>
                 </DragHandleMenu>
               )}
@@ -409,5 +376,57 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
         {rect && <AiPopover rect={rect} setRect={setRect} />}
       </BlockNoteView>
     </div>
+  );
+}
+
+export function DragHandleAiButton(
+  props: DragHandleMenuProps & {
+    setRect: Dispatch<SetStateAction<AiPopoverPropsRect | null>>;
+  },
+) {
+  const editor = useBlockNoteEditor();
+
+  const Components = useComponentsContext()!;
+
+  return (
+    <Components.Generic.Menu.Item
+      onClick={async () => {
+        const blockDiv = document.querySelector(
+          `div[data-id="${props.block.id}"]`,
+        ) as HTMLElement;
+
+        if (!blockDiv) return;
+
+        // select the div
+        // const selection = window.getSelection();
+        // const range = document.createRange();
+        // range.selectNodeContents(blockDiv);
+        // selection?.removeAllRanges();
+        // selection?.addRange(range);
+
+        // scroll to the div
+        // blockDiv.scrollIntoView({
+        //   behavior: "smooth",
+        //   block: "center",
+        // });
+
+        const rect = blockDiv.getBoundingClientRect();
+        const top = rect.top + rect.height;
+        const left = rect.left;
+        const width = rect.width;
+
+        const text = await editor.blocksToMarkdownLossy([props.block]);
+
+        props.setRect({
+          top,
+          left,
+          width,
+          blockId: props.block.id,
+          text,
+        });
+      }}
+    >
+      AI
+    </Components.Generic.Menu.Item>
   );
 }

@@ -2,7 +2,7 @@ import Navbar from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/lib/api";
 import "@/styles/globals.css";
-import "@blocknote/react/style.css";
+import "@blocknote/shadcn/style.css";
 import { type Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { DefaultSeo } from "next-seo";
