@@ -42,6 +42,7 @@
     "@trpc/next": "^10.34.0",
     "@trpc/react-query": "^10.34.0",
     "@trpc/server": "^10.34.0",
+    "@types/pdf-parse": "^1.1.4",
     "@uploadthing/react": "^6.2.4",
     "ai": "^2.2.35",
     "class-variance-authority": "^0.7.0",
