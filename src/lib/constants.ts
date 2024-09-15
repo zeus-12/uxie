@@ -31,7 +31,7 @@ export const PLANS: Record<Plan, PlanData> = {
     title: "Pro",
     price: 9.99,
     maxDocs: 100,
-    maxPagesPerDoc: 25,
+    maxPagesPerDoc: 40,
     maxFileSizePerDoc: "64MB",
     maxCollaboratorsPerDoc: 5,
   },
