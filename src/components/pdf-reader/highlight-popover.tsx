@@ -78,7 +78,12 @@ export const TextSelectionPopover = ({
     showAiFeatures &&
       sendMessage && {
         onClick: () => {
-          sendMessage("**Explain**: " + content.text);
+          // dont show this in clients chat- instead create some "summarise-template" which simply shows "summarise" and then the message, prob need to change the data model for this
+          sendMessage(
+            "**Explain the following text in simple terms**: \n'" +
+              content.text +
+              "'",
+          );
           switchSidebarTabToChat();
           hideTipAndSelection();
         },
@@ -88,7 +93,12 @@ export const TextSelectionPopover = ({
     showAiFeatures &&
       sendMessage && {
         onClick: () => {
-          sendMessage("**Summarise**: " + content.text);
+          // dont show this in clients chat- instead create some "summarise-template" which simply shows "summarise" and then the message, prob need to change the data model for this
+          sendMessage(
+            "**Summarise the following text in simple terms**: \n**: '" +
+              content.text +
+              "'",
+          );
           switchSidebarTabToChat();
           hideTipAndSelection();
         },
