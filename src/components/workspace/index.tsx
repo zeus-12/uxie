@@ -13,6 +13,8 @@ import { toast } from "sonner";
 const DocViewerPage = () => {
   const { query, push } = useRouter();
 
+  const docId = query.docId as string;
+
   const {
     data: doc,
     isLoading,
@@ -20,7 +22,7 @@ const DocViewerPage = () => {
     error,
   } = api.document.getDocData.useQuery(
     {
-      docId: query.docId as string,
+      docId,
     },
     {
       enabled: !!query?.docId,

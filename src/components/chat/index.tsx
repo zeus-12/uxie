@@ -15,7 +15,7 @@ import { toast } from "sonner";
 export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { query } = useRouter();
 
-  const docId = query?.docId;
+  const docId = query?.docId as string;
 
   const {
     messages,
@@ -28,7 +28,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
     append,
   } = useChat({
     body: {
-      docId: docId as string,
+      docId,
     },
 
     onError: (err: any) => {
@@ -56,7 +56,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { data: prevChatMessages, isLoading: isChatsLoading } =
     api.message.getAllByDocId.useQuery(
       {
-        docId: docId as string,
+        docId: docId,
       },
       {
         refetchOnWindowFocus: false,
@@ -75,16 +75,13 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { mutate: vectoriseDocMutation, isLoading: isVectorising } =
     api.document.vectorise.useMutation({
       onSuccess: () => {
-        utils.document.getDocData.setData(
-          { docId: docId as string },
-          (prev) => {
-            if (!prev) return undefined;
-            return {
-              ...prev,
-              isVectorised: true,
-            };
-          },
-        );
+        utils.document.getDocData.setData({ docId }, (prev) => {
+          if (!prev) return undefined;
+          return {
+            ...prev,
+            isVectorised: true,
+          };
+        });
       },
     });
 
@@ -101,7 +98,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
         ]}
         onClick={() => {
           vectoriseDocMutation(
-            { documentId: docId as string },
+            { documentId: docId },
             {
               onError: (err: any) => {
                 toast.error(err?.message, {

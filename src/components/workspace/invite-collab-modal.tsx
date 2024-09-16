@@ -46,17 +46,14 @@ const InviteCollab = () => {
           documentId,
         });
 
-        utils.document.getCollaborators.setData(
-          { documentId: documentId as string },
-          (old) => [
-            ...(old ?? []),
-            {
-              email,
-              role,
-              id: createId(),
-            },
-          ],
-        );
+        utils.document.getCollaborators.setData({ documentId }, (old) => [
+          ...(old ?? []),
+          {
+            email,
+            role,
+            id: createId(),
+          },
+        ]);
 
         return { prevData };
       },
@@ -68,10 +65,7 @@ const InviteCollab = () => {
           },
         );
 
-        utils.document.getCollaborators.setData(
-          { documentId: documentId as string },
-          ctx?.prevData,
-        );
+        utils.document.getCollaborators.setData({ documentId }, ctx?.prevData);
       },
       onSettled() {
         // Sync with server once mutation has settled
@@ -87,10 +81,9 @@ const InviteCollab = () => {
           documentId,
         });
 
-        utils.document.getCollaborators.setData(
-          { documentId: documentId as string },
-          (old) => [...(old ?? []).filter((user) => user.id !== userId)],
-        );
+        utils.document.getCollaborators.setData({ documentId }, (old) => [
+          ...(old ?? []).filter((user) => user.id !== userId),
+        ]);
 
         return { prevData };
       },
@@ -102,10 +95,7 @@ const InviteCollab = () => {
           },
         );
 
-        utils.document.getCollaborators.setData(
-          { documentId: documentId as string },
-          ctx?.prevData,
-        );
+        utils.document.getCollaborators.setData({ documentId }, ctx?.prevData);
       },
       onSettled() {
         // Sync with server once mutation has settled

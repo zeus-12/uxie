@@ -55,7 +55,7 @@ export async function POST(req: Request, res: Response) {
       const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
         pineconeIndex,
         filter: {
-          fileId: docId as string,
+          fileId: docId,
         },
       });
 
@@ -65,7 +65,7 @@ export async function POST(req: Request, res: Response) {
 
       // const prevMessages = await prisma.message.findMany({
       //   where: {
-      //     documentId: docId as string,
+      //     documentId: docId,
       //   },
       //   orderBy: {
       //     createdAt: "asc",
