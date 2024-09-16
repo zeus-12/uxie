@@ -161,7 +161,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
           </div>
         ))}
 
-        {isLoading && messages.at(-1)?.role === "user" && (
+        {isLoading && messages[messages.length - 1]?.role === "user" && (
           <div
             className={cn(
               "mr-auto bg-gray-100 text-black",

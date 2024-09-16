@@ -59,7 +59,7 @@ export async function POST(req: Request, res: Response) {
         },
       });
 
-      const lastMessage = messages.at(-1).content;
+      const lastMessage = messages[messages.length - 1].content;
 
       const results = await vectorStore.similaritySearch(lastMessage, 4);
 
@@ -111,7 +111,7 @@ export async function POST(req: Request, res: Response) {
         onStart: async () => {
           await prisma.message.create({
             data: {
-              text: messages.at(-1).content,
+              text: messages[messages.length - 1].content,
               isUserMessage: true,
               documentId: docId,
               userId: session?.user.id,
