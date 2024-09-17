@@ -55,17 +55,17 @@ export async function POST(req: Request, res: Response) {
       const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
         pineconeIndex,
         filter: {
-          fileId: docId as string,
+          fileId: docId,
         },
       });
 
-      const lastMessage = messages.at(-1).content;
+      const lastMessage = messages[messages.length - 1].content;
 
       const results = await vectorStore.similaritySearch(lastMessage, 4);
 
       // const prevMessages = await prisma.message.findMany({
       //   where: {
-      //     documentId: docId as string,
+      //     documentId: docId,
       //   },
       //   orderBy: {
       //     createdAt: "asc",
@@ -111,7 +111,7 @@ export async function POST(req: Request, res: Response) {
         onStart: async () => {
           await prisma.message.create({
             data: {
-              text: messages.at(-1).content,
+              text: messages[messages.length - 1].content,
               isUserMessage: true,
               documentId: docId,
               userId: session?.user.id,
