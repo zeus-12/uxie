@@ -40,7 +40,7 @@ export const messageRouter = createTRPCRouter({
       return res?.messages?.map((c) => ({
         id: c.id,
         content: c.text,
-        role: c.isUserMessage ? "user" : "assistant",
+        role: c.userId ? "user" : "assistant",
       }));
     }),
 });
