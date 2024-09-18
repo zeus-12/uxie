@@ -74,3 +74,25 @@ export const vectoriseDocument = async (
     throw new Error("Internal Server Error");
   }
 };
+
+export const retrieveRelevantDocumentContent = async (
+  docId: string,
+  question: string,
+) => {
+  const embeddings = new HuggingFaceInferenceEmbeddings({
+    apiKey: env.HUGGINGFACE_API_KEY,
+  });
+
+  const pinecone = getPineconeClient();
+  const pineconeIndex = pinecone.Index("uxie");
+
+  const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
+    pineconeIndex,
+    filter: {
+      fileId: docId,
+    },
+  });
+
+  const results = await vectorStore.similaritySearch(question, 4);
+  return results;
+};
