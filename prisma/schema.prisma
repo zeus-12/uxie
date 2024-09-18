@@ -85,15 +85,13 @@ model Collaborator {
 }
 
 model Message {
-  id            String   @id @default(cuid())
-  text          String
-  createdAt     DateTime @default(now())
-  user          User?    @relation(fields: [userId], references: [id])
-  userId        String?
-  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  documentId    String
-  // this is redundant, check for userId
-  isUserMessage Boolean
+  id         String   @id @default(cuid())
+  text       String
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId String
 }
 
 enum HighlightTypeEnum {
