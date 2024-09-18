@@ -1,5 +1,5 @@
 import { fireworks } from "@/lib/fireworks";
-import { flashcardSchema } from "@/lib/flashcard";
+import { flashcardFeedbackSchema } from "@/lib/flashcard";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { streamObject } from "ai";
@@ -56,7 +56,7 @@ export async function POST(req: Request, res: Response) {
   const result = await streamObject({
     // other models doesnt work for some reason
     model: fireworks("accounts/fireworks/models/firefunction-v1"),
-    schema: flashcardSchema,
+    schema: flashcardFeedbackSchema,
     prompt: reqPrompt,
     maxTokens: 1000,
     onFinish: async ({ object: feedback }) => {

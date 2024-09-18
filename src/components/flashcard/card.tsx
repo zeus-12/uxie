@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import { flashcardSchema } from "@/lib/flashcard";
+import { flashcardFeedbackSchema } from "@/lib/flashcard";
 import { DeepPartial } from "ai";
 import { experimental_useObject as useObject } from "ai/react";
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
@@ -51,7 +51,7 @@ const IndividualFlashcard = ({
     object: feedback,
     submit,
   } = useObject({
-    schema: flashcardSchema,
+    schema: flashcardFeedbackSchema,
 
     onFinish: ({ object }) => {
       utils.flashcard.getFlashcards.setData({ documentId }, (prev) => {
