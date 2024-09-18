@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import { flashcardFeedbackSchema } from "@/lib/flashcard";
+import { flashcardFeedbackSchema } from "@/schema/flashcard";
 import { DeepPartial } from "ai";
 import { experimental_useObject as useObject } from "ai/react";
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";

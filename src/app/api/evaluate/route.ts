@@ -1,5 +1,5 @@
 import { fireworks } from "@/lib/fireworks";
-import { flashcardFeedbackSchema } from "@/lib/flashcard";
+import { flashcardFeedbackSchema } from "@/schema/flashcard";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { streamObject } from "ai";
