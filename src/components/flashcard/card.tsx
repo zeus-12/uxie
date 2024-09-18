@@ -8,8 +8,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import { RequestOptions } from "ai";
-import { useCompletion } from "ai/react";
+import { flashcardSchema } from "@/lib/flashcard";
+import { DeepPartial } from "ai";
+import { experimental_useObject as useObject } from "ai/react";
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -45,13 +46,14 @@ const IndividualFlashcard = ({
   const documentId = query?.docId as string;
   const utils = api.useContext();
 
-  const { complete, completion, isLoading, setCompletion } = useCompletion({
-    body: {
-      flashcardId: id,
-      docId: documentId,
-    },
+  const {
+    isLoading,
+    object: feedback,
+    submit,
+  } = useObject({
+    schema: flashcardSchema,
 
-    onFinish: (_prompt, completion) => {
+    onFinish: ({ object }) => {
       utils.flashcard.getFlashcards.setData({ documentId }, (prev) => {
         if (!prev) return prev;
         return prev.map((flashcard) => {
@@ -62,9 +64,9 @@ const IndividualFlashcard = ({
                 ...flashcard.flashcardAttempts,
                 {
                   userResponse,
-                  correctResponse: completion.split("||")[0] ?? null,
-                  incorrectResponse: completion.split("||")[1] ?? null,
-                  moreInfo: completion.split("||")[2] ?? null,
+                  correctResponse: object?.correctResponse ?? null,
+                  incorrectResponse: object?.incorrectResponse ?? null,
+                  moreInfo: object?.moreInfo ?? null,
                   createdAt: new Date(),
                 },
               ],
@@ -101,7 +103,7 @@ const IndividualFlashcard = ({
             total={total}
             current={current}
             //   think whether or not to show previous attempts in the current report. also think whether to add along w. the question screen
-            completion={completion}
+            feedback={feedback}
             isLoading={isLoading}
             toggleAttempt={toggleAttempt}
             userResponse={userResponse}
@@ -110,8 +112,10 @@ const IndividualFlashcard = ({
         ) : (
           <IndividualFlashcardQuestion
             attempts={attempts}
-            setCompletion={setCompletion}
-            complete={complete}
+            setCompletion={() => {}}
+            complete={(prompt: string) =>
+              submit({ flashcardId: id, docId: documentId, prompt })
+            }
             question={question}
             answer={answer}
             toggleAttempt={toggleAttempt}
@@ -132,7 +136,6 @@ const IndividualFlashcard = ({
               toggleAttempt();
             }
             setUserResponse("");
-            setCompletion("");
             setCurrent((prev) => prev - 1);
           }}
         >
@@ -153,7 +156,6 @@ const IndividualFlashcard = ({
               toggleAttempt();
             }
             setUserResponse("");
-            setCompletion("");
             setCurrent((prev) => prev + 1);
           }}
         >
@@ -178,10 +180,7 @@ const IndividualFlashcardQuestion = ({
 }: {
   question: string;
   answer: string;
-  complete: (
-    prompt: string,
-    options?: RequestOptions | undefined,
-  ) => Promise<string | null | undefined>;
+  complete: (prompt: string) => void;
   toggleAttempt: () => void;
   userResponse: string;
   setUserResponse: React.Dispatch<React.SetStateAction<string>>;
@@ -269,7 +268,7 @@ const IndividualFlashcardReport = ({
   total,
   current,
   toggleAttempt,
-  completion,
+  feedback,
   isLoading,
   userResponse,
   setUserResponse,
@@ -279,12 +278,17 @@ const IndividualFlashcardReport = ({
   total: number;
   current: number;
   toggleAttempt: () => void;
-  completion: string;
+  feedback:
+    | DeepPartial<{
+        correctResponse: string;
+        incorrectResponse: string;
+        moreInfo: string;
+      }>
+    | undefined;
   isLoading: boolean;
   userResponse: string;
   setUserResponse: React.Dispatch<React.SetStateAction<string>>;
 }) => {
-  const splitResponse = completion.split("||");
   return (
     <>
       <div>
@@ -308,20 +312,20 @@ const IndividualFlashcardReport = ({
             <p className="text-sm">{userResponse}</p>
           </div>
         )}
-        {(isLoading || completion) && (
+        {(isLoading || feedback) && (
           <>
             <h2 className="mb-2 px-2 font-semibold text-gray-600">Feedback</h2>
             <Feedback
-              correctResponse={splitResponse[0]}
-              wrongResponse={splitResponse[1]}
-              moreInfo={splitResponse[2]}
+              correctResponse={feedback?.correctResponse}
+              wrongResponse={feedback?.incorrectResponse}
+              moreInfo={feedback?.moreInfo}
             />
           </>
         )}
         <Accordion
           type="single"
           collapsible
-          defaultValue={isLoading || completion ? undefined : "answer"}
+          defaultValue={isLoading || feedback ? undefined : "answer"}
         >
           <AccordionItem value="answer">
             <AccordionTrigger className="px-2 font-semibold">

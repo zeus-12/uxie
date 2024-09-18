@@ -1,14 +1,16 @@
-import fireworks from "@/lib/fireworks";
+import { fireworks } from "@/lib/fireworks";
+import { flashcardSchema } from "@/lib/flashcard";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
-import { OpenAIStream, StreamingTextResponse } from "ai";
+import { streamObject } from "ai";
 import { getServerSession } from "next-auth";
 
 export async function POST(req: Request, res: Response) {
   const { flashcardId, docId, prompt } = await req.json();
 
-  if (typeof flashcardId !== "string" || typeof prompt !== "string")
+  if (typeof flashcardId !== "string" || typeof prompt !== "string") {
     return new Response("Not found", { status: 404 });
+  }
 
   const session = await getServerSession(authOptions);
   if (!session) return new Response("Not found", { status: 404 });
@@ -18,7 +20,6 @@ export async function POST(req: Request, res: Response) {
       id: docId,
       OR: [
         { ownerId: session?.user.id },
-
         {
           collaborators: {
             some: {
@@ -38,41 +39,37 @@ export async function POST(req: Request, res: Response) {
     },
   });
 
-  if (!flashcard) return new Response("Not found", { status: 404 });
+  if (!flashcard) return new Response("Flashcard not found", { status: 404 });
 
-  const reqPrompt = `Your task is to provide feedback on the user's response. Please format the information as follows:
-  - In the first section, mention the aspects the user accurately identified, followed by the delimiter "||".
-  - Then, the second section, where you highlight any mistakes or inaccuracies made by the user, followed by the delimiter "||".
-  - Then provide additional relevant information regarding the question and the correct answer.
-  
-  Ensure that the data is presented in plain text and adheres to this specific format consistently.
-  
-  User response: ${prompt}
-  Question: ${flashcard.question}
-  Correct answer: ${flashcard.answer}`;
+  const reqPrompt = `Your task is to provide feedback for the user's response. Please format the information as follows:
+  - Mention the aspects the user accurately identified, highlight any mistakes or inaccuracies made by the user, ghen provide additional relevant information regarding the question and the correct answer.
+  <USER RESPONSE>
+  ${prompt} 
+  </USER RESPONSE>
+  <QUESTION>
+  ${flashcard.question}
+  </QUESTION>
+  <CORRECT ANSWER>
+  ${flashcard.answer}
+  </CORRECT ANSWER>`;
 
-  const response = await fireworks.completions.create({
-    model: "accounts/fireworks/models/mixtral-8x7b-instruct",
-    max_tokens: 1000,
-    stream: true,
+  const result = await streamObject({
+    // other models doesnt work for some reason
+    model: fireworks("accounts/fireworks/models/firefunction-v1"),
+    schema: flashcardSchema,
     prompt: reqPrompt,
-  });
-
-  const stream = OpenAIStream(response, {
-    onCompletion: async (completion: string) => {
-      const feedback = completion.split("||");
-      const correctResponse = feedback[0];
-      const incorrectResponse = feedback[1];
-      const moreInfo = feedback[2];
+    maxTokens: 1000,
+    onFinish: async ({ object: feedback }) => {
+      if (!feedback) {
+        throw new Error("Failed to generate feedback");
+      }
 
       await prisma.flashcardAttempt.create({
         data: {
           userResponse: prompt,
-          ...(correctResponse ? { correctResponse: correctResponse } : {}),
-          ...(incorrectResponse
-            ? { incorrectResponse: incorrectResponse }
-            : {}),
-          ...(moreInfo ? { moreInfo: moreInfo } : {}),
+          correctResponse: feedback.correctResponse,
+          incorrectResponse: feedback.incorrectResponse,
+          moreInfo: feedback.moreInfo,
           flashcard: {
             connect: {
               id: flashcardId,
@@ -87,5 +84,6 @@ export async function POST(req: Request, res: Response) {
       });
     },
   });
-  return new StreamingTextResponse(stream);
+
+  return result.toTextStreamResponse();
 }

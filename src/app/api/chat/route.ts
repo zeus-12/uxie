@@ -1,5 +1,5 @@
 import { env } from "@/env.mjs";
-import fireworks from "@/lib/fireworks";
+import { fireworksOld as fireworks } from "@/lib/fireworks";
 import { getPineconeClient } from "@/lib/pinecone";
 import { generateDummyStream } from "@/lib/utils";
 import { authOptions } from "@/server/auth";

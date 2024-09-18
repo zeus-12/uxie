@@ -12,6 +12,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "dependencies": {
+    "@ai-sdk/openai": "^0.0.60",
     "@blocknote/core": "^0.12.4",
     "@blocknote/react": "^0.12.4",
     "@hookform/resolvers": "^3.3.1",
@@ -44,7 +45,7 @@
     "@trpc/server": "^10.34.0",
     "@types/pdf-parse": "^1.1.4",
     "@uploadthing/react": "^6.2.4",
-    "ai": "^2.2.35",
+    "ai": "^3.3.41",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "cmdk": "^1.0.0",
