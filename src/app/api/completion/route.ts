@@ -1,6 +1,7 @@
 import { env } from "@/env.mjs";
-import fireworks from "@/lib/fireworks";
+import { fireworksOld as fireworks } from "@/lib/fireworks";
 import { generateDummyStream } from "@/lib/utils";
+import { completionRouteSchema } from "@/schema/routes";
 import { OpenAIStream, StreamingTextResponse } from "ai";
 
 export const runtime = "edge";
@@ -9,7 +10,8 @@ export async function POST(req: Request) {
   if (env.NODE_ENV === "development") {
     return generateDummyStream();
   } else {
-    const { prompt } = await req.json();
+    const reqBody = await req.json();
+    let { prompt } = completionRouteSchema.parse(reqBody);
 
     const response = await fireworks.chat.completions.create({
       model: "accounts/fireworks/models/mixtral-8x7b-instruct",

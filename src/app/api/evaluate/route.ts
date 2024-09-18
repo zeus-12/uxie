@@ -1,16 +1,15 @@
 import { fireworks } from "@/lib/fireworks";
 import { flashcardFeedbackSchema } from "@/schema/flashcard";
+import { flashcardEvaluateRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { streamObject } from "ai";
 import { getServerSession } from "next-auth";
 
 export async function POST(req: Request, res: Response) {
-  const { flashcardId, docId, prompt } = await req.json();
-
-  if (typeof flashcardId !== "string" || typeof prompt !== "string") {
-    return new Response("Not found", { status: 404 });
-  }
+  const reqBody = await req.json();
+  let { flashcardId, docId, prompt } =
+    flashcardEvaluateRouteSchema.parse(reqBody);
 
   const session = await getServerSession(authOptions);
   if (!session) return new Response("Not found", { status: 404 });
