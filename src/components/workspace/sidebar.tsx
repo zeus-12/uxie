@@ -12,7 +12,8 @@ import { ClientSideSuspense } from "@liveblocks/react";
 import { saveAs } from "file-saver";
 import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useQueryState } from "nuqs";
+import { useEffect } from "react";
 import { RoomProvider } from "../../../liveblocks.config";
 import InviteCollab from "./invite-collab-modal";
 
@@ -37,7 +38,8 @@ const TABS = [
   },
 ];
 
-const tabNames = TABS.map((tab) => tab.value);
+const TAB_NAMES = TABS.map((tab) => tab.value);
+const DEFAULT_TAB_NAME = "notes";
 
 const Sidebar = ({
   canEdit,
@@ -64,13 +66,14 @@ const Sidebar = ({
     saveAs(blob, "notes.md");
   };
 
-  const [activeIndex, setActiveIndex] = useState(
-    tab && tabNames.includes(tab) ? tab : "notes",
-  );
+  const [activeIndex, setActiveIndex] = useQueryState("tab", {
+    defaultValue: DEFAULT_TAB_NAME,
+    parse: (value) => (TAB_NAMES.includes(value) ? value : DEFAULT_TAB_NAME),
+  });
 
   useEffect(() => {
     // update activeIndex when tab changes externally (using switchSidebarTabToChat fn)
-    if (tab && tabNames.includes(tab)) {
+    if (tab && TAB_NAMES.includes(tab)) {
       setActiveIndex(tab);
     }
   }, [tab]);
