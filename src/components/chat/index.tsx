@@ -30,7 +30,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
     body: {
       docId,
     },
-
+    maxSteps: 2,
     onError: (err: any) => {
       toast.error(err?.message, {
         duration: 3000,
@@ -134,7 +134,6 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             role: "assistant",
           },
           ...(prevChatMessages ?? []),
-
           ...messages,
         ].map((m) => (
           <div
@@ -145,16 +144,22 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
               "max-w-[80%] text-left ",
             )}
           >
-            <ReactMarkdown
-              className={cn(
-                m.role === "user" &&
-                  "prose-invert bg-blue-500 text-gray-50 prose-code:text-gray-100",
-                m.role === "assistant" && "bg-gray-100 ",
-                "prose rounded-xl px-3 py-1 prose-ul:pl-2 prose-li:px-2",
-              )}
-            >
-              {m.content}
-            </ReactMarkdown>
+            {m.content.length > 0 ? (
+              <ReactMarkdown
+                className={cn(
+                  m.role === "user" &&
+                    "prose-invert bg-blue-500 text-gray-50 prose-code:text-gray-100",
+                  m.role === "assistant" && "bg-gray-100 ",
+                  "prose rounded-xl px-3 py-1 prose-ul:pl-2 prose-li:px-2",
+                )}
+              >
+                {m.content}
+              </ReactMarkdown>
+            ) : (
+              <span className="text-gray-500 italic text-sm">
+                Searching the PDF for relevant information
+              </span>
+            )}
           </div>
         ))}
 
