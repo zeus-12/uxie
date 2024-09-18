@@ -1,23 +1,23 @@
 import { env } from "@/env.mjs";
-import { fireworksOld as fireworks } from "@/lib/fireworks";
-import { getPineconeClient } from "@/lib/pinecone";
+import { fireworks } from "@/lib/fireworks";
 import { generateDummyStream } from "@/lib/utils";
+import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
+import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
-import { OpenAIStream, StreamingTextResponse } from "ai";
-import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
-import { PineconeStore } from "langchain/vectorstores/pinecone";
+import { convertToCoreMessages, Message, streamText, tool } from "ai";
 import { getServerSession } from "next-auth";
+import { z } from "zod";
+
+export const maxDuration = 30;
 
 export async function POST(req: Request, res: Response) {
   try {
     if (env.NODE_ENV === "development") {
       return generateDummyStream();
     } else {
-      const { messages, docId } = await req.json();
-
-      if (typeof docId !== "string")
-        return new Response("Invalid document ID", { status: 400 });
+      const reqBody = await req.json();
+      let { messages, docId } = chatRouteSchema.parse(reqBody);
 
       const session = await getServerSession(authOptions);
       if (!session) return new Response("Unauthorized", { status: 401 });
@@ -45,23 +45,21 @@ export async function POST(req: Request, res: Response) {
         throw new Error("Document not vectorized.");
       }
 
-      const embeddings = new HuggingFaceInferenceEmbeddings({
-        apiKey: env.HUGGINGFACE_API_KEY,
-      });
+      const prevMessage = messages[messages.length - 1] as Message;
+      const isPreviousMessageToolInvoked =
+        prevMessage.toolInvocations?.length &&
+        prevMessage.toolInvocations?.length > 0;
 
-      const pinecone = getPineconeClient();
-      const pineconeIndex = pinecone.Index("uxie");
-
-      const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
-        pineconeIndex,
-        filter: {
-          fileId: docId,
-        },
-      });
-
-      const lastMessage = messages[messages.length - 1].content;
-
-      const results = await vectorStore.similaritySearch(lastMessage, 4);
+      // don't add the user's message to the database if it was a tool invocation
+      if (!isPreviousMessageToolInvoked) {
+        await prisma.message.create({
+          data: {
+            text: messages[messages.length - 1].content,
+            documentId: docId,
+            userId: session?.user.id,
+          },
+        });
+      }
 
       // const prevMessages = await prisma.message.findMany({
       //   where: {
@@ -74,63 +72,54 @@ export async function POST(req: Request, res: Response) {
       // });
 
       // const formattedPrevMessages = prevMessages.map((msg) => ({
-      //   role: msg.isUserMessage ? ("user" as const) : ("assistant" as const),
+      //   role: msg.userId ? ("user" as const) : ("assistant" as const),
       //   content: msg.text,
       // }));
 
-      const systemPrompt = `You are an AI assistant with access to a knowledge base. Your task is to provide accurate and helpful responses based on the given context.
+      //   const systemPrompt = `You are an AI assistant with access to a knowledge base. Your task is to provide accurate and helpful responses based on the given context.
 
-    CONTEXT:
-    ${results.map((r, i) => `[${i + 1}] ${r.pageContent}`).join("\n\n")}
+      // CONTEXT:
+      // ${results.map((r, i) => `[${i + 1}] ${r.pageContent}`).join("\n\n")}
 
-    INSTRUCTIONS:
-    1. Always base your answers on the provided context.
-    2. If the context doesn't contain the information needed to answer the question, say "I don't have enough information to answer that question."
-    3. Don't invent or assume information not present in the context.
-    4. Use Markdown formatting for clarity, including headers, lists, and code blocks where appropriate.
-    5. You do not need to be cautious or formal around me, nor should you remind me you are an AI model. I am already aware of this. 
-    6. I need you to be detailed and precise, but I don’t need the fluff. Don’t bother with the “Sure, I can help with that” or similar statements.
+      // INSTRUCTIONS:
+      // 1. Always base your answers on the provided context.
+      // 2. If the context doesn't contain the information needed to answer the question, say "I don't have enough information to answer that question."
+      // 3. Don't invent or assume information not present in the context.
+      // 4. Use Markdown formatting for clarity, including headers, lists, and code blocks where appropriate.
+      // 5. You do not need to be cautious or formal around me, nor should you remind me you are an AI model. I am already aware of this.
+      // 6. I need you to be detailed and precise, but I don’t need the fluff. Don’t bother with the “Sure, I can help with that” or similar statements.
 
-    Answer the user's question thoughtfully and accurately based on the above context and instructions.`;
+      // Answer the user's question thoughtfully and accurately based on the above context and instructions.`;
 
-      const response = await fireworks.chat.completions.create({
-        model: "accounts/fireworks/models/mixtral-8x7b-instruct",
-        temperature: 0,
-        stream: true,
-        max_tokens: 4096,
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt,
-          },
-          ...messages,
-        ],
-      });
-
-      const stream = OpenAIStream(response, {
-        onStart: async () => {
-          await prisma.message.create({
-            data: {
-              text: messages[messages.length - 1].content,
-              isUserMessage: true,
-              documentId: docId,
-              userId: session?.user.id,
-            },
-          });
+      const result = await streamText({
+        model: fireworks("accounts/fireworks/models/firefunction-v1"),
+        messages: convertToCoreMessages(messages),
+        system: `You are a helpful assistant. Check your knowledge base before answering any questions.
+        Only respond to questions using information from tool calls.
+        if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
+        tools: {
+          getInformation: tool({
+            description: "Searching the PDF for relevant information",
+            parameters: z.object({
+              question: z.string().describe("the user's question"),
+            }),
+            execute: async ({ question }) =>
+              retrieveRelevantDocumentContent(docId, question),
+          }),
         },
-        onCompletion: async (completion: string) => {
-          // add user message first then assistant message
 
+        onFinish: async ({ text }) => {
           await prisma.message.create({
             data: {
-              text: completion,
-              isUserMessage: false,
+              text,
+              userId: session.user.id,
               documentId: docId,
             },
           });
         },
       });
-      return new StreamingTextResponse(stream);
+
+      return result.toDataStreamResponse();
     }
   } catch (error) {
     console.error("Error in Chat function:", error);
