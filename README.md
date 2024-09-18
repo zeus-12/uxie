@@ -53,7 +53,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 1. imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
    update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. => [issue fixed!](https://github.com/TypeCellOS/BlockNote/issues/410)
-2. and the yellow leftborder which takes to the highlight on click
+2. add the yellow leftborder which takes to the image highlight on click
 
 - [ ] implement ratelimit using redis kv => checkout upstash
 - [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
@@ -63,15 +63,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - [ ] see if u can see all the users (also typing status for chat: [refer](https://github.com/konradhy/build-jotion/blob/master/components/editor.tsx#L93)) in the liveblocks room, (and display it at top)
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 - [ ] abstract userIsOwner and userHasAccess (either collab or owner) logic.
-      progress:
-      => api called `experimental_standaloneMiddleware` but
-
-      1. it requries the types for the entire input, the only way seems to be putting any for the rest => losing typesafety for the whole route
-      2. most times data is returned from this, so query will also run twice
-
-  solution seems to be => create separate helper functions (take where, select, etc as params: use relevant prisma types to match each.)
-
-- [ ] remove the empty block => https://github.com/TypeCellOS/BlockNote/issues/631
+      solution seems to be => create separate helper functions (take where, select, etc as params: use relevant prisma types to match each.)
 
 ### TTS Tasks left:
 
@@ -84,7 +76,6 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 - [ ] use background runner or something and do long-polling
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
-  - [ ] for now -> If no collab then fetch from DB, else fetch from liveblocks.
 - [ ] Run the seogets script
 - [ ] figure out saving the first page, and doing ocr (maybe locally)
 
