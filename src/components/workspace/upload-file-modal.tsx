@@ -30,6 +30,10 @@ const UploadFileModal = ({
 }) => {
   const session = useSession();
 
+  const userPlan = (
+    session.data?.user?.plan ? PLANS[session.data?.user?.plan] : PLANS.FREE
+  ).maxPagesPerDoc;
+
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
 
@@ -146,7 +150,8 @@ const UploadFileModal = ({
           <DialogTitle>
             <p className="text-xl">Upload File</p>
             <p className="text-sm font-normal text-gray-500">
-              Choose files under 6 pages to use AI, flashcard. (For now)
+              Choose files with {userPlan} or less pages to use AI features.
+              (For now)
             </p>
           </DialogTitle>
 
