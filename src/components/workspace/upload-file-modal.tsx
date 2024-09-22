@@ -18,7 +18,11 @@ import { XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { generateClientDropzoneAccept } from "uploadthing/client";
+import {
+  generateClientDropzoneAccept,
+  generatePermittedFileTypes,
+} from "uploadthing/client";
+import { ExpandedRouteConfig } from "uploadthing/types";
 import { z } from "zod";
 
 const UploadFileModal = ({
@@ -50,7 +54,7 @@ const UploadFileModal = ({
 
   const {
     startUpload,
-    permittedFileInfo,
+    routeConfig,
     isUploading: isUploadthingUploading,
   } = useUploadThing("docUploader", {
     onClientUploadComplete: () => {
@@ -158,7 +162,7 @@ const UploadFileModal = ({
           <div className="mb-2" />
 
           <Uploader
-            permittedFileInfo={permittedFileInfo}
+            routeConfig={routeConfig}
             setUrl={setUrl}
             setFile={setFile}
             file={file}
@@ -220,29 +224,28 @@ const Uploader = ({
   setUrl,
   setFile,
   file,
-  permittedFileInfo,
+  routeConfig,
 }: {
   setUrl: (url: string) => void;
   setFile: (file?: File) => void;
   file?: File;
-  permittedFileInfo: any;
+  routeConfig: ExpandedRouteConfig | undefined;
 }) => {
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
-      toast.error("Please upload a single PDF file.", {
-        duration: 3000,
-      });
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
+        toast.error("Please upload a single PDF file.", {
+          duration: 3000,
+        });
 
-      return;
-    }
+        return;
+      }
 
-    setUrl("");
-    setFile(acceptedFiles[0]);
-  }, []);
-
-  const fileTypes = permittedFileInfo?.config
-    ? Object.keys(permittedFileInfo?.config)
-    : [];
+      setUrl("");
+      setFile(acceptedFiles[0]);
+    },
+    [setFile, setUrl],
+  );
 
   const { getRootProps, getInputProps } = useDropzone({
     disabled: !!file,
@@ -250,7 +253,9 @@ const Uploader = ({
     maxFiles: 1,
     maxSize: 8 * 1024 * 1024,
     multiple: false,
-    accept: fileTypes ? generateClientDropzoneAccept(fileTypes) : undefined,
+    accept: generateClientDropzoneAccept(
+      generatePermittedFileTypes(routeConfig).fileTypes,
+    ),
   });
 
   return (
