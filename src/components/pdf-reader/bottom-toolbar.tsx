@@ -40,7 +40,7 @@ const ReaderBottomToolbar = ({
             }
             initial={false}
           > */}
-            <div className="overflow-hidden py-1 px-2">
+            <div className="overflow-hidden py-1 px-1">
               {!isOpen ? (
                 <div className="flex space-x-2 justify-evenly">
                   <Button
