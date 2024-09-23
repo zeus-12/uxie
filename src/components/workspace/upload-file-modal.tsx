@@ -22,7 +22,6 @@ import {
   generateClientDropzoneAccept,
   generatePermittedFileTypes,
 } from "uploadthing/client";
-import { ExpandedRouteConfig } from "uploadthing/types";
 import { z } from "zod";
 
 const UploadFileModal = ({
@@ -40,6 +39,7 @@ const UploadFileModal = ({
 
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
+  const [uploadProgress, setUploadProgress] = useState<number>();
 
   const [open, setOpen] = useState(false);
   const closeModal = () => setOpen(false);
@@ -54,7 +54,7 @@ const UploadFileModal = ({
 
   const {
     startUpload,
-    routeConfig,
+    permittedFileInfo,
     isUploading: isUploadthingUploading,
   } = useUploadThing("docUploader", {
     onClientUploadComplete: () => {
@@ -64,6 +64,9 @@ const UploadFileModal = ({
       toast.error("Error occurred while uploading", {
         duration: 3000,
       });
+    },
+    onUploadProgress: (p) => {
+      setUploadProgress(p);
     },
   });
 
@@ -162,7 +165,7 @@ const UploadFileModal = ({
           <div className="mb-2" />
 
           <Uploader
-            routeConfig={routeConfig}
+            routeConfig={permittedFileInfo?.config}
             setUrl={setUrl}
             setFile={setFile}
             file={file}
@@ -210,7 +213,10 @@ const UploadFileModal = ({
               onClick={uploadFile}
             >
               {(isUploadthingUploading || isUrlUploading) && <Spinner />}
-              Upload
+              {!isUploadthingUploading && "Upload"}
+              {isUploadthingUploading && (
+                <p className="ml-2">{uploadProgress}%</p>
+              )}
             </Button>
           </div>
         </DialogHeader>
@@ -229,7 +235,7 @@ const Uploader = ({
   setUrl: (url: string) => void;
   setFile: (file?: File) => void;
   file?: File;
-  routeConfig: ExpandedRouteConfig | undefined;
+  routeConfig: any;
 }) => {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
