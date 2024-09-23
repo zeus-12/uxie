@@ -18,7 +18,10 @@ import { XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { generateClientDropzoneAccept } from "uploadthing/client";
+import {
+  generateClientDropzoneAccept,
+  generatePermittedFileTypes,
+} from "uploadthing/client";
 import { z } from "zod";
 
 const UploadFileModal = ({
@@ -36,6 +39,7 @@ const UploadFileModal = ({
 
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
+  const [uploadProgress, setUploadProgress] = useState<number>();
 
   const [open, setOpen] = useState(false);
   const closeModal = () => setOpen(false);
@@ -60,6 +64,9 @@ const UploadFileModal = ({
       toast.error("Error occurred while uploading", {
         duration: 3000,
       });
+    },
+    onUploadProgress: (p) => {
+      setUploadProgress(p);
     },
   });
 
@@ -158,7 +165,7 @@ const UploadFileModal = ({
           <div className="mb-2" />
 
           <Uploader
-            permittedFileInfo={permittedFileInfo}
+            routeConfig={permittedFileInfo?.config}
             setUrl={setUrl}
             setFile={setFile}
             file={file}
@@ -206,7 +213,10 @@ const UploadFileModal = ({
               onClick={uploadFile}
             >
               {(isUploadthingUploading || isUrlUploading) && <Spinner />}
-              Upload
+              {!isUploadthingUploading && "Upload"}
+              {isUploadthingUploading && (
+                <p className="ml-2">{uploadProgress}%</p>
+              )}
             </Button>
           </div>
         </DialogHeader>
@@ -220,29 +230,28 @@ const Uploader = ({
   setUrl,
   setFile,
   file,
-  permittedFileInfo,
+  routeConfig,
 }: {
   setUrl: (url: string) => void;
   setFile: (file?: File) => void;
   file?: File;
-  permittedFileInfo: any;
+  routeConfig: any;
 }) => {
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
-      toast.error("Please upload a single PDF file.", {
-        duration: 3000,
-      });
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
+        toast.error("Please upload a single PDF file.", {
+          duration: 3000,
+        });
 
-      return;
-    }
+        return;
+      }
 
-    setUrl("");
-    setFile(acceptedFiles[0]);
-  }, []);
-
-  const fileTypes = permittedFileInfo?.config
-    ? Object.keys(permittedFileInfo?.config)
-    : [];
+      setUrl("");
+      setFile(acceptedFiles[0]);
+    },
+    [setFile, setUrl],
+  );
 
   const { getRootProps, getInputProps } = useDropzone({
     disabled: !!file,
@@ -250,7 +259,9 @@ const Uploader = ({
     maxFiles: 1,
     maxSize: 8 * 1024 * 1024,
     multiple: false,
-    accept: fileTypes ? generateClientDropzoneAccept(fileTypes) : undefined,
+    accept: generateClientDropzoneAccept(
+      generatePermittedFileTypes(routeConfig).fileTypes,
+    ),
   });
 
   return (
