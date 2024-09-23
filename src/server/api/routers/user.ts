@@ -44,7 +44,9 @@ export const userRouter = createTRPCRouter({
     ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     return combinedUserDocs.map((doc) => ({
-      ...doc,
+      title: doc.title,
+      id: doc.id,
+      isVectorised: doc.isVectorised,
       isCollab: doc.ownerId !== ctx?.session?.user?.id,
     }));
   }),
