@@ -54,7 +54,7 @@ const UploadFileModal = ({
 
   const {
     startUpload,
-    permittedFileInfo,
+    routeConfig,
     isUploading: isUploadthingUploading,
   } = useUploadThing("docUploader", {
     onClientUploadComplete: () => {
@@ -165,7 +165,7 @@ const UploadFileModal = ({
           <div className="mb-2" />
 
           <Uploader
-            routeConfig={permittedFileInfo?.config}
+            routeConfig={routeConfig}
             setUrl={setUrl}
             setFile={setFile}
             file={file}
