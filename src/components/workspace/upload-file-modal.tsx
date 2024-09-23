@@ -180,7 +180,7 @@ const UploadFileModal = ({
           <div>
             <p>Import from URL</p>
             <p className="mb-2 text-xs font-normal text-gray-500">
-              Your files are not stored, only the URL is retained, also Supports
+              Your files are not stored, only the URL is retained, also supports
               Google Drive and Dropbox links.
             </p>
 
