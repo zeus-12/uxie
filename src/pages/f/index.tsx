@@ -7,6 +7,7 @@ import UploadFileModal from "@/components/workspace/upload-file-modal";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { SearchIcon, Sparkle } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useQueryState } from "nuqs";
 
@@ -21,38 +22,27 @@ const UserLibraryPage = () => {
     defaultValue: "",
   });
 
+  const session = useSession();
+  const userName = session.data?.user.name || "User";
+  const docsCount = userDocs?.length ?? 0;
+
   if (isError) return <div>Something went wrong</div>;
   if (isLoading) return <UserLibrarySkeleton />;
   if (!userDocs) return <div>Sorry no result found</div>;
 
-  const combinedUserDocs = [
-    ...userDocs?.documents,
-    ...userDocs?.collaboratorateddocuments?.map((collab) => collab.document),
-  ]?.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
-
-  const filteredUserDocs = combinedUserDocs?.filter((doc) =>
+  const filteredUserDocs = userDocs?.filter((doc) =>
     doc.title.trim().toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16 mt-2 md:mt-4 xl:mt-6">
-      {/* <Link
-        href="/"
-        className={cn(
-          buttonVariants({ variant: "ghost" }),
-          "my-2 w-fit justify-start p-2",
-        )}
-      >
-        <ChevronLeftIcon className="mr-2 h-4 w-4" />
-        Back
-      </Link> */}
       <div className="flex items-start justify-between">
         <div>
           <p className="mb-1 text-2xl font-semibold tracking-tighter">
-            Hello, {userDocs?.name || "User"}
+            Hello, {userName}
           </p>
 
-          {combinedUserDocs.length === 0 ? (
+          {docsCount === 0 ? (
             <p className="text-muted-foreground">
               You have no files yet, upload one now!
             </p>
@@ -62,12 +52,12 @@ const UserLibraryPage = () => {
         </div>
 
         <UploadFileModal
-          docsCount={userDocs.documents.length}
+          docsCount={docsCount}
           refetchUserDocs={refetchUserDocs}
         />
       </div>
 
-      {combinedUserDocs.length > 0 && (
+      {docsCount > 0 && (
         <div className="mt-2 flex flex-col justify-center">
           <div className="relative my-4">
             <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
@@ -88,9 +78,7 @@ const UserLibraryPage = () => {
                   key={doc.id}
                   id={doc.id}
                   title={doc.title}
-                  isCollab={userDocs.collaboratorateddocuments.some(
-                    (collab) => collab.document.id === doc.id,
-                  )}
+                  isCollab={doc.isCollab}
                 />
               ))}
             </div>

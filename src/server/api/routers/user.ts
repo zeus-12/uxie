@@ -7,23 +7,46 @@ import {
 
 export const userRouter = createTRPCRouter({
   getUsersDocs: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.prisma.user.findUnique({
+    const docs = await ctx.prisma.user.findUnique({
       where: {
         id: ctx?.session?.user?.id,
       },
-      include: {
+      select: {
         documents: {
-          include: {
-            collaborators: true,
+          select: {
+            createdAt: true,
+            title: true,
+            isVectorised: true,
+            id: true,
+            ownerId: true,
           },
         },
         collaboratorateddocuments: {
-          include: {
-            document: true,
+          select: {
+            document: {
+              select: {
+                createdAt: true,
+                title: true,
+                isVectorised: true,
+                id: true,
+                ownerId: true,
+              },
+            },
           },
         },
       },
     });
+
+    const combinedUserDocs = [
+      ...(docs?.documents ?? []),
+      ...(docs?.collaboratorateddocuments?.map((collab) => collab.document) ??
+        []),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    return combinedUserDocs.map((doc) => ({
+      ...doc,
+      isCollab: doc.ownerId !== ctx?.session?.user?.id,
+    }));
   }),
   submitFeedback: publicProcedure
     .input(feedbackFormSchema)
