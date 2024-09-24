@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useChat } from "ai/react";
-import { BanIcon, Send } from "lucide-react";
+import { ArrowUp, BanIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
@@ -175,12 +175,12 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-2 mt-1 flex w-full ">
+      <form onSubmit={handleSubmit} className="mx-[2px]">
+        <div className="mb-2 mt-1 flex w-full  border border-gray-300 rounded-md focus-within:ring-blue-500 focus-within:ring-2">
           <TextareaAutosize
             maxLength={1000}
-            placeholder="Enter your question (max 1,000 characters)"
-            className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 font-normal"
+            placeholder="Type your question here..."
+            className="flex-1 resize-none rounded-lg px-3 py-2 font-normal active:ring-0 focus-visible:ring-0 focus:ring-0 focus:outline-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                 e.preventDefault();
@@ -194,21 +194,23 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             autoFocus
             maxRows={4}
           />
-          {isLoading ? (
-            <button className="w-fit px-2">
-              <BanIcon size={24} className="text-gray-500" onClick={stop} />
-            </button>
-          ) : (
-            <button
-              className="group w-fit rounded-ee-md rounded-se-md px-2"
-              type="submit"
-            >
-              <Send
+          <button
+            className="group w-fit px-2 bg-gray-100 rounded-md m-[2px]"
+            type={isLoading ? "button" : "submit"}
+          >
+            {isLoading ? (
+              <BanIcon
                 size={24}
-                className=" text-gray-600 group-hover:text-gray-700"
+                className="text-gray-500 group-hover:text-gray-700"
+                onClick={stop}
               />
-            </button>
-          )}
+            ) : (
+              <ArrowUp
+                size={24}
+                className="text-gray-500 group-hover:text-gray-700"
+              />
+            )}
+          </button>
         </div>
       </form>
     </div>
