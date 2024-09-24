@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev --turbo",
+    "dev": "next dev",
     "postinstall": "prisma generate",
     "lint": "next lint",
     "start": "next start",
@@ -72,6 +72,7 @@
     "react-textarea-autosize": "^8.5.3",
     "react-wrap-balancer": "^1.1.0",
     "react-youtube": "^10.1.0",
+    "scribe.js-ocr": "^0.2.6",
     "sonner": "^1.4.41",
     "superjson": "^1.13.1",
     "tailwind-merge": "^1.14.0",

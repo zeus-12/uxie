@@ -23,6 +23,8 @@ import {
   generatePermittedFileTypes,
 } from "uploadthing/client";
 import { z } from "zod";
+// @ts-ignore
+import scribe from "scribe.js-ocr";
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -40,6 +42,7 @@ const UploadFileModal = ({
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
   const [uploadProgress, setUploadProgress] = useState<number>();
+  const [doOcr, setDoOcr] = useState(false);
 
   const [open, setOpen] = useState(false);
   const closeModal = () => setOpen(false);
@@ -57,6 +60,55 @@ const UploadFileModal = ({
     routeConfig,
     isUploading: isUploadthingUploading,
   } = useUploadThing("docUploader", {
+    onBeforeUploadBegin: async (files) => {
+      console.log("BEFORE UPLOAD BEIGNIS");
+      console.time("whole-thing");
+
+      const firstFile = files[0];
+      if (!files || files.length !== 1 || !firstFile) {
+        throw new Error("Please upload a single PDF file.");
+      }
+
+      if (doOcr) {
+        await scribe.init({ pdf: true, ocr: true, font: true });
+        // const params = {
+        //   extractPDFTextNative: optGUI.extractText,
+        //   extractPDFTextOCR: optGUI.extractText,
+        // };
+        scribe.opt.displayMode = "invis";
+
+        await scribe.importFiles(
+          files,
+          // params
+        );
+        await scribe.recognize({
+          mode: "quality",
+          langs: ["eng"],
+          modeAdv: "combined",
+          vanillaMode: true,
+          combineMode: "data",
+        });
+
+        const data = (await scribe.exportData("pdf")) as string | ArrayBuffer;
+
+        const blob = new Blob([data], { type: "application/pdf" });
+        const file = new File([blob], "test.pdf", {
+          type: "application/pdf",
+        });
+
+        // download file locally
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "test.pdf";
+        a.click();
+
+        throw new Error("hehehhehehehheh");
+        return [file];
+      }
+
+      return files;
+    },
     onClientUploadComplete: () => {
       toast.success("File uploaded successfully.");
     },
@@ -194,12 +246,16 @@ const UploadFileModal = ({
 
           <div>
             <div className="my-3 flex items-center space-x-2">
-              <Checkbox id="terms2" disabled />
+              <Checkbox
+                id="ocr"
+                checked={doOcr}
+                onCheckedChange={(c) => setDoOcr(!!c)}
+              />
               <label
-                htmlFor="terms2"
+                htmlFor="ocr"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                OCR for scanned documents. (Coming soon)
+                OCR for scanned documents. (Beta - really slow 🐢)
               </label>
             </div>
           </div>
