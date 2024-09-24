@@ -32,7 +32,7 @@ async function backupDatabase() {
     const fileBuffer = fs.readFileSync(filename);
 
     const supabase = createClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.PUBLIC_SUPABASE_URL,
       env.SUPABASE_SERVICE_KEY,
     );
 

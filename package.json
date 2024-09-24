@@ -9,7 +9,8 @@
     "lint": "next lint",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "scripts:db-dump": "tsc src/scripts/db-dump"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
@@ -101,7 +102,7 @@
     "prettier-plugin-tailwindcss": "^0.5.1",
     "prisma": "^5.11.0",
     "tailwindcss": "^3.3.3",
-    "typescript": "^5.3.3"
+    "typescript": "^5.6.2"
   },
   "ct3aMetadata": {
     "initVersion": "7.19.0"
