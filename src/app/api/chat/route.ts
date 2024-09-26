@@ -61,42 +61,13 @@ export async function POST(req: Request, res: Response) {
         });
       }
 
-      // const prevMessages = await prisma.message.findMany({
-      //   where: {
-      //     documentId: docId,
-      //   },
-      //   orderBy: {
-      //     createdAt: "asc",
-      //   },
-      //   take: 6,
-      // });
-
-      // const formattedPrevMessages = prevMessages.map((msg) => ({
-      //   role: msg.userId ? ("user" as const) : ("assistant" as const),
-      //   content: msg.text,
-      // }));
-
-      //   const systemPrompt = `You are an AI assistant with access to a knowledge base. Your task is to provide accurate and helpful responses based on the given context.
-
-      // CONTEXT:
-      // ${results.map((r, i) => `[${i + 1}] ${r.pageContent}`).join("\n\n")}
-
-      // INSTRUCTIONS:
-      // 1. Always base your answers on the provided context.
-      // 2. If the context doesn't contain the information needed to answer the question, say "I don't have enough information to answer that question."
-      // 3. Don't invent or assume information not present in the context.
-      // 4. Use Markdown formatting for clarity, including headers, lists, and code blocks where appropriate.
-      // 5. You do not need to be cautious or formal around me, nor should you remind me you are an AI model. I am already aware of this.
-      // 6. I need you to be detailed and precise, but I don’t need the fluff. Don’t bother with the “Sure, I can help with that” or similar statements.
-
-      // Answer the user's question thoughtfully and accurately based on the above context and instructions.`;
-
       const result = await streamText({
-        model: fireworks("accounts/fireworks/models/firefunction-v1"),
+        model: fireworks("accounts/fireworks/models/firefunction-v2"),
         messages: convertToCoreMessages(messages),
-        system: `You are a helpful assistant. Check your knowledge base before answering any questions.
-        Only respond to questions using information from tool calls.
-        if no relevant information is found in the tool calls, respond, "Sorry, I don't know."`,
+        system: `You are a helpful assistant with access to a PDF document. Your primary task is to answer questions based on the content of this PDF. Always check the PDF for information before responding, especially for specific details like author names, dates, or any factual content.
+      You have access to a function called 'getInformation' that allows you to search the PDF. Use this function for every question, even if you think you might know the answer. This ensures accuracy and that your responses are always based on the actual content of the document.
+      If the information isn't found in the PDF after searching, clearly state that the information couldn't be found in the document.
+      Don't make up or assume any information. If you're unsure or if the information isn't in the PDF, say so. Remember, your goal is to provide accurate information from the PDF, not to guess or infer details that aren't explicitly stated.`,
         tools: {
           getInformation: tool({
             description: "Searching the PDF for relevant information",
@@ -112,7 +83,7 @@ export async function POST(req: Request, res: Response) {
           await prisma.message.create({
             data: {
               text,
-              userId: session.user.id,
+              userId: null,
               documentId: docId,
             },
           });
