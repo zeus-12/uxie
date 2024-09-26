@@ -45,6 +45,8 @@ const UploadFileModal = ({
   const [doOcr, setDoOcr] = useState(false);
 
   const [open, setOpen] = useState(false);
+  const [isOcring, setIsOcring] = useState(false);
+
   const closeModal = () => setOpen(false);
 
   const onUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,53 +63,48 @@ const UploadFileModal = ({
     isUploading: isUploadthingUploading,
   } = useUploadThing("docUploader", {
     onBeforeUploadBegin: async (files) => {
-      console.log("BEFORE UPLOAD BEIGNIS");
-      console.time("whole-thing");
+      try {
+        const firstFile = files[0];
+        if (!files || files.length !== 1 || !firstFile) {
+          throw new Error("Please upload a single PDF file.");
+        }
 
-      const firstFile = files[0];
-      if (!files || files.length !== 1 || !firstFile) {
-        throw new Error("Please upload a single PDF file.");
+        if (doOcr) {
+          setIsOcring(true);
+          // await scribe.init({ pdf: true, ocr: true, font: true });
+          // const params = {
+          //   extractPDFTextNative: optGUI.extractText,
+          //   extractPDFTextOCR: optGUI.extractText,
+          // };
+          scribe.opt.displayMode = "invis";
+
+          await scribe.importFiles(
+            files,
+            // params
+          );
+          await scribe.recognize({
+            mode: "quality",
+            langs: ["eng"],
+            modeAdv: "combined",
+            vanillaMode: true,
+            combineMode: "data",
+          });
+
+          const data = (await scribe.exportData("pdf")) as string | ArrayBuffer;
+
+          const blob = new Blob([data], { type: "application/pdf" });
+          const file = new File([blob], firstFile.name, {
+            type: "application/pdf",
+          });
+
+          return [file];
+        }
+        setIsOcring(false);
+        return files;
+      } catch (err) {
+        setIsOcring(false);
+        throw new Error("Something went wrong while ocr-ing the file.");
       }
-
-      if (doOcr) {
-        await scribe.init({ pdf: true, ocr: true, font: true });
-        // const params = {
-        //   extractPDFTextNative: optGUI.extractText,
-        //   extractPDFTextOCR: optGUI.extractText,
-        // };
-        scribe.opt.displayMode = "invis";
-
-        await scribe.importFiles(
-          files,
-          // params
-        );
-        await scribe.recognize({
-          mode: "quality",
-          langs: ["eng"],
-          modeAdv: "combined",
-          vanillaMode: true,
-          combineMode: "data",
-        });
-
-        const data = (await scribe.exportData("pdf")) as string | ArrayBuffer;
-
-        const blob = new Blob([data], { type: "application/pdf" });
-        const file = new File([blob], "test.pdf", {
-          type: "application/pdf",
-        });
-
-        // download file locally
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "test.pdf";
-        a.click();
-
-        throw new Error("hehehhehehehheh");
-        return [file];
-      }
-
-      return files;
     },
     onClientUploadComplete: () => {
       toast.success("File uploaded successfully.");
@@ -263,15 +260,27 @@ const UploadFileModal = ({
           <div>
             <Button
               disabled={
-                (!file && !url) || isUploadthingUploading || isUrlUploading
+                (!file && !url) ||
+                isUploadthingUploading ||
+                isUrlUploading ||
+                isOcring
               }
               className="mt-4 w-full"
               onClick={uploadFile}
             >
-              {(isUploadthingUploading || isUrlUploading) && <Spinner />}
-              {!isUploadthingUploading && "Upload"}
-              {isUploadthingUploading && (
-                <p className="ml-2">{uploadProgress}%</p>
+              {isUploadthingUploading || isUrlUploading || isOcring ? (
+                <>
+                  <Spinner />
+                  {isUploadthingUploading && (
+                    <p className="ml-2">{uploadProgress}%</p>
+                  )}
+
+                  {isOcring && (
+                    <span>Applying OCR, it might take a while...</span>
+                  )}
+                </>
+              ) : (
+                "Upload"
               )}
             </Button>
           </div>
