@@ -23,6 +23,8 @@ import {
   generatePermittedFileTypes,
 } from "uploadthing/client";
 import { z } from "zod";
+// @ts-ignore
+import scribe from "scribe.js-ocr";
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -40,8 +42,11 @@ const UploadFileModal = ({
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
   const [uploadProgress, setUploadProgress] = useState<number>();
+  const [doOcr, setDoOcr] = useState(false);
 
   const [open, setOpen] = useState(false);
+  const [isOcring, setIsOcring] = useState(false);
+
   const closeModal = () => setOpen(false);
 
   const onUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,6 +62,50 @@ const UploadFileModal = ({
     routeConfig,
     isUploading: isUploadthingUploading,
   } = useUploadThing("docUploader", {
+    onBeforeUploadBegin: async (files) => {
+      try {
+        const firstFile = files[0];
+        if (!files || files.length !== 1 || !firstFile) {
+          throw new Error("Please upload a single PDF file.");
+        }
+
+        if (doOcr) {
+          setIsOcring(true);
+          // await scribe.init({ pdf: true, ocr: true, font: true });
+          // const params = {
+          //   extractPDFTextNative: optGUI.extractText,
+          //   extractPDFTextOCR: optGUI.extractText,
+          // };
+          scribe.opt.displayMode = "invis";
+
+          await scribe.importFiles(
+            files,
+            // params
+          );
+          await scribe.recognize({
+            mode: "quality",
+            langs: ["eng"],
+            modeAdv: "combined",
+            vanillaMode: true,
+            combineMode: "data",
+          });
+
+          const data = (await scribe.exportData("pdf")) as string | ArrayBuffer;
+
+          const blob = new Blob([data], { type: "application/pdf" });
+          const file = new File([blob], firstFile.name, {
+            type: "application/pdf",
+          });
+
+          return [file];
+        }
+        setIsOcring(false);
+        return files;
+      } catch (err) {
+        setIsOcring(false);
+        throw new Error("Something went wrong while ocr-ing the file.");
+      }
+    },
     onClientUploadComplete: () => {
       toast.success("File uploaded successfully.");
     },
@@ -194,12 +243,16 @@ const UploadFileModal = ({
 
           <div>
             <div className="my-3 flex items-center space-x-2">
-              <Checkbox id="terms2" disabled />
+              <Checkbox
+                id="ocr"
+                checked={doOcr}
+                onCheckedChange={(c) => setDoOcr(!!c)}
+              />
               <label
-                htmlFor="terms2"
+                htmlFor="ocr"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                OCR for scanned documents. (Coming soon)
+                OCR for scanned documents. (Beta - really slow 🐢)
               </label>
             </div>
           </div>
@@ -207,15 +260,27 @@ const UploadFileModal = ({
           <div>
             <Button
               disabled={
-                (!file && !url) || isUploadthingUploading || isUrlUploading
+                (!file && !url) ||
+                isUploadthingUploading ||
+                isUrlUploading ||
+                isOcring
               }
               className="mt-4 w-full"
               onClick={uploadFile}
             >
-              {(isUploadthingUploading || isUrlUploading) && <Spinner />}
-              {!isUploadthingUploading && "Upload"}
-              {isUploadthingUploading && (
-                <p className="ml-2">{uploadProgress}%</p>
+              {isUploadthingUploading || isUrlUploading || isOcring ? (
+                <>
+                  <Spinner />
+                  {isUploadthingUploading && (
+                    <p className="ml-2">{uploadProgress}%</p>
+                  )}
+
+                  {isOcring && (
+                    <span>Applying OCR, it might take a while...</span>
+                  )}
+                </>
+              ) : (
+                "Upload"
               )}
             </Button>
           </div>
