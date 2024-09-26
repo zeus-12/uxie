@@ -97,9 +97,9 @@ const UploadFileModal = ({
             type: "application/pdf",
           });
 
+          setIsOcring(false);
           return [file];
         }
-        setIsOcring(false);
         return files;
       } catch (err) {
         setIsOcring(false);
