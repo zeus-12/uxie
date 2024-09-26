@@ -53,7 +53,7 @@ const DocViewerPage = () => {
           </div>
         </ResizablePanel>
         <div className="group flex w-2 items-center justify-center rounded-md bg-gray-50">
-          <ResizableHandle className="h-1 w-24 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24 lg:w-1" />
+          <ResizableHandle className="h-12 w-1 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24" />
         </div>
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full min-w-[25vw] flex-1">
