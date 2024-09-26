@@ -5,6 +5,9 @@ import { completionRouteSchema } from "@/schema/routes";
 import { OpenAIStream, StreamingTextResponse } from "ai";
 
 export const runtime = "edge";
+export const config = {
+  maxDuration: 30,
+};
 
 export async function POST(req: Request) {
   if (env.NODE_ENV === "development") {

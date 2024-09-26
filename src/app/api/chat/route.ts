@@ -9,7 +9,9 @@ import { convertToCoreMessages, Message, streamText, tool } from "ai";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
 
-export const maxDuration = 30;
+export const config = {
+  maxDuration: 30,
+};
 
 export async function POST(req: Request, res: Response) {
   try {
