@@ -144,8 +144,8 @@ const DocCard = ({
 
 const UserLibrarySkeleton = () => {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16 mt-4 sm:mt-8">
-      <div className="flex items-start justify-between md:px-4">
+    <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16 mt-2 md:mt-4 xl:mt-6">
+      <div className="flex items-start justify-between">
         <div>
           <Skeleton className="h-8 w-48 mb-1" />
           <Skeleton className="h-4 w-64" />
