@@ -6,9 +6,7 @@ import { prisma } from "@/server/db";
 import { streamObject } from "ai";
 import { getServerSession } from "next-auth";
 
-export const config = {
-  maxDuration: 30,
-};
+export const maxDuration = 30;
 
 export async function POST(req: Request, res: Response) {
   const reqBody = await req.json();
