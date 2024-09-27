@@ -2,12 +2,11 @@ import Chat from "@/components/chat";
 import Editor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
 import { ClientSideSuspense } from "@liveblocks/react";
 import { saveAs } from "file-saver";
 import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
@@ -116,17 +115,22 @@ const Sidebar = ({
             ))}
           </TabsList>
           <div className="flex items-center gap-1">
-            {isOwner && <InviteCollab />}
+            {isOwner && (
+              <CustomTooltip content="Invite collaborators">
+                <InviteCollab />
+              </CustomTooltip>
+            )}
 
-            <div
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border",
-              )}
-              onClick={handleDownloadMarkdownAsFile}
-            >
-              <Download size={20} />
-            </div>
+            <CustomTooltip content="Download notes as markdown">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border"
+                onClick={handleDownloadMarkdownAsFile}
+              >
+                <Download size={20} />
+              </Button>
+            </CustomTooltip>
           </div>
         </div>
 
