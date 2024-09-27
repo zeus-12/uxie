@@ -136,7 +136,6 @@ const DocCard = ({
           Collab
         </Badge>
       )}
-      {/* maybe display first page of the pdf here */}
       {/* add menubar to delete, rename doc, download pdf */}
     </Link>
   );

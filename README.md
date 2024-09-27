@@ -45,6 +45,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - highlights block which on click takes you to that highlight on the doc.
 - AI-powered text autocompletion, and text enhancement
 - PDF text-to-speech (English only)
+- PDF ocr support (English only)
 - Craft simple flashcards to test your knowledge, answer questions, and receive instant feedback through AI evaluation.
 
 ### Bugs
@@ -77,7 +78,6 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - [ ] use background runner or something and do long-polling
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] Run the seogets script
-- [ ] figure out saving the first page, and doing ocr (maybe locally)
 - [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
 
 ### Pinecone Setting up guide

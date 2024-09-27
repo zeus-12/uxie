@@ -50,8 +50,6 @@ export const docUploader = {
         const pageLevelDocs = await loader.load();
         const numPages = pageLevelDocs.length;
 
-        // figure out some way to take a snapshot of the first page of the pdf and store that
-
         await prisma.document.create({
           data: {
             owner: {
