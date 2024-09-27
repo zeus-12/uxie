@@ -79,6 +79,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] Run the seogets script
 - [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
+- [ ] add bm25 along w vector embeddings? https://www.anthropic.com/news/contextual-retrieval#:~:text=BM25%20can%20succeed%20where%20semantic%20embeddings%20fail
 
 ### Pinecone Setting up guide
 
