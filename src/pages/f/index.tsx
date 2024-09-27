@@ -58,7 +58,7 @@ const UserLibraryPage = () => {
       </div>
 
       {docsCount > 0 && (
-        <div className="mt-2 flex flex-col justify-center">
+        <div className="flex flex-col justify-center">
           <div className="relative my-4">
             <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
             <Input
@@ -151,7 +151,7 @@ const UserLibrarySkeleton = () => {
         </div>
         <Skeleton className="h-10 w-32" />
       </div>
-      <div className="mt-2 flex flex-col justify-center md:px-4">
+      <div className="flex flex-col justify-center">
         <Skeleton className="h-10 w-full my-4" />
         <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
