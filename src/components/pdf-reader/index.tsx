@@ -24,7 +24,7 @@ interface AddHighlightType {
   position: HighlightPositionType;
 }
 
-const addHighlightToNotes = (
+const addHighlightToNotes = async (
   content: string,
   highlightId: string,
   type: HighlightContentType,
@@ -59,12 +59,27 @@ const addHighlightToNotes = (
       type: "highlight",
     });
   } else {
-    if (!content || !highlightId) return;
+    if (!content || !highlightId || !editor.uploadFile) return;
+
+    const base64StringWithoutHeader = content.split(",")[1];
+    if (!base64StringWithoutHeader) {
+      toast.error("Invalid image", { duration: 3000 });
+      return;
+    }
+
+    const byteArray = Uint8Array.from(atob(base64StringWithoutHeader), (c) =>
+      c.charCodeAt(0),
+    );
+    const file = new File([byteArray], `${highlightId}.png`, {
+      type: "image/png",
+    });
+
+    const url = await editor.uploadFile(file);
 
     try {
       insertOrUpdateBlock(editor, {
         props: {
-          url: content,
+          url,
         },
         type: "image",
       });

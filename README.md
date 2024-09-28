@@ -50,15 +50,11 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ### Bugs
 
-- [ ] STOP STORING BASE64 LINKS OF HIGHLIGHTS IN NOTES => this could get me broke :'(
 - [ ] figure out someway to track onpagechange and store that in document -> display a x% done in /f, also scroll to that page on opening the file. (also required to display the page number (along w go-to-page-numb option) in bottom-toolbar => along with zoom, etc)
 - [ ] ffs build a category system for documents => doesnt matter if ui is bad, just build it
 - [ ] for area highlights, create a custom component with:
 
-1. imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
-   update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. => [issue fixed!](https://github.com/TypeCellOS/BlockNote/issues/410)
-2. add the yellow leftborder which takes to the image highlight on click
-
+- add the yellow leftborder which takes to the image highlight on click
 - [ ] implement ratelimit using redis kv => checkout upstash
 - [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
 - [ ] add download flashcards in csv,anki format ( apkg format), also add dl notes in pdf format ([html2pdf lib](https://ekoopmans.github.io/html2pdf.js/) should work)
@@ -78,6 +74,8 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ## New ideas
 
+- imagelink stored on editor is base64 one => possible soln: store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then
+  update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
 - [ ] use background runner or something and do long-polling
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] Run the seogets script
