@@ -59,7 +59,7 @@ export const TextSelectionPopover = ({
       icon: ClipboardCopy,
       tooltip: "Copy the text",
     },
-    {
+    isTextHighlight && {
       onClick: () => {
         readSelectedText({ text: content.text });
         hideTipAndSelection();
