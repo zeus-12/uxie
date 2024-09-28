@@ -125,12 +125,13 @@ const PdfReader = ({
     READING_STATUS.IDLE,
   );
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
+  const [pageNumberToRead, setPageNumberToRead] = useState<number>(1);
 
-  const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
   const [selectedTextToRead, setSelectedTextToRead] = useState<string>("");
   const [readingMode, setReadingMode] = useState<READING_MODE>(
     READING_MODE.PAGE,
   );
+  const [pageNumberInView, setPageNumberInView] = useState<number>(1);
 
   const [currentWord, setCurrentWord] = useState("");
   const [currentPosition, setCurrentPosition] = useState(0);
@@ -193,7 +194,7 @@ const PdfReader = ({
     if (!content) {
       setCurrentPosition(0);
       readDocument(pageNumber + 1);
-      setCurrentPageNumber(pageNumber + 1);
+      setPageNumberToRead(pageNumber + 1);
       setCurrentWord("");
       return;
     }
@@ -229,7 +230,7 @@ const PdfReader = ({
         if (event.charIndex + event.charLength >= textToRead.length) {
           setCurrentPosition(0);
           readDocument(pageNumber + 1);
-          setCurrentPageNumber(pageNumber + 1);
+          setPageNumberToRead(pageNumber + 1);
           setCurrentWord("");
         }
       }
@@ -331,7 +332,7 @@ const PdfReader = ({
             continueReadingFromLastPosition: true,
           });
         } else {
-          readDocument(currentPageNumber, currentReadingSpeed, true);
+          readDocument(pageNumberToRead, currentReadingSpeed, true);
         }
       } else {
         speechSynthesisRef.current.resume();
@@ -359,15 +360,46 @@ const PdfReader = ({
             continueReadingFromLastPosition: true,
           });
         } else {
-          readDocument(currentPageNumber, newSpeed, true);
+          readDocument(pageNumberToRead, newSpeed, true);
         }
       }
     }
   };
 
+  useEffect(() => {
+    const pdfElement = document.getElementsByClassName("PdfHighlighter")[0];
+
+    if (pdfElement) {
+      const handleScroll = () => {
+        const pages = Array.from((pdfElement.children[0] as Element).children);
+
+        const pdfPagesInView = pages.reduce((acc, page, index) => {
+          const rect = page.getBoundingClientRect();
+          if (rect.top < window.innerHeight && rect.bottom > 0) {
+            acc.push(index + 1);
+          }
+          return acc;
+        }, [] as number[]);
+
+        const pdfPageInView = pdfPagesInView[0];
+        if (pdfPageInView && pdfPageInView !== pageNumberInView) {
+          setPageNumberInView(pdfPageInView);
+        }
+      };
+
+      pdfElement.addEventListener("scroll", handleScroll);
+
+      return () => {
+        pdfElement.removeEventListener("scroll", handleScroll);
+      };
+    }
+  }, [pdf]);
+
+  const pdfRef = useRef<PdfLoader | null>(null);
+
   return (
     <>
-      <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
+      <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />} ref={pdfRef}>
         {(pdfDocument) => (
           <PdfHighlighter
             pdfDocument={pdfDocument}
@@ -464,6 +496,7 @@ const PdfReader = ({
         )}
       </PdfLoader>
       <ReaderBottomToolbar
+        pageNumberInView={pageNumberInView}
         isAudioDisabled={!browserSupportsSpeechSynthesis}
         currentWord={
           readingStatus !== READING_STATUS.IDLE ? currentWord : undefined

@@ -1,5 +1,3 @@
-// CREDITS: https://motion-primitives.com/docs/toolbar-dynamic
-
 import { Button } from "@/components/ui/button";
 import { MotionConfig } from "framer-motion";
 import { ArrowLeft, AudioLines } from "lucide-react";
@@ -15,10 +13,12 @@ const ReaderBottomToolbar = ({
   children,
   isAudioDisabled,
   currentWord,
+  pageNumberInView,
 }: {
   children: ReactNode;
   isAudioDisabled: boolean;
   currentWord: string | undefined;
+  pageNumberInView: number;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +43,10 @@ const ReaderBottomToolbar = ({
             <div className="overflow-hidden py-1 px-1">
               {!isOpen ? (
                 <div className="flex space-x-2 justify-evenly">
+                  <Button variant="ghost" size="sm">
+                    {pageNumberInView}
+                  </Button>
+
                   <Button
                     onClick={() => setIsOpen(true)}
                     variant="ghost"
