@@ -5,12 +5,14 @@ import {
 import PdfHighlighter from "@/components/pdf-reader/pdf-highlighter";
 import ReaderBottomSection from "@/components/pdf-reader/reader-bottom-section";
 import { SpinnerPage } from "@/components/ui/spinner";
+import { api } from "@/lib/api";
 import { AppRouter } from "@/server/api/root";
 import { AddHighlightType } from "@/types/highlight";
 import { inferRouterOutputs } from "@trpc/server";
 import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
 import { PdfLoader } from "react-pdf-highlighter";
+import { useDebouncedCallback } from "use-debounce";
 
 const PdfReader = ({
   addHighlight,
@@ -40,6 +42,15 @@ const PdfReader = ({
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  const { mutateAsync } = api.document.updateLastReadPage.useMutation();
+
+  const debouncedUpdateLastReadPage = useDebouncedCallback(
+    async (pageNumber: number) => {
+      await mutateAsync({ docId: doc.id, lastReadPage: pageNumber });
+    },
+    2000,
+  );
+
   useEffect(() => {
     speechSynthesisRef.current = window.speechSynthesis;
 
@@ -49,6 +60,22 @@ const PdfReader = ({
       }
     };
   }, []);
+
+  const pdfViewer = window.PdfViewer?.viewer;
+
+  pdfViewer?.eventBus.on("pagechanging", (e: any) => {
+    const pageNumber = e.pageNumber;
+    if (pageNumber !== pageNumberInView) {
+      setPageNumberInView(pageNumber);
+      debouncedUpdateLastReadPage(pageNumber);
+    }
+  });
+
+  pdfViewer?.eventBus.on("pagesinit", () => {
+    if (doc.lastReadPage && pdfViewer.currentPageNumber !== doc.lastReadPage) {
+      pdfViewer.currentPageNumber = doc.lastReadPage;
+    }
+  });
 
   const readSelectedText = ({
     text,
@@ -112,36 +139,6 @@ const PdfReader = ({
 
     speechSynthesisRef.current.speak(utterance);
   };
-
-  useEffect(() => {
-    const pdfElement = document.getElementsByClassName("PdfHighlighter")[0];
-
-    if (pdfElement) {
-      const handleScroll = () => {
-        const pages = Array.from((pdfElement.children[0] as Element).children);
-
-        const pdfPagesInView = pages.reduce((acc, page, index) => {
-          const rect = page.getBoundingClientRect();
-          if (rect.top < window.innerHeight && rect.bottom > 0) {
-            acc.push(index + 1);
-          }
-          return acc;
-        }, [] as number[]);
-
-        const pdfPageInView = pdfPagesInView[0];
-        if (pdfPageInView && pdfPageInView !== pageNumberInView) {
-          setPageNumberInView(pdfPageInView);
-        }
-      };
-
-      // prob throtte this
-      pdfElement.addEventListener("scroll", handleScroll);
-
-      return () => {
-        pdfElement.removeEventListener("scroll", handleScroll);
-      };
-    }
-  }, [pdf]);
 
   return (
     <>
