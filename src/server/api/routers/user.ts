@@ -14,7 +14,7 @@ export const userRouter = createTRPCRouter({
       select: {
         documents: {
           select: {
-            createdAt: true,
+            updatedAt: true,
             title: true,
             isVectorised: true,
             id: true,
@@ -25,7 +25,7 @@ export const userRouter = createTRPCRouter({
           select: {
             document: {
               select: {
-                createdAt: true,
+                updatedAt: true,
                 title: true,
                 isVectorised: true,
                 id: true,
@@ -41,7 +41,7 @@ export const userRouter = createTRPCRouter({
       ...(docs?.documents ?? []),
       ...(docs?.collaboratorateddocuments?.map((collab) => collab.document) ??
         []),
-    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
     return combinedUserDocs.map((doc) => ({
       title: doc.title,

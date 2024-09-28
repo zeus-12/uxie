@@ -51,7 +51,6 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 ### Bugs
 
 - [ ] STOP STORING BASE64 LINKS OF HIGHLIGHTS IN NOTES => this could get me broke :'(
-- [ ] show docs in /f based on updatedAt field
 - [ ] figure out someway to track onpagechange and store that in document -> display a x% done in /f, also scroll to that page on opening the file. (also required to display the page number (along w go-to-page-numb option) in bottom-toolbar => along with zoom, etc)
 - [ ] ffs build a category system for documents => doesnt matter if ui is bad, just build it
 - [ ] for area highlights, create a custom component with:
