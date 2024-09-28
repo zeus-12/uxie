@@ -50,11 +50,10 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ### Bugs
 
-- [ ] figure out someway to track onpagechange and store that in document -> display a x% done in /f, also scroll to that page on opening the file. (also required to display the page number (along w go-to-page-numb option) in bottom-toolbar => along with zoom, etc)
+- [ ] add proper prompts for each item in custom/ai/popover.tsx
+- [ ] display a x% done in /f, also scroll to that page on opening the file. add a go-to-page-numb option in bottom-toolbar => along with zoom, etc)
 - [ ] ffs build a category system for documents => doesnt matter if ui is bad, just build it
-- [ ] for area highlights, create a custom component with:
 - [ ] implement ratelimit using redis kv => checkout upstash
-- [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
 - [ ] add download flashcards in csv,anki format ( apkg format), also add dl notes in pdf format ([html2pdf lib](https://ekoopmans.github.io/html2pdf.js/) should work)
 - [ ] better error,loading pages => abstract this logic to hook / component
 - [ ] editor loads with empty data before the data is loaded.
@@ -72,7 +71,8 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ## New ideas
 
-- For area-highlight
+- [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
+- [ ] For area-highlight
 
       - store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
       - add the yellow leftborder which takes to the image highlight on click
