@@ -7,7 +7,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Ban, Pause, Play } from "lucide-react";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import { MutableRefObject, useState } from "react";
 
 const ReaderBottomSection = ({
@@ -83,8 +82,7 @@ const ReaderBottomSection = ({
 
     setReadingMode(READING_MODE.PAGE);
 
-    // @ts-ignore
-    const pdfViewer = window.PdfViewer.viewer as PDFViewer;
+    const pdfViewer = window.PdfViewer.viewer;
 
     if (pdfViewer) {
       pdfViewer.scrollPageIntoView({
