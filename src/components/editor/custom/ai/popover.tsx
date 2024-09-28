@@ -156,6 +156,7 @@ const CommandBody = ({
         duration: 3000,
       });
     },
+    api: "/api/completion",
   });
 
   const responseExists =
