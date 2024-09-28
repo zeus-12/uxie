@@ -42,12 +42,13 @@ const ReaderBottomToolbar = ({
           > */}
             <div className="overflow-hidden py-1 px-1">
               {!isOpen ? (
-                <div className="flex space-x-2 justify-evenly">
-                  <Button variant="ghost" size="sm">
+                <div className="grid gap-2 w-full justify-evenly grid-cols-2">
+                  <Button variant="ghost" size="sm" className="w-full">
                     {pageNumberInView}
                   </Button>
 
                   <Button
+                    className="w-full"
                     onClick={() => setIsOpen(true)}
                     variant="ghost"
                     size="sm"
