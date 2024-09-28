@@ -44,3 +44,11 @@ export interface HighlightPositionTypeWithDocumentId
     HighlightContentTypes {
   documentId: string;
 }
+
+export interface AddHighlightType {
+  content: {
+    text?: string;
+    image?: string;
+  };
+  position: HighlightPositionType;
+}

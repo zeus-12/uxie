@@ -5,7 +5,7 @@ import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
 import { BlockNoteEditorType } from "@/types/editor";
-import { HighlightContentType, HighlightPositionType } from "@/types/highlight";
+import { AddHighlightType, HighlightContentType } from "@/types/highlight";
 import { insertOrUpdateBlock } from "@blocknote/core";
 import { createId } from "@paralleldrive/cuid2";
 import { HighlightTypeEnum } from "@prisma/client";
@@ -15,14 +15,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { toast } from "sonner";
-
-interface AddHighlightType {
-  content: {
-    text?: string;
-    image?: string;
-  };
-  position: HighlightPositionType;
-}
 
 const addHighlightToNotes = async (
   content: string,
@@ -87,13 +79,6 @@ const addHighlightToNotes = async (
       console.log(err.message, "errnes");
     }
   }
-};
-
-export const getHighlightById = (
-  id: string,
-  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"],
-) => {
-  return doc?.highlights?.find((highlight) => highlight.id === id);
 };
 
 const DocViewer = ({
