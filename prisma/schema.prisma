@@ -65,6 +65,7 @@ model Document {
   // false if user adds document by url
   isUploaded    Boolean        @default(true)
   flashcards    Flashcard[]
+  lastReadPage  Int            @default(1)
 }
 
 enum CollaboratorRole {

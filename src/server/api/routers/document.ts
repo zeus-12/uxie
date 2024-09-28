@@ -104,6 +104,7 @@ export const documentRouter = createTRPCRouter({
           isOwner: res.owner.id === ctx.session.user.id,
         },
         pageCount,
+        lastReadPage: res.lastReadPage
       };
     }),
 
@@ -422,6 +423,38 @@ export const documentRouter = createTRPCRouter({
         },
         data: {
           note: input.note,
+        },
+      });
+    }),
+
+  updateLastReadPage: protectedProcedure
+    .input(
+      z.object({
+        docId: z.string(),
+        lastReadPage: z.number(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.docId,
+          ownerId: ctx.session.user.id,
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you are not the owner.",
+        });
+      }
+
+      return await ctx.prisma.document.update({
+        where: {
+          id: input.docId,
+        },
+        data: {
+          lastReadPage: input.lastReadPage,
         },
       });
     }),
