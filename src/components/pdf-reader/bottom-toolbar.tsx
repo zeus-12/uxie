@@ -43,7 +43,11 @@ const ReaderBottomToolbar = ({
             <div className="overflow-hidden py-1 px-1">
               {!isOpen ? (
                 <div className="grid gap-2 w-full justify-evenly grid-cols-2">
-                  <Button variant="ghost" size="sm" className="w-full">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full hover:cursor-default"
+                  >
                     {pageNumberInView}
                   </Button>
 
