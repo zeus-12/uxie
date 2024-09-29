@@ -1,3 +1,4 @@
+import { READING_MODE } from "@/components/pdf-reader/constants";
 import {
   HighlightedTextPopover,
   TextSelectionPopover,
@@ -44,14 +45,12 @@ const scrollToHighlightFromHash = (
 
 const PdfHighlighter = ({
   pdfDocument,
-  setPdf,
   doc,
   addHighlight,
   deleteHighlight,
   readSelectedText,
 }: {
   pdfDocument: PDFDocumentProxy;
-  setPdf: (pdf: PDFDocumentProxy) => void;
   doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
   addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
   deleteHighlight: (id: string) => void;
@@ -59,11 +58,13 @@ const PdfHighlighter = ({
     text,
     readingSpeed,
     continueReadingFromLastPosition,
+    readingMode,
   }: {
     text?: string | null;
     readingSpeed?: number;
     continueReadingFromLastPosition?: boolean;
-  }) => void;
+    readingMode: READING_MODE;
+  }) => Promise<void>;
 }) => {
   const highlights = doc.highlights ?? [];
   const utils = api.useContext();
@@ -111,10 +112,6 @@ const PdfHighlighter = ({
   return (
     <PdfHighlighterComponent
       pdfDocument={pdfDocument}
-      ref={() => {
-        // theres prob a better way to set this
-        setPdf(pdfDocument);
-      }}
       enableAreaSelection={(event) => event.altKey}
       onScrollChange={resetHash}
       // pdfScaleValue="page-width"

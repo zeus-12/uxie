@@ -1,3 +1,4 @@
+import { READING_MODE } from "@/components/pdf-reader/constants";
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { copyTextToClipboard } from "@/lib/utils";
 import {
@@ -32,11 +33,13 @@ export const TextSelectionPopover = ({
     text,
     readingSpeed,
     continueReadingFromLastPosition,
+    readingMode,
   }: {
     text?: string;
     readingSpeed?: number;
     continueReadingFromLastPosition?: boolean;
-  }) => void;
+    readingMode: READING_MODE;
+  }) => Promise<void>;
 }) => {
   const router = useRouter();
   const isTextHighlight = content.text !== undefined;
@@ -61,7 +64,10 @@ export const TextSelectionPopover = ({
     },
     isTextHighlight && {
       onClick: () => {
-        readSelectedText({ text: content.text });
+        readSelectedText({
+          text: content.text,
+          readingMode: READING_MODE.TEXT,
+        });
         hideTipAndSelection();
       },
       icon: AudioLines,

@@ -12,12 +12,10 @@ const transition = {
 const ReaderBottomToolbar = ({
   children,
   isAudioDisabled,
-  currentWord,
   pageNumberInView,
 }: {
   children: ReactNode;
   isAudioDisabled: boolean;
-  currentWord: string | undefined;
   pageNumberInView: number;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +40,9 @@ const ReaderBottomToolbar = ({
           > */}
             <div className="overflow-hidden py-1 px-1">
               {!isOpen ? (
-                <div className="grid gap-2 w-full justify-evenly grid-cols-2">
+                <div className="grid gap-1 w-full justify-evenly grid-cols-2">
+                  {/* pageNumberInView is 0 initailly. */}
+                  {/* {pageNumberInView > 0 && ( */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -50,6 +50,7 @@ const ReaderBottomToolbar = ({
                   >
                     {pageNumberInView}
                   </Button>
+                  {/* )} */}
 
                   <Button
                     className="w-full"
@@ -76,14 +77,6 @@ const ReaderBottomToolbar = ({
             </div>
             {/* </motion.div> */}
           </div>
-
-          {isOpen && currentWord && (
-            <div className="absolute rounded-xl border border-zinc-950/10 bg-white w-fit mx-auto px-2 py-[10px] -right-1 translate-x-[100%]">
-              <p className="text-lg font-semibold text-blue-600">
-                {currentWord}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </MotionConfig>

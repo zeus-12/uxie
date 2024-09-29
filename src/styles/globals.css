@@ -142,3 +142,12 @@
   text-decoration-skip-ink: none; /* works in Firefox & Chrome, not in Safari */
   text-decoration-skip: none; /* works in Safari, not in Firefox & Chrome */
 }
+
+.current-sentence {
+  background-color: #e3ffdd !important;
+}
+
+.current-word {
+  background-color: #74f273 !important;
+  display: inline !important;
+}
