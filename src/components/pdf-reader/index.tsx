@@ -76,7 +76,7 @@ const addHighlightToNotes = async (
         type: "image",
       });
     } catch (err: any) {
-      console.log(err.message, "errnes");
+      console.log(err.message);
     }
   }
 };

@@ -64,7 +64,6 @@ function Features() {
 
 const FeatureImage = () => {
   const inViewFeature = useFeatureStore((state) => state.inViewFeature);
-  console.log(inViewFeature);
 
   const curFeature = inViewFeature !== null ? features[inViewFeature] : null;
 

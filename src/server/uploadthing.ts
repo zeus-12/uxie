@@ -63,7 +63,7 @@ export const docUploader = {
           },
         });
       } catch (err: any) {
-        console.log(err.message, "error ");
+        console.log(err.message);
       }
     }),
 } satisfies FileRouter;
