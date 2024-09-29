@@ -78,6 +78,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
       - add the yellow leftborder which takes to the image highlight on click
 
 - [ ] use background runner or something and do long-polling
+- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, and maybe also from /f) => prob not useful for image-highlights
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] Run the seogets script
 - [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
