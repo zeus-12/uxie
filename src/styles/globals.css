@@ -160,3 +160,7 @@
     height: 100dvh;
   }
 }
+
+html {
+  height: -webkit-fill-available;
+}

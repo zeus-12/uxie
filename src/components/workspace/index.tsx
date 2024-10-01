@@ -49,7 +49,7 @@ const DocViewerPage = () => {
       <div className="hidden md:flex">
         <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="hd-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
+            <div className="h-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
               <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
             </div>
           </ResizablePanel>
@@ -69,7 +69,7 @@ const DocViewerPage = () => {
       </div>
 
       <div className="md:hidden">
-        <div className="hd-screen border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
+        <div className="h-screen border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg overflow-hidden">
           <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
         </div>
       </div>
