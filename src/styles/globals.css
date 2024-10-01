@@ -151,3 +151,12 @@
   background-color: #74f273 !important;
   display: inline !important;
 }
+
+@layer utilities {
+  .hd-screen {
+    /* 100vh for browsers not supporting dvh */
+    height: 100vh;
+    /* the ones that suppport dvh overrides vh */
+    height: 100dvh;
+  }
+}

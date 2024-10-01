@@ -69,7 +69,7 @@ const DocViewerPage = () => {
       </div>
 
       <div className="md:hidden">
-        <div className="h-screen border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
+        <div className="hd-screen border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
           <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
         </div>
       </div>
