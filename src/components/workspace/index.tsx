@@ -45,35 +45,31 @@ const DocViewerPage = () => {
   }
 
   return (
-    <>
-      <div className="hidden md:flex">
-        <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
-          <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="hd-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
-              <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
-            </div>
-          </ResizablePanel>
-          <div className="group flex w-2 items-center justify-center rounded-md bg-gray-50">
-            <ResizableHandle className="h-12 w-1 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24" />
-          </div>
-          <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full min-w-[25vw] flex-1">
-              <Sidebar
-                canEdit={doc.userPermissions.canEdit}
-                isOwner={doc.userPermissions.isOwner}
-                isVectorised={doc.isVectorised}
-              />
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
-
-      <div className="md:hidden">
-        <div className="hd-screen border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
+    <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
+      <ResizablePanel defaultSize={50} minSize={30}>
+        <div className="hd-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
           <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
         </div>
+      </ResizablePanel>
+
+      <div className="group w-2 items-center justify-center rounded-md bg-gray-50 hidden md:flex">
+        <ResizableHandle className="h-12 w-1 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24" />
       </div>
-    </>
+
+      <ResizablePanel
+        defaultSize={50}
+        minSize={30}
+        className="hidden md:inline-flex"
+      >
+        <div className="h-full min-w-[25vw] flex-1">
+          <Sidebar
+            canEdit={doc.userPermissions.canEdit}
+            isOwner={doc.userPermissions.isOwner}
+            isVectorised={doc.isVectorised}
+          />
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 };
 export default DocViewerPage;

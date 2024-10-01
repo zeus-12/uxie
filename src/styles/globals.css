@@ -159,4 +159,9 @@
     /* the ones that suppport dvh overrides vh */
     height: 100dvh;
   }
+
+  .max-hd-screen {
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
 }
