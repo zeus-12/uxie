@@ -53,3 +53,4 @@ export {
 };
 
 // some issue with the tooltip => https://github.com/shadcn-ui/ui/issues/2764
+// https://github.com/shadcn-ui/ui/issues/2764#issuecomment-2350942744 => check this
