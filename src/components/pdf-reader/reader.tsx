@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { AppRouter } from "@/server/api/root";
 import { AddHighlightType } from "@/types/highlight";
 import { inferRouterOutputs } from "@trpc/server";
+import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import { useEffect, useRef, useState } from "react";
 import { PdfLoader } from "react-pdf-highlighter";
 import { useDebouncedCallback } from "use-debounce";
@@ -30,8 +31,7 @@ const PdfReader = ({
   );
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
 
-  // set this to 0 init, and then on-load set it to the last read page
-  const [pageNumberInView, setPageNumberInView] = useState<number>(1);
+  const [pageNumberInView, setPageNumberInView] = useState<number>(0);
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -39,6 +39,8 @@ const PdfReader = ({
   const currentYIndex = useRef(0);
   const currentReadingMode = useRef<READING_MODE>(READING_MODE.PAGE);
   const currentPageRead = useRef(1);
+  const pdfViewer = useRef<PDFViewer | null>(null);
+
   // only for text reading mode
   const selectedTextToRead = useRef("");
 
@@ -61,24 +63,50 @@ const PdfReader = ({
     };
   }, []);
 
-  const pdfViewer = window.PdfViewer?.viewer;
+  useEffect(() => {
+    const initPdfViewer = () => {
+      const pdfViewerDocument = window.PdfViewer?.viewer;
 
-  pdfViewer?.eventBus.on("pagechanging", (e: any) => {
-    const pageNumber = e.pageNumber;
-    if (pageNumber !== pageNumberInView) {
-      setPageNumberInView(pageNumber);
-      debouncedUpdateLastReadPage(pageNumber);
-    }
-  });
+      if (pdfViewerDocument) {
+        pdfViewer.current = pdfViewerDocument;
+        setPageNumberInView(pdfViewerDocument.currentPageNumber);
 
-  // not firing
-  pdfViewer?.eventBus.on("pagesinit", () => {
-    console.log("pagesinit");
+        pdfViewerDocument.eventBus.on("pagechanging", (e: any) => {
+          const pageNumber = e.pageNumber;
+          if (pageNumber !== pageNumberInView) {
+            setPageNumberInView(pageNumber);
+            debouncedUpdateLastReadPage(pageNumber);
+          }
+        });
+      }
 
-    if (doc.lastReadPage && pdfViewer.currentPageNumber !== doc.lastReadPage) {
-      pdfViewer.currentPageNumber = doc.lastReadPage;
-    }
-  });
+      pdfViewerDocument?.eventBus.on("pagesloaded", () => {
+        if (
+          doc.lastReadPage &&
+          pdfViewerDocument.currentPageNumber !== doc.lastReadPage
+        ) {
+          pdfViewerDocument.currentPageNumber = doc.lastReadPage;
+        }
+      });
+    };
+
+    initPdfViewer();
+
+    // Set up an interval to check periodically until pdfViewer is available
+    const intervalId = setInterval(() => {
+      if (window.PdfViewer?.viewer) {
+        initPdfViewer();
+        clearInterval(intervalId);
+      }
+    }, 100);
+
+    return () => {
+      clearInterval(intervalId);
+      window.PdfViewer?.viewer?.eventBus.off("pagechanging", () => {});
+      window.PdfViewer?.viewer?.eventBus.off("pagesloaded", () => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const readSelectedText = async ({
     text,
@@ -182,14 +210,17 @@ const PdfReader = ({
   };
 
   const startWordByWordHighlighting = async (isContinueReading: boolean) => {
-    const startingPageNumber = isContinueReading
+    let startingPageNumber = isContinueReading
       ? currentPageRead.current
       : pageNumberInView;
+
+    // initially the pagenumber is set as 0, and it changes when "load" event or "pagechanging" event fires, incase that doesnt happen, we set it to 1
+    startingPageNumber = startingPageNumber > 0 ? startingPageNumber : 1;
 
     for (let pageNum = startingPageNumber; pageNum <= pageCount; pageNum++) {
       currentPageRead.current = pageNum;
 
-      pdfViewer?.scrollPageIntoView({
+      pdfViewer.current?.scrollPageIntoView({
         pageNumber: pageNum,
       });
 
