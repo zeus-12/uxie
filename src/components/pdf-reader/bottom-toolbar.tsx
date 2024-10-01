@@ -126,11 +126,13 @@ const SidebarDrawer = ({
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-5/6 mx-auto w-full bg-gray-50">
-        <Sidebar
-          canEdit={canEdit}
-          isOwner={isOwner}
-          isVectorised={isVectorised}
-        />
+        <div className="overflow-auto h-full">
+          <Sidebar
+            canEdit={canEdit}
+            isOwner={isOwner}
+            isVectorised={isVectorised}
+          />
+        </div>
       </DrawerContent>
     </Drawer>
   );

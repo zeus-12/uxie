@@ -175,8 +175,8 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="mx-[2px]">
-        <div className="mb-2 mt-1 flex w-full  border border-gray-300 rounded-md focus-within:ring-blue-500 focus-within:ring-2">
+      <form onSubmit={handleSubmit} className="mx-[2px] mt-1 mb-2">
+        <div className="flex w-full border border-gray-300 rounded-md focus-within:ring-blue-500 focus-within:ring-2">
           <TextareaAutosize
             maxLength={1000}
             placeholder="Type your question here..."
