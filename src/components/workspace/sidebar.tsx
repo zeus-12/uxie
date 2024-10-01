@@ -89,7 +89,7 @@ const Sidebar = ({
           setActiveIndex(value);
         }}
         defaultValue="notes"
-        className="max-h-screen flex flex-col max-w-full overflow-hidden h-full"
+        className="max-hd-screen flex flex-col max-w-full overflow-hidden h-full"
       >
         <div className="flex items-center justify-between pr-1">
           <TabsList className="h-12 rounded-md bg-gray-200">

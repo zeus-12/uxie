@@ -20,7 +20,7 @@ export default function Home() {
         <div className="hidden md:flex absolute left-0 bottom-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-50 blur-[80px]" />
       </div>
       <div className="px-4 py-2 lg:px-16">
-        <div className="h-screen">
+        <div className="hd-screen">
           <HeroSection />
         </div>
 
@@ -41,7 +41,7 @@ export default function Home() {
           </button>
         </Link>
       </div>
-      <div className="flex h-screen flex-col items-center justify-center bg-black px-4 py-2 lg:px-16">
+      <div className="flex hd-screen flex-col items-center justify-center bg-black px-4 py-2 lg:px-16">
         <h1 className="text-center text-5xl font-semibold tracking-tighter text-white 2xl:text-7xl">
           Proudly open-source
         </h1>
