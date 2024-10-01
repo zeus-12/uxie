@@ -59,15 +59,17 @@ const ReaderBottomToolbar = ({
               {!isOpen ? (
                 <div className="grid gap-1 w-full justify-evenly grid-cols-3 md:grid-cols-2">
                   {/* pageNumberInView is 0 initailly. */}
-                  {/* {pageNumberInView > 0 && ( */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full hover:cursor-default"
-                  >
-                    {pageNumberInView}
-                  </Button>
-                  {/* )} */}
+                  {pageNumberInView > 0 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full hover:cursor-default"
+                    >
+                      {pageNumberInView}
+                    </Button>
+                  ) : (
+                    <div className="h-7 w-7 bg-gray-200 animate-pulse m-auto rounded-md" />
+                  )}
 
                   <Button
                     className="w-full"
