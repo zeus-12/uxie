@@ -106,6 +106,7 @@ const DocCard = ({
 }) => {
   return (
     <Link
+      prefetch={false}
       key={id}
       href={`/f/${id}`}
       className={cn(
