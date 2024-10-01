@@ -52,7 +52,7 @@ function Features() {
                 ))}
               </ul>
             </div>
-            <div className="sticky top-0 hidden h-screen w-full items-center md:flex">
+            <div className="sticky top-0 hidden hd-screen w-full items-center md:flex">
               <FeatureImage />
             </div>
           </div>
