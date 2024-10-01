@@ -120,7 +120,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col gap-2 overflow-hidden">
+    <div className="flex h-full w-full flex-col gap-1 overflow-hidden md:gap-2">
       <div
         className="hideScrollbar flex flex-1 flex-col gap-3 overflow-auto"
         ref={messageWindowRef}
@@ -175,12 +175,12 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="mx-[2px] mt-1 mb-2">
+      <form onSubmit={handleSubmit} className="mx-[2px] mb-1">
         <div className="flex w-full border border-gray-300 rounded-md focus-within:ring-blue-500 focus-within:ring-2">
           <TextareaAutosize
             maxLength={1000}
             placeholder="Type your question here..."
-            className="flex-1 resize-none rounded-lg px-3 py-2 font-normal active:ring-0 focus-visible:ring-0 focus:ring-0 focus:outline-none"
+            className="resize-none rounded-lg px-3 py-2 font-normal active:ring-0 focus-visible:ring-0 focus:ring-0 focus:outline-none w-full"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLoading) {
                 e.preventDefault();
