@@ -25,9 +25,7 @@ const TooltipContent = React.forwardRef<
 ));
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
-export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
-
-export const CustomTooltip = ({
+const CustomTooltip = ({
   children,
   content,
 }: {
@@ -45,3 +43,13 @@ export const CustomTooltip = ({
     </TooltipProvider>
   );
 };
+
+export {
+  CustomTooltip,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+};
+
+// some issue with the tooltip => https://github.com/shadcn-ui/ui/issues/2764
