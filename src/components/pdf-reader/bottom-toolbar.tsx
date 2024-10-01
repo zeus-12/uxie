@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import Sidebar from "@/components/workspace/sidebar";
 import { MotionConfig } from "framer-motion";
-import { ArrowLeft, AudioLines } from "lucide-react";
+import { ArrowLeft, AudioLines, PanelBottomOpen } from "lucide-react";
 import { ReactNode, useRef, useState } from "react";
 
 const transition = {
@@ -13,13 +15,22 @@ const ReaderBottomToolbar = ({
   children,
   isAudioDisabled,
   pageNumberInView,
+  canEdit,
+  isOwner,
+  isVectorised,
 }: {
   children: ReactNode;
   isAudioDisabled: boolean;
   pageNumberInView: number;
+  canEdit: boolean;
+  isOwner: boolean;
+  isVectorised: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // for the mobile-view drawer
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <MotionConfig transition={transition}>
@@ -40,7 +51,7 @@ const ReaderBottomToolbar = ({
           > */}
             <div className="overflow-hidden py-1 px-1">
               {!isOpen ? (
-                <div className="grid gap-1 w-full justify-evenly grid-cols-2">
+                <div className="grid gap-1 w-full justify-evenly grid-cols-3 md:grid-cols-2">
                   {/* pageNumberInView is 0 initailly. */}
                   {/* {pageNumberInView > 0 && ( */}
                   <Button
@@ -61,6 +72,15 @@ const ReaderBottomToolbar = ({
                   >
                     <AudioLines className="h-5 w-5" />
                   </Button>
+                  <div className="md:hidden">
+                    <SidebarDrawer
+                      isOwner={isOwner}
+                      isVectorised={isVectorised}
+                      canEdit={canEdit}
+                      isOpen={isSidebarOpen}
+                      setIsOpen={setIsSidebarOpen}
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="flex space-x-2 w-fit items-center">
@@ -84,3 +104,34 @@ const ReaderBottomToolbar = ({
 };
 
 export default ReaderBottomToolbar;
+
+const SidebarDrawer = ({
+  canEdit,
+  isOwner,
+  isVectorised,
+  setIsOpen,
+  isOpen,
+}: {
+  canEdit: boolean;
+  isOwner: boolean;
+  isVectorised: boolean;
+  setIsOpen: (o: boolean) => void;
+  isOpen: boolean;
+}) => {
+  return (
+    <Drawer open={isOpen} onOpenChange={(o) => setIsOpen(o)}>
+      <DrawerTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <PanelBottomOpen className="h-5 w-5" />
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="h-5/6 mx-auto w-full bg-gray-50">
+        <Sidebar
+          canEdit={canEdit}
+          isOwner={isOwner}
+          isVectorised={isVectorised}
+        />
+      </DrawerContent>
+    </Drawer>
+  );
+};

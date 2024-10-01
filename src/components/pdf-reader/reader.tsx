@@ -360,6 +360,9 @@ const PdfReader = ({
         )}
       </PdfLoader>
       <ReaderBottomSection
+        canEdit={doc.userPermissions.canEdit}
+        isOwner={doc.userPermissions.isOwner}
+        isVectorised={doc.isVectorised}
         pageNumberInView={pageNumberInView}
         currentReadingSpeed={currentReadingSpeed}
         readingStatus={readingStatus}

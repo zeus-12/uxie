@@ -12,6 +12,9 @@ const ReaderBottomSection = ({
   resumeReading,
   stopReading,
   pauseReading,
+  canEdit,
+  isOwner,
+  isVectorised,
 }: {
   pageNumberInView: number;
   currentReadingSpeed: number;
@@ -21,11 +24,17 @@ const ReaderBottomSection = ({
   stopReading: () => void;
   pauseReading: () => void;
   startWordByWordHighlighting: (isContinueReading: boolean) => Promise<void>;
+  canEdit: boolean;
+  isOwner: boolean;
+  isVectorised: boolean;
 }) => {
   const browserSupportsSpeechSynthesis = "speechSynthesis" in window;
 
   return (
     <ReaderBottomToolbar
+      canEdit={canEdit}
+      isOwner={isOwner}
+      isVectorised={isVectorised}
       pageNumberInView={pageNumberInView}
       isAudioDisabled={!browserSupportsSpeechSynthesis}
     >

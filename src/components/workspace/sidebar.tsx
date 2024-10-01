@@ -1,19 +1,15 @@
 import Chat from "@/components/chat";
-import Editor from "@/components/editor";
+import CollaborationClient from "@/components/editor/collaboration-client";
 import Flashcards from "@/components/flashcard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SpinnerPage } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { ClientSideSuspense } from "@liveblocks/react";
 import { saveAs } from "file-saver";
 import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
-import { useRouter } from "next/router";
 import { useQueryState } from "nuqs";
-import { useEffect } from "react";
-import { RoomProvider } from "../../../liveblocks.config";
+import { useMemo } from "react";
 import InviteCollab from "./invite-collab-modal";
 
 const TABS = [
@@ -42,19 +38,13 @@ const DEFAULT_TAB_NAME = "notes";
 
 const Sidebar = ({
   canEdit,
-  username,
   isOwner,
   isVectorised,
 }: {
   canEdit: boolean;
-  username: string;
   isOwner: boolean;
   isVectorised: boolean;
 }) => {
-  const { query, push } = useRouter();
-  const documentId = query?.docId as string;
-  const tab = query.tab as string;
-
   const { editor } = useBlocknoteEditorStore();
 
   const handleDownloadMarkdownAsFile = async () => {
@@ -65,37 +55,41 @@ const Sidebar = ({
     saveAs(blob, "notes.md");
   };
 
+  const TAB_CONTENTS = useMemo(
+    () => [
+      {
+        value: "notes",
+        tw: "flex-1 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-scroll",
+        children: <CollaborationClient canEdit={canEdit} />,
+      },
+      {
+        value: "chat",
+        tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-scroll",
+        children: <Chat isVectorised={isVectorised} />,
+      },
+      {
+        value: "flashcards",
+        tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-scroll",
+        children: <Flashcards />,
+      },
+    ],
+    [canEdit, isVectorised],
+  );
+
   const [activeIndex, setActiveIndex] = useQueryState("tab", {
     defaultValue: DEFAULT_TAB_NAME,
     parse: (value) => (TAB_NAMES.includes(value) ? value : DEFAULT_TAB_NAME),
   });
 
-  useEffect(() => {
-    // update activeIndex when tab changes externally (using switchSidebarTabToChat fn)
-    if (tab && TAB_NAMES.includes(tab)) {
-      setActiveIndex(tab);
-    }
-  }, [tab]);
-
   return (
-    <div className="bg-gray-50">
+    <div className="bg-gray-50 h-full">
       <Tabs
         value={activeIndex}
         onValueChange={(value) => {
           setActiveIndex(value);
-          push(
-            {
-              query: {
-                ...query,
-                tab: value,
-              },
-            },
-            undefined,
-            { shallow: true },
-          );
         }}
         defaultValue="notes"
-        className="max-h-screen max-w-full overflow-hidden"
+        className="max-h-screen flex flex-col max-w-full overflow-hidden h-full"
       >
         <div className="flex items-center justify-between pr-1">
           <TabsList className="h-12 rounded-md bg-gray-200">
@@ -134,43 +128,7 @@ const Sidebar = ({
           </div>
         </div>
 
-        {[
-          {
-            value: "notes",
-            tw: "flex-1 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll",
-            children: (
-              <RoomProvider
-                id={`doc-${documentId}`}
-                initialPresence={
-                  {
-                    // TODO: figure out what this is
-                    // name: "User",
-                    // color: "red",
-                  }
-                }
-              >
-                <ClientSideSuspense fallback={<SpinnerPage />}>
-                  {() => (
-                    <Editor
-                      canEdit={canEdit ?? false}
-                      username={username ?? "User"}
-                    />
-                  )}
-                </ClientSideSuspense>
-              </RoomProvider>
-            ),
-          },
-          {
-            value: "chat",
-            tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll",
-            children: <Chat isVectorised={isVectorised} />,
-          },
-          {
-            value: "flashcards",
-            tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-[calc(100vh-3.5rem)] w-full overflow-scroll",
-            children: <Flashcards />,
-          },
-        ].map((item) => (
+        {TAB_CONTENTS.map((item) => (
           <TabsContent
             key={item.value}
             forceMount
