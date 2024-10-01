@@ -104,7 +104,7 @@ export const documentRouter = createTRPCRouter({
           isOwner: res.owner.id === ctx.session.user.id,
         },
         pageCount,
-        lastReadPage: res.lastReadPage
+        lastReadPage: res.lastReadPage,
       };
     }),
 
@@ -449,7 +449,7 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
-      return await ctx.prisma.document.update({
+      await ctx.prisma.document.update({
         where: {
           id: input.docId,
         },
@@ -457,5 +457,7 @@ export const documentRouter = createTRPCRouter({
           lastReadPage: input.lastReadPage,
         },
       });
+
+      return true;
     }),
 });
