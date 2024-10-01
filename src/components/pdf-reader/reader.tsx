@@ -98,6 +98,7 @@ const PdfReader = ({
         initPdfViewer();
         clearInterval(intervalId);
       }
+      // TODO: tweak this value and see which works best
     }, 100);
 
     return () => {
