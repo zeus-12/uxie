@@ -155,10 +155,8 @@
 @layer utilities {
   .hd-screen {
     /* 100vh for browsers not supporting dvh */
-    /* height: 100vh; */
-    height: -webkit-fill-available;
-
+    height: 100vh;
     /* the ones that suppport dvh overrides vh */
-    /* height: 100dvh; */
+    height: 100dvh;
   }
 }
