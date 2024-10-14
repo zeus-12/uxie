@@ -40,8 +40,8 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 - Note taking, later download the note as markdown
 - Summarise, ask questions about the PDFs
-- Chat and collab with other
-- custom blocks in editor
+- Chat and collab with other (collaboration disabled for now-hit free tier limits :'(
+- Custom blocks in editor
 - highlights block which on click takes you to that highlight on the doc.
 - AI-powered text autocompletion, and text enhancement
 - PDF text-to-speech (English only)

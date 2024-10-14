@@ -1,5 +1,5 @@
 import Chat from "@/components/chat";
-import CollaborationClient from "@/components/editor/collaboration-client";
+import BlockNoteEditor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,10 +47,12 @@ const Sidebar = ({
   canEdit,
   isOwner,
   isVectorised,
+  note,
 }: {
   canEdit: boolean;
   isOwner: boolean;
   isVectorised: boolean;
+  note: string | null;
 }) => {
   const { editor } = useBlocknoteEditorStore();
 
@@ -67,7 +69,7 @@ const Sidebar = ({
       {
         value: "notes",
         tw: "flex-1 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-scroll",
-        children: <CollaborationClient canEdit={canEdit} />,
+        children: <BlockNoteEditor canEdit={canEdit} note={note} />,
       },
       {
         value: "chat",

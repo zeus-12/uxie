@@ -66,6 +66,7 @@ const DocViewerPage = () => {
             canEdit={doc.userPermissions.canEdit}
             isOwner={doc.userPermissions.isOwner}
             isVectorised={doc.isVectorised}
+            note={doc.note}
           />
         </div>
       </ResizablePanel>

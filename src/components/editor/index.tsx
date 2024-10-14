@@ -1,7 +1,5 @@
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { getRandomLightColor, isDev } from "@/lib/utils";
-import { YjsEditorProps } from "@/types/editor";
 import {
   filterSuggestionItems,
   uploadToTmpFilesDotOrg_DEV_ONLY,
@@ -26,12 +24,9 @@ import {
   TextAlignButton,
   useCreateBlockNote,
 } from "@blocknote/react";
-import LiveblocksProvider from "@liveblocks/yjs";
 import { useCompletion } from "ai/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import * as Y from "yjs";
-import { useRoom } from "../../../liveblocks.config";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
 import AiPopover, {
   AiPopoverPropsRect,
@@ -40,61 +35,57 @@ import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 import { useDebouncedCallback } from "use-debounce";
 
-export default function Editor({
+// export default function Editor({
+//   canEdit,
+//   username,
+// }: {
+//   canEdit: boolean;
+//   username: string;
+// }) {
+//   const room = useRoom();
+//   const [doc, setDoc] = useState<Y.Doc>();
+//   const [provider, setProvider] = useState<any>();
+
+//   // Set up Liveblocks Yjs provider
+//   useEffect(() => {
+//     const yDoc = new Y.Doc();
+//     const yProvider = new LiveblocksProvider(room, yDoc);
+
+//     setDoc(yDoc);
+//     setProvider(yProvider);
+
+//     return () => {
+//       yDoc?.destroy();
+//       yProvider?.destroy();
+//     };
+//   }, [room]);
+
+//   if (!doc || !provider) {
+//     return null;
+//   }
+
+//   return (
+//     <BlockNoteEditor
+//       canEdit={canEdit}
+//       username={username}
+//       doc={doc}
+//       provider={provider}
+//     />
+//   );
+// }
+
+export default function BlockNoteEditor({
   canEdit,
-  username,
+  note,
 }: {
   canEdit: boolean;
-  username: string;
+  note: string | null;
 }) {
-  const room = useRoom();
-  const [doc, setDoc] = useState<Y.Doc>();
-  const [provider, setProvider] = useState<any>();
-
-  // Set up Liveblocks Yjs provider
-  useEffect(() => {
-    const yDoc = new Y.Doc();
-    const yProvider = new LiveblocksProvider(room, yDoc);
-
-    setDoc(yDoc);
-    setProvider(yProvider);
-
-    return () => {
-      yDoc?.destroy();
-      yProvider?.destroy();
-    };
-  }, [room]);
-
-  if (!doc || !provider) {
-    return null;
-  }
-
-  return (
-    <BlockNoteEditor
-      canEdit={canEdit}
-      username={username}
-      doc={doc}
-      provider={provider}
-    />
-  );
-}
-
-function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
   const { mutate: updateNotesMutation } =
     api.document.updateNotes.useMutation();
 
   const { query } = useRouter();
   const documentId = query?.docId as string;
-
-  // const { data, error, isError } = api.document.getNotesData.useQuery(
-  //   {
-  //     docId: query?.docId as string,
-  //   },
-  //   {
-  //     enabled: !!query?.docId,
-  //     retry: false,
-  //   },
-  // );
 
   const debounced = useDebouncedCallback((value) => {
     updateNotesMutation({
@@ -142,18 +133,19 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
   const editor = useCreateBlockNote(
     {
       schema,
-      ...(isDev
-        ? {}
-        : {
-            collaboration: {
-              provider,
-              fragment: doc.getXmlFragment("document-store"),
-              user: {
-                name: username || "User",
-                color: getRandomLightColor(),
-              },
-            },
-          }),
+      ...(note ? { initialContent: JSON.parse(note) } : {}),
+      // ...(isDev
+      //   ? {}
+      //   : {
+      //       collaboration: {
+      //         provider,
+      //         fragment: doc.getXmlFragment("document-store"),
+      //         user: {
+      //           name: username || "User",
+      //           color: getRandomLightColor(),
+      //         },
+      //       },
+      //     }),
 
       // todo replace this with our storage
       uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
@@ -163,7 +155,7 @@ function BlockNoteEditor({ doc, provider, canEdit, username }: YjsEditorProps) {
         },
       },
     },
-    [],
+    [note],
   );
 
   useEffect(() => {
