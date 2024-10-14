@@ -29,20 +29,16 @@ import {
 //   );
 // };
 
+const { audio, video, file, ...remainingBlockSpecs } = defaultBlockSpecs;
+
+const blockSpecs = {
+  ...remainingBlockSpecs,
+  alert: AlertBlock,
+  highlight: HighlighBlock,
+};
+
 export const schema = BlockNoteSchema.create({
-  blockSpecs: {
-    // removed audio, file and video
-    bullet: defaultBlockSpecs.bulletListItem,
-    heading: defaultBlockSpecs.heading,
-    paragraph: defaultBlockSpecs.paragraph,
-    bulletListItem: defaultBlockSpecs.bulletListItem,
-    checkListItem: defaultBlockSpecs.checkListItem,
-    image: defaultBlockSpecs.image,
-    numberedListItem: defaultBlockSpecs.numberedListItem,
-    table: defaultBlockSpecs.table,
-    alert: AlertBlock,
-    highlight: HighlighBlock,
-  },
+  blockSpecs,
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
     // comment: Comment,
