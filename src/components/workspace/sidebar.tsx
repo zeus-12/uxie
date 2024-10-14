@@ -142,7 +142,7 @@ const Sidebar = ({
                   size="sm"
                   className="ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border"
                 >
-                  <BugIcon />
+                  <BugIcon size={20} />
                 </Button>
               </Link>
             </CustomTooltip>
