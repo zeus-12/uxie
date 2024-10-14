@@ -105,6 +105,7 @@ export const documentRouter = createTRPCRouter({
         },
         pageCount,
         lastReadPage: res.lastReadPage,
+        note: res.note,
       };
     }),
 
@@ -417,7 +418,7 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
-      return await ctx.prisma.document.update({
+      await ctx.prisma.document.update({
         where: {
           id: input.documentId,
         },
@@ -425,6 +426,8 @@ export const documentRouter = createTRPCRouter({
           note: input.note,
         },
       });
+
+      return true;
     }),
 
   updateLastReadPage: protectedProcedure
