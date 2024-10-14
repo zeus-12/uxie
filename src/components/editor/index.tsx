@@ -166,7 +166,11 @@ export default function Editor({
         //     }),
 
         // todo replace this with our storage
-        uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
+        uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY as (
+          file: File,
+          blockId?: string,
+        ) => Promise<string>,
+
         domAttributes: {
           editor: {
             class: "my-6",

@@ -66,7 +66,7 @@ const addHighlightToNotes = async (
       type: "image/png",
     });
 
-    const url = await editor.uploadFile(file);
+    const url = (await editor.uploadFile(file)) as string;
 
     try {
       insertOrUpdateBlock(editor, {
