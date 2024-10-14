@@ -1,36 +1,45 @@
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import {
+  BlockNoteEditor,
   filterSuggestionItems,
   uploadToTmpFilesDotOrg_DEV_ONLY,
 } from "@blocknote/core";
+import { BlockNoteView } from "@blocknote/mantine";
 import {
   BasicTextStyleButton,
   BlockColorsItem,
-  BlockNoteView,
   BlockTypeSelect,
   ColorStyleButton,
   CreateLinkButton,
   DragHandleMenu,
-  DragHandleMenuItem,
+  DragHandleMenuProps,
+  FileCaptionButton,
   FormattingToolbar,
   FormattingToolbarController,
-  ImageCaptionButton,
   RemoveBlockItem,
-  ReplaceImageButton,
   SideMenu,
   SideMenuController,
   SuggestionMenuController,
   TextAlignButton,
-  useCreateBlockNote,
+  useBlockNoteEditor,
+  useComponentsContext,
 } from "@blocknote/react";
 import { useCompletion } from "ai/react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
 import AiPopover, {
   AiPopoverPropsRect,
 } from "@/components/editor/custom/ai/popover";
+import { SpinnerCentered } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 import { useDebouncedCallback } from "use-debounce";
@@ -74,7 +83,7 @@ import { useDebouncedCallback } from "use-debounce";
 //   );
 // }
 
-export default function BlockNoteEditor({
+export default function Editor({
   canEdit,
   note,
 }: {
@@ -104,7 +113,7 @@ export default function BlockNoteEditor({
       //   to: editor._tiptapEditor.state.selection.from,
       // });
 
-      editor._tiptapEditor.commands.focus("end");
+      editor?._tiptapEditor.commands.focus("end");
     },
     onError: (err) => {
       toast.error("Something went wrong with text generation", {
@@ -130,33 +139,45 @@ export default function BlockNoteEditor({
   //   hint: "Continue your idea with some extra inspiration!",
   // };
 
-  const editor = useCreateBlockNote(
-    {
-      schema,
-      ...(note ? { initialContent: JSON.parse(note) } : {}),
-      // ...(isDev
-      //   ? {}
-      //   : {
-      //       collaboration: {
-      //         provider,
-      //         fragment: doc.getXmlFragment("document-store"),
-      //         user: {
-      //           name: username || "User",
-      //           color: getRandomLightColor(),
-      //         },
-      //       },
-      //     }),
+  const editor = useMemo(() => {
+    if (note === undefined) {
+      return undefined;
+    }
+    try {
+      // TODO note is null by "default" => should prob set the default value in prisma schemas as "[]"
 
-      // todo replace this with our storage
-      uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
-      domAttributes: {
-        editor: {
-          class: "my-6",
+      const initialContent = note ? JSON.parse(note) : [];
+
+      return BlockNoteEditor.create({
+        initialContent: initialContent,
+        schema,
+        // ...(note ? { initialContent: JSON.parse(note) } : {}),
+        // ...(isDev
+        //   ? {}
+        //   : {
+        //       collaboration: {
+        //         provider,
+        //         fragment: doc.getXmlFragment("document-store"),
+        //         user: {
+        //           name: username || "User",
+        //           color: getRandomLightColor(),
+        //         },
+        //       },
+        //     }),
+
+        // todo replace this with our storage
+        uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY,
+        domAttributes: {
+          editor: {
+            class: "my-6",
+          },
         },
-      },
-    },
-    [note],
-  );
+      });
+    } catch (err) {
+      toast.error("Error parsing note", { duration: 3000 });
+      return undefined;
+    }
+  }, [note]);
 
   useEffect(() => {
     if (!editor) return;
@@ -174,7 +195,8 @@ export default function BlockNoteEditor({
       prev.current = completion;
 
       const block = editor.getTextCursorPosition().block;
-      const blockText = (await editor.blocksToMarkdownLossy([block])).trim();
+      console.log(editor);
+      const blockText = (await editor?.blocksToMarkdownLossy([block]))?.trim();
 
       editor.updateBlock(editor.getTextCursorPosition().block, {
         id: editor.getTextCursorPosition().block.id,
@@ -222,41 +244,13 @@ export default function BlockNoteEditor({
 
   const [rect, setRect] = useState<AiPopoverPropsRect | null>(null);
 
-  // useEffect(() => {
-  //   if (!rect) return;
+  if (editor === undefined) {
+    return <SpinnerCentered />;
+  }
 
-  //   const handleScroll = () => {
-  //     console.log("SCROLLINN");
-
-  //     const blockDiv = document.querySelector(
-  //       `div[data-id="${rect.blockId}"]`,
-  //     ) as HTMLElement;
-
-  //     if (!blockDiv) return;
-
-  //     const newRect = blockDiv.getBoundingClientRect();
-
-  //     setRect((prev) => {
-  //       if (!prev) return null;
-  //       return {
-  //         ...prev,
-  //         top: newRect.top + newRect.height,
-  //         left: newRect.left,
-  //         width: newRect.width,
-  //       };
-  //     });
-  //   };
-
-  //   editor.domElement.addEventListener("scroll", handleScroll);
-
-  //   return () => {
-  //     editor.domElement.removeEventListener("scroll", handleScroll);
-  //   };
-  // }, []);
   return (
     <div>
       <BlockNoteView
-        // ref={editorRef}
         sideMenu={false}
         onChange={async () => {
           const block = editor.getTextCursorPosition().block;
@@ -296,8 +290,9 @@ export default function BlockNoteEditor({
 
               {/* <CommentFormattingToolbarButton key={"customButton"} /> */}
 
-              <ImageCaptionButton key={"imageCaptionButton"} />
-              <ReplaceImageButton key={"replaceImageButton"} />
+              {/* <ImageCaptionButton key={"imageCaptionButton"} />
+              <ReplaceImageButton key={"replaceImageButton"} /> */}
+              <FileCaptionButton key="fileCaptionButton" />
 
               <BasicTextStyleButton
                 basicTextStyle={"bold"}
@@ -350,47 +345,7 @@ export default function BlockNoteEditor({
               dragHandleMenu={(props) => (
                 <DragHandleMenu {...props}>
                   <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
-                  <DragHandleMenuItem
-                    onClick={async () => {
-                      const blockDiv = document.querySelector(
-                        `div[data-id="${props.block.id}"]`,
-                      ) as HTMLElement;
-
-                      if (!blockDiv) return;
-
-                      // select the div
-                      // const selection = window.getSelection();
-                      // const range = document.createRange();
-                      // range.selectNodeContents(blockDiv);
-                      // selection?.removeAllRanges();
-                      // selection?.addRange(range);
-
-                      // scroll to the div
-                      // blockDiv.scrollIntoView({
-                      //   behavior: "smooth",
-                      //   block: "center",
-                      // });
-
-                      const rect = blockDiv.getBoundingClientRect();
-                      const top = rect.top + rect.height;
-                      const left = rect.left;
-                      const width = rect.width;
-
-                      const text = await editor.blocksToMarkdownLossy([
-                        props.block,
-                      ]);
-
-                      setRect({
-                        top,
-                        left,
-                        width,
-                        blockId: props.block.id,
-                        text,
-                      });
-                    }}
-                  >
-                    AI
-                  </DragHandleMenuItem>
+                  <AiDragHandleMenu {...props} setRect={setRect} />
 
                   <BlockColorsItem {...props}>Colors</BlockColorsItem>
                 </DragHandleMenu>
@@ -403,3 +358,54 @@ export default function BlockNoteEditor({
     </div>
   );
 }
+
+const AiDragHandleMenu = (
+  props: DragHandleMenuProps & {
+    setRect: Dispatch<SetStateAction<AiPopoverPropsRect | null>>;
+  },
+) => {
+  const editor = useBlockNoteEditor();
+  const Components = useComponentsContext()!;
+
+  return (
+    <Components.Generic.Menu.Item
+      onClick={async () => {
+        const blockDiv = document.querySelector(
+          `div[data-id="${props.block.id}"]`,
+        ) as HTMLElement;
+
+        if (!blockDiv) return;
+
+        // select the div
+        // const selection = window.getSelection();
+        // const range = document.createRange();
+        // range.selectNodeContents(blockDiv);
+        // selection?.removeAllRanges();
+        // selection?.addRange(range);
+
+        // scroll to the div
+        // blockDiv.scrollIntoView({
+        //   behavior: "smooth",
+        //   block: "center",
+        // });
+
+        const rect = blockDiv.getBoundingClientRect();
+        const top = rect.top + rect.height;
+        const left = rect.left;
+        const width = rect.width;
+
+        const text = await editor.blocksToMarkdownLossy([props.block]);
+
+        props.setRect({
+          top,
+          left,
+          width,
+          blockId: props.block.id,
+          text,
+        });
+      }}
+    >
+      AI
+    </Components.Generic.Menu.Item>
+  );
+};
