@@ -195,7 +195,6 @@ export default function Editor({
       prev.current = completion;
 
       const block = editor.getTextCursorPosition().block;
-      console.log(editor);
       const blockText = (await editor?.blocksToMarkdownLossy([block]))?.trim();
 
       editor.updateBlock(editor.getTextCursorPosition().block, {
