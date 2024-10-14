@@ -15,6 +15,7 @@ const ReaderBottomSection = ({
   canEdit,
   isOwner,
   isVectorised,
+  note,
 }: {
   pageNumberInView: number;
   currentReadingSpeed: number;
@@ -27,6 +28,7 @@ const ReaderBottomSection = ({
   canEdit: boolean;
   isOwner: boolean;
   isVectorised: boolean;
+  note: string | null;
 }) => {
   const browserSupportsSpeechSynthesis = "speechSynthesis" in window;
 
@@ -37,6 +39,7 @@ const ReaderBottomSection = ({
       isVectorised={isVectorised}
       pageNumberInView={pageNumberInView}
       isAudioDisabled={!browserSupportsSpeechSynthesis}
+      note={note}
     >
       <div className="gap-1 relative z-50 flex items-center rounded-lg">
         {readingStatus === READING_STATUS.IDLE && (

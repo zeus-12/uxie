@@ -403,6 +403,7 @@ const PdfReader = ({
         resumeReading={resumeReading}
         stopReading={stopReading}
         pauseReading={pauseReading}
+        note={doc.note}
       />
     </>
   );

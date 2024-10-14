@@ -15,12 +15,14 @@ const SidebarDrawer = ({
   isVectorised,
   setIsOpen,
   isOpen,
+  note,
 }: {
   canEdit: boolean;
   isOwner: boolean;
   isVectorised: boolean;
   setIsOpen: (o: boolean) => void;
   isOpen: boolean;
+  note: string | null;
 }) => {
   return (
     <Drawer open={isOpen} onOpenChange={(o) => setIsOpen(o)}>
@@ -36,6 +38,7 @@ const SidebarDrawer = ({
         </DrawerDescription>
         <div className="overflow-auto h-full">
           <Sidebar
+            note={note}
             canEdit={canEdit}
             isOwner={isOwner}
             isVectorised={isVectorised}

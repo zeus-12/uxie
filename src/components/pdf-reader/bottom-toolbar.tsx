@@ -17,6 +17,7 @@ const ReaderBottomToolbar = ({
   canEdit,
   isOwner,
   isVectorised,
+  note,
 }: {
   children: ReactNode;
   isAudioDisabled: boolean;
@@ -24,6 +25,7 @@ const ReaderBottomToolbar = ({
   canEdit: boolean;
   isOwner: boolean;
   isVectorised: boolean;
+  note: string | null;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,6 +82,7 @@ const ReaderBottomToolbar = ({
                       canEdit={canEdit}
                       isOpen={isSidebarOpen}
                       setIsOpen={setIsSidebarOpen}
+                      note={note}
                     />
                   </div>
                 </div>
