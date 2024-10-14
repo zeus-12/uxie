@@ -7,7 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { saveAs } from "file-saver";
-import { AlbumIcon, Download, Layers, MessagesSquareIcon } from "lucide-react";
+import {
+  AlbumIcon,
+  BugIcon,
+  Download,
+  Layers,
+  MessagesSquareIcon,
+} from "lucide-react";
+import Link from "next/link";
 import { useQueryState } from "nuqs";
 import { useMemo } from "react";
 import InviteCollab from "./invite-collab-modal";
@@ -124,6 +131,18 @@ const Sidebar = ({
               >
                 <Download size={20} />
               </Button>
+            </CustomTooltip>
+
+            <CustomTooltip content="Report bug">
+              <Link href="/feedback">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border"
+                >
+                  <BugIcon />
+                </Button>
+              </Link>
             </CustomTooltip>
           </div>
         </div>

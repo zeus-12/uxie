@@ -20,7 +20,8 @@ export function getRandomLightColor() {
 }
 
 // FEEDBACK FORM UTILS
-export const FEEDBACK_TYPES = ["Feature request", "Bug", "Other"] as const;
+export const FEEDBACK_TYPES = ["Bug", "Feature request", "Other"] as const;
+
 export const feedbackFormSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   message: z
