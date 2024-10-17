@@ -24,7 +24,7 @@ const addHighlightToNotes = async (
   canEdit: boolean,
 ) => {
   if (!editor) {
-    toast.error("Something went wrong.", {
+    toast.error("Couldn't add highlight to text, try reloading the page.", {
       duration: 3000,
     });
     return;
