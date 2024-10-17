@@ -150,7 +150,6 @@ export default function Editor({
       return BlockNoteEditor.create({
         initialContent: initialContent,
         schema,
-        // ...(note ? { initialContent: JSON.parse(note) } : {}),
         // ...(isDev
         //   ? {}
         //   : {
