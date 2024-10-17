@@ -1,10 +1,10 @@
+import BottomToolbar from "@/components/pdf-reader/bottom-toolbar";
 import {
   READING_MODE,
   READING_SPEEDS,
   READING_STATUS,
 } from "@/components/pdf-reader/constants";
 import PdfHighlighter from "@/components/pdf-reader/pdf-highlighter";
-import ReaderBottomSection from "@/components/pdf-reader/reader-bottom-section";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { AppRouter } from "@/server/api/root";
@@ -391,7 +391,7 @@ const PdfReader = ({
           />
         )}
       </PdfLoader>
-      <ReaderBottomSection
+      <BottomToolbar
         canEdit={doc.userPermissions.canEdit}
         isOwner={doc.userPermissions.isOwner}
         isVectorised={doc.isVectorised}

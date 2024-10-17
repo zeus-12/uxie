@@ -1,8 +1,9 @@
+import { READING_STATUS } from "@/components/pdf-reader/constants";
 import { Button } from "@/components/ui/button";
 import SidebarDrawer from "@/components/workspace/sidebar-drawer";
 import { MotionConfig } from "framer-motion";
-import { ArrowLeft, AudioLines } from "lucide-react";
-import { ReactNode, useRef, useState } from "react";
+import { ArrowLeft, AudioLines, Ban, Pause, Play } from "lucide-react";
+import { useRef, useState } from "react";
 
 const transition = {
   type: "spring",
@@ -10,23 +11,34 @@ const transition = {
   duration: 0.2,
 };
 
-const ReaderBottomToolbar = ({
-  children,
-  isAudioDisabled,
+const BottomToolbar = ({
   pageNumberInView,
+  currentReadingSpeed,
+  readingStatus,
+  startWordByWordHighlighting,
+  handleChangeReadingSpeed,
+  resumeReading,
+  stopReading,
+  pauseReading,
   canEdit,
   isOwner,
   isVectorised,
   note,
 }: {
-  children: ReactNode;
-  isAudioDisabled: boolean;
   pageNumberInView: number;
+  currentReadingSpeed: number;
+  readingStatus: READING_STATUS;
+  handleChangeReadingSpeed: () => Promise<void>;
+  resumeReading: () => void;
+  stopReading: () => void;
+  pauseReading: () => void;
+  startWordByWordHighlighting: (isContinueReading: boolean) => Promise<void>;
   canEdit: boolean;
   isOwner: boolean;
   isVectorised: boolean;
   note: string | null;
 }) => {
+  const browserSupportsSpeechSynthesis = "speechSynthesis" in window;
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -42,14 +54,14 @@ const ReaderBottomToolbar = ({
         <div className="relative flex items-stretch gap-2">
           <div className="h-full w-full rounded-xl border border-zinc-950/10 bg-white">
             {/* <motion.div
-            animate={
-              {
-                // @todo: here I want to remove the width
-                // minWidth: isOpen ? "200px" : "30px",
-              }
+          animate={
+            {
+              // @todo: here I want to remove the width
+              // minWidth: isOpen ? "200px" : "30px",
             }
-            initial={false}
-          > */}
+          }
+          initial={false}
+        > */}
             <div className="overflow-hidden py-1 px-1">
               {!isOpen ? (
                 <div className="grid gap-1 w-full justify-evenly grid-cols-3 md:grid-cols-2">
@@ -71,7 +83,7 @@ const ReaderBottomToolbar = ({
                     onClick={() => setIsOpen(true)}
                     variant="ghost"
                     size="sm"
-                    disabled={isAudioDisabled}
+                    disabled={!browserSupportsSpeechSynthesis}
                   >
                     <AudioLines className="h-5 w-5" />
                   </Button>
@@ -95,7 +107,55 @@ const ReaderBottomToolbar = ({
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
-                  <div className="relative w-full">{children}</div>
+                  <div className="relative w-full">
+                    <div className="gap-1 relative z-50 flex items-center rounded-lg">
+                      {readingStatus === READING_STATUS.IDLE && (
+                        <Button
+                          onClick={() => startWordByWordHighlighting(false)}
+                          variant="ghost"
+                          className="px-3"
+                        >
+                          <Play className="h-5 w-5" />
+                        </Button>
+                      )}
+                      {readingStatus === READING_STATUS.READING && (
+                        <Button
+                          onClick={pauseReading}
+                          variant="ghost"
+                          className="px-3"
+                        >
+                          <Pause className="h-5 w-5" />
+                        </Button>
+                      )}
+
+                      {readingStatus === READING_STATUS.PAUSED && (
+                        <Button
+                          onClick={resumeReading}
+                          variant="ghost"
+                          className="px-3"
+                        >
+                          <Play className="h-5 w-5" />
+                        </Button>
+                      )}
+
+                      <Button
+                        onClick={stopReading}
+                        disabled={readingStatus === READING_STATUS.IDLE}
+                        variant="ghost"
+                        className="px-3"
+                      >
+                        <Ban className="h-5 w-5" />
+                      </Button>
+
+                      <Button
+                        onClick={handleChangeReadingSpeed}
+                        variant="ghost"
+                        className="px-3"
+                      >
+                        {currentReadingSpeed}x
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -107,4 +167,4 @@ const ReaderBottomToolbar = ({
   );
 };
 
-export default ReaderBottomToolbar;
+export default BottomToolbar;
