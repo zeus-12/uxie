@@ -145,8 +145,7 @@ export default function Editor({
     }
     try {
       // TODO note is null by "default" => should prob set the default value in prisma schemas as "[]"
-
-      const initialContent = note ? JSON.parse(note) : [];
+      const initialContent = note ? JSON.parse(note) : null;
 
       return BlockNoteEditor.create({
         initialContent: initialContent,
