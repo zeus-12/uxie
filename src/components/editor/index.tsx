@@ -101,7 +101,7 @@ export default function Editor({
       note: value,
       documentId,
     });
-  }, 3000);
+  }, 2000);
 
   const { setEditor } = useBlocknoteEditorStore();
 
@@ -140,12 +140,9 @@ export default function Editor({
   // };
 
   const editor = useMemo(() => {
-    if (note === undefined) {
-      return undefined;
-    }
     try {
       // TODO note is null by "default" => should prob set the default value in prisma schemas as "[]"
-      const initialContent = note ? JSON.parse(note) : null;
+      const initialContent = note ? JSON.parse(note) : undefined;
 
       return BlockNoteEditor.create({
         initialContent: initialContent,
