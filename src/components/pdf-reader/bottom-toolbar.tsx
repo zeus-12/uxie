@@ -2,7 +2,13 @@ import { READING_STATUS } from "@/components/pdf-reader/constants";
 import { Button } from "@/components/ui/button";
 import SidebarDrawer from "@/components/workspace/sidebar-drawer";
 import { MotionConfig } from "framer-motion";
-import { ArrowLeft, AudioLines, Ban, Pause, Play } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  AudioLinesIcon,
+  BanIcon,
+  PauseIcon,
+  PlayIcon,
+} from "lucide-react";
 import { useRef, useState } from "react";
 
 const transition = {
@@ -85,7 +91,7 @@ const BottomToolbar = ({
                     size="sm"
                     disabled={!browserSupportsSpeechSynthesis}
                   >
-                    <AudioLines className="h-5 w-5" />
+                    <AudioLinesIcon className="h-5 w-5" />
                   </Button>
                   <div className="md:hidden">
                     <SidebarDrawer
@@ -105,7 +111,7 @@ const BottomToolbar = ({
                     size="sm"
                     onClick={() => setIsOpen(false)}
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeftIcon className="h-5 w-5" />
                   </Button>
                   <div className="relative w-full">
                     <div className="gap-1 relative z-50 flex items-center rounded-lg">
@@ -115,7 +121,7 @@ const BottomToolbar = ({
                           variant="ghost"
                           className="px-3"
                         >
-                          <Play className="h-5 w-5" />
+                          <PlayIcon className="h-5 w-5" />
                         </Button>
                       )}
                       {readingStatus === READING_STATUS.READING && (
@@ -124,7 +130,7 @@ const BottomToolbar = ({
                           variant="ghost"
                           className="px-3"
                         >
-                          <Pause className="h-5 w-5" />
+                          <PauseIcon className="h-5 w-5" />
                         </Button>
                       )}
 
@@ -134,7 +140,7 @@ const BottomToolbar = ({
                           variant="ghost"
                           className="px-3"
                         >
-                          <Play className="h-5 w-5" />
+                          <PlayIcon className="h-5 w-5" />
                         </Button>
                       )}
 
@@ -144,7 +150,7 @@ const BottomToolbar = ({
                         variant="ghost"
                         className="px-3"
                       >
-                        <Ban className="h-5 w-5" />
+                        <BanIcon className="h-5 w-5" />
                       </Button>
 
                       <Button
