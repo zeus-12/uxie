@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
-    "@blocknote/core": "^0.16.0",
-    "@blocknote/mantine": "^0.16.0",
-    "@blocknote/react": "^0.16.0",
+    "@blocknote/core": "^0.17.1",
+    "@blocknote/mantine": "^0.17.1",
+    "@blocknote/react": "^0.17.1",
     "@hookform/resolvers": "^3.3.1",
     "@huggingface/inference": "1",
     "@liveblocks/client": "^1.7.0",
