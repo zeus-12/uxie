@@ -50,6 +50,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ### Bugs
 
+- [ ] throw proper errors while uploading files => even for large files ,it says max 1 file.
 - [ ] add proper prompts for each item in custom/ai/popover.tsx
 - [ ] display a x% done in /f, also scroll to that page on opening the file. add a go-to-page-numb option in bottom-toolbar => along with zoom, etc)
 - [ ] ffs build a category system for documents => doesnt matter if ui is bad, just build it
