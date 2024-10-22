@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
 import { BlockNoteEditorType } from "@/types/editor";
 import { AddHighlightType, HighlightContentType } from "@/types/highlight";
-import { insertOrUpdateBlock } from "@blocknote/core";
 import { createId } from "@paralleldrive/cuid2";
 import { HighlightTypeEnum } from "@prisma/client";
 import { inferRouterOutputs } from "@trpc/server";
@@ -43,13 +42,23 @@ const addHighlightToNotes = async (
   if (type === HighlightContentType.TEXT) {
     if (!content || !highlightId) return;
 
-    insertOrUpdateBlock(editor, {
-      content,
-      props: {
-        highlightId,
-      },
-      type: "highlight",
-    });
+    try {
+      editor.insertBlocks(
+        [
+          {
+            type: "highlight",
+            content,
+            props: {
+              highlightId,
+            },
+          },
+        ],
+        // @ts-ignore
+        editor.document[editor.document.length - 1],
+      );
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   } else {
     if (!content || !highlightId || !editor.uploadFile) return;
 
@@ -69,14 +78,20 @@ const addHighlightToNotes = async (
     const url = (await editor.uploadFile(file)) as string;
 
     try {
-      insertOrUpdateBlock(editor, {
-        props: {
-          url,
-        },
-        type: "image",
-      });
+      editor.insertBlocks(
+        [
+          {
+            props: {
+              url,
+            },
+            type: "image",
+          },
+        ],
+        // @ts-ignore
+        editor.document[editor.document.length - 1],
+      );
     } catch (err: any) {
-      console.log(err.message);
+      toast.error(err.message);
     }
   }
 };
