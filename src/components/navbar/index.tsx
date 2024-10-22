@@ -1,11 +1,12 @@
 import { UserAccountNav } from "@/components/navbar/user-account-nav";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 
 const Navbar = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col px-4 py-4 lg:px-16 2xl:max-w-7xl">
@@ -16,7 +17,9 @@ const Navbar = () => {
             {/* <span className="font-semibold">Uxie</span> */}
           </div>
         </Link>
-        {session ? (
+        {status === "loading" ? (
+          <Skeleton className="w-16 h-8" />
+        ) : session ? (
           <UserAccountNav user={session.user} />
         ) : (
           <Button size="sm">
