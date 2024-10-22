@@ -53,6 +53,7 @@ const addHighlightToNotes = async (
             },
           },
         ],
+        // cause of noUncheckedIndexedAccess => issue in blocknote
         // @ts-ignore
         editor.document[editor.document.length - 1],
       );
@@ -87,6 +88,7 @@ const addHighlightToNotes = async (
             type: "image",
           },
         ],
+        // cause of noUncheckedIndexedAccess => issue in blocknote
         // @ts-ignore
         editor.document[editor.document.length - 1],
       );
