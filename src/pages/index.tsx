@@ -3,6 +3,7 @@ import SlideUpWhenVisible from "@/components/other/slide-up-when-visible";
 import YoutubeEmbed from "@/components/other/youtube-embed";
 import { Button } from "@/components/ui/button";
 import ButtonRotatingBackgroundGradient from "@/components/ui/button-rotating-bg-gradient";
+import { cn } from "@/lib/utils";
 import {
   ArrowRight,
   ChevronRight,
@@ -64,6 +65,17 @@ export default function Home() {
   );
 }
 
+const positions = [
+  "-left-5 top-3 group-hover:-rotate-[10deg] group-hover:-translate-y-12 md:-left-10 md:-top-2 sm:-left-5",
+  "-left-5 top-0 group-hover:-rotate-[20deg] group-hover:-translate-x-10 md:-left-10 md:-top-2 sm:-left-5",
+  "-right-5 top-3 group-hover:rotate-[10deg] group-hover:-translate-y-12 md:-right-10 md:-top-2 sm:-right-5",
+  "-right-5 top-0 group-hover:rotate-[20deg] group-hover:translate-x-10 md:-right-10 md:-top-2 sm:-right-5",
+] as const;
+
+const learningIcons = ["📚", "🎓", "📖", "🧠"] as const;
+const aiIcons = ["🤖", "🧑‍💻", "🔍", "📊"] as const;
+const superchargesIcon = ["🚀", "🔥", "💡", "🌟"] as const;
+
 const HeroSection = () => {
   return (
     <SlideUpWhenVisible>
@@ -82,13 +94,14 @@ const HeroSection = () => {
           </div>
         </a>
 
-        <p className="2xl:text-[5rem] mt-2 max-w-4xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
-          <Balancer>
-            <span className="opacity-[.32]">The</span> AI-Powered PDF Reader{" "}
-            <span className="opacity-[.32]">That</span> Supercharges{" "}
-            <span className="opacity-[.32]">Your</span> Learning
-          </Balancer>
-        </p>
+        <Balancer className="2xl:text-[5rem] mt-2 max-w-4xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
+          <span className="opacity-[.32]">The</span>{" "}
+          <EmojiAnimate icons={aiIcons} text="AI-Powered PDF Reader" />{" "}
+          <span className="opacity-[.32]">That</span>{" "}
+          <EmojiAnimate icons={superchargesIcon} text="Supercharges" />{" "}
+          <span className="opacity-[.32]">Your</span>{" "}
+          <EmojiAnimate icons={learningIcons} text="Learning" />
+        </Balancer>
 
         <p className="text-center text-md text-gray-500 md:text-xl max-w-xl md:my-3">
           Uxie turns PDFs into interactive learning tools with AI-powered
@@ -105,5 +118,33 @@ const HeroSection = () => {
       </div>
       <YoutubeEmbed />
     </SlideUpWhenVisible>
+  );
+};
+
+// CREDITS: https://animata.design/docs/hero/hero-section-text-hover
+const EmojiAnimate = ({
+  text,
+  icons,
+}: {
+  text: string;
+  icons: readonly string[];
+}) => {
+  return (
+    <div className="group relative inline-flex items-center">
+      <span className="group-hover:bg-pink-200">{text}</span>
+      <div className="duration-400 absolute inset-0 cursor-pointer opacity-0 transition-opacity group-hover:opacity-100">
+        {icons.map((emoji, index) => (
+          <span
+            key={index}
+            className={cn(
+              "pointer-events-none absolute -top-10 transform text-lg transition-transform duration-500 group-hover:scale-105 sm:text-2xl md:text-4xl",
+              positions[index],
+            )}
+          >
+            {emoji}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 };
