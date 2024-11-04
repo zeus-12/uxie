@@ -72,3 +72,22 @@ export const generateDummyStream = () => {
     },
   );
 };
+
+export const isBrowser = typeof window !== "undefined";
+
+// export const noop = () => {};
+
+export const downloadPageAsHtml = () => {
+  if (!isBrowser) {
+    throw new Error("This function can only be called in the browser.");
+  }
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "page.html";
+  a.click();
+};
+
+export const waitFor = (ms: number) => new Promise((r) => setTimeout(r, ms));
