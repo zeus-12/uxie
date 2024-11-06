@@ -77,11 +77,18 @@ export const isBrowser = typeof window !== "undefined";
 
 // export const noop = () => {};
 
-export const downloadPageAsHtml = () => {
+export const downloadPageAsHtml = (id?: string) => {
   if (!isBrowser) {
     throw new Error("This function can only be called in the browser.");
   }
-  const html = document.documentElement.outerHTML;
+  let html = document.documentElement.outerHTML;
+  if (id) {
+    const el = document.getElementById(id);
+    if (el) {
+      html = el.outerHTML;
+    }
+  }
+
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
