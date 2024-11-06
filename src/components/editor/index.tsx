@@ -264,7 +264,7 @@ export default function Editor({
             });
             complete(blockText?.slice(-500) ?? "");
           }
-
+          // this is firing on initial load => store server value in useRef, and display a icon saying "loading" or "saved". and only if its different from current copy run the mutation
           debounced(JSON.stringify(editor.document, null, 2));
         }}
         className="w-full flex-1"
