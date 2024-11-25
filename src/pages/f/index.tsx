@@ -1,14 +1,10 @@
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CustomTooltip } from "@/components/ui/tooltip";
+import DocCard from "@/components/workspace/doc-card";
 import UploadFileModal from "@/components/workspace/upload-file-modal";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { SearchIcon, Sparkle } from "lucide-react";
+import { SearchIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import { useQueryState } from "nuqs";
 
 const UserLibraryPage = () => {
@@ -90,55 +86,6 @@ const UserLibraryPage = () => {
         </div>
       )}
     </div>
-  );
-};
-
-const DocCard = ({
-  title,
-  id,
-  isCollab,
-  isVectorised,
-}: {
-  title: string;
-  id: string;
-  isCollab: boolean;
-  isVectorised: boolean;
-}) => {
-  return (
-    <Link
-      prefetch={false}
-      key={id}
-      href={`/f/${id}`}
-      className={cn(
-        buttonVariants({ variant: "ghost" }),
-        "flex flex-col gap-2 border py-8 hover:border-blue-300",
-      )}
-    >
-      <div className="w-full flex justify-between">
-        <p className="mr-auto min-w-0 truncate">{title}</p>
-        <CustomTooltip
-          content={
-            isVectorised
-              ? "Document is AI vectorised"
-              : "Document isn't AI vectorised"
-          }
-        >
-          <Sparkle
-            className={cn(
-              "h-4 w-4",
-              isVectorised ? "text-primary" : "text-gray-200",
-            )}
-          />
-        </CustomTooltip>
-      </div>
-
-      {isCollab && (
-        <Badge className="mr-auto" variant="outline">
-          Collab
-        </Badge>
-      )}
-      {/* add menubar to delete, rename doc, download pdf */}
-    </Link>
   );
 };
 
