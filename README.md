@@ -11,6 +11,7 @@ PDF reader app designed to revolutionise your learning experience!
 - 💡 Generates flashcards with LLM feedback
 
 Originally started as a hackathon project which I ended up winning 🥇! Uxie has since evolved with even more exciting features.
+
 I'd love for you to give Uxie a try and share your valuable [feedback](https://uxie.vercel.app/feedback).
 
 ### Built using
