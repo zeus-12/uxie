@@ -74,16 +74,14 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 - [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
 - [ ] For area-highlight
-
-      - store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
-      - add the yellow leftborder which takes to the image highlight on click
+      -store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. - add the yellow leftborder which takes to the image highlight on click
 
 - [ ] use background runner or something and do long-polling
-- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, and maybe also from /f) => prob not useful for image-highlights
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
 - [ ] Run the seogets script
 - [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
 - [ ] add bm25 along w vector embeddings? https://www.anthropic.com/news/contextual-retrieval#:~:text=BM25%20can%20succeed%20where%20semantic%20embeddings%20fail
+- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using scribe) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f
 
 ### Pinecone Setting up guide
 
