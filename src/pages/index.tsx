@@ -130,21 +130,24 @@ const EmojiAnimate = ({
   icons: readonly string[];
 }) => {
   return (
-    <div className="group relative inline-flex items-center">
-      <span className="group-hover:bg-pink-200">{text}</span>
-      <div className="duration-400 absolute inset-0 cursor-pointer opacity-0 transition-opacity group-hover:opacity-100">
-        {icons.map((emoji, index) => (
-          <span
-            key={index}
-            className={cn(
-              "pointer-events-none absolute -top-10 transform text-lg transition-transform duration-500 group-hover:scale-105 sm:text-2xl md:text-4xl",
-              positions[index],
-            )}
-          >
-            {emoji}
-          </span>
-        ))}
+    <>
+      <span className="sm:hidden">{text}</span>
+      <div className="group relative items-center hidden sm:inline-flex">
+        <span className="group-hover:bg-pink-200">{text}</span>
+        <div className="duration-400 absolute inset-0 cursor-pointer opacity-0 transition-opacity group-hover:opacity-100">
+          {icons.map((emoji, index) => (
+            <span
+              key={index}
+              className={cn(
+                "pointer-events-none absolute -top-10 transform text-lg transition-transform duration-500 group-hover:scale-105 sm:text-2xl md:text-4xl",
+                positions[index],
+              )}
+            >
+              {emoji}
+            </span>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
