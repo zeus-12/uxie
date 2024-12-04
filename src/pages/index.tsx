@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import ButtonRotatingBackgroundGradient from "@/components/ui/button-rotating-bg-gradient";
 import { cn } from "@/lib/utils";
 import {
-  ArrowRight,
-  ChevronRight,
-  Github,
-  MessageSquarePlus,
+  ArrowRightIcon,
+  ChevronRightIcon,
+  GithubIcon,
+  MessageSquarePlusIcon,
 } from "lucide-react";
 import Link from "next/link";
 import Balancer from "react-wrap-balancer";
@@ -37,7 +37,7 @@ export default function Home() {
               Feedback
             </div>
             <div className="absolute right-3">
-              <MessageSquarePlus size="22" className="text-gray-300" />
+              <MessageSquarePlusIcon size="22" className="text-gray-300" />
             </div>
           </button>
         </Link>
@@ -56,7 +56,7 @@ export default function Home() {
           rel="noreferrer"
         >
           <ButtonRotatingBackgroundGradient>
-            <Github size="18" className="mr-2" />
+            <GithubIcon size="18" className="mr-2" />
             View on GitHub
           </ButtonRotatingBackgroundGradient>
         </a>
@@ -89,8 +89,8 @@ const HeroSection = () => {
             Introducing AI Generated Flashcards 📚
           </p>
           <div className="group relative flex items-center">
-            <ChevronRight className="absolute -ml-1 h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:opacity-0" />
-            <ArrowRight className="absolute -ml-1 h-3.5 w-3.5 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
+            <ChevronRightIcon className="absolute -ml-1 h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:opacity-0" />
+            <ArrowRightIcon className="absolute -ml-1 h-3.5 w-3.5 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
           </div>
         </a>
 
