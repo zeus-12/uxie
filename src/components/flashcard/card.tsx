@@ -95,7 +95,7 @@ const IndividualFlashcard = ({
 
   return (
     <div className="flex h-full flex-col justify-between ">
-      <div className="flex-grow overflow-scroll">
+      <div className="flex-grow overflow-auto">
         {hasAttempted ? (
           <IndividualFlashcardReport
             question={question}
