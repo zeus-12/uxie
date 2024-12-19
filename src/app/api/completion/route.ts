@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     let { prompt } = completionRouteSchema.parse(reqBody);
 
     const response = await fireworks.chat.completions.create({
-      model: "accounts/fireworks/models/mixtral-8x7b-instruct",
+      model: "accounts/fireworks/models/mixtral-8x7b-instruct-hf",
       messages: [
         {
           role: "system",
