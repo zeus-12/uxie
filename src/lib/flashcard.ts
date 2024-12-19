@@ -32,7 +32,7 @@ export const generateFlashcards = async (
   const res = await Promise.allSettled(
     docContents.map(async (doc) => {
       return fireworks.chat.completions.create({
-        model: "accounts/fireworks/models/mixtral-8x7b-instruct",
+        model: "accounts/fireworks/models/mixtral-8x7b-instruct-hf",
         max_tokens: 2048,
 
         messages: [
