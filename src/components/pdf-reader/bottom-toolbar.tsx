@@ -22,7 +22,7 @@ const BottomToolbar = ({
   currentReadingSpeed,
   readingStatus,
   startWordByWordHighlighting,
-  handleChangeReadingSpeed,
+  handleReadingSpeedChange,
   resumeReading,
   stopReading,
   pauseReading,
@@ -34,7 +34,7 @@ const BottomToolbar = ({
   pageNumberInView: number;
   currentReadingSpeed: number;
   readingStatus: READING_STATUS;
-  handleChangeReadingSpeed: () => Promise<void>;
+  handleReadingSpeedChange: () => Promise<void>;
   resumeReading: () => void;
   stopReading: () => void;
   pauseReading: () => void;
@@ -154,7 +154,7 @@ const BottomToolbar = ({
                       </Button>
 
                       <Button
-                        onClick={handleChangeReadingSpeed}
+                        onClick={handleReadingSpeedChange}
                         variant="ghost"
                         className="px-3"
                       >

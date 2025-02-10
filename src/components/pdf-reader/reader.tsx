@@ -12,8 +12,9 @@ import { AppRouter } from "@/server/api/root";
 import { AddHighlightType } from "@/types/highlight";
 import { inferRouterOutputs } from "@trpc/server";
 import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PdfLoader } from "react-pdf-highlighter";
+import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
 
 const HIGHLIGHT_TYPE_TO_CLASSNAME = {
@@ -98,6 +99,8 @@ const PdfReader = ({
   const sentenceIndex = useRef<TIndexes>({ x: 0, y: 0 });
 
   const blocksLengths = useRef<number[]>([]);
+  const blocksRef = useRef<Element[]>([]);
+
   const nonProcessedBlockContents = useRef<string[]>([]);
 
   const currentReadingMode = useRef<READING_MODE>(READING_MODE.PAGE);
@@ -116,6 +119,36 @@ const PdfReader = ({
     2000,
   );
 
+  const initPdfViewer = useCallback(() => {
+    const pdfViewerDocument = window.PdfViewer?.viewer;
+
+    if (pdfViewerDocument) {
+      pdfViewer.current = pdfViewerDocument;
+      setPageNumberInView(pdfViewerDocument.currentPageNumber);
+
+      // @ts-ignore
+      const handlePageChanging = (e: PdfViewerEvent) => {
+        const pageNumber = e.pageNumber;
+        if (pageNumber !== pageNumberInView) {
+          setPageNumberInView(pageNumber);
+          debouncedUpdateLastReadPage(pageNumber);
+        }
+      };
+
+      const handlePagesLoaded = () => {
+        if (
+          doc.lastReadPage &&
+          pdfViewerDocument.currentPageNumber !== doc.lastReadPage
+        ) {
+          pdfViewerDocument.currentPageNumber = doc.lastReadPage;
+        }
+      };
+
+      pdfViewerDocument.eventBus.on("pagechanging", handlePageChanging);
+      pdfViewerDocument.eventBus.on("pagesloaded", handlePagesLoaded);
+    }
+  }, [debouncedUpdateLastReadPage, doc.lastReadPage, pageNumberInView]);
+
   useEffect(() => {
     speechSynthesisRef.current = window.speechSynthesis;
 
@@ -127,33 +160,6 @@ const PdfReader = ({
   }, []);
 
   useEffect(() => {
-    const initPdfViewer = () => {
-      const pdfViewerDocument = window.PdfViewer?.viewer;
-
-      if (pdfViewerDocument) {
-        pdfViewer.current = pdfViewerDocument;
-        setPageNumberInView(pdfViewerDocument.currentPageNumber);
-
-        pdfViewerDocument.eventBus.on("pagechanging", (e: any) => {
-          const pageNumber = e.pageNumber;
-          if (pageNumber !== pageNumberInView) {
-            log("page=", pageNumber);
-            setPageNumberInView(pageNumber);
-            debouncedUpdateLastReadPage(pageNumber);
-          }
-        });
-      }
-
-      pdfViewerDocument?.eventBus.on("pagesloaded", () => {
-        if (
-          doc.lastReadPage &&
-          pdfViewerDocument.currentPageNumber !== doc.lastReadPage
-        ) {
-          pdfViewerDocument.currentPageNumber = doc.lastReadPage;
-        }
-      });
-    };
-
     initPdfViewer();
 
     // Set up an interval to check periodically until pdfViewer is available
@@ -172,6 +178,119 @@ const PdfReader = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const highlightInsideSameBlockByIndexes = ({
+    startIndex,
+    endIndex,
+    type,
+    blockYIndex,
+    removePreviousHighlights = true,
+  }: {
+    startIndex: number;
+    endIndex: number;
+    type: "sentence" | "word";
+    blockYIndex: number;
+    removePreviousHighlights?: boolean; // false if its multi-sentence highlight - maybe support multi-line words in future.
+  }) => {
+    const currentBlockText =
+      nonProcessedBlockContents.current[blockYIndex] ?? "";
+
+    if (currentBlockText[startIndex] === " ") {
+      startIndex += 1;
+      if (
+        endIndex < currentBlockText.length &&
+        currentBlockText[endIndex] !== " "
+      ) {
+        endIndex += 1;
+      }
+    }
+
+    const className = HIGHLIGHT_TYPE_TO_CLASSNAME[type];
+
+    // this should only for the highlights that comes under current-sentence
+    if (removePreviousHighlights) {
+      removeHighlightsByType(type);
+    }
+
+    let block = blocksRef.current?.[blockYIndex];
+
+    if (!block) {
+      log("ERROR:::Block not found");
+      return;
+    }
+
+    // trynna find the span wrapping current-word.
+    if (type === "word") {
+      block = block.querySelector(`.current-sentence`) ?? block;
+      if (!block) {
+        log("ERROR:::no current-sentence parent found !!!!");
+        return;
+      }
+    }
+
+    const text =
+      type === "sentence"
+        ? nonProcessedBlockContents.current[blockYIndex]
+        : block.textContent;
+
+    if (!text) {
+      log("ERROR:::Text not found in block");
+      return;
+    }
+
+    if (startIndex < 0 || startIndex > endIndex) {
+      log("ERROR:::Invalid start or end indices", {
+        startIndex,
+        endIndex,
+      });
+
+      return;
+    }
+
+    if (endIndex > currentBlockText.length) {
+      log("end-index > block-length", {
+        "end-index": endIndex,
+        text: nonProcessedBlockContents.current[blockYIndex],
+        textLen: nonProcessedBlockContents.current[blockYIndex]?.length,
+        type,
+        "text-length": text.length,
+      });
+      endIndex = currentBlockText.length;
+    }
+
+    const lengthDif = currentBlockText.indexOf(text); // this wont work at all times.
+
+    const ele = HIGHLIGHT_TYPE_TO_HTML_TAG[type];
+    let highlightedText = "";
+    let newHtml = "";
+    let tex = "";
+
+    if (type === "word") {
+      tex = block.innerHTML;
+
+      highlightedText = `<${ele} class="${className}">${currentBlockText.substring(
+        startIndex,
+        endIndex,
+      )}</${ele}>`;
+
+      newHtml =
+        tex.substring(0, startIndex - lengthDif) +
+        highlightedText +
+        tex.substring(endIndex - lengthDif);
+    } else {
+      highlightedText = `<${ele} class="${className}">${currentBlockText.substring(
+        startIndex,
+        endIndex,
+      )}</${ele}>`;
+
+      newHtml =
+        currentBlockText.substring(lengthDif, startIndex) +
+        highlightedText +
+        currentBlockText.substring(endIndex);
+    }
+
+    block.innerHTML = newHtml;
+  };
 
   const readSelectedText = async ({
     text,
@@ -307,246 +426,142 @@ const PdfReader = ({
   const startSentenceBySentenceHighlighting = async (
     isContinueReading: boolean,
   ) => {
-    let startingPageNumber = isContinueReading
-      ? currentPageRead.current
-      : pageNumberInView;
+    try {
+      setReadingStatus(READING_STATUS.READING);
+      let startingPageNumber = isContinueReading
+        ? currentPageRead.current
+        : pageNumberInView;
 
-    // initially the pagenumber is set as 0, and it changes when "load" event or "pagechanging" event fires, incase that doesnt happen, we set it to 1
-    startingPageNumber = startingPageNumber > 0 ? startingPageNumber : 1;
+      // initially the pagenumber is set as 0, and it changes when "load" event or "pagechanging" event fires, incase that doesnt happen, we set it to 1
+      startingPageNumber = startingPageNumber > 0 ? startingPageNumber : 1;
 
-    for (let pageNum = startingPageNumber; pageNum <= pageCount; pageNum++) {
-      currentPageRead.current = pageNum;
+      for (let pageNum = startingPageNumber; pageNum <= pageCount; pageNum++) {
+        currentPageRead.current = pageNum;
 
-      pdfViewer.current?.scrollPageIntoView({
-        pageNumber: pageNum,
-      });
-
-      const pageElement = document.querySelector(
-        `.page[data-page-number="${pageNum}"]`,
-      );
-
-      if (!pageElement) {
-        return;
-      }
-
-      const textDivs = pageElement.querySelectorAll(
-        "span[role='presentation']",
-      );
-
-      const blocks = Array.from(textDivs);
-
-      const blockContents = blocks
-        .map((block) => block.textContent ?? "")
-        .map((block) => {
-          if (block.trim().length === 0) {
-            return "";
-          } else if (block.endsWith(" ")) {
-            return block;
-          }
-          return `${block} `;
+        pdfViewer.current?.scrollPageIntoView({
+          pageNumber: pageNum,
         });
 
-      nonProcessedBlockContents.current = blockContents;
-      blocksLengths.current = blockContents.map((block) => block.length);
-
-      const processedBlocks = processBlockContents(blockContents);
-
-      for (let i = sentenceIndex.current.y; i < processedBlocks.length; i++) {
-        sentenceIndex.current.y = i;
-
-        const sentence = processedBlocks[i];
-
-        if (!sentence) {
-          log("ERROR:::Sentence not found");
-          continue;
-        }
-
-        const highlightInsideSameBlockByIndexes = ({
-          startIndex,
-          endIndex,
-          type,
-          blockYIndex,
-          removePreviousHighlights = true,
-        }: {
-          startIndex: number;
-          endIndex: number;
-          type: "sentence" | "word";
-          blockYIndex: number;
-          removePreviousHighlights?: boolean; // false if its multi-sentence highlight - maybe support multi-line words in future.
-        }) => {
-          const currentBlockText =
-            nonProcessedBlockContents.current[blockYIndex] ?? "";
-
-          if (currentBlockText[startIndex] === " ") {
-            startIndex += 1;
-            if (
-              endIndex < currentBlockText.length &&
-              currentBlockText[endIndex] !== " "
-            ) {
-              endIndex += 1;
-            }
-          }
-
-          const className = HIGHLIGHT_TYPE_TO_CLASSNAME[type];
-
-          // this should only for the highlights that comes under current-sentence
-          if (removePreviousHighlights) {
-            removeHighlightsByType(type);
-          }
-
-          let block = blocks[blockYIndex];
-
-          if (!block) {
-            log("ERROR:::Block not found");
-            return;
-          }
-
-          // trynna find the span wrapping current-word.
-          if (type === "word") {
-            block = block.querySelector(`.current-sentence`) ?? block;
-            if (!block) {
-              log("ERROR:::no current-sentence parent found !!!!");
-              return;
-            }
-          }
-
-          const text =
-            type === "sentence"
-              ? nonProcessedBlockContents.current[blockYIndex]
-              : block.textContent;
-
-          if (!text) {
-            log("ERROR:::Text not found in block");
-            return;
-          }
-
-          if (startIndex < 0 || startIndex > endIndex) {
-            log("ERROR:::Invalid start or end indices", {
-              startIndex,
-              endIndex,
-            });
-
-            return;
-          }
-
-          if (endIndex > currentBlockText.length) {
-            log("end-index > block-length", {
-              "end-index": endIndex,
-              text: nonProcessedBlockContents.current[blockYIndex],
-              textLen: nonProcessedBlockContents.current[blockYIndex]?.length,
-              type,
-              "text-length": text.length,
-            });
-            endIndex = currentBlockText.length;
-          }
-
-          const lengthDif = currentBlockText.indexOf(text); // this wont work at all times.
-
-          const ele = HIGHLIGHT_TYPE_TO_HTML_TAG[type];
-          let highlightedText = "";
-          let newHtml = "";
-          let tex = "";
-
-          if (type === "word") {
-            tex = block.innerHTML;
-
-            highlightedText = `<${ele} class="${className}">${currentBlockText.substring(
-              startIndex,
-              endIndex,
-            )}</${ele}>`;
-
-            newHtml =
-              tex.substring(0, startIndex - lengthDif) +
-              highlightedText +
-              tex.substring(endIndex - lengthDif);
-          } else {
-            highlightedText = `<${ele} class="${className}">${currentBlockText.substring(
-              startIndex,
-              endIndex,
-            )}</${ele}>`;
-
-            newHtml =
-              currentBlockText.substring(lengthDif, startIndex) +
-              highlightedText +
-              currentBlockText.substring(endIndex);
-          }
-
-          block.innerHTML = newHtml;
-        };
-
-        const addClassAroundSentence = (
-          blockYIndex: number,
-          sentenceLength: number,
-          blockXIndex: number,
-          removePreviousHighlights: boolean = true,
-        ) => {
-          if (
-            sentenceLength <= 0 ||
-            isNaN(sentenceLength) ||
-            blockXIndex < 0 ||
-            isNaN(blockXIndex) ||
-            blockYIndex < 0 ||
-            isNaN(blockYIndex)
-          ) {
-            log("ERROR:::Invalid sentence length or block index", {
-              blockYIndex,
-              sentenceLength,
-              blockXIndex,
-            });
-            return;
-          }
-
-          const blockLength = blocksLengths.current[blockYIndex] ?? 0;
-
-          if (blockLength - blockXIndex >= sentenceLength) {
-            highlightInsideSameBlockByIndexes({
-              startIndex: blockXIndex,
-              endIndex: blockXIndex + sentenceLength,
-              type: "sentence",
-              blockYIndex,
-              removePreviousHighlights,
-            });
-          } else {
-            // const text =
-            //   blocks[blockYIndex]?.textContent?.slice(
-            //     blockXIndex,
-            //     blockLength,
-            //   ) ?? "";
-
-            highlightInsideSameBlockByIndexes({
-              startIndex: blockXIndex,
-              endIndex: blockLength,
-              type: "sentence",
-              blockYIndex,
-              removePreviousHighlights,
-            });
-
-            sentenceLength -= blockLength - blockXIndex;
-            if (sentenceLength <= 0) return;
-            addClassAroundSentence(blockYIndex + 1, sentenceLength, 0, false);
-          }
-        };
-
-        addClassAroundSentence(
-          blockIndex.current.y,
-          sentence.length,
-          blockIndex.current.x,
-          true,
+        const pageElement = document.querySelector(
+          `.page[data-page-number="${pageNum}"]`,
         );
 
-        await readSelectedText({
-          text: sentence,
-          highlightInsideSameBlockByIndexes,
-          readingMode: READING_MODE.PAGE,
-        });
+        if (!pageElement) {
+          return;
+        }
 
-        removeReadingHighlights();
-        sentenceIndex.current.x = 0;
+        const textDivs = pageElement.querySelectorAll(
+          "span[role='presentation']",
+        );
+
+        const blocks = Array.from(textDivs);
+        blocksRef.current = blocks;
+
+        const blockContents = blocks
+          .map((block) => block.textContent ?? "")
+          .map((block) => {
+            if (block.trim().length === 0) {
+              return "";
+            } else if (block.endsWith(" ")) {
+              return block;
+            }
+            return `${block} `;
+          });
+
+        nonProcessedBlockContents.current = blockContents;
+        blocksLengths.current = blockContents.map((block) => block.length);
+
+        const processedBlocks = processBlockContents(blockContents);
+
+        for (let i = sentenceIndex.current.y; i < processedBlocks.length; i++) {
+          sentenceIndex.current.y = i;
+
+          const sentence = processedBlocks[i];
+
+          if (!sentence) {
+            log("ERROR:::Sentence not found");
+            continue;
+          }
+
+          const addClassAroundSentence = (
+            blockYIndex: number,
+            sentenceLength: number,
+            blockXIndex: number,
+            removePreviousHighlights: boolean = true,
+          ) => {
+            if (
+              sentenceLength <= 0 ||
+              isNaN(sentenceLength) ||
+              blockXIndex < 0 ||
+              isNaN(blockXIndex) ||
+              blockYIndex < 0 ||
+              isNaN(blockYIndex)
+            ) {
+              log("ERROR:::Invalid sentence length or block index", {
+                blockYIndex,
+                sentenceLength,
+                blockXIndex,
+              });
+              return;
+            }
+
+            const blockLength = blocksLengths.current[blockYIndex] ?? 0;
+
+            if (blockLength - blockXIndex >= sentenceLength) {
+              highlightInsideSameBlockByIndexes({
+                startIndex: blockXIndex,
+                endIndex: blockXIndex + sentenceLength,
+                type: "sentence",
+                blockYIndex,
+                removePreviousHighlights,
+              });
+            } else {
+              // const text =
+              //   blocks[blockYIndex]?.textContent?.slice(
+              //     blockXIndex,
+              //     blockLength,
+              //   ) ?? "";
+
+              highlightInsideSameBlockByIndexes({
+                startIndex: blockXIndex,
+                endIndex: blockLength,
+                type: "sentence",
+                blockYIndex,
+                removePreviousHighlights,
+              });
+
+              sentenceLength -= blockLength - blockXIndex;
+              if (sentenceLength <= 0) return;
+              addClassAroundSentence(blockYIndex + 1, sentenceLength, 0, false);
+            }
+          };
+
+          addClassAroundSentence(
+            blockIndex.current.y,
+            sentence.length,
+            blockIndex.current.x,
+            true,
+          );
+
+          await readSelectedText({
+            text: sentence,
+            highlightInsideSameBlockByIndexes,
+            readingMode: READING_MODE.PAGE,
+          });
+
+          removeReadingHighlights();
+          sentenceIndex.current.x = 0;
+        }
+
+        sentenceIndex.current.y = 0;
+        blockIndex.current.x = 1;
+        blockIndex.current.y = 0;
       }
+    } catch (err: any) {
+      console.error("PDF Reader error:", err.message);
+      toast.error("An error occurred while reading the document");
 
-      sentenceIndex.current.y = 0;
-      blockIndex.current.x = 1;
-      blockIndex.current.y = 0;
+      stopReading();
     }
   };
 
@@ -605,7 +620,7 @@ const PdfReader = ({
 
   const debouncedReadSelectedText = useDebouncedCallback(readSelectedText, 500);
 
-  const handleChangeReadingSpeed = async () => {
+  const handleReadingSpeedChange = async () => {
     const nextSpeedIndex =
       (READING_SPEEDS.indexOf(currentReadingSpeed) + 1) % READING_SPEEDS.length;
     const newSpeed = READING_SPEEDS[nextSpeedIndex];
@@ -653,7 +668,7 @@ const PdfReader = ({
         currentReadingSpeed={currentReadingSpeed}
         readingStatus={readingStatus}
         startWordByWordHighlighting={startSentenceBySentenceHighlighting}
-        handleChangeReadingSpeed={handleChangeReadingSpeed}
+        handleReadingSpeedChange={handleReadingSpeedChange}
         resumeReading={resumeReading}
         stopReading={stopReading}
         pauseReading={pauseReading}
