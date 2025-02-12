@@ -88,7 +88,7 @@ const PdfReader = ({
   const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
     READING_STATUS.IDLE,
   );
-  const [currentReadingSpeed, setCurrentReadingSpeed] = useState(10);
+  const [currentReadingSpeed, setCurrentReadingSpeed] = useState(4);
   // const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
   const [pageNumberInView, setPageNumberInView] = useState<number>(0);
 
