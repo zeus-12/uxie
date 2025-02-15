@@ -8,7 +8,7 @@ import { SessionProvider } from "next-auth/react";
 import { DefaultSeo } from "next-seo";
 import { type AppType } from "next/app";
 import { useRouter } from "next/router";
-import { SEO } from "../../next-seo.config";
+// import { SEO } from "../../next-seo.config";
 
 const MyApp: AppType<{ session: Session | null }> = ({
   Component,
