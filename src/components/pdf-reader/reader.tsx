@@ -7,6 +7,7 @@ import {
 import PdfHighlighter from "@/components/pdf-reader/pdf-highlighter";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
+import { PDF_BACKGROUND_COLOURS } from "@/lib/constants";
 import { log } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
 import { AddHighlightType } from "@/types/highlight";
@@ -88,9 +89,12 @@ const PdfReader = ({
   const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
     READING_STATUS.IDLE,
   );
-  const [currentReadingSpeed, setCurrentReadingSpeed] = useState(4);
-  // const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
+  const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
   const [pageNumberInView, setPageNumberInView] = useState<number>(0);
+  const [currentZoom, setCurrentZoom] = useState(1);
+  const [pageColour, setPageColour] = useState<string>(
+    PDF_BACKGROUND_COLOURS[0],
+  );
 
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -647,6 +651,35 @@ const PdfReader = ({
     }
   };
 
+  const handleZoomChange = (zoom: number) => {
+    if (pdfViewer.current) {
+      pdfViewer.current.currentScale = zoom;
+      setCurrentZoom(zoom);
+    }
+  };
+
+  const handlePageChange = (pageNumber: number) => {
+    if (pdfViewer.current) {
+      pdfViewer.current.currentPageNumber = pageNumber;
+    }
+  };
+
+  const pageColourChangeHandler = (colour: string) => {
+    setPageColour(colour);
+    const textLayers = document.querySelectorAll(".textLayer");
+
+    textLayers.forEach((layer) => {
+      (layer as HTMLElement).style.backgroundColor = colour;
+    });
+
+    const pdfViewer = document.querySelector(
+      ".pdfViewer.removePageBorders",
+    ) as HTMLElement;
+    if (pdfViewer) {
+      pdfViewer.style.backgroundColor = colour;
+    }
+  };
+
   return (
     <>
       <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
@@ -673,6 +706,12 @@ const PdfReader = ({
         stopReading={stopReading}
         pauseReading={pauseReading}
         note={doc.note}
+        totalPages={pageCount}
+        onZoomChange={handleZoomChange}
+        onPageChange={handlePageChange}
+        currentZoom={currentZoom}
+        pageColour={pageColour}
+        pageColourChangeHandler={pageColourChangeHandler}
       />
     </>
   );
