@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { ExpandableTabs, Tab } from "@/components/ui/expandable-tabs";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { PDF_BACKGROUND_COLOURS } from "@/lib/constants";
 import {
   AudioLinesIcon,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
+import { useMediaQuery } from "usehooks-ts";
 import SidebarDrawer from "../workspace/sidebar-drawer";
 
 const BottomToolbar = ({
