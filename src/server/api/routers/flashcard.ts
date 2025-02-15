@@ -67,8 +67,6 @@ export const flashcardRouter = createTRPCRouter({
     .input(
       z.object({
         documentId: z.string(),
-        // pages: z.array(z.number()),
-        // numberOfQuestions: z.number(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

@@ -8,6 +8,7 @@ import { SpinnerPage } from "@/components/ui/spinner";
 import Sidebar from "@/components/workspace/sidebar";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 const DocViewerPage = () => {
@@ -28,6 +29,12 @@ const DocViewerPage = () => {
       enabled: !!query?.docId,
     },
   );
+
+  useEffect(() => {
+    if (doc) {
+      document.title = doc.title?.replace(".pdf", "");
+    }
+  }, [doc]);
 
   if (isLoading) {
     return <SpinnerPage />;

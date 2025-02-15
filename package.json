@@ -10,7 +10,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "scripts:db-dump": "tsc src/scripts/db-dump"
+    "scripts:db-dump": "tsx src/scripts/db-dump.ts",
+    "scripts": "tsx src/scripts/index.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
@@ -120,5 +121,5 @@
       "vue": "3.4.0"
     }
   },
-  "packageManager": "pnpm@8.10.1"
+  "packageManager": "pnpm@9.14.2"
 }
