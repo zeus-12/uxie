@@ -145,11 +145,15 @@
 
 .current-sentence {
   background-color: #e3ffdd !important;
+  border-radius: 5px;
+  /* padding: 0.5px; */
 }
 
 .current-word {
   background-color: #74f273 !important;
   display: inline !important;
+  border-radius: 5px;
+  /* padding: 0.5px; */
 }
 
 @layer utilities {

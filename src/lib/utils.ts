@@ -98,3 +98,9 @@ export const downloadPageAsHtml = (id?: string) => {
 };
 
 export const waitFor = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export const log = (...args: any[]) => {
+  if (process.env.NODE_ENV === "development") {
+    console.log(...args);
+  }
+};
