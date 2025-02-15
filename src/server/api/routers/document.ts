@@ -28,7 +28,6 @@ export const documentRouter = createTRPCRouter({
             },
           ],
         },
-
         include: {
           highlights: {
             include: {
@@ -313,6 +312,7 @@ export const documentRouter = createTRPCRouter({
 
       return true;
     }),
+
   addDocumentByLink: protectedProcedure
     .input(
       z.object({
