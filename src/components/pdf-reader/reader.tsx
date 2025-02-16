@@ -62,16 +62,16 @@ const removeReadingHighlights = () => {
   removeHighlightsByType("word");
 };
 
-const getUpdatedTextForContinuedReading = (
-  selectedText: string,
-  blockXIndex: number,
-) => {
-  // this code is cause even if the current word is half read, it should start from the beginning of the word
-  const previousWordLength =
-    selectedText.substring(0, blockXIndex).split(/\s+/).pop()?.length || 0;
-  const startIndex = Math.max(0, blockXIndex - previousWordLength);
-  return selectedText.substring(startIndex);
-};
+// const getUpdatedTextForContinuedReading = (
+//   selectedText: string,
+//   blockXIndex: number,
+// ) => {
+//   // this code is cause even if the current word is half read, it should start from the beginning of the word
+//   const previousWordLength =
+//     selectedText.substring(0, blockXIndex).split(/\s+/).pop()?.length || 0;
+//   const startIndex = Math.max(0, blockXIndex - previousWordLength);
+//   return selectedText.substring(startIndex);
+// };
 
 type TIndexes = { x: number; y: number };
 
@@ -301,11 +301,12 @@ const PdfReader = ({
     readingSpeed,
     readingMode,
     highlightInsideSameBlockByIndexes,
+    continueReadingFromLastPosition = false,
   }: {
     text?: string | null;
     readingSpeed?: number;
     readingMode: READING_MODE;
-
+    continueReadingFromLastPosition?: boolean;
     highlightInsideSameBlockByIndexes?: ({
       startIndex,
       endIndex,
@@ -320,12 +321,16 @@ const PdfReader = ({
       removePreviousHighlights?: boolean;
     }) => void;
   }) => {
+    log("readSelectedText", {
+      sentenceIndex,
+      blockIndex,
+    });
     if (!speechSynthesisRef.current) return;
 
     currentReadingMode.current = readingMode;
     const isTextReadingMode = readingMode === READING_MODE.TEXT;
+
     // const continueReadingFromLastPosition = blockIndex.current.x !== 1 || blockIndex.current.y !== 0; // todo
-    const continueReadingFromLastPosition = false; // todo
     const selectedText = text ?? window.getSelection()?.toString();
 
     if (!selectedText) return;
@@ -335,7 +340,7 @@ const PdfReader = ({
     }
 
     const textToRead = continueReadingFromLastPosition
-      ? getUpdatedTextForContinuedReading(selectedText, blockIndex.current.x)
+      ? selectedText.substring(sentenceIndex.current.x)
       : selectedText;
 
     const lengthDiff = selectedText.length - textToRead.length;
@@ -476,6 +481,8 @@ const PdfReader = ({
         blocksLengths.current = blockContents.map((block) => block.length);
 
         const processedBlocks = processBlockContents(blockContents);
+        // to track prev state.
+        let dontHighlight = isContinueReading;
 
         for (let i = sentenceIndex.current.y; i < processedBlocks.length; i++) {
           sentenceIndex.current.y = i;
@@ -511,32 +518,35 @@ const PdfReader = ({
 
             const blockLength = blocksLengths.current[blockYIndex] ?? 0;
 
-            if (blockLength - blockXIndex >= sentenceLength) {
-              highlightInsideSameBlockByIndexes({
-                startIndex: blockXIndex,
-                endIndex: blockXIndex + sentenceLength,
-                type: "sentence",
-                blockYIndex,
-                removePreviousHighlights,
-              });
+            if (!dontHighlight) {
+              if (blockLength - blockXIndex >= sentenceLength) {
+                highlightInsideSameBlockByIndexes({
+                  startIndex: blockXIndex,
+                  endIndex: blockXIndex + sentenceLength,
+                  type: "sentence",
+                  blockYIndex,
+                  removePreviousHighlights,
+                });
+              } else {
+                highlightInsideSameBlockByIndexes({
+                  startIndex: blockXIndex,
+                  endIndex: blockLength,
+                  type: "sentence",
+                  blockYIndex,
+                  removePreviousHighlights,
+                });
+
+                sentenceLength -= blockLength - blockXIndex;
+                if (sentenceLength <= 0) return;
+                addClassAroundSentence(
+                  blockYIndex + 1,
+                  sentenceLength,
+                  0,
+                  false,
+                );
+              }
             } else {
-              // const text =
-              //   blocks[blockYIndex]?.textContent?.slice(
-              //     blockXIndex,
-              //     blockLength,
-              //   ) ?? "";
-
-              highlightInsideSameBlockByIndexes({
-                startIndex: blockXIndex,
-                endIndex: blockLength,
-                type: "sentence",
-                blockYIndex,
-                removePreviousHighlights,
-              });
-
-              sentenceLength -= blockLength - blockXIndex;
-              if (sentenceLength <= 0) return;
-              addClassAroundSentence(blockYIndex + 1, sentenceLength, 0, false);
+              dontHighlight = false;
             }
           };
 
@@ -551,6 +561,7 @@ const PdfReader = ({
             text: sentence,
             highlightInsideSameBlockByIndexes,
             readingMode: READING_MODE.PAGE,
+            continueReadingFromLastPosition: isContinueReading,
           });
 
           removeReadingHighlights();
@@ -607,6 +618,7 @@ const PdfReader = ({
           readSelectedText({
             text: selectedTextToRead.current,
             readingMode: READING_MODE.TEXT,
+            continueReadingFromLastPosition: true,
           });
         } else {
           startSentenceBySentenceHighlighting(true);
