@@ -43,10 +43,10 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - Summarise, ask questions about the PDFs
 - Chat and collab with other (collaboration disabled for now-hit free tier limits :'(
 - Custom blocks in editor
-- highlights block which on click takes you to that highlight on the doc.
+- Highlights block which on click takes you to that highlight on the doc.
 - AI-powered text autocompletion, and text enhancement
-- PDF text-to-speech (English only)
-- PDF ocr support (English only)
+- PDF text-to-speech (English only) with sentence-by-sentence highlighting. (spent insane amt of hours on this, and super happy with how it turned out.)
+- PDF OCR support (English only)
 - Craft simple flashcards to test your knowledge, answer questions, and receive instant feedback through AI evaluation.
 
 ### Bugs
