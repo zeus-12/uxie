@@ -100,7 +100,7 @@ const Sidebar = ({
         defaultValue="notes"
         className="max-hd-screen flex flex-col max-w-full overflow-hidden h-full"
       >
-        <div className="flex items-center justify-between pr-1">
+        <div className="flex items-center justify-between px-2 md:pl-0 md:pr-1">
           <TabsList className="h-12 rounded-md bg-gray-200">
             {TABS.map((item) => (
               <CustomTooltip content={item.tooltip} key={item.value}>
