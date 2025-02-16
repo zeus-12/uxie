@@ -666,8 +666,11 @@ const PdfReader = ({
 
   const pageColourChangeHandler = (colour: string) => {
     setPageColour(colour);
-    const textLayers = document.querySelectorAll(".textLayer");
+    applyBackgroundColour(colour);
+  };
 
+  const applyBackgroundColour = (colour: string) => {
+    const textLayers = document.querySelectorAll(".textLayer");
     textLayers.forEach((layer) => {
       (layer as HTMLElement).style.backgroundColor = colour;
     });
@@ -679,6 +682,21 @@ const PdfReader = ({
       pdfViewer.style.backgroundColor = colour;
     }
   };
+
+  useEffect(() => {
+    applyBackgroundColour(pageColour);
+
+    const observer = new MutationObserver(() => {
+      applyBackgroundColour(pageColour);
+    });
+
+    const targetNode = document.querySelector(".pdfViewer.removePageBorders");
+    if (targetNode) {
+      observer.observe(targetNode, { childList: true, subtree: true });
+    }
+
+    return () => observer.disconnect();
+  }, [pageColour]);
 
   return (
     <>
