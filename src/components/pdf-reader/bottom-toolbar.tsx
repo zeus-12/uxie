@@ -138,7 +138,7 @@ const BottomToolbar = ({
     {
       children: (
         <div className="relative w-full">
-          <div className="gap-1 relative z-50 flex items-center rounded-lg divide-x">
+          <div className="gap-1 relative z-50 flex items-center rounded-lg">
             {readingStatus === READING_STATUS.IDLE && (
               <div>
                 <Button
