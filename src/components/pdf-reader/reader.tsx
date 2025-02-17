@@ -1,10 +1,10 @@
-import BottomToolbar from "@/components/pdf-reader/bottom-toolbar";
 import {
   READING_MODE,
   READING_SPEEDS,
   READING_STATUS,
 } from "@/components/pdf-reader/constants";
 import PdfHighlighter from "@/components/pdf-reader/pdf-highlighter";
+import BottomToolbar from "@/components/pdf-reader/toolbar";
 import { SpinnerPage } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { PDF_BACKGROUND_COLOURS } from "@/lib/constants";
