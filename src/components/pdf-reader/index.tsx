@@ -2,7 +2,7 @@ import PdfReader from "@/components/pdf-reader/reader";
 import { buttonVariants } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, stripTextFromEnd } from "@/lib/utils";
 import { AppRouter } from "@/server/api/root";
 import { BlockNoteEditorType } from "@/types/editor";
 import { AddHighlightType, HighlightContentType } from "@/types/highlight";
@@ -147,6 +147,7 @@ const DocViewer = ({
       utils.document.getDocData.invalidate();
     },
   });
+
   const { mutate: deleteHighlightMutation } = api.highlight.delete.useMutation({
     async onMutate(oldHighlight) {
       await utils.document.getDocData.cancel();
@@ -257,7 +258,9 @@ const DocViewer = ({
           <ChevronLeftIcon className="mr-2 h-4 w-4" />
         </Link>
 
-        <p className="line-clamp-1 font-semibold">{doc?.title ?? docId}</p>
+        <p className="line-clamp-1 font-semibold">
+          {stripTextFromEnd(doc?.title, ".pdf")}
+        </p>
       </div>
       <div className="relative h-full w-full">
         <PdfReader

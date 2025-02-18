@@ -104,3 +104,11 @@ export const log = (...args: any[]) => {
     console.log(...args);
   }
 };
+
+export const stripTextFromEnd = (text: string | undefined, end: string) => {
+  if (!text) {
+    return "";
+  }
+
+  return text.replace(`/\${end}$/`, "");
+};

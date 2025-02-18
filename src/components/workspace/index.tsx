@@ -7,6 +7,7 @@ import {
 import { SpinnerPage } from "@/components/ui/spinner";
 import Sidebar from "@/components/workspace/sidebar";
 import { api } from "@/lib/api";
+import { stripTextFromEnd } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -32,7 +33,7 @@ const DocViewerPage = () => {
 
   useEffect(() => {
     if (doc) {
-      document.title = doc.title?.replace(".pdf", "");
+      document.title = stripTextFromEnd(doc.title, ".pdf");
     }
   }, [doc]);
 
