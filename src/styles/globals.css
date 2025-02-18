@@ -71,6 +71,7 @@
     @apply border-border;
   }
   body {
+    overscroll-behavior: none; /* Disables wiggle effect on scroll */
     @apply bg-background text-foreground;
   }
 }
@@ -169,8 +170,6 @@
     max-height: 100dvh;
   }
 }
-
-
 
 /* Prevents zooming in on clicking forms in Safari. */
 input[type="color"],
