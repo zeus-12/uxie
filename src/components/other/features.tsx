@@ -7,28 +7,38 @@ import { useEffect, useRef } from "react";
 const features = [
   {
     title: "Annotate your documents w. ease",
-    imageUrl: "/features/annotation.gif",
+    // imageUrl: "/features/annotation.gif",
+    imageUrl:
+      "https://g228eq4f8z.ufs.sh/f/D1IgV0cLWt9J5u1MmGUwszom37P105vtiGHyLqcKeJ2dI8Bl",
     description:
       "With text and area highlights (hold ⌥ Option key (Alt), then click and drag), and text-to-speech support",
   },
   {
     title: "Take notes with a notion like editor",
-    imageUrl: "/features/editor.gif",
+    // imageUrl: "/features/editor.gif",
+    imageUrl:
+      "https://g228eq4f8z.ufs.sh/f/D1IgV0cLWt9JSFWJYQuo9UWb2a4HE65QvgCLrD0eGtIFkKjZ",
     description:
       "With AI text autocompletion, text enhancement, and export to Markdown.",
   },
   {
     title: "Ask the chatbot anything pdf related",
-    imageUrl: "/features/chatbot.gif",
+    // imageUrl: "/features/chatbot.gif",
+    imageUrl:
+      "https://g228eq4f8z.ufs.sh/f/D1IgV0cLWt9JX0pT27tJIypBdOz9C82rsUL3Gig1vEwaVZPj",
   },
   {
     title: "Generate Flashcards",
-    imageUrl: "/features/flashcard.gif",
+    // imageUrl: "/features/flashcard.gif",
+    imageUrl:
+      "https://g228eq4f8z.ufs.sh/f/D1IgV0cLWt9Jt42d98TFXdbyuZLeUvwgPsj20RQntx4CWNzE",
     description: "Answer the flashcard, and get feedbacks on what you missed.",
   },
   {
     title: "Collaborate with your team",
-    imageUrl: "/features/collab.gif",
+    // imageUrl: "/features/collab.gif",
+    imageUrl:
+      "https://g228eq4f8z.ufs.sh/f/D1IgV0cLWt9J9gYv7Fn3aXo1fgS5Kjb0pnRxWzCE6Tve948O",
     description: "With real-time updates.",
   },
 ];
