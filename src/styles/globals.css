@@ -72,6 +72,7 @@
   }
   body {
     overscroll-behavior: none; /* Disables wiggle effect on scroll */
+    touch-action: none; /* Prevents touch scrolling */
     @apply bg-background text-foreground;
   }
 }
