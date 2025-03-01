@@ -53,11 +53,10 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ### Bugs
 
-- [ ] throw proper errors while uploading files => even for large files ,it says max 1 file.
-- [ ] addHighlightToNote doesnt work on small screens w sidebar.
+- [ ] addHighlightToNote doesn't work on small screens w sidebar.
 - [ ] add proper prompts for each item in custom/ai/popover.tsx
 - [ ] display a x% done in /f.
-- [ ] build a category system for documents => doesnt matter if ui is bad, just build it
+- [ ] build a category system for documents => doesn't matter if ui is bad, just build it
 - [ ] implement ratelimit (esp for everything ai related) using redis kv => checkout upstash
 - [ ] add download flashcards in csv,anki format ( apkg format), also add dl notes in pdf format ([html2pdf lib](https://ekoopmans.github.io/html2pdf.js/) should work)
 - [ ] better error,loading pages => abstract this logic to hook / component

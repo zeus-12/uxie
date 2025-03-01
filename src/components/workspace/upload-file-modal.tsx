@@ -26,6 +26,9 @@ import { z } from "zod";
 // @ts-ignore
 import scribe from "scribe.js-ocr";
 
+const MAX_FILE_SIZE_ALLOWED = 8 * 1024 * 1024;
+const MAX_FILE_SIZE_ALLOWED_IN_TEXT = "8MB";
+
 const UploadFileModal = ({
   refetchUserDocs,
   docsCount,
@@ -305,9 +308,12 @@ const Uploader = ({
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
-        toast.error("Please upload a single PDF file.", {
-          duration: 3000,
-        });
+        toast.error(
+          `Please upload a single PDF with a maximum file size of ${MAX_FILE_SIZE_ALLOWED_IN_TEXT}.`,
+          {
+            duration: 3000,
+          },
+        );
 
         return;
       }
@@ -322,7 +328,7 @@ const Uploader = ({
     disabled: !!file,
     onDrop,
     maxFiles: 1,
-    maxSize: 8 * 1024 * 1024,
+    maxSize: MAX_FILE_SIZE_ALLOWED,
     multiple: false,
     accept: generateClientDropzoneAccept(
       generatePermittedFileTypes(routeConfig).fileTypes,
