@@ -10,7 +10,9 @@ PDF reader app designed to revolutionise your learning experience!
 - 📚 Integrates with LLM for enhanced learning
 - 💡 Generates flashcards with LLM feedback
 
-Originally started as a hackathon project which I ended up winning 🥇! Uxie has since evolved with even more exciting features.
+Originally started as a hackathon project which I ended up winning 🥇!
+
+Uxie has since evolved with even more exciting features.
 
 I'd love for you to give Uxie a try and share your valuable [feedback](https://uxie.vercel.app/feedback).
 
@@ -52,38 +54,53 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 ### Bugs
 
 - [ ] throw proper errors while uploading files => even for large files ,it says max 1 file.
+- [ ] addHighlightToNote doesnt work on small screens w sidebar.
 - [ ] add proper prompts for each item in custom/ai/popover.tsx
-- [ ] display a x% done in /f, also scroll to that page on opening the file. add a go-to-page-numb option in bottom-toolbar => along with zoom, etc)
-- [ ] ffs build a category system for documents => doesnt matter if ui is bad, just build it
-- [ ] implement ratelimit using redis kv => checkout upstash
+- [ ] display a x% done in /f.
+- [ ] build a category system for documents => doesnt matter if ui is bad, just build it
+- [ ] implement ratelimit (esp for everything ai related) using redis kv => checkout upstash
 - [ ] add download flashcards in csv,anki format ( apkg format), also add dl notes in pdf format ([html2pdf lib](https://ekoopmans.github.io/html2pdf.js/) should work)
 - [ ] better error,loading pages => abstract this logic to hook / component
 - [ ] editor loads with empty data before the data is loaded.
-- [ ] see if u can see all the users (also typing status for chat: [refer](https://github.com/konradhy/build-jotion/blob/master/components/editor.tsx#L93)) in the liveblocks room, (and display it at top)
+<!-- - [ ] (NOT USING LIVEBLOCKS ANYMORE) see if u can see all the users (also typing status for chat: [refer](https://github.com/konradhy/build-jotion/blob/master/components/editor.tsx#L93)) in the liveblocks room, (and display it at top) -->
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 - [ ] abstract userIsOwner and userHasAccess (either collab or owner) logic.
       solution seems to be => create separate helper functions (take where, select, etc as params: use relevant prisma types to match each.)
-
-### TTS Tasks left:
-
-- add multi-language support (works only for english now, atleast mention this somewhere ig)
-- experiment with the voice (changing pitch, etc)
-- add an onboarding flow for this? just explaining what it is and all
-- some way to hide the bottom-toolbar (separate settings page or just drag to side?)
+- [ ] some way to hide the bottom-toolbar (separate settings page or just drag to side?)
+- [ ] TTS: experiment with the voice (changing pitch, etc), or maybe try on-device models (Kokoro TTS)
 
 ## New ideas
 
-- [ ] profile how long pinecone takes for retrieval of embeddings, and maybe look into upstash embedding storage for this (or pgvector?)
+- [ ] use background runner with long-polling for vectorisation / flashcard gen
 - [ ] For area-highlight
-      -store it as base64 to the notes, then in the same addhighlighttonotes function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag. - add the yellow leftborder which takes to the image highlight on click
-
-- [ ] use background runner or something and do long-polling
+      -store it as base64 to the notes, then in the same addHighlightToNote function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
+      -add the yellow leftborder which takes to the image highlight on click
 - [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
-- [ ] Run the seogets script
+- [ ] Run the seogets script, maybe try automated reels? (reel.farm)
 - [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
 - [ ] add bm25 along w vector embeddings? https://www.anthropic.com/news/contextual-retrieval#:~:text=BM25%20can%20succeed%20where%20semantic%20embeddings%20fail
-- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using scribe) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f
+- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, along w separate tab, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using tesseract, (scribe is overkill here)) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f
 
-### Pinecone Setting up guide
+## Setting up guide
 
-- Create index => Dimensions = 768, Metric = Cosine
+### Install dependencies
+
+```
+pnpm i
+```
+
+### Set up environment variables
+
+copy the `.env.example` file to `.env` and fill in the required values.
+
+### Start the development server
+
+```
+pnpm dev
+```
+
+### Pinecone
+
+- Create index
+- Dimensions = 768
+- Metric = Cosine
