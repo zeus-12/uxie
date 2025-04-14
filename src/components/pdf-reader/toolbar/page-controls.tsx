@@ -40,7 +40,7 @@ export const PageControlsIcon = ({
   totalPages: number;
 }) => {
   return (
-    <Button className="" variant="ghost" size="xs">
+    <Button variant="ghost" size="xs">
       {pageNumberInView > 0 ? (
         <p className="">
           {pageNumberInView}{" "}

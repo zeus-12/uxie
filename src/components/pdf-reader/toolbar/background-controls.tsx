@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { PDF_BACKGROUND_COLOURS } from "@/lib/constants";
 
 export const BackgroundControlsContent = ({
@@ -29,8 +30,10 @@ export const BackgroundControlsIcon = ({
   pageColour: string;
 }) => {
   return (
-    <div
-      className="w-6 h-6 rounded-md cursor-pointer"
+    <Button
+      variant="ghost"
+      size="xs"
+      className="w-6 h-6"
       style={{
         backgroundColor:
           pageColour === PDF_BACKGROUND_COLOURS[0] ? "#F3F4F6" : pageColour,
