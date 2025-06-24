@@ -86,7 +86,7 @@ const HeroSection = () => {
           target="_blank"
         >
           <p className="text-sm font-semibold text-gray-700 [text-wrap:balance]">
-            Introducing Sentence by Sentence TTS, and more! 📚
+            Introducing sentence tts, and more! 📚
           </p>
           <div className="group relative flex items-center">
             <ChevronRightIcon className="absolute -ml-1 h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:opacity-0" />
