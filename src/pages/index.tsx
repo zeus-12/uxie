@@ -82,11 +82,11 @@ const HeroSection = () => {
       <div className="flex flex-col items-center justify-center gap-2 py-4 lg:py-8">
         <a
           className="group mx-auto flex max-w-fit items-center justify-center space-x-2 overflow-hidden rounded-full border border-gray-200 bg-white px-6 py-2 shadow-[inset_10px_-50px_94px_0_rgb(199,199,199,0.1)] backdrop-blur transition-all hover:border-gray-300 hover:bg-white/50"
-          href="https://www.youtube.com/watch?v=pU_YJyKe5hE"
+          href="https://vishnuu.com/posts/why-i-built-uxie"
           target="_blank"
         >
           <p className="text-sm font-semibold text-gray-700 [text-wrap:balance]">
-            Introducing sentence tts, and more! 📚
+            Why I built Uxie 📝
           </p>
           <div className="group relative flex items-center">
             <ChevronRightIcon className="absolute -ml-1 h-3.5 w-3.5 transition-all group-hover:translate-x-1 group-hover:opacity-0" />
