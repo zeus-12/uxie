@@ -80,26 +80,96 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - [ ] add bm25 along w vector embeddings? https://www.anthropic.com/news/contextual-retrieval#:~:text=BM25%20can%20succeed%20where%20semantic%20embeddings%20fail
 - [ ] store the content of text-highlight and make it available for search (from a cmd+k window, along w separate tab, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using tesseract, (scribe is overkill here)) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f
 
-## Setting up guide
+## 🚀 Getting Started
 
-### Install dependencies
+Once you have the application running, you can start using it by following these steps:
 
-```
-pnpm i
-```
+1.  **Sign up or log in:** Create a new account or log in with your existing credentials.
+2.  **Upload a PDF:** Click the "Upload" button to upload a PDF file from your computer.
+3.  **Start learning:** Once the PDF is uploaded, you can start reading, annotating, and using the AI-powered features to enhance your learning experience.
 
-### Set up environment variables
+### Prerequisites
 
-copy the `.env.example` file to `.env` and fill in the required values.
+- [Node.js](https://nodejs.org/en/) (v18 or later)
+- [pnpm](https://pnpm.io/installation)
+- A [Supabase](https://supabase.com/) account
+- A [Pinecone](https://www.pinecone.io/) account
+- An [Uploadthing](https://uploadthing.com/) account
+- A [Fireworks AI](https://fireworks.ai/) account
 
-### Start the development server
+### Installation
 
-```
-pnpm dev
-```
+1.  **Clone the repository:**
 
-### Pinecone
+    ```bash
+    git clone https://github.com/zeus-12/uxie.git
+    cd uxie
+    ```
 
-- Create index
-- Dimensions = 768
-- Metric = Cosine
+2.  **Install dependencies:**
+
+    ```bash
+    pnpm install
+    ```
+
+3.  **Set up environment variables:**
+
+    Copy the `.env.example` file to a new file named `.env` and fill in the required values.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    You will need to provide API keys and other configuration details for the following services:
+
+    - `DATABASE_URL`: Your Supabase database connection string.
+    - `NEXTAUTH_SECRET`: A secret key for NextAuth.js. You can generate one using `openssl rand -base64 32`.
+    - `NEXTAUTH_URL`: The URL of your application (e.g., `http://localhost:3000`).
+    - `GOOGLE_CLIENT_ID`: Your Google OAuth client ID.
+    - `GOOGLE_CLIENT_SECRET`: Your Google OAuth client secret.
+    - `UPLOADTHING_SECRET`: Your Uploadthing API key.
+    - `UPLOADTHING_APP_ID`: Your Uploadthing app ID.
+    - `PINECONE_API_KEY`: Your Pinecone API key.
+    - `PINECONE_ENVIRONMENT`: Your Pinecone environment.
+    - `PINECONE_INDEX_NAME`: The name of your Pinecone index.
+    - `FIREWORKS_API_KEY`: Your Fireworks AI API key.
+
+4.  **Set up the database:**
+
+    - Go to your [Supabase dashboard](https://app.supabase.io/) and create a new project.
+    - Get the database connection string from the project settings and add it to your `.env` file.
+    - Run the following command to apply the database migrations:
+
+      ```bash
+      pnpm prisma db push
+      ```
+
+5.  **Set up Pinecone:**
+
+    - Go to your [Pinecone dashboard](https://app.pinecone.io/) and create a new index.
+    - Set the dimensions to `768` and the metric to `cosine`.
+    - Get your API key and environment from the project settings and add them to your `.env` file.
+
+6.  **Start the development server:**
+
+    ```bash
+    pnpm dev
+    ```
+
+    The application should now be running at [http://localhost:3000](http://localhost:3000).
+
+## 🤝 Contributing
+
+Contributions are welcome! We appreciate your help in making Uxie even better.
+
+If you have any ideas, suggestions, or bug reports, please open an issue on the [GitHub repository](https://github.com/zeus-12/uxie/issues).
+
+If you want to contribute code, please follow these steps:
+
+1.  Fork the repository.
+2.  Create a new branch for your feature or bug fix.
+3.  Make your changes and commit them with a clear and descriptive message.
+4.  Push your changes to your forked repository.
+5.  Open a pull request to the `main` branch of the original repository.
+
+We will review your pull request as soon as possible and provide feedback.
