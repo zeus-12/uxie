@@ -18,7 +18,13 @@ import {
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
 
-const parseIdFromHash = () => document.location.hash.slice(1);
+const parseIdFromHash = () => {
+  const hash = document.location.hash;
+  if (!hash) return "";
+
+  const params = new URLSearchParams(hash.slice(1));
+  return params.get("highlight") || "";
+};
 
 const resetHash = () => {
   document.location.hash = "";

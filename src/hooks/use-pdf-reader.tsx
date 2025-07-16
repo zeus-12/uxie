@@ -120,7 +120,15 @@ const usePdfReader = ({
       };
 
       const handlePagesLoaded = () => {
-        if (
+        const hash = document.location.hash;
+
+        if (hash) {
+          const params = new URLSearchParams(hash.slice(1));
+          const page = params.get("page");
+          if (page) {
+            pdfViewerDocument.currentPageNumber = parseInt(page, 10);
+          }
+        } else if (
           lastReadPage &&
           pdfViewerDocument.currentPageNumber !== lastReadPage
         ) {

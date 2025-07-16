@@ -18,6 +18,7 @@ import { toast } from "sonner";
 const addHighlightToNotes = async (
   content: string,
   highlightId: string,
+  pageNumber: number,
   type: HighlightContentType,
   editor: BlockNoteEditorType | null,
   canEdit: boolean,
@@ -50,6 +51,7 @@ const addHighlightToNotes = async (
             content,
             props: {
               highlightId,
+              pageNumber: pageNumber.toString(),
             },
           },
         ],
@@ -216,6 +218,7 @@ const DocViewer = ({
       addHighlightToNotes(
         content.text,
         highlightId,
+        position.pageNumber,
         HighlightContentType.TEXT,
         editor,
         canEdit,
@@ -226,6 +229,7 @@ const DocViewer = ({
       addHighlightToNotes(
         content.image,
         highlightId,
+        position.pageNumber,
         HighlightContentType.IMAGE,
         editor,
         canEdit,

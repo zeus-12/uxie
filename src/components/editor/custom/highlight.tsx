@@ -7,18 +7,15 @@ export const highlightPropSchema = {
   highlightId: {
     default: "",
   },
+  pageNumber: {
+    default: "1",
+  },
 } satisfies PropSchema;
 
 export const HighlighBlock = createReactBlockSpec(
   {
     type: "highlight",
-    propSchema: {
-      textAlignment: defaultProps.textAlignment,
-      textColor: defaultProps.textColor,
-      highlightId: {
-        default: "",
-      },
-    },
+    propSchema: highlightPropSchema,
     content: "inline",
   },
   {
@@ -27,7 +24,16 @@ export const HighlighBlock = createReactBlockSpec(
         <div
           onClick={() => {
             if (!props?.block?.props?.highlightId) return;
-            document.location.hash = props.block.props.highlightId;
+
+            const { pageNumber, highlightId } = props.block.props;
+
+            const currentHash = document.location.hash;
+            const newHash = `#page=${pageNumber}&highlight=${highlightId}`;
+
+            // Prevent scroll jump if the hash is already correct
+            if (currentHash === newHash) return;
+
+            document.location.hash = newHash;
           }}
           className="w-2 rounded-full bg-yellow-400 hover:cursor-pointer"
         />
