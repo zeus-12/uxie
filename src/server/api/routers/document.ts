@@ -1,4 +1,5 @@
 import { PLANS } from "@/lib/constants";
+import { generateAndUploadCover } from "@/lib/pdf-cover";
 import { vectoriseDocument } from "@/lib/vectorise";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { CollaboratorRole } from "@prisma/client";
@@ -368,10 +369,13 @@ export const documentRouter = createTRPCRouter({
         }
 
         const blob = await response.blob();
-        const loader = new PDFLoader(blob);
+        const arrayBuffer = await blob.arrayBuffer();
 
+        const loader = new PDFLoader(blob);
         const pageLevelDocs = await loader.load();
         const numPages = pageLevelDocs.length;
+
+        const coverImageUrl = await generateAndUploadCover(arrayBuffer, input.title);
 
         const newFile = await ctx.prisma.document.create({
           data: {
@@ -379,6 +383,7 @@ export const documentRouter = createTRPCRouter({
             url: input.url,
             isUploaded: false,
             pageCount: numPages,
+            coverImageUrl: coverImageUrl ?? "",
             owner: {
               connect: {
                 id: ctx.session.user.id,
