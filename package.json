@@ -14,6 +14,7 @@
     "scripts": "tsx src/scripts/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/google": "^1.2.22",
     "@ai-sdk/openai": "^0.0.60",
     "@blocknote/core": "^0.17.1",
     "@blocknote/mantine": "^0.17.1",
@@ -49,7 +50,7 @@
     "@trpc/server": "^10.34.0",
     "@types/pdf-parse": "^1.1.4",
     "@uploadthing/react": "^7.0.2",
-    "ai": "^3.3.41",
+    "ai": "^4.3.19",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "cmdk": "^1.0.0",
@@ -75,6 +76,7 @@
     "react-textarea-autosize": "^8.5.3",
     "react-wrap-balancer": "^1.1.0",
     "react-youtube": "^10.1.0",
+    "sbd": "^1.0.19",
     "scribe.js-ocr": "^0.7.1",
     "sonner": "^1.4.41",
     "superjson": "^1.13.1",
@@ -86,7 +88,7 @@
     "usehooks-ts": "^3.1.1",
     "vaul": "^1.0.0",
     "yjs": "^13.6.8",
-    "zod": "^3.22.2",
+    "zod": "^3.23.8",
     "zustand": "^4.4.6"
   },
   "devDependencies": {
@@ -97,6 +99,7 @@
     "@types/pdfjs-dist": "^2.10.378",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
+    "@types/sbd": "^1.0.5",
     "@typescript-eslint/eslint-plugin": "^6.3.0",
     "@typescript-eslint/parser": "^6.3.0",
     "autoprefixer": "^10.4.14",

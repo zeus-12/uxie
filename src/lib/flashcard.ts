@@ -1,6 +1,8 @@
-import { fireworksOld as fireworks } from "@/lib/fireworks";
+import { google } from "@ai-sdk/google";
+import { generateObject } from "ai";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { z } from "zod";
 
 export const generateFlashcards = async (
   fileUrl: string,
@@ -31,52 +33,29 @@ export const generateFlashcards = async (
 
   const res = await Promise.allSettled(
     docContents.map(async (doc) => {
-      return fireworks.chat.completions.create({
-        model: "accounts/fireworks/models/mixtral-8x7b-instruct-hf",
-        max_tokens: 2048,
+      const { object } = await generateObject({
+        model: google("gemini-2.0-flash"),
+        system: `You're using an advanced AI assistant capable of creating flashcards efficiently. Your task is to generate clear and concise question-answer pairs based on provided text.
+Each question should have a straightforward answer and be self-contained. Limit your questions to a maximum of two per text segment. Avoid adding explanations or apologies. If you encounter difficulty creating a question, you can skip it.
 
-        messages: [
-          {
-            role: "system",
-            content: `You're using an advanced AI assistant capable of creating flashcards efficiently. Your task is to generate clear and concise question-answer pairs based on provided text.
-          Each question should have a straightforward answer and be self-contained. Limit your questions to a maximum of two per text segment. Avoid adding explanations or apologies. If you encounter difficulty creating a question, you can skip it.
-          Please provide the output in JSON Array format, with each question as a key and its corresponding answer as the value. Strictly adhere to this format to ensure successful completion of the task.`,
-          },
-          {
-            role: "user",
-            content: `Create question-answer pairs for the following text:\n\n ${doc}`,
-          },
-        ],
+Create question-answer pairs for the following text:\n\n ${doc}`,
+
+        schema: z.array(
+          z.object({
+            question: z.string(),
+            answer: z.string(),
+          }),
+        ),
       });
+      return object;
     }),
   );
 
-  const newRes = res.map((item) =>
-    item.status === "fulfilled"
-      ? item.value.choices[0]?.message.content?.replaceAll("\n", "")
-      : "",
-  );
+  const newRes: FlashcardType[] = res
+    .map((item) => (item.status === "fulfilled" ? item.value : []))
+    .flat();
 
-  const formatted = newRes.map((item) => {
-    if (!item) {
-      return "";
-    }
-
-    try {
-      return JSON.parse(item);
-    } catch (err: any) {
-      console.log(err.message);
-      return "";
-    }
-  });
-
-  const flatArr: FlashcardType[] = formatted.flat().filter((item) => {
-    if (!item.question || !item.answer) {
-      return false;
-    }
-    return true;
-  });
-  return flatArr;
+  return newRes;
 };
 
 interface FlashcardType {

@@ -4,7 +4,7 @@ import { SpinnerCentered } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
 import { ArrowUp, BanIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";

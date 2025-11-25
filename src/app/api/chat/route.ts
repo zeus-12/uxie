@@ -1,10 +1,10 @@
 import { env } from "@/env.mjs";
-import { fireworks } from "@/lib/fireworks";
 import { generateDummyStream } from "@/lib/utils";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
+import { google } from "@ai-sdk/google";
 import { convertToCoreMessages, Message, streamText, tool } from "ai";
 import { getServerSession } from "next-auth";
 import { z } from "zod";
@@ -62,7 +62,7 @@ export async function POST(req: Request, res: Response) {
       }
 
       const result = await streamText({
-        model: fireworks("accounts/fireworks/models/firefunction-v2"),
+        model: google("gemini-2.0-flash"),
         messages: convertToCoreMessages(messages),
         system: `You are a helpful assistant with access to a PDF document. Your primary task is to answer questions based on the content of this PDF. Always check the PDF for information before responding, especially for specific details like author names, dates, or any factual content.
       You have access to a function called 'getInformation' that allows you to search the PDF. Use this function for every question, even if you think you might know the answer. This ensures accuracy and that your responses are always based on the actual content of the document.

@@ -1,8 +1,8 @@
-import { fireworks } from "@/lib/fireworks";
 import { flashcardFeedbackSchema } from "@/schema/flashcard";
 import { flashcardEvaluateRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
+import { google } from "@ai-sdk/google";
 import { streamObject } from "ai";
 import { getServerSession } from "next-auth";
 
@@ -54,9 +54,8 @@ export async function POST(req: Request, res: Response) {
   ${flashcard.answer}
   </CORRECT ANSWER>`;
 
-  const result = await streamObject({
-    // other models doesnt work for some reason
-    model: fireworks("accounts/fireworks/models/firefunction-v1"),
+  const result = streamObject({
+    model: google("gemini-1.5-pro"),
     schema: flashcardFeedbackSchema,
     prompt: reqPrompt,
     maxTokens: 1000,
