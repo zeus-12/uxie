@@ -19,6 +19,7 @@ export const userRouter = createTRPCRouter({
             isVectorised: true,
             id: true,
             ownerId: true,
+            coverImageUrl: true,
           },
         },
         collaboratorateddocuments: {
@@ -30,6 +31,7 @@ export const userRouter = createTRPCRouter({
                 isVectorised: true,
                 id: true,
                 ownerId: true,
+                coverImageUrl: true,
               },
             },
           },
@@ -48,6 +50,7 @@ export const userRouter = createTRPCRouter({
       id: doc.id,
       isVectorised: doc.isVectorised,
       isCollab: doc.ownerId !== ctx?.session?.user?.id,
+      coverImageUrl: doc.coverImageUrl,
     }));
   }),
   submitFeedback: publicProcedure

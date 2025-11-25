@@ -75,6 +75,7 @@ const UserLibraryPage = () => {
                   id={doc.id}
                   title={doc.title}
                   isCollab={doc.isCollab}
+                  coverImageUrl={doc.coverImageUrl}
                 />
               ))}
             </div>

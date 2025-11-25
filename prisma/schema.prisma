@@ -66,6 +66,7 @@ model Document {
   isUploaded    Boolean        @default(true)
   flashcards    Flashcard[]
   lastReadPage  Int            @default(1)
+  coverImageUrl String
 }
 
 enum CollaboratorRole {
