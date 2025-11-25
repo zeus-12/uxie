@@ -224,9 +224,9 @@ const UploadFileModal = ({
           />
 
           <div className="relative flex items-center py-5">
-            <div className="flex-grow border-t border-gray-100"></div>
+            <div className="flex-grow border-t border-gray-100" />
             <span className="mx-3 flex-shrink text-xs text-gray-500">OR</span>
-            <div className="flex-grow border-t border-gray-100"></div>
+            <div className="flex-grow border-t border-gray-100" />
           </div>
 
           <div>
@@ -275,7 +275,7 @@ const UploadFileModal = ({
                 <>
                   <Spinner />
                   {isUploadthingUploading && (
-                    <p className="ml-2">{uploadProgress}%</p>
+                    <p className="ml-1">{uploadProgress}%</p>
                   )}
 
                   {isOcring && (

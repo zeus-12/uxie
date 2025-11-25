@@ -9,7 +9,7 @@ const withConfig = withGlobalCss();
 const config = {
   reactStrictMode: true,
   images: {
-    domains: ["lh3.googleusercontent.com"],
+    domains: ["lh3.googleusercontent.com", "utfs.io"],
   },
   webpack: (config, { isServer, webpack }) => {
     if (!isServer) {

@@ -1,4 +1,5 @@
 import { FREE_PLAN, PLANS } from "@/lib/constants";
+import { generateAndUploadCover } from "@/lib/pdf-cover";
 import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
@@ -9,7 +10,7 @@ const f = createUploadthing();
 export const docUploader = {
   // TODO allow for diff file size based on plan
   docUploader: f({ pdf: { maxFileSize: "8MB", maxFileCount: 1 } })
-    .middleware(async ({ req, res, files, input }) => {
+    .middleware(async ({ req, res }) => {
       const session = await getServerAuthSession({ req, res });
       if (!session?.user) throw new Error("Unauthorized");
 
@@ -46,9 +47,13 @@ export const docUploader = {
         }
 
         const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+
         const loader = new PDFLoader(blob);
         const pageLevelDocs = await loader.load();
         const numPages = pageLevelDocs.length;
+
+        const coverImageUrl = await generateAndUploadCover(arrayBuffer, file.name);
 
         await prisma.document.create({
           data: {
@@ -60,6 +65,7 @@ export const docUploader = {
             url: file.url,
             title: file.name,
             pageCount: numPages,
+            coverImageUrl: coverImageUrl ?? "",
           },
         });
       } catch (err: any) {

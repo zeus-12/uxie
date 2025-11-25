@@ -53,7 +53,7 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 
 ### Bugs
 
-- [ ] addHighlightToNote doesn't work on small screens w sidebar.
+- [ ] `addHighlightToNote` doesn't work on small screens w sidebar.
 - [ ] add proper prompts for each item in custom/ai/popover.tsx
 - [ ] display a x% done in /f.
 - [ ] build a category system for documents => doesn't matter if ui is bad, just build it
@@ -61,9 +61,8 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - [ ] add download flashcards in csv,anki format ( apkg format), also add dl notes in pdf format ([html2pdf lib](https://ekoopmans.github.io/html2pdf.js/) should work)
 - [ ] better error,loading pages => abstract this logic to hook / component
 - [ ] editor loads with empty data before the data is loaded.
-<!-- - [ ] (NOT USING LIVEBLOCKS ANYMORE) see if u can see all the users (also typing status for chat: [refer](https://github.com/konradhy/build-jotion/blob/master/components/editor.tsx#L93)) in the liveblocks room, (and display it at top) -->
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
-- [ ] abstract userIsOwner and userHasAccess (either collab or owner) logic.
+- [ ] abstract `userIsOwner` and `userHasAccess` (either collab or owner) logic.
       solution seems to be => create separate helper functions (take where, select, etc as params: use relevant prisma types to match each.)
 - [ ] some way to hide the bottom-toolbar (separate settings page or just drag to side?)
 - [ ] TTS: experiment with the voice (changing pitch, etc), or maybe try on-device models (Kokoro TTS)
@@ -74,11 +73,10 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - [ ] For area-highlight
       -store it as base64 to the notes, then in the same addHighlightToNote function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
       -add the yellow leftborder which takes to the image highlight on click
-- [ ] see if the liveblocks stuff can be replaced w. sockets [refer](https://www.blocknotejs.org/docs/real-time-collaboration#yjs-providers)
-- [ ] Run the seogets script, maybe try automated reels? (reel.farm)
 - [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
-- [ ] add bm25 along w vector embeddings? https://www.anthropic.com/news/contextual-retrieval#:~:text=BM25%20can%20succeed%20where%20semantic%20embeddings%20fail
-- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, along w separate tab, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using tesseract, (scribe is overkill here)) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f
+- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, along w separate tab, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using tesseract, (scribe is overkill here)) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f. 
+or a simple cmd+k inside a document searches through all the text in the notes and on clicking it focuses that. for images itd have prev stored the ocr-ed text there.
+- [ ] store highlighted images in uploadthing.
 
 ## 🚀 Getting Started
 
