@@ -34,7 +34,7 @@ const UserLibraryPage = () => {
     <div className="mx-auto flex w-full max-w-5xl flex-col px-4 py-2 lg:px-16 mt-2 md:mt-4 xl:mt-6">
       <div className="flex items-start justify-between">
         <div>
-          <p className="mb-1 text-2xl font-semibold tracking-tighter">
+          <p className="mb-1 text-2xl font-semibold tracking-tight">
             Hello, {userName}
           </p>
 
