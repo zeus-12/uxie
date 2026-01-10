@@ -110,6 +110,10 @@ const usePdfReader = ({
       pdfViewer.current = pdfViewerDocument;
       setPageNumberInView(pdfViewerDocument.currentPageNumber);
 
+      if (pdfViewerDocument.currentScale) {
+        setCurrentZoom(pdfViewerDocument.currentScale);
+      }
+
       // @ts-ignore
       const handlePageChanging = (e: PdfViewerEvent) => {
         const pageNumber = e.pageNumber;
@@ -126,10 +130,21 @@ const usePdfReader = ({
         ) {
           pdfViewerDocument.currentPageNumber = lastReadPage;
         }
+
+        if (pdfViewerDocument.currentScale) {
+          setCurrentZoom(pdfViewerDocument.currentScale);
+        }
+      };
+
+      const handleScaleChanging = (e: { scale: number }) => {
+        if (e.scale) {
+          setCurrentZoom(e.scale);
+        }
       };
 
       pdfViewerDocument.eventBus.on("pagechanging", handlePageChanging);
       pdfViewerDocument.eventBus.on("pagesloaded", handlePagesLoaded);
+      pdfViewerDocument.eventBus.on("scalechanging", handleScaleChanging);
     }
   }, [debouncedUpdateLastReadPage, lastReadPage, pageNumberInView]);
 
@@ -159,6 +174,7 @@ const usePdfReader = ({
       clearInterval(intervalId);
       window.PdfViewer?.viewer?.eventBus.off("pagechanging", () => {});
       window.PdfViewer?.viewer?.eventBus.off("pagesloaded", () => {});
+      window.PdfViewer?.viewer?.eventBus.off("scalechanging", () => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

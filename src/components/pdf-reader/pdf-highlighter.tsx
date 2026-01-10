@@ -114,7 +114,6 @@ const PdfHighlighter = ({
       pdfDocument={pdfDocument}
       enableAreaSelection={(event) => event.altKey}
       onScrollChange={resetHash}
-      // pdfScaleValue="page-width"
       scrollRef={(scrollTo) => {
         scrollViewerTo = scrollTo;
         scrollToHighlightFromHash(doc);
