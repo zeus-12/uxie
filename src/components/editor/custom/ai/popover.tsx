@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useCompletion } from "@ai-sdk/react";
 import { useBlockNoteEditor } from "@blocknote/react";
-import { useCompletion } from "ai/react";
 import { useCommandState } from "cmdk";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { Dispatch, SetStateAction, useState } from "react";

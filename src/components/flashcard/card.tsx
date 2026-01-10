@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { flashcardFeedbackSchema } from "@/schema/flashcard";
 import { DeepPartial } from "ai";
-import { experimental_useObject as useObject } from "ai/react";
+import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";

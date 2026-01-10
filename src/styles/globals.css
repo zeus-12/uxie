@@ -195,3 +195,12 @@ select:focus,
 textarea {
   font-size: 16px;
 }
+
+.current-sentence {
+  transition: background-color 0.3s ease-in-out;
+}
+
+.current-word {
+  transition: background-color 0.1s ease-in-out;
+  background-color: rgba(255, 255, 0, 0.5); /* Example word highlight color */
+}

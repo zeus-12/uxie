@@ -1,8 +1,8 @@
 import { env } from "@/env.mjs";
-import { fireworksOld as fireworks } from "@/lib/fireworks";
 import { generateDummyStream } from "@/lib/utils";
 import { completionRouteSchema } from "@/schema/routes";
-import { OpenAIStream, StreamingTextResponse } from "ai";
+import { google } from "@ai-sdk/google";
+import { streamText } from "ai";
 
 export const runtime = "edge";
 export const maxDuration = 30;
@@ -14,8 +14,8 @@ export async function POST(req: Request) {
     const reqBody = await req.json();
     let { prompt } = completionRouteSchema.parse(reqBody);
 
-    const response = await fireworks.chat.completions.create({
-      model: "accounts/fireworks/models/mixtral-8x7b-instruct-hf",
+    const result = streamText({
+      model: google("gemini-2.5-flash"),
       messages: [
         {
           role: "system",
@@ -34,16 +34,11 @@ export async function POST(req: Request) {
         },
       ],
       temperature: 0.7,
-      max_tokens: 400,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      stream: true,
-      n: 1,
+      topP: 1,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
     });
 
-    const stream = OpenAIStream(response);
-
-    return new StreamingTextResponse(stream);
+    return result.toTextStreamResponse();
   }
 }

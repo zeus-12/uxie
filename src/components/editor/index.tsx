@@ -25,7 +25,7 @@ import {
   useBlockNoteEditor,
   useComponentsContext,
 } from "@blocknote/react";
-import { useCompletion } from "ai/react";
+import { useCompletion } from "@ai-sdk/react";
 import {
   Dispatch,
   SetStateAction,

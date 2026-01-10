@@ -1,10 +1,58 @@
 import { env } from "@/env.mjs";
 import { getPineconeClient } from "@/lib/pinecone";
 import { prisma } from "@/server/db";
+import { InferenceClient } from "@huggingface/inference";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
-import { HuggingFaceInferenceEmbeddings } from "langchain/embeddings/hf";
+import { Embeddings } from "langchain/embeddings/base";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
+
+const parseEmbeddingResult = (result: unknown): number[] => {
+  if (Array.isArray(result) && Array.isArray(result[0])) {
+    return result[0] as number[];
+  } else if (Array.isArray(result)) {
+    return result as number[];
+  } else {
+    throw new Error("Invalid embedding format returned from HuggingFace");
+  }
+};
+
+const createHuggingFaceEmbeddings = () => {
+  const hf = new InferenceClient(env.HUGGINGFACE_API_KEY);
+
+  return new (class extends Embeddings {
+    constructor() {
+      super({});
+    }
+
+    async embedDocuments(texts: string[]): Promise<number[][]> {
+      const embeddings = await Promise.all(
+        texts.map(async (text) => {
+          const result = await hf.featureExtraction({
+            model: "BAAI/bge-base-en-v1.5",
+            inputs: text,
+          });
+          return parseEmbeddingResult(result);
+        }),
+      );
+      return embeddings;
+    }
+
+    async embedQuery(text: string): Promise<number[]> {
+      const result = await hf.featureExtraction({
+        model: "BAAI/bge-base-en-v1.5",
+        inputs: text,
+      });
+      return parseEmbeddingResult(result);
+    }
+  })();
+};
+
+// Helper to get Pinecone index
+const getPineconeIndex = () => {
+  const pinecone = getPineconeClient();
+  return pinecone.Index("uxie");
+};
 
 export const vectoriseDocument = async (
   fileUrl: string,
@@ -33,8 +81,7 @@ export const vectoriseDocument = async (
       );
     }
 
-    const pinecone = getPineconeClient();
-    const pineconeIndex = pinecone.Index("uxie");
+    const pineconeIndex = getPineconeIndex();
 
     const textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
@@ -53,9 +100,7 @@ export const vectoriseDocument = async (
       };
     });
 
-    const embeddings = new HuggingFaceInferenceEmbeddings({
-      apiKey: env.HUGGINGFACE_API_KEY,
-    });
+    const embeddings = createHuggingFaceEmbeddings();
 
     await PineconeStore.fromDocuments(combinedData, embeddings, {
       pineconeIndex,
@@ -79,12 +124,12 @@ export const retrieveRelevantDocumentContent = async (
   docId: string,
   question: string,
 ) => {
-  const embeddings = new HuggingFaceInferenceEmbeddings({
-    apiKey: env.HUGGINGFACE_API_KEY,
-  });
+  if (!env.HUGGINGFACE_API_KEY) {
+    throw new Error("HUGGINGFACE_API_KEY is not configured");
+  }
 
-  const pinecone = getPineconeClient();
-  const pineconeIndex = pinecone.Index("uxie");
+  const embeddings = createHuggingFaceEmbeddings();
+  const pineconeIndex = getPineconeIndex();
 
   const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
     pineconeIndex,

@@ -37,10 +37,12 @@ export const messageRouter = createTRPCRouter({
         });
       }
 
-      return res?.messages?.map((c) => ({
-        id: c.id,
-        content: c.text,
-        role: c.userId ? "user" : "assistant",
-      }));
+      return res?.messages?.map((c) => {
+        return {
+          id: c.id,
+          parts: c.parts,
+          role: c.userId ? "user" : "assistant",
+        };
+      });
     }),
 });
