@@ -54,7 +54,6 @@ export async function POST(req: Request, res: Response) {
       if (!isPreviousMessageToolInvoked) {
         await prisma.message.create({
           data: {
-            text: messages[messages.length - 1].content,
             documentId: docId,
             userId: session?.user.id,
           },
@@ -82,7 +81,6 @@ export async function POST(req: Request, res: Response) {
         onFinish: async ({ text }) => {
           await prisma.message.create({
             data: {
-              text,
               userId: null,
               documentId: docId,
             },
