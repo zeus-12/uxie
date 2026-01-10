@@ -51,18 +51,20 @@ export const copyTextToClipboard = (
 export const isDev = env.NEXT_PUBLIC_ENV === "development";
 
 export const generateDummyStream = () =>
-  new ReadableStream({
-    async start(controller) {
-      let i = 0;
-      while (i < 15) {
-        controller.enqueue(`${i}`);
-        i++;
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      controller.enqueue(`done, time: ${new Date().toISOString()}`);
-      controller.close();
-    },
-  });
+  new Response(
+    new ReadableStream({
+      async start(controller) {
+        let i = 0;
+        while (i < 15) {
+          controller.enqueue(`${i}`);
+          i++;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        controller.enqueue(`done, time: ${new Date().toISOString()}`);
+        controller.close();
+      },
+    }),
+  );
 
 export const isBrowser = typeof window !== "undefined";
 
