@@ -9,6 +9,7 @@ import {
   BackgroundControlsIcon,
 } from "./background-controls";
 import { PageControlsContent, PageControlsIcon } from "./page-controls";
+import { SettingsControls } from "./settings-controls";
 import { TTSControlsContent, TTSControlsIcon } from "./tts-controls";
 import { ZoomControlsContent, ZoomControlsIcon } from "./zoom-controls";
 
@@ -122,10 +123,15 @@ const BottomToolbar = ({
         icon: <BackgroundControlsIcon pageColour={pageColour} />,
         clickOutsideToClose: true,
       },
+      {
+        children: null,
+        icon: <SettingsControls />,
+        clickOutsideToClose: false,
+      },
       ...(isSmallScreen
         ? [
             {
-              children: <></>,
+              children: null,
               icon: (
                 <div className="md:hidden">
                   <SidebarDrawer

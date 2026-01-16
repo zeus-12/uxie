@@ -4,12 +4,13 @@ import {
   TextSelectionPopover,
 } from "@/components/pdf-reader/highlight-popover";
 import { api } from "@/lib/api";
-import { useChatStore } from "@/lib/store";
+import { useChatStore, usePdfSettingsStore } from "@/lib/store";
 import { AppRouter } from "@/server/api/root";
 import { AddHighlightType } from "@/types/highlight";
 import { HighlightTypeEnum } from "@prisma/client";
 import { inferRouterOutputs } from "@trpc/server";
 import { type PDFDocumentProxy } from "pdfjs-dist";
+import { useEffect } from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -69,6 +70,28 @@ const PdfHighlighter = ({
   const highlights = doc.highlights ?? [];
   const utils = api.useContext();
   const { sendMessage } = useChatStore();
+  const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
+
+  useEffect(() => {
+    const handleLinkClick = (event: MouseEvent) => {
+      if (linksDisabled) {
+        const target = event.target;
+
+        if (!(target instanceof HTMLElement)) return;
+
+        const linkElement = target.closest(".annotationLayer a[href]");
+        if (linkElement) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }
+    };
+
+    document.addEventListener("click", handleLinkClick, true);
+    return () => {
+      document.removeEventListener("click", handleLinkClick, true);
+    };
+  }, [linksDisabled]);
 
   const { mutate: updateAreaHighlight } =
     api.highlight.updateAreaHighlight.useMutation({

@@ -182,7 +182,7 @@ export default function Editor({
     if (!editor) return;
 
     setEditor(editor);
-  }, [editor]);
+  }, [editor, setEditor]);
 
   const prev = useRef("");
 

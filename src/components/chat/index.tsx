@@ -1,5 +1,6 @@
 import FeatureCard from "@/components/other/feature-card";
 import BouncingLoader from "@/components/ui/bouncing-loader";
+import { Button } from "@/components/ui/button";
 import { SpinnerCentered } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
 import { useChatStore } from "@/lib/store";
@@ -151,15 +152,17 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
             autoFocus
             maxRows={4}
           />
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             className="group w-fit px-2 bg-gray-100 rounded-md m-[2px]"
             type={isLoading ? "button" : "submit"}
+            onClick={isLoading ? stop : undefined}
           >
             {isLoading ? (
               <BanIcon
                 size={24}
                 className="text-gray-500 group-hover:text-gray-700"
-                onClick={stop}
               />
             ) : (
               <ArrowUp
@@ -167,7 +170,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
                 className="text-gray-500 group-hover:text-gray-700"
               />
             )}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -204,7 +207,7 @@ function MessageBubble({
 }
 
 const TOOL_NAME_TO_MESSAGE: Record<string, string> = {
-  getInformation: "Reading docs...",
+  getInformation: "Reading the document...",
 };
 
 interface MessagePart {
