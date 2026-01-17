@@ -253,5 +253,13 @@ textarea {
 .bionic-reading-active .textLayer > span {
   color: black !important;
   font-family: "BR Sans", sans-serif !important;
-  /* letter-spacing: 0.3px; */
+  font-size: 100% !important;
+}
+
+.bionic-reading-active .Highlight__part {
+  background: rgba(255, 226, 143, 0.4) !important;
+}
+
+.bionic-reading-active .AreaHighlight__part {
+  background-color: rgba(252, 232, 151, 0.4) !important;
 }
