@@ -1,5 +1,6 @@
 import { BlockNoteEditorType } from "@/types/editor";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 type FeaturesStore = {
   inViewFeature: number | null;
@@ -19,7 +20,7 @@ type EditorStore = {
 
 export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
   editor: null,
-  setEditor: (editor: any) => set({ editor }),
+  setEditor: (editor) => set({ editor }),
 }));
 
 interface ChatMessageStore {
@@ -31,3 +32,31 @@ export const useChatStore = create<ChatMessageStore>((set) => ({
   setSendMessage: (sendMessage: (message: string) => void) =>
     set({ sendMessage }),
 }));
+
+interface PdfSettingsStore {
+  linksDisabled: boolean;
+  toggleLinksDisabled: () => void;
+  setLinksDisabled: (disabled: boolean) => void;
+  bionicReadingEnabled: boolean;
+  toggleBionicReading: () => void;
+  sidebarHidden: boolean;
+  toggleSidebar: () => void;
+}
+
+export const usePdfSettingsStore = create<PdfSettingsStore>()(
+  persist(
+    (set) => ({
+      linksDisabled: false,
+      toggleLinksDisabled: () =>
+        set((state) => ({ linksDisabled: !state.linksDisabled })),
+      setLinksDisabled: (disabled) => set({ linksDisabled: disabled }),
+      bionicReadingEnabled: false,
+      toggleBionicReading: () =>
+        set((state) => ({ bionicReadingEnabled: !state.bionicReadingEnabled })),
+      sidebarHidden: false,
+      toggleSidebar: () =>
+        set((state) => ({ sidebarHidden: !state.sidebarHidden })),
+    }),
+    { name: "pdf-settings" },
+  ),
+);

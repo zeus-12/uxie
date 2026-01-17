@@ -5,6 +5,7 @@ import {
 } from "@/components/pdf-reader/constants";
 import { api } from "@/lib/api";
 import { PDF_BACKGROUND_COLOURS } from "@/lib/constants";
+import { usePdfSettingsStore } from "@/lib/store";
 import { log } from "@/lib/utils";
 import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -93,6 +94,10 @@ const usePdfReader = ({
 
   // only for text reading mode
   const selectedTextToRead = useRef("");
+
+  const bionicReadingEnabled = usePdfSettingsStore(
+    (state) => state.bionicReadingEnabled,
+  );
 
   const { mutateAsync } = api.document.updateLastReadPage.useMutation();
 
@@ -193,6 +198,31 @@ const usePdfReader = ({
 
     return () => observer.disconnect();
   }, [pageColour]);
+
+  useEffect(() => {
+    const applyBionicClass = () => {
+      const viewerContainer = document.querySelector(".pdfViewer");
+      if (viewerContainer) {
+        if (bionicReadingEnabled) {
+          viewerContainer.classList.add("bionic-reading-active");
+        } else {
+          viewerContainer.classList.remove("bionic-reading-active");
+        }
+        return true;
+      }
+      return false;
+    };
+
+    if (applyBionicClass()) return;
+
+    const intervalId = setInterval(() => {
+      if (applyBionicClass()) {
+        clearInterval(intervalId);
+      }
+    }, 100);
+
+    return () => clearInterval(intervalId);
+  }, [bionicReadingEnabled]);
 
   const highlightInsideSameBlockByIndexes = ({
     startIndex,
@@ -695,13 +725,13 @@ const usePdfReader = ({
   const applyBackgroundColour = (colour: string) => {
     const textLayers = document.querySelectorAll(".textLayer");
     textLayers.forEach((layer) => {
-      (layer as HTMLElement).style.backgroundColor = colour;
+      if (layer instanceof HTMLElement) {
+        layer.style.backgroundColor = colour;
+      }
     });
 
-    const pdfViewer = document.querySelector(
-      ".pdfViewer.removePageBorders",
-    ) as HTMLElement;
-    if (pdfViewer) {
+    const pdfViewer = document.querySelector(".pdfViewer.removePageBorders");
+    if (pdfViewer instanceof HTMLElement) {
       pdfViewer.style.backgroundColor = colour;
     }
   };

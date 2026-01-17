@@ -1,5 +1,6 @@
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
 import { useBlocknoteEditorStore } from "@/lib/store";
+import { useCompletion } from "@ai-sdk/react";
 import {
   BlockNoteEditor,
   filterSuggestionItems,
@@ -25,7 +26,6 @@ import {
   useBlockNoteEditor,
   useComponentsContext,
 } from "@blocknote/react";
-import { useCompletion } from "@ai-sdk/react";
 import {
   Dispatch,
   SetStateAction,

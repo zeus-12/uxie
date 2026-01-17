@@ -99,25 +99,29 @@ const PdfHighlighter = ({
         await utils.document.getDocData.cancel();
         const prevData = utils.document.getDocData.getData();
 
-        // @ts-ignore
         utils.document.getDocData.setData({ docId: doc.id }, (old) => {
-          if (!old) return undefined;
+          if (!old) return old;
           return {
             ...old,
-            highlights: [
-              ...old.highlights.filter(
-                (highlight) => highlight.id !== newHighlight.id,
-              ),
-              {
-                position: {
-                  boundingRect: newHighlight.boundingRect,
-                  pageNumber: newHighlight.pageNumber,
-                  rects: [],
-                },
-              },
-            ],
+            highlights: old.highlights.map((h) =>
+              h.id === newHighlight.id
+                ? {
+                    ...h,
+                    position: {
+                      ...h.position,
+                      boundingRect: {
+                        ...h.position.boundingRect,
+                        ...newHighlight.boundingRect,
+                      },
+                      pageNumber: newHighlight.pageNumber ?? null,
+                      rects: [],
+                    },
+                  }
+                : h,
+            ),
           };
         });
+
         return { prevData };
       },
       onError(err, newPost, ctx) {
@@ -222,4 +226,5 @@ const PdfHighlighter = ({
     />
   );
 };
+
 export default PdfHighlighter;

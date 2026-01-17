@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  scrollbar-gutter: stable;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -91,6 +87,7 @@ html {
   background: transparent !important;
   z-index: 10;
 }
+
 .tippy-arrow {
   display: none !important;
 }
@@ -203,4 +200,58 @@ textarea {
 .current-word {
   transition: background-color 0.1s ease-in-out;
   background-color: rgba(255, 255, 0, 0.5); /* Example word highlight color */
+}
+
+/* Smooth transitions for resizable panels */
+[data-panel-group] {
+  transition: all 0.3s ease-in-out;
+}
+
+[data-panel] {
+  transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Ensure panels animate smoothly */
+[data-panel-id] {
+  transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* PDF links disabled styling */
+.annotationLayer a[href] {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.annotationLayer a[href]:has(~ *) {
+  pointer-events: auto;
+}
+
+/* Bionic reading fonts */
+@font-face {
+  font-family: "BR Sans";
+  src: url("/fonts/br-sans.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "BR Serif";
+  src: url("/fonts/br-serif.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "BR Mono";
+  src: url("/fonts/br-mono.ttf") format("truetype");
+}
+
+/* Bionic reading mode */
+.bionic-reading-active .canvasWrapper {
+  visibility: hidden;
+}
+
+.bionic-reading-active .textLayer {
+  opacity: 1 !important;
+}
+
+.bionic-reading-active .textLayer > span {
+  color: black !important;
+  font-family: "BR Sans", sans-serif !important;
+  /* letter-spacing: 0.3px; */
 }

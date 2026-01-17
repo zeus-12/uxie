@@ -9,6 +9,7 @@ import {
   BackgroundControlsIcon,
 } from "./background-controls";
 import { PageControlsContent, PageControlsIcon } from "./page-controls";
+import { PanelToggle } from "./panel-toggle";
 import { SettingsControls } from "./settings-controls";
 import { TTSControlsContent, TTSControlsIcon } from "./tts-controls";
 import { ZoomControlsContent, ZoomControlsIcon } from "./zoom-controls";
@@ -128,6 +129,15 @@ const BottomToolbar = ({
         icon: <SettingsControls />,
         clickOutsideToClose: false,
       },
+      ...(!isSmallScreen
+        ? [
+            {
+              children: null,
+              icon: <PanelToggle />,
+              clickOutsideToClose: false,
+            },
+          ]
+        : []),
       ...(isSmallScreen
         ? [
             {

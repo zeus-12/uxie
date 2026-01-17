@@ -81,10 +81,7 @@ const UploadFileModal = ({
           // };
           scribe.opt.displayMode = "invis";
 
-          await scribe.importFiles(
-            files,
-            // params
-          );
+          await scribe.importFiles(files);
           await scribe.recognize({
             mode: "quality",
             langs: ["eng"],
@@ -251,12 +248,17 @@ const UploadFileModal = ({
                 checked={doOcr}
                 onCheckedChange={(c) => setDoOcr(!!c)}
               />
-              <label
-                htmlFor="ocr"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                OCR for scanned documents. (Beta - really slow 🐢)
-              </label>
+              <div>
+                <label
+                  htmlFor="ocr"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  OCR Pdf
+                </label>
+                <span className="block text-muted-foreground text-xs">
+                  Convert scanned PDF into searchable and selectable document.
+                </span>
+              </div>
             </div>
           </div>
 
