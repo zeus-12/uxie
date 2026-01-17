@@ -94,7 +94,7 @@ const HeroSection = () => {
           </div>
         </a>
 
-        <Balancer className="2xl:text-[5rem] mt-2 max-w-4xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
+        <Balancer className="mt-2 max-w-4xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
           <span className="opacity-[.32]">The</span>{" "}
           <EmojiAnimate icons={aiIcons} text="AI-Powered PDF Reader" />{" "}
           <span className="opacity-[.32]">That</span>{" "}
