@@ -1,5 +1,5 @@
-import { usePdfSettingsStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
+import { usePdfSettingsStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { Settings } from "lucide-react";
@@ -49,9 +49,10 @@ export const SettingsControls = () => {
       enabled: linksDisabled,
       onToggle: toggleLinksDisabled,
     },
+    // also give user option to choose font -> mono/serif/sans
     {
       id: "bionic-reading",
-      label: "Bionic reading",
+      label: "Bionic reading (BETA)",
       enabled: bionicReadingEnabled,
       onToggle: toggleBionicReading,
     },
@@ -97,7 +98,9 @@ export const SettingsControls = () => {
                   <span
                     className={cn(
                       "select-none whitespace-nowrap text-sm transition-colors",
-                      option.enabled ? "text-foreground" : "text-muted-foreground"
+                      option.enabled
+                        ? "text-foreground"
+                        : "text-muted-foreground",
                     )}
                   >
                     {option.label}
@@ -107,7 +110,7 @@ export const SettingsControls = () => {
                       "h-2 w-2 rounded-full transition-all duration-200",
                       option.enabled
                         ? "scale-100 bg-primary"
-                        : "scale-75 bg-muted-foreground/30"
+                        : "scale-75 bg-muted-foreground/30",
                     )}
                   />
                 </div>
