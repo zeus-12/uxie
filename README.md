@@ -50,22 +50,23 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - PDF text-to-speech (English only) with sentence-by-sentence highlighting. (spent insane amt of hours on this, and super happy with how it turned out.)
 - PDF OCR support (English only)
 - Craft simple flashcards to test your knowledge, answer questions, and receive instant feedback through AI evaluation.
+- Bionic reading, disable hyperlinks, full-screen pdf view.
+- SOON => Semantic search, improved RAG (with better results & listing sources -> w intuitive ui), better tts (w models running in browser), pdf summary, & more :)
 
 ### Bugs
 
 - [ ] `addHighlightToNote` doesn't work on small screens w sidebar.
 - [ ] add proper prompts for each item in custom/ai/popover.tsx
-- [ ] display a x% done in /f.
-- [ ] build a category system for documents => doesn't matter if ui is bad, just build it
+- [ ] display a x% done in /f, (& nice book like ui that opens the pdf on hover)
+- [ ] build a category/tags system for documents => doesn't matter if ui is bad, just build it
 - [ ] implement ratelimit (esp for everything ai related) using redis kv => checkout upstash
 - [ ] add download flashcards in csv,anki format ( apkg format), also add dl notes in pdf format ([html2pdf lib](https://ekoopmans.github.io/html2pdf.js/) should work)
-- [ ] better error,loading pages => abstract this logic to hook / component
+- [ ] better error,loading pages
 - [ ] editor loads with empty data before the data is loaded.
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 - [ ] abstract `userIsOwner` and `userHasAccess` (either collab or owner) logic.
       solution seems to be => create separate helper functions (take where, select, etc as params: use relevant prisma types to match each.)
 - [ ] some way to hide the bottom-toolbar (separate settings page or just drag to side?)
-- [ ] TTS: experiment with the voice (changing pitch, etc), or maybe try on-device models (Kokoro TTS)
 
 ## New ideas
 
@@ -74,8 +75,8 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
       -store it as base64 to the notes, then in the same addHighlightToNote function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
       -add the yellow leftborder which takes to the image highlight on click
 - [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
-- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, along w separate tab, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using tesseract, (scribe is overkill here)) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f. 
-or a simple cmd+k inside a document searches through all the text in the notes and on clicking it focuses that. for images itd have prev stored the ocr-ed text there.
+- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, along w separate tab, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using tesseract, (scribe is overkill here)) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f.
+      or a simple cmd+k inside a document searches through all the text in the notes and on clicking it focuses that. for images itd have prev stored the ocr-ed text there.
 - [ ] store highlighted images in uploadthing.
 
 ## 🚀 Getting Started
@@ -93,7 +94,6 @@ Once you have the application running, you can start using it by following these
 - A [Supabase](https://supabase.com/) account
 - A [Pinecone](https://www.pinecone.io/) account
 - An [Uploadthing](https://uploadthing.com/) account
-- A [Fireworks AI](https://fireworks.ai/) account
 
 ### Installation
 
