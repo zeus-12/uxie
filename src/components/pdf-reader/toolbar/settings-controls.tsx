@@ -9,6 +9,7 @@ import { useOnClickOutside } from "usehooks-ts";
 interface SettingOption {
   id: string;
   label: string;
+  description?: string;
   enabled: boolean;
   onToggle: () => void;
 }
@@ -53,6 +54,7 @@ export const SettingsControls = () => {
     {
       id: "bionic-reading",
       label: "Bionic reading (BETA)",
+      description: "If it overlaps, try increasing the zoom.",
       enabled: bionicReadingEnabled,
       onToggle: toggleBionicReading,
     },
@@ -85,32 +87,39 @@ export const SettingsControls = () => {
             className="absolute bottom-full mb-3 left-0 z-50"
             ref={containerRef}
           >
-            <div className="rounded-lg border bg-background shadow-lg">
+            <div className="rounded-lg border bg-background shadow-lg divide-y">
               {settingsOptions.map((option) => (
                 <div
                   key={option.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg px-4 py-2.5 transition-colors hover:bg-muted/50"
+                  className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50 justify-between"
                   onClick={(e) => {
                     e.stopPropagation();
                     option.onToggle();
                   }}
                 >
-                  <span
-                    className={cn(
-                      "select-none whitespace-nowrap text-sm transition-colors",
-                      option.enabled
-                        ? "text-foreground"
-                        : "text-muted-foreground",
+                  <div>
+                    <span
+                      className={cn(
+                        "select-none whitespace-nowrap text-sm transition-colors",
+                        option.enabled
+                          ? "text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {option.label}
+                    </span>
+                    {option.description && (
+                      <span className="text-xs text-muted-foreground block">
+                        {option.description}
+                      </span>
                     )}
-                  >
-                    {option.label}
-                  </span>
+                  </div>
                   <div
                     className={cn(
-                      "h-2 w-2 rounded-full transition-all duration-200",
+                      "h-2 w-2 rounded-full transition-all duration-200 flex-shrink-0",
                       option.enabled
                         ? "scale-100 bg-primary"
-                        : "scale-75 bg-muted-foreground/30",
+                        : "scale-95 bg-muted-foreground/30",
                     )}
                   />
                 </div>
