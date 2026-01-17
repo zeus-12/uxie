@@ -19,6 +19,15 @@ const config = {
         }),
       );
     }
+
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      {
+        module: /scribe\.js-ocr/,
+        message: /topLevelAwait|async\/await/,
+      },
+    ];
+
     return config;
   },
 };
