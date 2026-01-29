@@ -24,6 +24,8 @@ export const BackgroundControlsContent = ({
   );
 };
 
+const OFFSHADE_COLOUR = "#F3F4F6";
+
 export const BackgroundControlsIcon = ({
   pageColour,
 }: {
@@ -36,7 +38,7 @@ export const BackgroundControlsIcon = ({
       className="w-6 h-6"
       style={{
         backgroundColor:
-          pageColour === PDF_BACKGROUND_COLOURS[0] ? "#F3F4F6" : pageColour,
+          pageColour === PDF_BACKGROUND_COLOURS[0] ? OFFSHADE_COLOUR : pageColour,
       }}
     />
   );

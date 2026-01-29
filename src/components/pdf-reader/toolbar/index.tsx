@@ -1,6 +1,8 @@
 import { READING_STATUS } from "@/components/pdf-reader/constants";
+import { RsvpReader } from "@/components/pdf-reader/rsvp-reader";
 import { ExpandableTabs, Tab } from "@/components/ui/expandable-tabs";
 import SidebarDrawer from "@/components/workspace/sidebar-drawer";
+import { AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { useMediaQuery } from "usehooks-ts";
@@ -23,16 +25,15 @@ const BottomToolbar = ({
   resumeReading,
   stopReading,
   pauseReading,
-  canEdit,
-  isOwner,
-  isVectorised,
-  note,
+  skipSentence,
   totalPages,
   onZoomChange,
   onPageChange,
   currentZoom,
   pageColour,
   pageColourChangeHandler,
+  followAlongEnabled,
+  toggleFollowAlong,
 }: {
   pageNumberInView: number;
   currentReadingSpeed: number;
@@ -41,22 +42,18 @@ const BottomToolbar = ({
   resumeReading: () => void;
   stopReading: () => void;
   pauseReading: () => void;
+  skipSentence: () => void;
   startWordByWordHighlighting: (isContinueReading: boolean) => Promise<void>;
-  canEdit: boolean;
-  isOwner: boolean;
-  isVectorised: boolean;
-  note: string | null;
   totalPages: number;
   onZoomChange: (zoom: number) => void;
   onPageChange: (page: number) => void;
   currentZoom: number;
   pageColour: string;
   pageColourChangeHandler: (colour: string) => void;
+  followAlongEnabled: boolean;
+  toggleFollowAlong: () => void;
 }) => {
   const [pageNumber, setPageNumber] = useState(1);
-
-  // for the mobile-view drawer
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // update if tailwind config is changed
   const isSmallScreen = useMediaQuery("(max-width: 767px)");
@@ -109,6 +106,9 @@ const BottomToolbar = ({
             resumeReading={resumeReading}
             stopReading={stopReading}
             pauseReading={pauseReading}
+            skipSentence={skipSentence}
+            followAlongEnabled={followAlongEnabled}
+            toggleFollowAlong={toggleFollowAlong}
           />
         ),
         icon: <TTSControlsIcon />,
@@ -144,14 +144,7 @@ const BottomToolbar = ({
               children: null,
               icon: (
                 <div className="md:hidden">
-                  <SidebarDrawer
-                    isOwner={isOwner}
-                    isVectorised={isVectorised}
-                    canEdit={canEdit}
-                    isOpen={isSidebarOpen}
-                    setIsOpen={setIsSidebarOpen}
-                    note={note}
-                  />
+                  <SidebarDrawer />
                 </div>
               ),
               clickOutsideToClose: false,
@@ -166,11 +159,14 @@ const BottomToolbar = ({
     currentReadingSpeed,
     readingStatus,
     pageColour,
-    isSidebarOpen,
+    followAlongEnabled,
   ]);
 
   return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-50">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+      <AnimatePresence>
+        <RsvpReader pageNumber={pageNumberInView} pageCount={totalPages} />
+      </AnimatePresence>
       <ExpandableTabs tabs={tabs} />
     </div>
   );
