@@ -1,4 +1,4 @@
-import type { GenerateOptions, KokoroTTS } from "kokoro-js";
+import { type GenerateOptions, KokoroTTS } from "kokoro-js";
 import { detectWebGPU } from "..";
 import type {
   TTSPlaybackState,
@@ -81,8 +81,6 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     this.onLoadProgress?.({ status: isFromCache ? "loading" : "downloading" });
 
     const device = (await detectWebGPU()) ? "webgpu" : "wasm";
-
-    const { KokoroTTS } = await import("kokoro-js");
 
     this.tts = await KokoroTTS.from_pretrained(
       "onnx-community/Kokoro-82M-v1.0-ONNX",
