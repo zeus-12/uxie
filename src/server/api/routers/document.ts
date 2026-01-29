@@ -1,5 +1,6 @@
 import { PLANS } from "@/lib/constants";
 import { generateAndUploadCover } from "@/lib/pdf-cover";
+import { stripTextFromEnd } from "@/lib/utils";
 import { vectoriseDocument } from "@/lib/vectorise";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { CollaboratorRole } from "@prisma/client";
@@ -375,11 +376,16 @@ export const documentRouter = createTRPCRouter({
         const pageLevelDocs = await loader.load();
         const numPages = pageLevelDocs.length;
 
-        const coverImageUrl = await generateAndUploadCover(arrayBuffer, input.title);
+        const coverImageUrl = await generateAndUploadCover(
+          arrayBuffer,
+          input.title,
+        );
+
+        const title = stripTextFromEnd(input.title, ".pdf");
 
         const newFile = await ctx.prisma.document.create({
           data: {
-            title: input.title,
+            title,
             url: input.url,
             isUploaded: false,
             pageCount: numPages,
@@ -463,6 +469,50 @@ export const documentRouter = createTRPCRouter({
         },
         data: {
           lastReadPage: input.lastReadPage,
+        },
+      });
+
+      return true;
+    }),
+
+  updateTitle: protectedProcedure
+    .input(
+      z.object({
+        docId: z.string(),
+        title: z.string().min(1).max(255),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.docId,
+          OR: [
+            { ownerId: ctx.session.user.id },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                  role: CollaboratorRole.EDITOR,
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Document not found or you do not have permission to edit.",
+        });
+      }
+
+      await ctx.prisma.document.update({
+        where: {
+          id: input.docId,
+        },
+        data: {
+          title: input.title,
         },
       });
 

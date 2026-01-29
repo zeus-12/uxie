@@ -12,7 +12,7 @@ import { inferRouterOutputs } from "@trpc/server";
 import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const addHighlightToNotes = async (
@@ -108,6 +108,7 @@ const DocViewer = ({
   const { query, isReady } = useRouter();
 
   const docId = query?.docId as string;
+  const utils = api.useContext();
 
   const { mutate: addHighlightMutation } = api.highlight.add.useMutation({
     async onMutate(newHighlight) {
@@ -178,10 +179,6 @@ const DocViewer = ({
     },
   });
 
-  const { editor } = useBlocknoteEditorStore();
-
-  const utils = api.useContext();
-
   useEffect(() => {
     const scrollToHighlightFromHash = () => {};
 
@@ -208,6 +205,8 @@ const DocViewer = ({
       pageNumber: position.pageNumber,
       rects: position.rects,
     });
+
+    const editor = useBlocknoteEditorStore.getState().editor;
 
     if (isTextHighlight) {
       if (!content.text) return;
@@ -258,9 +257,7 @@ const DocViewer = ({
           <ChevronLeftIcon className="mr-2 h-4 w-4" />
         </Link>
 
-        <p className="line-clamp-1 font-semibold">
-          {stripTextFromEnd(doc?.title, ".pdf")}
-        </p>
+        <Title title={doc?.title} canEdit={canEdit} docId={docId} />
       </div>
       <div className="relative h-full w-full">
         <PdfReader
@@ -269,6 +266,105 @@ const DocViewer = ({
           addHighlight={addHighlight}
         />
       </div>
+    </div>
+  );
+};
+
+const Title = ({
+  canEdit,
+  title,
+  docId,
+}: {
+  canEdit: boolean;
+  title: string | null;
+  docId: string;
+}) => {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const displayTitle = stripTextFromEnd(title, ".pdf");
+  const [titleValue, setTitleValue] = useState(displayTitle);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const utils = api.useContext();
+
+  const { mutate: updateTitleMutation } = api.document.updateTitle.useMutation({
+    async onMutate(newData) {
+      await utils.document.getDocData.cancel();
+      const prevData = utils.document.getDocData.getData({ docId });
+
+      utils.document.getDocData.setData({ docId }, (old) => {
+        if (!old) return undefined;
+        return {
+          ...old,
+          title: newData.title,
+        };
+      });
+
+      return { prevData };
+    },
+    onError(err, _newData, ctx) {
+      toast.error("Failed to update title");
+      utils.document.getDocData.setData({ docId }, ctx?.prevData);
+    },
+    onSettled() {
+      utils.document.getDocData.invalidate();
+    },
+  });
+
+  const handleTitleSave = () => {
+    const trimmedTitle = titleValue.trim();
+    if (!trimmedTitle) {
+      setTitleValue(displayTitle);
+      setIsEditingTitle(false);
+      return;
+    }
+
+    if (trimmedTitle !== displayTitle) {
+      updateTitleMutation({ docId, title: trimmedTitle });
+    }
+    setIsEditingTitle(false);
+  };
+
+  useEffect(() => {
+    setTitleValue(displayTitle);
+  }, [displayTitle]);
+
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  return (
+    <div className="flex-1 min-w-0">
+      {isEditingTitle ? (
+        <input
+          ref={titleInputRef}
+          type="text"
+          value={titleValue}
+          onChange={(e) => setTitleValue(e.target.value)}
+          onBlur={handleTitleSave}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleTitleSave();
+            } else if (e.key === "Escape") {
+              setTitleValue(displayTitle);
+              setIsEditingTitle(false);
+            }
+          }}
+          className="w-full font-semibold bg-transparent border-none outline-none focus:ring-0 px-1 -mx-1 leading-normal"
+        />
+      ) : (
+        <p
+          className={cn(
+            "line-clamp-1 font-semibold leading-normal px-1 -mx-1 rounded",
+            canEdit && "cursor-pointer hover:bg-muted/50",
+          )}
+          onClick={() => canEdit && setIsEditingTitle(true)}
+          title={canEdit ? "Click to edit" : undefined}
+        >
+          {displayTitle}
+        </p>
+      )}
     </div>
   );
 };
