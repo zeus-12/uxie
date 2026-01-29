@@ -106,7 +106,15 @@ const UserLibrarySkeleton = () => {
         <Skeleton className="h-10 w-full my-4" />
         <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="h-16 w-full" />
+            <div
+              key={index}
+              className="flex flex-col overflow-hidden rounded-md border border-gray-200"
+            >
+              <Skeleton className="aspect-[3/4] w-full" />
+              <div className="flex flex-col gap-1 p-2.5">
+                <Skeleton className="h-5 w-3/4" />
+              </div>
+            </div>
           ))}
         </div>
       </div>
