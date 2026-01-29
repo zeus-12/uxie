@@ -20,6 +20,8 @@ export const userRouter = createTRPCRouter({
             id: true,
             ownerId: true,
             coverImageUrl: true,
+            pageCount: true,
+            lastReadPage: true,
           },
         },
         collaboratorateddocuments: {
@@ -32,6 +34,8 @@ export const userRouter = createTRPCRouter({
                 id: true,
                 ownerId: true,
                 coverImageUrl: true,
+                pageCount: true,
+                lastReadPage: true,
               },
             },
           },
@@ -51,6 +55,8 @@ export const userRouter = createTRPCRouter({
       isVectorised: doc.isVectorised,
       isCollab: doc.ownerId !== ctx?.session?.user?.id,
       coverImageUrl: doc.coverImageUrl,
+      pageCount: doc.pageCount,
+      lastReadPage: doc.lastReadPage,
     }));
   }),
   submitFeedback: publicProcedure

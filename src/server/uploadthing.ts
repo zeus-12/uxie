@@ -1,5 +1,6 @@
 import { FREE_PLAN, PLANS } from "@/lib/constants";
 import { generateAndUploadCover } from "@/lib/pdf-cover";
+import { stripTextFromEnd } from "@/lib/utils";
 import { getServerAuthSession } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
@@ -53,7 +54,12 @@ export const docUploader = {
         const pageLevelDocs = await loader.load();
         const numPages = pageLevelDocs.length;
 
-        const coverImageUrl = await generateAndUploadCover(arrayBuffer, file.name);
+        const coverImageUrl = await generateAndUploadCover(
+          arrayBuffer,
+          file.name,
+        );
+
+        const title = stripTextFromEnd(file.name, ".pdf");
 
         await prisma.document.create({
           data: {
@@ -63,7 +69,7 @@ export const docUploader = {
               },
             },
             url: file.url,
-            title: file.name,
+            title,
             pageCount: numPages,
             coverImageUrl: coverImageUrl ?? "",
           },
