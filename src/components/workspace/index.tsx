@@ -6,40 +6,26 @@ import {
 } from "@/components/ui/resizable";
 import { SpinnerPage } from "@/components/ui/spinner";
 import Sidebar from "@/components/workspace/sidebar";
+import { SidebarDrawerContent } from "@/components/workspace/sidebar-drawer";
 import { api } from "@/lib/api";
 import { usePdfSettingsStore } from "@/lib/store";
 import { cn, stripTextFromEnd } from "@/lib/utils";
+import { AppRouter } from "@/server/api/root";
+import { inferRouterOutputs } from "@trpc/server";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import { type ImperativePanelHandle } from "react-resizable-panels";
 import { toast } from "sonner";
+import { useMediaQuery } from "usehooks-ts";
 
-const DocViewerPage = () => {
-  const { query, push } = useRouter();
+function DocViewerContent({
+  doc,
+}: {
+  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
+}) {
   const sidebarHidden = usePdfSettingsStore((state) => state.sidebarHidden);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
-
-  const docId = query.docId as string;
-
-  const {
-    data: doc,
-    isLoading,
-    isError,
-    error,
-  } = api.document.getDocData.useQuery(
-    {
-      docId,
-    },
-    {
-      enabled: !!query?.docId,
-    },
-  );
-
-  useEffect(() => {
-    if (doc) {
-      document.title = stripTextFromEnd(doc.title, ".pdf");
-    }
-  }, [doc]);
+  const isMobile = useMediaQuery("(max-width: 767px)");
 
   useEffect(() => {
     const panel = sidebarPanelRef.current;
@@ -52,35 +38,17 @@ const DocViewerPage = () => {
     }
   }, [sidebarHidden]);
 
-  if (isLoading) {
-    return <SpinnerPage />;
-  }
-
-  if (isError) {
-    if (error?.data?.code === "UNAUTHORIZED") {
-      push("/f");
-
-      toast.error(error.message, {
-        duration: 3000,
-      });
-    }
-    return <>Something went wrong :( </>;
-  }
+  const sidebar = (
+    <Sidebar
+      canEdit={doc.userPermissions.canEdit}
+      isOwner={doc.userPermissions.isOwner}
+      isVectorised={doc.isVectorised}
+      note={doc.note}
+    />
+  );
 
   return (
     <>
-      <div
-        className="md:hidden fixed -left-[9999px] h-0 w-0 overflow-hidden"
-        aria-hidden="true"
-      >
-        <Sidebar
-          canEdit={doc.userPermissions.canEdit}
-          isOwner={doc.userPermissions.isOwner}
-          isVectorised={doc.isVectorised}
-          note={doc.note}
-        />
-      </div>
-
       <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="hd-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
@@ -105,16 +73,56 @@ const DocViewerPage = () => {
           className="hidden md:inline-flex"
         >
           <div className="h-full min-w-[25vw] flex-1">
-            <Sidebar
-              canEdit={doc.userPermissions.canEdit}
-              isOwner={doc.userPermissions.isOwner}
-              isVectorised={doc.isVectorised}
-              note={doc.note}
-            />
+            {!isMobile && sidebar}
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {isMobile && <SidebarDrawerContent>{sidebar}</SidebarDrawerContent>}
     </>
   );
+}
+
+const DocViewerPage = () => {
+  const { query, push } = useRouter();
+
+  const docId = query.docId as string;
+
+  const {
+    data: doc,
+    isLoading,
+    isError,
+    error,
+  } = api.document.getDocData.useQuery(
+    {
+      docId,
+    },
+    {
+      enabled: !!query?.docId,
+    },
+  );
+
+  useEffect(() => {
+    if (doc) {
+      document.title = stripTextFromEnd(doc.title, ".pdf");
+    }
+  }, [doc]);
+
+  if (isLoading) {
+    return <SpinnerPage />;
+  }
+
+  if (isError) {
+    if (error?.data?.code === "UNAUTHORIZED") {
+      push("/f");
+
+      toast.error(error.message, {
+        duration: 3000,
+      });
+    }
+    return <>Something went wrong :( </>;
+  }
+
+  return <DocViewerContent doc={doc} />;
 };
 export default DocViewerPage;

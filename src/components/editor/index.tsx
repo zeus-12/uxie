@@ -30,6 +30,7 @@ import {
   Dispatch,
   SetStateAction,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -107,12 +108,6 @@ export default function Editor({
 
   const { complete, completion, isLoading, stop } = useCompletion({
     onFinish: (_prompt, completion) => {
-      // select the text that was just inserted
-      // editor?._tiptapEditor.commands.setTextSelection({
-      //   from: editor._tiptapEditor.state.selection.from - completion.length,
-      //   to: editor._tiptapEditor.state.selection.from,
-      // });
-
       editor?._tiptapEditor.commands.focus("end");
     },
     onError: (err) => {
@@ -122,45 +117,13 @@ export default function Editor({
     },
   });
 
-  // const generateAiContent = (editor: BlockNoteEditorType) => {
-  //   complete(
-  //     getPrevText(editor._tiptapEditor, {
-  //       chars: 500,
-  //       offset: 1,
-  //     }),
-  //   );
-  // };
-  // const insertAi: ReactSlashMenuItem<typeof blockSchema> = {
-  //   name: "Continue with AI",
-  //   execute: generateAiContent,
-  //   aliases: ["ai", "fill"],
-  //   group: "AI",
-  //   icon: <Bot size={24} />,
-  //   hint: "Continue your idea with some extra inspiration!",
-  // };
-
   const editor = useMemo(() => {
     try {
-      // TODO note is null by "default" => should prob set the default value in prisma schemas as "[]"
       const initialContent = note ? JSON.parse(note) : undefined;
 
       return BlockNoteEditor.create({
         initialContent: initialContent,
         schema,
-        // ...(isDev
-        //   ? {}
-        //   : {
-        //       collaboration: {
-        //         provider,
-        //         fragment: doc.getXmlFragment("document-store"),
-        //         user: {
-        //           name: username || "User",
-        //           color: getRandomLightColor(),
-        //         },
-        //       },
-        //     }),
-
-        // todo replace this with our storage
         uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY as (
           file: File,
           blockId?: string,
@@ -178,7 +141,7 @@ export default function Editor({
     }
   }, [note]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!editor) return;
 
     setEditor(editor);
