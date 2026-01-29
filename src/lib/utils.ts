@@ -98,10 +98,16 @@ export const log = (...args: any[]) => {
   }
 };
 
-export const stripTextFromEnd = (text: string | undefined, end: string) => {
+export const stripTextFromEnd = (
+  text: string | undefined | null,
+  end: string,
+) => {
   if (!text) {
     return "";
   }
 
-  return text.replace(`/\${end}$/`, "");
+  if (text.endsWith(end)) {
+    return text.slice(0, -end.length);
+  }
+  return text;
 };
