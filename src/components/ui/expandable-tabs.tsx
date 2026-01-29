@@ -73,7 +73,7 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
             variants={buttonVariants}
             initial={false}
             animate="animate"
-            custom={selected === index}
+            custom={selected === index && !!tab.children}
             transition={transition}
             className={cn(
               "relative flex items-center mx-1 rounded-xl text-sm font-medium shrink-0",
@@ -82,7 +82,7 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
             <div
               className={cn(
                 "rounded-md flex my-1 transition-colors duration-300 hover:cursor-pointer p-1",
-                selected === index
+                selected === index && !!tab.children
                   ? "text-black"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
@@ -90,8 +90,9 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
             >
               {tab.icon}
             </div>
+
             <AnimatePresence initial={false}>
-              {selected === index && (
+              {selected === index && !!tab.children && (
                 <motion.div
                   variants={spanVariants}
                   initial="initial"

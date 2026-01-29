@@ -1,6 +1,6 @@
 import { READING_STATUS } from "@/components/pdf-reader/constants";
 import { Button } from "@/components/ui/button";
-import { AudioLinesIcon, BanIcon, PauseIcon, PlayIcon } from "lucide-react";
+import { AudioLinesIcon, BanIcon, EyeIcon, PauseIcon, PlayIcon, SkipForwardIcon } from "lucide-react";
 
 export const TTSControlsContent = ({
   readingStatus,
@@ -8,16 +8,22 @@ export const TTSControlsContent = ({
   pauseReading,
   resumeReading,
   stopReading,
+  skipSentence,
   handleReadingSpeedChange,
   currentReadingSpeed,
+  followAlongEnabled,
+  toggleFollowAlong,
 }: {
   readingStatus: READING_STATUS;
   startWordByWordHighlighting: (isContinueReading: boolean) => Promise<void>;
   pauseReading: () => void;
   resumeReading: () => void;
   stopReading: () => void;
+  skipSentence: () => void;
   handleReadingSpeedChange: () => Promise<void>;
   currentReadingSpeed: number;
+  followAlongEnabled: boolean;
+  toggleFollowAlong: () => void;
 }) => {
   return (
     <div className="relative w-full">
@@ -50,6 +56,17 @@ export const TTSControlsContent = ({
         )}
         <div>
           <Button
+            onClick={skipSentence}
+            disabled={readingStatus === READING_STATUS.IDLE}
+            variant="ghost"
+            size="xs"
+            title="Skip sentence"
+          >
+            <SkipForwardIcon className="h-5 w-5" />
+          </Button>
+        </div>
+        <div>
+          <Button
             onClick={stopReading}
             disabled={readingStatus === READING_STATUS.IDLE}
             variant="ghost"
@@ -61,6 +78,16 @@ export const TTSControlsContent = ({
         <div>
           <Button onClick={handleReadingSpeedChange} variant="ghost" size="xs">
             {currentReadingSpeed}x
+          </Button>
+        </div>
+        <div>
+          <Button
+            onClick={toggleFollowAlong}
+            variant={followAlongEnabled ? "default" : "ghost"}
+            size="xs"
+            title={followAlongEnabled ? "Follow along (on)" : "Follow along (off)"}
+          >
+            <EyeIcon className="h-5 w-5" />
           </Button>
         </div>
       </div>

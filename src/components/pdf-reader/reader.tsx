@@ -27,12 +27,15 @@ const PdfReader = ({
     resumeReading,
     stopReading,
     pauseReading,
+    skipSentence,
     handleZoomChange,
     handlePageChange,
     readSelectedText,
     currentZoom,
     pageColour,
     pageColourChangeHandler,
+    followAlongEnabled,
+    toggleFollowAlong,
   } = usePdfReader({
     docId,
     lastReadPage,
@@ -53,9 +56,6 @@ const PdfReader = ({
         )}
       </PdfLoader>
       <BottomToolbar
-        canEdit={doc.userPermissions.canEdit}
-        isOwner={doc.userPermissions.isOwner}
-        isVectorised={doc.isVectorised}
         pageNumberInView={pageNumberInView}
         currentReadingSpeed={currentReadingSpeed}
         readingStatus={readingStatus}
@@ -64,13 +64,15 @@ const PdfReader = ({
         resumeReading={resumeReading}
         stopReading={stopReading}
         pauseReading={pauseReading}
-        note={doc.note}
+        skipSentence={skipSentence}
         totalPages={pageCount}
         onZoomChange={handleZoomChange}
         onPageChange={handlePageChange}
         currentZoom={currentZoom}
         pageColour={pageColour}
         pageColourChangeHandler={pageColourChangeHandler}
+        followAlongEnabled={followAlongEnabled}
+        toggleFollowAlong={toggleFollowAlong}
       />
     </>
   );

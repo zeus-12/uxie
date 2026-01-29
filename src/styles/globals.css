@@ -148,15 +148,24 @@
 
 .current-sentence {
   background-color: #e3ffdd !important;
-  border-radius: 5px;
-  /* padding: 0.5px; */
+  border-radius: 4px;
 }
 
 .current-word {
   background-color: #74f273 !important;
   display: inline !important;
-  border-radius: 5px;
-  /* padding: 0.5px; */
+  border-radius: 4px;
+}
+
+.rsvp-sentence {
+  background-color: #fff3e0 !important; /* Light orange */
+  transition: background-color 20s ease-out;
+}
+
+.rsvp-word {
+  background-color: #ffb74d !important; /* Medium orange - readable but visible */
+  display: inline !important;
+  border-radius: 4px;
 }
 
 @layer utilities {
@@ -191,15 +200,6 @@ input[type="week"],
 select:focus,
 textarea {
   font-size: 16px;
-}
-
-.current-sentence {
-  transition: background-color 0.3s ease-in-out;
-}
-
-.current-word {
-  transition: background-color 0.1s ease-in-out;
-  background-color: rgba(255, 255, 0, 0.5); /* Example word highlight color */
 }
 
 /* Smooth transitions for resizable panels */
