@@ -1,4 +1,10 @@
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { usePdfSettingsStore } from "@/lib/store";
 import { getEngineFromVoice, type TTSVoiceId } from "@/lib/tts";
 import { BROWSER_VOICES } from "@/lib/tts/providers/browser-provider";
@@ -6,7 +12,8 @@ import { KOKORO_VOICES } from "@/lib/tts/providers/kokoro-provider";
 import type { TTSVoice } from "@/lib/tts/types";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { Settings } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { BotIcon, GlobeIcon, SettingsIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
@@ -18,9 +25,9 @@ interface SettingOption {
   onToggle: () => void;
 }
 
-const SettingsIcon = ({ active }: { active: boolean }) => (
+const SettingsIconComponent = ({ active }: { active: boolean }) => (
   <Button variant="ghost" size="xs" className="block">
-    <Settings size={20} className={cn(active && "text-foreground")} />
+    <SettingsIcon size={20} className={cn(active && "text-foreground")} />
   </Button>
 );
 
@@ -89,7 +96,7 @@ export const SettingsControls = () => {
         }}
         className="flex h-full w-full items-center justify-center"
       >
-        <SettingsIcon active={hasActiveSettings} />
+        <SettingsIconComponent active={hasActiveSettings} />
       </div>
       <AnimatePresence>
         {isOpen && (
@@ -109,25 +116,29 @@ export const SettingsControls = () => {
                 <SettingToggleOption key={option.id} option={option} />
               ))}
 
-              <div className="px-4 py-3 space-y-3">
-                <span className="text-xs text-muted-foreground tracking-wide">
+              <div className="px-4 py-3">
+                <span className="text-sm text-gray-800 tracking-wide block mb-2">
                   Text to Speech
                 </span>
 
-                <VoiceSelector
-                  voices={BROWSER_VOICES}
-                  title="Browser"
-                  description="Fast, lower quality"
-                  selectedVoice={voice}
-                  onSelect={setVoice}
-                />
-                <VoiceSelector
-                  voices={LOCAL_VOICES}
-                  title="AI Models"
-                  description="First load takes time, better quality"
-                  selectedVoice={voice}
-                  onSelect={setVoice}
-                />
+                <div className="space-y-1">
+                  <VoiceSelector
+                    voices={BROWSER_VOICES}
+                    icon={GlobeIcon}
+                    title="Browser"
+                    description="Fast, lower quality"
+                    selectedVoice={voice}
+                    onSelect={setVoice}
+                  />
+                  <VoiceSelector
+                    voices={LOCAL_VOICES}
+                    icon={BotIcon}
+                    title="AI Models"
+                    description="First load takes time, better quality"
+                    selectedVoice={voice}
+                    onSelect={setVoice}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
@@ -139,44 +150,84 @@ export const SettingsControls = () => {
 
 const VoiceSelector = ({
   voices,
+  icon: Icon,
   title,
   description,
   selectedVoice,
   onSelect,
 }: {
   voices: TTSVoice<TTSVoiceId>[] | readonly TTSVoice<TTSVoiceId>[];
+  icon: LucideIcon;
   title: string;
   description: string;
   selectedVoice: TTSVoiceId;
   onSelect: (voiceId: TTSVoiceId) => void;
 }) => {
   return (
-    <div>
-      <span className="text-[10px] uppercase text-muted-foreground/70 tracking-wider">
-        {title}
-      </span>
-      <p className="text-[10px] text-muted-foreground mb-2">{description}</p>
-
-      <div className="space-y-1">
-        {voices.map((voice) => (
-          <button
-            key={voice.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(voice.id);
-            }}
+    <>
+      {voices.map((voice) => (
+        <button
+          key={voice.id}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(voice.id);
+          }}
+          className={cn(
+            "w-full p-2 rounded text-left text-sm transition-colors flex items-center gap-2",
+            selectedVoice === voice.id ? "bg-primary/10" : "hover:bg-muted/50",
+          )}
+        >
+          <span
             className={cn(
-              "w-full p-2 rounded text-left text-sm transition-colors",
+              "transition-colors w-12",
               selectedVoice === voice.id
-                ? "bg-primary/10"
-                : "hover:bg-muted/50",
+                ? "text-gray-800"
+                : "text-muted-foreground",
             )}
           >
-            {voice.name}
-          </button>
-        ))}
-      </div>
-    </div>
+            {voice.name.replace(/\s*\((Female|Male)\)/i, "")}
+          </span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className={cn(
+                    "text-sm w-4 text-center",
+                    voice.gender === "female"
+                      ? "text-pink-400"
+                      : "text-blue-400",
+                  )}
+                >
+                  {voice.gender === "female" ? "♀" : "♂"}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p>{voice.gender === "female" ? "Female" : "Male"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="w-4 flex justify-center">
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="font-medium">{title}</p>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <div
+            className={cn(
+              "h-2 w-2 rounded-full transition-all duration-200 flex-shrink-0 ml-auto",
+              selectedVoice === voice.id ? "scale-100 bg-primary" : "scale-0",
+            )}
+          />
+        </button>
+      ))}
+    </>
   );
 };
 
