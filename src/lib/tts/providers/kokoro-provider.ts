@@ -43,6 +43,7 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
   private pendingGenerations = new Map<string, Promise<CachedAudio | null>>();
   private isStopped = false;
   private speakId = 0;
+  private currentTextKey: string | null = null; // Cache key of currently playing audio
 
   onWordBoundary?: (charIndex: number, charLength: number) => void;
   onEnd?: () => void;
@@ -167,7 +168,7 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
   }
 
   private pruneCache(): void {
-    const maxSize = 3;
+    const maxSize = 5;
     while (this.cache.size > maxSize) {
       const firstKey = this.cache.keys().next().value;
       if (firstKey) this.cache.delete(firstKey);
@@ -189,6 +190,8 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     this.abortController = new AbortController();
     this.setStatus("loading");
 
+    const key = this.getCacheKey(text);
+
     try {
       await this.init();
       if (!this.tts || thisSpeakId !== this.speakId) {
@@ -196,20 +199,18 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
         return;
       }
 
-      const key = this.getCacheKey(text);
       let cached = this.cache.get(key);
 
       if (!cached && this.pendingGenerations.has(key)) {
         cached = (await this.pendingGenerations.get(key)) ?? undefined;
       }
 
-      // Check again after potential await
       if (thisSpeakId !== this.speakId) {
         return;
       }
 
       if (cached) {
-        this.cache.delete(key);
+        this.currentTextKey = key;
         await this.playAudioBuffer(cached.audioBuffer, thisSpeakId);
         return;
       }
@@ -218,11 +219,17 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
       const result = await this.generateAudio(text);
       this.onGenerating?.(false);
 
+      if (result) {
+        this.cache.set(key, result);
+        this.pruneCache();
+      }
+
       if (!result || thisSpeakId !== this.speakId) {
         if (thisSpeakId === this.speakId) this.setStatus("idle");
         return;
       }
 
+      this.currentTextKey = key;
       await this.playAudioBuffer(result.audioBuffer, thisSpeakId);
     } catch (err) {
       this.onGenerating?.(false);
@@ -236,13 +243,12 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
   private async playAudioBuffer(
     audioBuffer: AudioBuffer,
     thisSpeakId: number,
+    offsetSeconds: number = 0,
   ): Promise<void> {
-    // Final check before playing - ensure we're still the active speak
     if (thisSpeakId !== this.speakId) {
       return;
     }
 
-    // Stop any existing audio before playing new one
     this.stopCurrentAudio();
 
     const audioContext = this.getAudioContext();
@@ -251,7 +257,6 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
       await audioContext.resume();
     }
 
-    // Check again after potential await
     if (thisSpeakId !== this.speakId) {
       return;
     }
@@ -260,7 +265,8 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     source.buffer = audioBuffer;
     source.connect(audioContext.destination);
     this.sourceNode = source;
-    this.playbackStartTime = audioContext.currentTime;
+    // Adjust playbackStartTime to account for offset (for accurate pause position tracking)
+    this.playbackStartTime = audioContext.currentTime - offsetSeconds;
     this.pausedAtTime = 0;
 
     this.setStatus("speaking");
@@ -272,11 +278,17 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
       source.onended = () => {
         this.speakResolver = null;
         this.stopHighlightLoop();
-        // Only fire onEnd if this is still the active speak and not stopped
-        if (this.isStopped || thisSpeakId !== this.speakId) {
+
+        // Only fire onEnd if this is still the active speak, not stopped, and not paused
+        if (
+          this.isStopped ||
+          thisSpeakId !== this.speakId ||
+          this._status === "paused"
+        ) {
           resolve();
           return;
         }
+
         if (this._status === "speaking") {
           this.setStatus("idle");
           this.onEnd?.();
@@ -284,7 +296,7 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
         resolve();
       };
 
-      source.start(0);
+      source.start(0, offsetSeconds);
     });
   }
 
@@ -311,7 +323,10 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
   }
 
   pause(): void {
-    if (this._status !== "speaking") return;
+    if (this._status !== "speaking" && this._status !== "loading") return;
+
+    // Increment speakId to cancel any pending operations
+    this.speakId++;
 
     if (this.audioContext && this.sourceNode) {
       this.pausedAtTime =
@@ -324,24 +339,51 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
 
   async resume(): Promise<void> {
     if (this._status !== "paused") return;
+
+    // Try to resume from the paused position using cached audio
+    if (this.currentTextKey && this.pausedAtTime > 0) {
+      const cached = this.cache.get(this.currentTextKey);
+      if (cached) {
+        const thisSpeakId = ++this.speakId;
+        this.isStopped = false;
+        const offsetSeconds = this.pausedAtTime / 1000;
+        await this.playAudioBuffer(
+          cached.audioBuffer,
+          thisSpeakId,
+          offsetSeconds,
+        );
+        return;
+      }
+    }
+
     this.setStatus("idle");
-    this.onEnd?.();
+  }
+
+  get canResumeFromPosition(): boolean {
+    return (
+      this._status === "paused" &&
+      this.currentTextKey !== null &&
+      this.pausedAtTime > 0 &&
+      this.cache.has(this.currentTextKey)
+    );
   }
 
   stop(): void {
-    this.speakId++; // Invalidate any pending operations
+    this.speakId++;
     this.isStopped = true;
     this.abortController?.abort();
     this.stopCurrentAudio();
     this.pausedAtTime = 0;
+    this.currentTextKey = null;
     this.setStatus("idle");
   }
 
   cancel(): void {
-    this.speakId++; // Invalidate any pending operations
+    this.speakId++;
     this.isStopped = true;
     this.abortController?.abort();
     this.stopCurrentAudio();
+    this.currentTextKey = null;
     this.setStatus("idle");
   }
 

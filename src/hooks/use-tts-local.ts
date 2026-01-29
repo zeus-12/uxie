@@ -161,8 +161,9 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
   const resume = useCallback(async () => {
     if (!isPausedRef.current) return;
     isPausedRef.current = false;
-    await getProvider().resume();
+    isStoppedRef.current = false;
     setStatus("speaking");
+    await getProvider().resume();
   }, []);
 
   const stop = useCallback(() => {
@@ -235,7 +236,7 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
     loadProgress,
     clearCache,
     getIsPaused: () => isPausedRef.current,
-    canResume: () => isPausedRef.current,
+    canResume: () => isPausedRef.current && getProvider().canResumeFromPosition,
     getVoice: () => voiceRef.current,
   };
 }
