@@ -67,6 +67,7 @@ model Document {
   flashcards    Flashcard[]
   lastReadPage  Int            @default(1)
   coverImageUrl String
+  summary       String?        @db.Text
 }
 
 enum CollaboratorRole {
