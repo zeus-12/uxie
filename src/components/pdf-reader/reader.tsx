@@ -2,9 +2,9 @@ import PdfHighlighter from "@/components/pdf-reader/pdf-highlighter";
 import BottomToolbar from "@/components/pdf-reader/toolbar";
 import { SpinnerPage } from "@/components/ui/spinner";
 import usePdfReader from "@/hooks/use-pdf-reader";
-import { AppRouter } from "@/server/api/root";
-import { AddHighlightType } from "@/types/highlight";
-import { inferRouterOutputs } from "@trpc/server";
+import { type AppRouter } from "@/server/api/root";
+import { type AddHighlightType } from "@/types/highlight";
+import { type inferRouterOutputs } from "@trpc/server";
 import { PdfLoader } from "react-pdf-highlighter";
 
 const PdfReader = ({

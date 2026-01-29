@@ -1,6 +1,6 @@
 import { READING_STATUS } from "@/components/pdf-reader/constants";
 import { RsvpReader } from "@/components/pdf-reader/rsvp-reader";
-import { ExpandableTabs, Tab } from "@/components/ui/expandable-tabs";
+import { ExpandableTabs, type Tab } from "@/components/ui/expandable-tabs";
 import SidebarDrawer from "@/components/workspace/sidebar-drawer";
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";

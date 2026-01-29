@@ -1,4 +1,4 @@
-import YouTube, { YouTubeProps } from "react-youtube";
+import YouTube, { type YouTubeProps } from "react-youtube";
 
 interface YoutubeEmbedProps {}
 

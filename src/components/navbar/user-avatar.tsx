@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "@prisma/client";
-import { AvatarProps } from "@radix-ui/react-avatar";
+import { type User } from "@prisma/client";
+import { type AvatarProps } from "@radix-ui/react-avatar";
 import { User as UserIcon } from "lucide-react";
 
 interface UserAvatarProps extends AvatarProps {

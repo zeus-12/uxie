@@ -5,10 +5,10 @@ import {
 } from "@/components/pdf-reader/highlight-popover";
 import { api } from "@/lib/api";
 import { useChatStore, usePdfSettingsStore } from "@/lib/store";
-import { AppRouter } from "@/server/api/root";
-import { AddHighlightType } from "@/types/highlight";
+import { type AppRouter } from "@/server/api/root";
+import { type AddHighlightType } from "@/types/highlight";
 import { HighlightTypeEnum } from "@prisma/client";
-import { inferRouterOutputs } from "@trpc/server";
+import { type inferRouterOutputs } from "@trpc/server";
 import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useEffect } from "react";
 import {

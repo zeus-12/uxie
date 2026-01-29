@@ -3,7 +3,7 @@ import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { google } from "@ai-sdk/google";
-import { Message } from "@prisma/client";
+import { type Message } from "@prisma/client";
 import { convertToModelMessages, stepCountIs, streamText, tool } from "ai";
 import { getServerSession } from "next-auth";
 import { z } from "zod";

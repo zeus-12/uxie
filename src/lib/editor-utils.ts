@@ -1,14 +1,14 @@
 import { AlertBlock, insertAlert } from "@/components/editor/custom/alert";
 // import { Comment } from "@/components/Editor/CustomBlocks/Comment";
 import { HighlighBlock } from "@/components/editor/custom/highlight";
-import { BlockNoteEditorType } from "@/types/editor";
+import { type BlockNoteEditorType } from "@/types/editor";
 import {
   BlockNoteSchema,
   defaultBlockSpecs,
   defaultInlineContentSpecs,
 } from "@blocknote/core";
 import {
-  DefaultReactSuggestionItem,
+  type DefaultReactSuggestionItem,
   getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
 

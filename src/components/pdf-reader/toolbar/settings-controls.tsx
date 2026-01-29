@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { usePdfSettingsStore } from "@/lib/store";
-import { getEngineFromVoice, TTSVoiceId } from "@/lib/tts";
+import { getEngineFromVoice, type TTSVoiceId } from "@/lib/tts";
 import { BROWSER_VOICES } from "@/lib/tts/providers/browser-provider";
 import { KOKORO_VOICES } from "@/lib/tts/providers/kokoro-provider";
 import type { TTSVoice } from "@/lib/tts/types";

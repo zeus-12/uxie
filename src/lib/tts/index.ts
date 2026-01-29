@@ -1,5 +1,8 @@
-import { BROWSER_VOICES, BrowserVoiceId } from "./providers/browser-provider";
-import { KOKORO_VOICES, KokoroVoiceId } from "./providers/kokoro-provider";
+import {
+  BROWSER_VOICES,
+  type BrowserVoiceId,
+} from "./providers/browser-provider";
+import { KOKORO_VOICES, type KokoroVoiceId } from "./providers/kokoro-provider";
 
 export type TTSEngineType = "browser" | "local";
 export type TTSVoiceId = BrowserVoiceId | KokoroVoiceId;

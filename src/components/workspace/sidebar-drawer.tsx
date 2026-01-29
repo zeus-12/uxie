@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useMobileSidebarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PanelBottomOpen } from "lucide-react";
-import { ReactNode, useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 export const SidebarDrawerTrigger = () => {
   const setDrawerOpen = useMobileSidebarStore((s) => s.setDrawerOpen);

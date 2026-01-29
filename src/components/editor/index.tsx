@@ -14,7 +14,7 @@ import {
   ColorStyleButton,
   CreateLinkButton,
   DragHandleMenu,
-  DragHandleMenuProps,
+  type DragHandleMenuProps,
   FileCaptionButton,
   FormattingToolbar,
   FormattingToolbarController,
@@ -27,8 +27,8 @@ import {
   useComponentsContext,
 } from "@blocknote/react";
 import {
-  Dispatch,
-  SetStateAction,
+  type Dispatch,
+  type SetStateAction,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -38,7 +38,7 @@ import {
 import { toast } from "sonner";
 // import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
 import AiPopover, {
-  AiPopoverPropsRect,
+  type AiPopoverPropsRect,
 } from "@/components/editor/custom/ai/popover";
 import { SpinnerCentered } from "@/components/ui/spinner";
 import { api } from "@/lib/api";

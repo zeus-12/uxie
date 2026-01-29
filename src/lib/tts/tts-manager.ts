@@ -1,4 +1,4 @@
-import { TTSVoiceId } from ".";
+import { type TTSVoiceId } from ".";
 import { BrowserTTSProvider } from "./providers/browser-provider";
 import { KokoroProvider } from "./providers/kokoro-provider";
 import type {

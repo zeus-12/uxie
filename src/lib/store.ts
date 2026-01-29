@@ -1,8 +1,8 @@
 import { PDF_BACKGROUND_COLOURS } from "@/lib/constants";
-import { BlockNoteEditorType } from "@/types/editor";
+import { type BlockNoteEditorType } from "@/types/editor";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { getEngineFromVoice, TTSEngineType, TTSVoiceId } from "./tts";
+import { getEngineFromVoice, type TTSEngineType, type TTSVoiceId } from "./tts";
 import { BROWSER_VOICES } from "./tts/providers/browser-provider";
 
 type FeaturesStore = {

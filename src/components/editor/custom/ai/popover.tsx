@@ -13,7 +13,7 @@ import { useCompletion } from "@ai-sdk/react";
 import { useBlockNoteEditor } from "@blocknote/react";
 import { useCommandState } from "cmdk";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
-import { Dispatch, SetStateAction, useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 

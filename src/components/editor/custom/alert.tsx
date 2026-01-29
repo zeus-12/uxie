@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BlockNoteEditorType } from "@/types/editor";
+import { type BlockNoteEditorType } from "@/types/editor";
 import { defaultProps, insertOrUpdateBlock } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
 import { AlertCircle, Ban, Check, Info, ShieldAlertIcon } from "lucide-react";

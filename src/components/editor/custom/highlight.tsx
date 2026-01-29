@@ -1,4 +1,4 @@
-import { defaultProps, PropSchema } from "@blocknote/core";
+import { defaultProps, type PropSchema } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
 
 export const highlightPropSchema = {
