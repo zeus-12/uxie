@@ -209,7 +209,7 @@ const VoiceSelector = ({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="w-4 flex justify-center">
+                <span className="w-4 flex items-center justify-center">
                   <Icon className="h-4 w-4 text-muted-foreground" />
                 </span>
               </TooltipTrigger>

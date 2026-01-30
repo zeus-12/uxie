@@ -72,7 +72,7 @@ const DocCard = ({
       prefetch={false}
       key={id}
       href={`/f/${id}`}
-      className="group [perspective:800px]"
+      className="block w-full group [perspective:800px]"
     >
       <div
         className={cn(
