@@ -15,7 +15,8 @@ const MyApp: AppType<{ session: Session | null }> = ({
   pageProps: { session, ...pageProps },
 }) => {
   const router = useRouter();
-  const isReader = router.pathname.startsWith("/f/");
+  const isReader = router.pathname === "/f/[docId]";
+
   return (
     <SessionProvider session={session}>
       <DefaultSeo {...SEO} />

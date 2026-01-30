@@ -18,7 +18,7 @@ const Navbar = () => {
           </div>
         </Link>
         {status === "loading" ? (
-          <Skeleton className="w-16 h-8" />
+          <Skeleton className="h-8 w-8 rounded-full" />
         ) : session ? (
           <UserAccountNav user={session.user} />
         ) : (
