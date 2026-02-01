@@ -1,4 +1,4 @@
-import { type GenerateOptions, KokoroTTS } from "kokoro-js";
+import { type GenerateOptions, KokoroTTS, TextSplitterStream } from "kokoro-js";
 import { detectWebGPU } from "..";
 import type {
   TTSPlaybackState,
@@ -8,6 +8,7 @@ import type {
   TTSSpeakOptions,
   TTSStatus,
   TTSVoice,
+  WordTiming,
 } from "../types";
 
 export type KokoroVoiceId = NonNullable<GenerateOptions["voice"]>;
@@ -21,6 +22,7 @@ export const KOKORO_VOICES = [
 
 interface CachedAudio {
   audioBuffer: AudioBuffer;
+  wordTimings: WordTiming[];
 }
 
 export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
@@ -43,7 +45,13 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
   private pendingGenerations = new Map<string, Promise<CachedAudio | null>>();
   private isStopped = false;
   private speakId = 0;
-  private currentTextKey: string | null = null; // Cache key of currently playing audio
+  private currentTextKey: string | null = null;
+  private currentText: string | null = null;
+
+  private wordTimings: WordTiming[] = [];
+  private highlightLoopId: number | null = null;
+  private currentWordIndex = -1;
+  private playbackOffset = 0;
 
   onWordBoundary?: (charIndex: number, charLength: number) => void;
   onEnd?: () => void;
@@ -123,6 +131,27 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     return `${text}::${this.currentVoice}::${this.currentSpeed}`;
   }
 
+  private findCurrentWordIndex(
+    timings: WordTiming[],
+    elapsedMs: number,
+  ): number {
+    for (let i = 0; i < timings.length; i++) {
+      const timing = timings[i]!;
+      if (elapsedMs >= timing.startTime && elapsedMs < timing.endTime) {
+        return i;
+      }
+    }
+
+    if (timings.length > 0) {
+      const lastTiming = timings[timings.length - 1]!;
+      if (elapsedMs >= lastTiming.endTime) {
+        return timings.length - 1;
+      }
+    }
+
+    return -1;
+  }
+
   async pregenerate(text: string): Promise<void> {
     const key = this.getCacheKey(text);
 
@@ -149,20 +178,128 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
       await this.init();
       if (!this.tts) return null;
 
-      const audio = await this.tts.generate(text, {
+      const splitter = new TextSplitterStream();
+      const stream = this.tts.stream(splitter, {
         voice: this.currentVoice,
         speed: this.currentSpeed,
       });
 
-      const wavBuffer = audio.toWav();
-      const audioContext = this.getAudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(wavBuffer);
+      splitter.push(text);
+      splitter.close();
 
-      return { audioBuffer };
+      const audioContext = this.getAudioContext();
+      const sampleRate = 24000;
+      const allSamples: Float32Array[] = [];
+      const wordTimings: WordTiming[] = [];
+
+      let currentTimeMs = 0;
+      let searchStartIndex = 0;
+
+      for await (const { text: chunkText, audio } of stream) {
+        const samples = audio.audio;
+        allSamples.push(samples);
+
+        const chunkDurationMs = (samples.length / sampleRate) * 1000;
+
+        const chunkStartInOriginal = this.findChunkPosition(
+          text,
+          chunkText,
+          searchStartIndex,
+        );
+
+        if (chunkStartInOriginal !== -1) {
+          const chunkTimings = this.computeChunkWordTimings(
+            chunkText,
+            chunkStartInOriginal,
+            currentTimeMs,
+            chunkDurationMs,
+          );
+
+          wordTimings.push(...chunkTimings);
+          searchStartIndex = chunkStartInOriginal + chunkText.length;
+        }
+
+        currentTimeMs += chunkDurationMs;
+      }
+
+      const totalLength = allSamples.reduce((sum, arr) => sum + arr.length, 0);
+      const combinedSamples = new Float32Array(totalLength);
+      let offset = 0;
+      for (const samples of allSamples) {
+        combinedSamples.set(samples, offset);
+        offset += samples.length;
+      }
+
+      const audioBuffer = audioContext.createBuffer(
+        1,
+        combinedSamples.length,
+        sampleRate,
+      );
+      audioBuffer.copyToChannel(combinedSamples, 0);
+
+      return { audioBuffer, wordTimings };
     } catch (err) {
       console.error("[KokoroProvider] Generation error:", err);
       return null;
     }
+  }
+
+  private findChunkPosition(
+    fullText: string,
+    chunkText: string,
+    searchStart: number,
+  ): number {
+    const trimmedChunk = chunkText.trim();
+    const index = fullText.indexOf(trimmedChunk, searchStart);
+    if (index !== -1) return index;
+    const words = trimmedChunk.split(/\s+/);
+    if (words.length > 0 && words[0]) {
+      return fullText.indexOf(words[0], searchStart);
+    }
+    return searchStart;
+  }
+
+  private computeChunkWordTimings(
+    chunkText: string,
+    chunkOffset: number,
+    chunkStartTimeMs: number,
+    chunkDurationMs: number,
+  ): WordTiming[] {
+    const words: { word: string; localIndex: number; charLength: number }[] =
+      [];
+    const wordRegex = /\S+/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = wordRegex.exec(chunkText)) !== null) {
+      words.push({
+        word: match[0],
+        localIndex: match.index,
+        charLength: match[0].length,
+      });
+    }
+
+    if (words.length === 0) return [];
+
+    const totalChars = words.reduce((sum, w) => sum + w.charLength, 0);
+    const timings: WordTiming[] = [];
+    let currentTime = chunkStartTimeMs;
+
+    for (const wordInfo of words) {
+      const charRatio = wordInfo.charLength / Math.max(totalChars, 1);
+      const wordDuration = chunkDurationMs * charRatio;
+
+      timings.push({
+        word: wordInfo.word,
+        charIndex: chunkOffset + wordInfo.localIndex,
+        charLength: wordInfo.charLength,
+        startTime: currentTime,
+        endTime: currentTime + wordDuration,
+      });
+
+      currentTime += wordDuration;
+    }
+
+    return timings;
   }
 
   private pruneCache(): void {
@@ -209,6 +346,8 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
 
       if (cached) {
         this.currentTextKey = key;
+        this.currentText = text;
+        this.wordTimings = cached.wordTimings;
         await this.playAudioBuffer(cached.audioBuffer, thisSpeakId);
         return;
       }
@@ -228,6 +367,8 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
       }
 
       this.currentTextKey = key;
+      this.currentText = text;
+      this.wordTimings = result.wordTimings;
       await this.playAudioBuffer(result.audioBuffer, thisSpeakId);
     } catch (err) {
       this.onGenerating?.(false);
@@ -263,8 +404,8 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     source.buffer = audioBuffer;
     source.connect(audioContext.destination);
     this.sourceNode = source;
-    // Adjust playbackStartTime to account for offset (for accurate pause position tracking)
-    this.playbackStartTime = audioContext.currentTime - offsetSeconds;
+    this.playbackStartTime = audioContext.currentTime;
+    this.playbackOffset = offsetSeconds * 1000;
     this.pausedAtTime = 0;
 
     this.setStatus("speaking");
@@ -302,9 +443,42 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     this._status = status;
   }
 
-  private startHighlightLoop(): void {}
+  private startHighlightLoop(): void {
+    this.currentWordIndex = -1;
+    let logCounter = 0;
 
-  private stopHighlightLoop(): void {}
+    const loop = () => {
+      if (this._status !== "speaking" || !this.audioContext) {
+        return;
+      }
+
+      const elapsedMs =
+        (this.audioContext.currentTime - this.playbackStartTime) * 1000 +
+        this.playbackOffset;
+
+      const wordIndex = this.findCurrentWordIndex(this.wordTimings, elapsedMs);
+
+      if (wordIndex !== -1 && wordIndex !== this.currentWordIndex) {
+        this.currentWordIndex = wordIndex;
+        const timing = this.wordTimings[wordIndex];
+        if (timing) {
+          this.onWordBoundary?.(timing.charIndex, timing.charLength);
+        }
+      }
+
+      this.highlightLoopId = requestAnimationFrame(loop);
+    };
+
+    this.highlightLoopId = requestAnimationFrame(loop);
+  }
+
+  private stopHighlightLoop(): void {
+    if (this.highlightLoopId !== null) {
+      cancelAnimationFrame(this.highlightLoopId);
+      this.highlightLoopId = null;
+    }
+    this.currentWordIndex = -1;
+  }
 
   private stopCurrentAudio(): void {
     this.speakResolver?.();
@@ -323,12 +497,12 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
   pause(): void {
     if (this._status !== "speaking" && this._status !== "loading") return;
 
-    // Increment speakId to cancel any pending operations
     this.speakId++;
 
     if (this.audioContext && this.sourceNode) {
       this.pausedAtTime =
-        (this.audioContext.currentTime - this.playbackStartTime) * 1000;
+        (this.audioContext.currentTime - this.playbackStartTime) * 1000 +
+        this.playbackOffset;
       this.stopCurrentAudio();
     }
 
@@ -372,7 +546,10 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     this.abortController?.abort();
     this.stopCurrentAudio();
     this.pausedAtTime = 0;
+    this.playbackOffset = 0;
     this.currentTextKey = null;
+    this.currentText = null;
+    this.wordTimings = [];
     this.setStatus("idle");
   }
 
@@ -382,6 +559,9 @@ export class KokoroProvider implements TTSProvider<KokoroVoiceId> {
     this.abortController?.abort();
     this.stopCurrentAudio();
     this.currentTextKey = null;
+    this.currentText = null;
+    this.wordTimings = [];
+    this.playbackOffset = 0;
     this.setStatus("idle");
   }
 

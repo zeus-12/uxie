@@ -58,7 +58,13 @@ const usePdfReader = ({
 
   const sentenceReader = useSentenceReader({ pageCount });
 
-  const localTts = useTtsLocal({ onEnd: () => handleAudioEndRef.current() });
+  const localTts = useTtsLocal({
+    onWordBoundary: (charIndex, charLength, spokenText) => {
+      sentenceReader.highlightWord(charIndex, charLength, spokenText);
+      scrollToHighlightRef.current();
+    },
+    onEnd: () => handleAudioEndRef.current(),
+  });
   const browserTts = useTtsBrowser({
     onWordBoundary: (charIndex, charLength, spokenText) => {
       sentenceReader.highlightWord(charIndex, charLength, spokenText);

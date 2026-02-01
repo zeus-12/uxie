@@ -9,6 +9,11 @@ export type KokoroLoadProgress = {
 };
 
 interface UseTtsLocalOptions {
+  onWordBoundary?: (
+    charIndex: number,
+    charLength: number,
+    spokenText: string,
+  ) => void;
   onEnd?: () => void;
 }
 
@@ -38,6 +43,9 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
 
   const onEndRef = useRef(options.onEnd);
   onEndRef.current = options.onEnd;
+
+  const onWordBoundaryRef = useRef(options.onWordBoundary);
+  onWordBoundaryRef.current = options.onWordBoundary;
 
   const dismissGeneratingToast = useCallback(() => {
     if (generatingToastIdRef.current) {
@@ -98,6 +106,16 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
       }
     };
 
+    provider.onWordBoundary = (charIndex, charLength) => {
+      if (!isStoppedRef.current && !isPausedRef.current) {
+        onWordBoundaryRef.current?.(
+          charIndex,
+          charLength,
+          currentTextRef.current,
+        );
+      }
+    };
+
     provider.onGenerating = (isGenerating) => {
       if (isGenerating) {
         dismissGeneratingToast();
@@ -116,6 +134,7 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
     return () => {
       provider.onLoadProgress = undefined;
       provider.onEnd = undefined;
+      provider.onWordBoundary = undefined;
       provider.onGenerating = undefined;
     };
   }, [dismissGeneratingToast, handleCancel]);
