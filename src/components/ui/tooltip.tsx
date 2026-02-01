@@ -36,9 +36,11 @@ const CustomTooltip = ({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger>{children}</TooltipTrigger>
-        <TooltipContent>
-          <p>{content}</p>
-        </TooltipContent>
+        <TooltipPrimitive.Portal>
+          <TooltipContent>
+            <p>{content}</p>
+          </TooltipContent>
+        </TooltipPrimitive.Portal>
       </Tooltip>
     </TooltipProvider>
   );
