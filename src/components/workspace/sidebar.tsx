@@ -1,6 +1,7 @@
 import Chat from "@/components/chat";
 import BlockNoteEditor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
+// import SemanticSearch from "@/components/search";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +27,12 @@ const TABS = [
     icon: <AlbumIcon size={20} />,
     isNew: false,
   },
+  // {
+  //   value: "search",
+  //   tooltip: "Semantic search",
+  //   icon: <Search size={20} />,
+  //   isNew: false,
+  // },
   {
     value: "chat",
     tooltip: "Chat with the pdf",
@@ -71,6 +78,11 @@ const Sidebar = ({
         tw: "flex-1 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto",
         children: <BlockNoteEditor canEdit={canEdit} note={note} />,
       },
+      // {
+      //   value: "search",
+      //   tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto",
+      //   children: <SemanticSearch isVectorised={isVectorised} />,
+      // },
       {
         value: "chat",
         tw: "p-2 pb-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto",
@@ -82,7 +94,7 @@ const Sidebar = ({
         children: <Flashcards />,
       },
     ],
-    [canEdit, isVectorised],
+    [canEdit, isVectorised, note],
   );
 
   const [activeIndex, setActiveIndex] = useQueryState("tab", {
