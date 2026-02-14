@@ -67,7 +67,7 @@ const UserLibraryPage = () => {
           </div>
 
           {filteredUserDocs && filteredUserDocs.length > 0 ? (
-            <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
+            <div className="grid grid-cols-1 gap-2 sm:gap-3 md:gap-4 xl:gap-3 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 ">
               {filteredUserDocs?.map((doc) => (
                 <DocCard
                   isVectorised={doc.isVectorised}
