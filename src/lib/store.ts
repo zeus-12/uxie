@@ -47,6 +47,9 @@ interface PdfSettingsStore {
   sidebarHidden: boolean;
   toggleSidebar: () => void;
 
+  speakAlongEnabled: boolean;
+  setSpeakAlongEnabled: (enabled: boolean) => void;
+
   voice: TTSVoiceId;
   setVoice: (voice: TTSVoiceId) => void;
   getTtsEngine: () => TTSEngineType;
@@ -75,6 +78,9 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
       sidebarHidden: false,
       toggleSidebar: () =>
         set((state) => ({ sidebarHidden: !state.sidebarHidden })),
+
+      speakAlongEnabled: false,
+      setSpeakAlongEnabled: (enabled) => set({ speakAlongEnabled: enabled }),
 
       voice: BROWSER_VOICES[0]?.id,
       setVoice: (voice) => set({ voice }),
