@@ -7,6 +7,7 @@ import type {
   TTSStatus,
   TTSVoice,
 } from "../types";
+import { chunkText, findChunkPosition } from "../utils";
 
 export const BROWSER_VOICES = [
   { id: "Aaron", name: "Aaron", gender: "male" },
@@ -21,6 +22,7 @@ export class BrowserTTSProvider implements TTSProvider<BrowserVoiceId> {
   private currentVoice: string | null = null;
   private currentCharIndex = 0;
   private currentSentenceIndex = 0;
+  private isStopped = false;
   private voices:
     | TTSVoice<BrowserVoiceId>[]
     | readonly TTSVoice<BrowserVoiceId>[] = BROWSER_VOICES;
@@ -58,13 +60,42 @@ export class BrowserTTSProvider implements TTSProvider<BrowserVoiceId> {
       this.stop();
     }
 
+    this.isStopped = false;
     this.currentSpeed = options.speed;
     if (options.voice) {
       this.currentVoice = options.voice;
     }
     this.currentCharIndex = options.startCharIndex ?? 0;
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    const chunks = chunkText(text);
+    let searchStart = 0;
+
+    this.setStatus("speaking");
+
+    for (const chunk of chunks) {
+      if (this.isStopped) return;
+
+      const chunkOffset = findChunkPosition(text, chunk, searchStart);
+      searchStart = chunkOffset + chunk.length;
+
+      await this.speakChunk(chunk, chunkOffset, text);
+
+      if (this.isStopped) return;
+    }
+
+    if (!this.isStopped) {
+      this.setStatus("idle");
+      this.utterance = null;
+      this.onEnd?.();
+    }
+  }
+
+  private speakChunk(
+    chunk: string,
+    charOffset: number,
+    fullText: string,
+  ): Promise<void> {
+    const utterance = new SpeechSynthesisUtterance(chunk);
     utterance.rate = this.currentSpeed;
 
     if (this.currentVoice) {
@@ -80,17 +111,13 @@ export class BrowserTTSProvider implements TTSProvider<BrowserVoiceId> {
     return new Promise<void>((resolve) => {
       utterance.onboundary = (event) => {
         if (event.name === "word") {
-          this.currentCharIndex = event.charIndex;
-          // Estimate word length from next boundary or use reasonable default
-          const charLength = this.estimateWordLength(text, event.charIndex);
-          this.onWordBoundary?.(event.charIndex, charLength);
+          const absoluteIndex = charOffset + event.charIndex;
+          this.currentCharIndex = absoluteIndex;
+          this.onWordBoundary?.(absoluteIndex, event.charLength);
         }
       };
 
       utterance.onend = () => {
-        this.setStatus("idle");
-        this.utterance = null;
-        this.onEnd?.();
         resolve();
       };
 
@@ -98,22 +125,11 @@ export class BrowserTTSProvider implements TTSProvider<BrowserVoiceId> {
         if (event.error !== "canceled" && event.error !== "interrupted") {
           console.error("[BrowserTTS] Error:", event.error);
         }
-        this.setStatus("idle");
-        this.utterance = null;
         resolve();
       };
 
-      this.setStatus("speaking");
       speechSynthesis.speak(utterance);
     });
-  }
-
-  private estimateWordLength(text: string, charIndex: number): number {
-    let end = charIndex;
-    while (end < text.length && !/\s/.test(text[end]!)) {
-      end++;
-    }
-    return end - charIndex;
   }
 
   pause(): void {
@@ -129,6 +145,7 @@ export class BrowserTTSProvider implements TTSProvider<BrowserVoiceId> {
   }
 
   stop(): void {
+    this.isStopped = true;
     speechSynthesis.cancel();
     this.utterance = null;
     this.setStatus("idle");
@@ -140,7 +157,6 @@ export class BrowserTTSProvider implements TTSProvider<BrowserVoiceId> {
 
   setSpeed(speed: number): void {
     this.currentSpeed = speed;
-    // Speed change requires restarting the utterance
   }
 
   setVoice(voiceId: string): void {

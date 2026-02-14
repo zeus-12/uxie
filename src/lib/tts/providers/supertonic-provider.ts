@@ -1,4 +1,4 @@
-import { type GenerateOptions, KokoroTTS, TextSplitterStream } from "kokoro-js";
+import { pipeline, TextToAudioPipeline } from "@huggingface/transformers";
 import { getDevice, getDeviceType } from "..";
 import { BaseAudioProvider } from "../base-audio-provider";
 import type {
@@ -8,39 +8,44 @@ import type {
   WordTiming,
 } from "../types";
 import {
+  chunkText,
   combineSamples,
   computeChunkWordTimings,
   findChunkPosition,
 } from "../utils";
 
-export type KokoroVoiceId = NonNullable<GenerateOptions["voice"]>;
+export const SUPERTONIC_VOICES = [
+  { id: "M3", name: "Robert", gender: "male" },
+  { id: "M5", name: "Daniel", gender: "male" },
+  { id: "F1", name: "Sarah", gender: "female" },
+  { id: "F5", name: "Emily", gender: "female" },
+  { id: "F3", name: "Jessica", gender: "female" },
+] as const satisfies TTSVoice<string>[];
 
-export const KOKORO_VOICES = [
-  { id: "af_heart", name: "Heart (Female)", gender: "female" },
-  { id: "af_nicole", name: "Nicole (Female)", gender: "female" },
-  { id: "am_echo", name: "Echo (Male)", gender: "male" },
-  { id: "bm_fable", name: "Fable (Male)", gender: "male" },
-] as const satisfies TTSVoice<KokoroVoiceId>[];
+export type SupertonicVoiceId = (typeof SUPERTONIC_VOICES)[number]["id"];
 
-const SAMPLE_RATE = 24000;
+const SAMPLE_RATE = 44100;
+const MODEL_ID = "onnx-community/Supertonic-TTS-2-ONNX";
+const SPEAKER_EMBEDDINGS_BASE =
+  "https://huggingface.co/onnx-community/Supertonic-TTS-2-ONNX/resolve/main/voices";
 
-export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
-  private tts: KokoroTTS | null = null;
+export class SupertonicProvider extends BaseAudioProvider<SupertonicVoiceId> {
+  private pipeline: TextToAudioPipeline | null = null;
 
-  readonly info: TTSProviderInfo<KokoroVoiceId> = {
-    id: "kokoro",
-    name: "Kokoro (Local)",
-    supportsStreaming: true,
+  readonly info: TTSProviderInfo<SupertonicVoiceId> = {
+    id: "supertonic",
+    name: "Supertonic (Local)",
+    supportsStreaming: false,
     supportsOfflineUse: true,
-    voices: KOKORO_VOICES,
+    voices: SUPERTONIC_VOICES,
   };
 
   constructor() {
-    super(KOKORO_VOICES[0].id);
+    super(SUPERTONIC_VOICES[0].id);
   }
 
   get isModelLoaded(): boolean {
-    return this.tts !== null;
+    return this.pipeline !== null;
   }
 
   protected async loadModel(): Promise<void> {
@@ -50,12 +55,13 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
     const device = await getDevice();
     const dtype = await getDeviceType();
 
-    this.tts = await KokoroTTS.from_pretrained(
-      "onnx-community/Kokoro-82M-v1.0-ONNX",
+    this.pipeline = await pipeline<"text-to-speech">(
+      "text-to-speech",
+      MODEL_ID,
       {
-        dtype,
         device,
-        progress_callback: (data) => {
+        dtype,
+        progress_callback: (data: { status: string; progress?: number }) => {
           if (data.status === "progress" && data.progress !== undefined) {
             this.onLoadProgress?.({
               status: isFromCache ? "loading" : "downloading",
@@ -74,7 +80,7 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
     try {
       const cache = await caches.open("transformers-cache");
       const keys = await cache.keys();
-      return keys.some((req) => req.url.includes("Kokoro"));
+      return keys.some((req) => req.url.includes("Supertonic"));
     } catch {
       return false;
     }
@@ -83,17 +89,9 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
   protected async generateAudio(text: string): Promise<CachedAudio | null> {
     try {
       await this.init();
-      if (!this.tts) return null;
+      if (!this.pipeline) return null;
 
-      const splitter = new TextSplitterStream();
-      const stream = this.tts.stream(splitter, {
-        voice: this.currentVoice as KokoroVoiceId,
-        speed: this.currentSpeed,
-      });
-
-      splitter.push(text);
-      splitter.close();
-
+      const chunks = chunkText(text);
       const audioContext = this.getAudioContext();
       const allSamples: Float32Array[] = [];
       const wordTimings: WordTiming[] = [];
@@ -101,26 +99,40 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
       let currentTimeMs = 0;
       let searchStartIndex = 0;
 
-      for await (const { text: chunkText, audio } of stream) {
-        const samples = audio.audio;
+      const speakerUrl = `${SPEAKER_EMBEDDINGS_BASE}/${this.currentVoice}.bin`;
+      const silenceGap = new Float32Array(Math.floor(SAMPLE_RATE * 0.05));
+
+      for (const chunk of chunks) {
+        const wrappedChunk = `<en>${chunk}</en>`;
+
+        const output = await this.pipeline(wrappedChunk, {
+          speaker_embeddings: speakerUrl,
+          num_inference_steps: 5,
+          speed: this.currentSpeed,
+        });
+
+        const samples: Float32Array = output.audio;
         allSamples.push(samples);
 
         const chunkDurationMs = (samples.length / SAMPLE_RATE) * 1000;
-        const chunkStart = findChunkPosition(text, chunkText, searchStartIndex);
+        const chunkStart = findChunkPosition(text, chunk, searchStartIndex);
 
         if (chunkStart !== -1) {
           wordTimings.push(
             ...computeChunkWordTimings(
-              chunkText,
+              chunk,
               chunkStart,
               currentTimeMs,
               chunkDurationMs,
             ),
           );
-          searchStartIndex = chunkStart + chunkText.length;
+          searchStartIndex = chunkStart + chunk.length;
         }
 
         currentTimeMs += chunkDurationMs;
+
+        allSamples.push(silenceGap);
+        currentTimeMs += (silenceGap.length / SAMPLE_RATE) * 1000;
       }
 
       const combined = combineSamples(allSamples);
@@ -133,7 +145,7 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
 
       return { audioBuffer, wordTimings };
     } catch (err) {
-      console.error("[KokoroProvider] Generation error:", err);
+      console.error("[SupertonicProvider] Generation error:", err);
       return null;
     }
   }
