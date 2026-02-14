@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -9,6 +10,7 @@ import { usePdfSettingsStore } from "@/lib/store";
 import { getEngineFromVoice, type TTSVoiceId } from "@/lib/tts";
 import { BROWSER_VOICES } from "@/lib/tts/providers/browser-provider";
 import { KOKORO_VOICES } from "@/lib/tts/providers/kokoro-provider";
+import { SUPERTONIC_VOICES } from "@/lib/tts/providers/supertonic-provider";
 import type { TTSVoice } from "@/lib/tts/types";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -31,7 +33,26 @@ const SettingsIconComponent = ({ active }: { active: boolean }) => (
   </Button>
 );
 
-const LOCAL_VOICES = KOKORO_VOICES;
+const VOICE_SELECTOR_OPTIONS = [
+  {
+    voices: BROWSER_VOICES,
+    icon: GlobeIcon,
+    title: "Browser",
+    description: "Fast, lower quality",
+  },
+  {
+    voices: KOKORO_VOICES,
+    icon: BotIcon,
+    title: "Kokoro",
+    description: "First load takes time, better quality",
+  },
+  {
+    voices: SUPERTONIC_VOICES,
+    icon: BotIcon,
+    title: "Supertonic",
+    description: "First load takes time, faster, decent quality.",
+  },
+];
 
 export const SettingsControls = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -51,6 +72,13 @@ export const SettingsControls = () => {
   const setVoice = usePdfSettingsStore((state) => state.setVoice);
   const rsvpOpen = usePdfSettingsStore((state) => state.rsvpOpen);
   const setRsvpOpen = usePdfSettingsStore((state) => state.setRsvpOpen);
+
+  const speakAlongEnabled = usePdfSettingsStore(
+    (state) => state.speakAlongEnabled,
+  );
+  const setSpeakAlongEnabled = usePdfSettingsStore(
+    (state) => state.setSpeakAlongEnabled,
+  );
 
   useOnClickOutside(containerRef, (e) => {
     if (iconRef.current?.contains(e.target as Node)) {
@@ -80,11 +108,20 @@ export const SettingsControls = () => {
       enabled: rsvpOpen,
       onToggle: () => setRsvpOpen(!rsvpOpen),
     },
+    {
+      id: "speak-along",
+      label: "Speak along (BETA)",
+      description: "Practice pronunciation with your mic",
+      enabled: speakAlongEnabled,
+      onToggle: () => setSpeakAlongEnabled(!speakAlongEnabled),
+    },
   ];
 
+  const engine = getEngineFromVoice(voice);
   const hasActiveSettings =
     settingsOptions.some((opt) => opt.enabled) ||
-    getEngineFromVoice(voice) === "local";
+    engine === "kokoro" ||
+    engine === "supertonic";
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">
@@ -111,36 +148,33 @@ export const SettingsControls = () => {
             className="absolute bottom-full mb-3 left-0 z-[99]"
             ref={containerRef}
           >
-            <div className="rounded-lg border bg-background shadow-lg divide-y">
-              {settingsOptions.map((option) => (
-                <SettingToggleOption key={option.id} option={option} />
-              ))}
+            <ScrollArea className="rounded-lg border bg-background shadow-lg max-h-[55vh] [&>div[data-radix-scroll-area-viewport]]:max-h-[55vh]">
+              <div className="divide-y">
+                {settingsOptions.map((option) => (
+                  <SettingToggleOption key={option.id} option={option} />
+                ))}
 
-              <div className="px-4 py-3">
-                <span className="text-sm text-gray-800 tracking-wide block mb-2">
-                  Text to Speech
-                </span>
+                <div className="pt-3 pb-1">
+                  <span className="text-sm text-gray-800 tracking-wide block mb-2 px-4">
+                    Text to Speech
+                  </span>
 
-                <div className="space-y-1">
-                  <VoiceSelector
-                    voices={BROWSER_VOICES}
-                    icon={GlobeIcon}
-                    title="Browser"
-                    description="Fast, lower quality"
-                    selectedVoice={voice}
-                    onSelect={setVoice}
-                  />
-                  <VoiceSelector
-                    voices={LOCAL_VOICES}
-                    icon={BotIcon}
-                    title="AI Models"
-                    description="First load takes time, better quality"
-                    selectedVoice={voice}
-                    onSelect={setVoice}
-                  />
+                  <div className="flex flex-col divide-y">
+                    {VOICE_SELECTOR_OPTIONS.map((selectorProps) => (
+                      <VoiceSelector
+                        key={selectorProps.title}
+                        voices={selectorProps.voices}
+                        icon={selectorProps.icon}
+                        title={selectorProps.title}
+                        description={selectorProps.description}
+                        selectedVoice={voice}
+                        onSelect={setVoice}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
           </motion.div>
         )}
       </AnimatePresence>
@@ -164,7 +198,7 @@ const VoiceSelector = ({
   onSelect: (voiceId: TTSVoiceId) => void;
 }) => {
   return (
-    <>
+    <div>
       {voices.map((voice) => (
         <button
           key={voice.id}
@@ -173,7 +207,7 @@ const VoiceSelector = ({
             onSelect(voice.id);
           }}
           className={cn(
-            "w-full p-2 rounded text-left text-sm transition-colors flex items-center gap-2",
+            "w-full px-4 py-2 text-left text-sm transition-colors flex items-center gap-1",
             selectedVoice === voice.id ? "bg-primary/10" : "hover:bg-muted/50",
           )}
         >
@@ -193,9 +227,9 @@ const VoiceSelector = ({
                 <span
                   className={cn(
                     "text-sm w-4 text-center",
-                    voice.gender === "female"
-                      ? "text-pink-400"
-                      : "text-blue-400",
+                    selectedVoice === voice.id
+                      ? "text-gray-800"
+                      : "text-muted-foreground",
                   )}
                 >
                   {voice.gender === "female" ? "♀" : "♂"}
@@ -206,6 +240,7 @@ const VoiceSelector = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -219,6 +254,7 @@ const VoiceSelector = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
           <div
             className={cn(
               "h-2 w-2 rounded-full transition-all duration-200 flex-shrink-0 ml-auto",
@@ -227,7 +263,7 @@ const VoiceSelector = ({
           />
         </button>
       ))}
-    </>
+    </div>
   );
 };
 
