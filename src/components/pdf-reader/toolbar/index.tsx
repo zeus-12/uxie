@@ -1,8 +1,8 @@
 import { READING_STATUS } from "@/components/pdf-reader/constants";
 import { RsvpReader } from "@/components/pdf-reader/rsvp-reader";
+import { SpeakAlong } from "@/components/pdf-reader/speak-along";
 import { ExpandableTabs, type Tab } from "@/components/ui/expandable-tabs";
 import SidebarDrawer from "@/components/workspace/sidebar-drawer";
-import { AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { useMediaQuery } from "usehooks-ts";
@@ -155,18 +155,29 @@ const BottomToolbar = ({
   }, [
     isSmallScreen,
     pageNumber,
+    pageNumberInView,
     currentZoom,
     currentReadingSpeed,
     readingStatus,
     pageColour,
     followAlongEnabled,
+    debouncedHandlePageChange,
+    totalPages,
+    onZoomChange,
+    startWordByWordHighlighting,
+    handleReadingSpeedChange,
+    resumeReading,
+    stopReading,
+    pauseReading,
+    skipSentence,
+    toggleFollowAlong,
+    pageColourChangeHandler,
   ]);
 
   return (
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
-      <AnimatePresence>
-        <RsvpReader pageNumber={pageNumberInView} pageCount={totalPages} />
-      </AnimatePresence>
+      <SpeakAlong pageNumber={pageNumberInView} pageCount={totalPages} />
+      <RsvpReader pageNumber={pageNumberInView} pageCount={totalPages} />
       <ExpandableTabs tabs={tabs} />
     </div>
   );
