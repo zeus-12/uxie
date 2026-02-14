@@ -296,6 +296,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       charOffsetInSentence: number,
       wordLength: number,
       mode: HighlightMode = "rsvp",
+      removePreviousHighlights = true,
     ) => {
       const sentence = sentencesRef.current[currentSentenceIndexRef.current];
       if (!sentence || wordLength <= 0) return;
@@ -335,7 +336,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
             endIndex: startIndex + wordLength,
             type: "word",
             blockYIndex: blockY,
-            removePreviousHighlights: true,
+            removePreviousHighlights,
             mode,
           });
           return;
@@ -610,11 +611,22 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       // Find which mapped word contains this charIndex in the cleaned text
       for (const entry of map) {
         if (charIndex >= entry.cleanedOffset && charIndex < entry.cleanedEnd) {
-          highlightWordInSentence(
-            entry.originalOffset,
-            entry.originalLength,
-            "tts",
-          );
+          if (entry.parts && entry.parts.length > 1) {
+            entry.parts.forEach((part, idx) => {
+              highlightWordInSentence(
+                part.originalOffset,
+                part.originalLength,
+                "tts",
+                idx === 0,
+              );
+            });
+          } else {
+            highlightWordInSentence(
+              entry.originalOffset,
+              entry.originalLength,
+              "tts",
+            );
+          }
           return;
         }
       }

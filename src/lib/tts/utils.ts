@@ -52,6 +52,7 @@ export type WordMapEntry = {
   cleanedEnd: number;
   originalOffset: number;
   originalLength: number;
+  parts?: Array<{ originalOffset: number; originalLength: number }>;
 };
 
 export function buildWordMap(
@@ -71,6 +72,34 @@ export function buildWordMap(
       const ow = origWords[i]!;
       const owNorm = normalizeWord(ow.word);
       if (!owNorm) continue;
+
+      // handle hyphenated word split across lines
+      if (
+        cwNorm.startsWith(owNorm) &&
+        cwNorm !== owNorm &&
+        ow.word.endsWith("-") &&
+        i + 1 < origWords.length
+      ) {
+        const nextOw = origWords[i + 1]!;
+        const nextOwNorm = normalizeWord(nextOw.word);
+        if (nextOwNorm === cwNorm.slice(owNorm.length)) {
+          map.push({
+            cleanedOffset: cw.charOffset,
+            cleanedEnd: cw.charOffset + cw.word.length,
+            originalOffset: ow.charOffset,
+            originalLength: ow.word.length,
+            parts: [
+              { originalOffset: ow.charOffset, originalLength: ow.word.length },
+              {
+                originalOffset: nextOw.charOffset,
+                originalLength: nextOw.word.length,
+              },
+            ],
+          });
+          origIdx = i + 2;
+          break;
+        }
+      }
 
       if (
         cwNorm === owNorm ||

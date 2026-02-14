@@ -18,7 +18,7 @@ function isHyphenatedEnd(word: string): boolean {
 type ProcessedWord = {
   word: string;
   rawStartIndex: number; // Index in raw words array
-  rawWordCount: number;  // How many raw words this covers (1 or 2 for hyphenated)
+  rawWordCount: number; // How many raw words this covers (1 or 2 for hyphenated)
 };
 
 function processWordsWithHyphenation(words: string[]): ProcessedWord[] {
@@ -107,7 +107,9 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
       if (allSentences[0]) {
         const raw = extractWords(allSentences[0]);
         rawWordsRef.current = raw;
-        wordsRef.current = getProcessedWordStrings(processWordsWithHyphenation(raw));
+        wordsRef.current = getProcessedWordStrings(
+          processWordsWithHyphenation(raw),
+        );
       }
 
       setCurrentPage(pageNumber);
@@ -124,7 +126,7 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
 
       return true;
     },
-    [sentenceReader]
+    [sentenceReader],
   );
 
   const highlightSentenceOnce = useCallback(
@@ -143,7 +145,7 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
         sentenceReader.scrollToCurrentSentence();
       }
     },
-    [currentPage, sentenceReader, followAlongEnabled]
+    [currentPage, sentenceReader, followAlongEnabled],
   );
 
   const updateWordDisplay = useCallback(
@@ -174,19 +176,42 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
       highlightSentenceOnce(sentenceIdx);
 
       // Calculate the character offset using raw word positions
-      // The raw word at rawStartIndex is where this processed word starts in the sentence
       const rawStartIdx = processedWord.rawStartIndex;
-      const charOffset = rawWords.slice(0, rawStartIdx).join(" ").length + (rawStartIdx > 0 ? 1 : 0);
+      const charOffset =
+        rawWords.slice(0, rawStartIdx).join(" ").length +
+        (rawStartIdx > 0 ? 1 : 0);
 
-      // For the word length, use the original raw word (not the combined one)
-      // If it's a hyphenated word, highlight just the first raw word for now
-      const rawWord = rawWords[rawStartIdx] || word;
+      if (processedWord.rawWordCount === 2) {
+        const firstRawWord = rawWords[rawStartIdx] || word;
+        sentenceReader.highlightWordInSentence(
+          charOffset,
+          firstRawWord.length,
+          "rsvp",
+        );
 
-      sentenceReader.highlightWordInSentence(charOffset, rawWord.length, "rsvp");
+        const secondRawIdx = rawStartIdx + 1;
+        const secondCharOffset =
+          rawWords.slice(0, secondRawIdx).join(" ").length +
+          (secondRawIdx > 0 ? 1 : 0);
+        const secondRawWord = rawWords[secondRawIdx] || "";
+        sentenceReader.highlightWordInSentence(
+          secondCharOffset,
+          secondRawWord.length,
+          "rsvp",
+          false,
+        );
+      } else {
+        const rawWord = rawWords[rawStartIdx] || word;
+        sentenceReader.highlightWordInSentence(
+          charOffset,
+          rawWord.length,
+          "rsvp",
+        );
+      }
 
       return true;
     },
-    [highlightSentenceOnce, sentenceReader]
+    [highlightSentenceOnce, sentenceReader],
   );
 
   const advanceWord = useCallback((): boolean => {
@@ -334,7 +359,7 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
         }
       }
     },
-    [loadPage, updateWordDisplay]
+    [loadPage, updateWordDisplay],
   );
 
   return {

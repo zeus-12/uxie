@@ -122,6 +122,8 @@ export function SpeakAlong({
     showDefinition,
     start,
     stop,
+    pause,
+    resume,
     previousWord,
     nextWord,
     speakCurrentWord,
@@ -157,12 +159,13 @@ export function SpeakAlong({
   const stopRef = useRef(stop);
   stopRef.current = stop;
 
+  const prevPageRef = useRef(pageNumber);
   useEffect(() => {
     if (!speakAlongEnabled) return;
-    if (status === SPEAK_ALONG_STATUS.LISTENING) {
-      updatePageRef.current(pageNumber);
-    }
-  }, [speakAlongEnabled, pageNumber, status]);
+    if (pageNumber === prevPageRef.current) return;
+    prevPageRef.current = pageNumber;
+    updatePageRef.current(pageNumber);
+  }, [speakAlongEnabled, pageNumber]);
 
   useEffect(() => {
     if (!speakAlongEnabled) return;
@@ -171,7 +174,8 @@ export function SpeakAlong({
     };
   }, [speakAlongEnabled]);
 
-  const isActive = status === SPEAK_ALONG_STATUS.LISTENING;
+  const isActive = status === SPEAK_ALONG_STATUS.LISTENING || status === SPEAK_ALONG_STATUS.PAUSED;
+  const isPaused = status === SPEAK_ALONG_STATUS.PAUSED;
 
   const handleClose = () => {
     stop();
@@ -179,8 +183,10 @@ export function SpeakAlong({
   };
 
   const handleToggle = () => {
-    if (isActive) {
-      stop();
+    if (status === SPEAK_ALONG_STATUS.LISTENING) {
+      pause();
+    } else if (status === SPEAK_ALONG_STATUS.PAUSED) {
+      resume();
     } else {
       start(pageNumber);
     }
@@ -225,7 +231,7 @@ export function SpeakAlong({
       onClick: handleToggle,
       icon: <MicIcon size={18} />,
       active: isListening,
-      title: isActive ? "Stop" : "Start",
+      title: status === SPEAK_ALONG_STATUS.LISTENING ? "Pause" : isPaused ? "Resume" : "Start",
     },
     {
       key: "next",

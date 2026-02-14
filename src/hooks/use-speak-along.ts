@@ -17,8 +17,38 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-function extractRealWords(sentence: string): WordWithPosition[] {
-  return extractWordsWithPositions(sentence).filter((w) => isRealWord(w.word));
+type SpeakAlongWord = WordWithPosition & {
+  displayWord: string;
+  parts?: Array<{ charOffset: number; length: number }>;
+};
+
+function extractRealWordsWithHyphenation(sentence: string): SpeakAlongWord[] {
+  const words = extractWordsWithPositions(sentence).filter((w) =>
+    isRealWord(w.word),
+  );
+  const result: SpeakAlongWord[] = [];
+  let i = 0;
+
+  while (i < words.length) {
+    const w = words[i]!;
+    if (w.word.endsWith("-") && i + 1 < words.length) {
+      const next = words[i + 1]!;
+      result.push({
+        ...w,
+        displayWord: w.word.slice(0, -1) + next.word,
+        parts: [
+          { charOffset: w.charOffset, length: w.word.length },
+          { charOffset: next.charOffset, length: next.word.length },
+        ],
+      });
+      i += 2;
+    } else {
+      result.push({ ...w, displayWord: w.word });
+      i++;
+    }
+  }
+
+  return result;
 }
 
 // Word definition types from Free Dictionary API
@@ -71,10 +101,12 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   const [lastHeard, setLastHeard] = useState<string | null>(null);
   const [showDefinition, setShowDefinition] = useState(false);
 
-  const wordsRef = useRef<WordWithPosition[]>([]);
+  const wordsRef = useRef<SpeakAlongWord[]>([]);
   const currentWordIndexRef = useRef(0);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const hasShownErrorRef = useRef(false);
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   const cleanWord = currentWord ? cleanWordForLookup(currentWord) : "";
   const { data: wordDefinition, isLoading: isLoadingDefinition } = useQuery({
@@ -134,7 +166,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
       const wordInfo = words[checkIdx];
       if (!wordInfo) continue;
 
-      const expectedWord = normalizeWord(wordInfo.word);
+      const expectedWord = normalizeWord(wordInfo.displayWord);
       if (expectedWord && lastSpoken === expectedWord) {
         currentWordIndexRef.current = checkIdx + 1;
         updateWordDisplayRef.current();
@@ -142,6 +174,28 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
       }
     }
   }, []);
+
+  const highlightSpeakAlongWord = useCallback(
+    (wordInfo: SpeakAlongWord) => {
+      if (wordInfo.parts && wordInfo.parts.length > 1) {
+        wordInfo.parts.forEach((part, idx) => {
+          sentenceReader.highlightWordInSentence(
+            part.charOffset,
+            part.length,
+            "rsvp",
+            idx === 0,
+          );
+        });
+      } else {
+        sentenceReader.highlightWordInSentence(
+          wordInfo.charOffset,
+          wordInfo.word.length,
+          "rsvp",
+        );
+      }
+    },
+    [sentenceReader],
+  );
 
   const updateWordDisplay = useCallback(() => {
     setShowDefinition(false);
@@ -159,21 +213,17 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
       }
 
       // Load new sentence words
-      wordsRef.current = extractRealWords(next.sentence);
+      wordsRef.current = extractRealWordsWithHyphenation(next.sentence);
       currentWordIndexRef.current = 0;
       setCurrentSentence(next.sentence);
       setCurrentPage(next.pageNumber);
 
       const firstWord = wordsRef.current[0];
       if (firstWord) {
-        setCurrentWord(firstWord.word);
+        setCurrentWord(firstWord.displayWord);
         sentenceReader.highlightCurrentSentence("tts");
         sentenceReader.scrollToCurrentSentence();
-        sentenceReader.highlightWordInSentence(
-          firstWord.charOffset,
-          firstWord.word.length,
-          "rsvp",
-        );
+        highlightSpeakAlongWord(firstWord);
       }
       return;
     }
@@ -181,14 +231,10 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     const wordInfo = words[index];
     if (!wordInfo) return;
 
-    setCurrentWord(wordInfo.word);
-    sentenceReader.highlightWordInSentence(
-      wordInfo.charOffset,
-      wordInfo.word.length,
-      "rsvp",
-    );
+    setCurrentWord(wordInfo.displayWord);
+    highlightSpeakAlongWord(wordInfo);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sentenceReader]);
+  }, [sentenceReader, highlightSpeakAlongWord]);
 
   const updateWordDisplayRef = useRef(updateWordDisplay);
   updateWordDisplayRef.current = updateWordDisplay;
@@ -228,7 +274,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     recognition.onend = () => {
       setIsListening(false);
       // Auto-restart if still in listening mode
-      if (status === SPEAK_ALONG_STATUS.LISTENING) {
+      if (statusRef.current === SPEAK_ALONG_STATUS.LISTENING) {
         try {
           recognition.start();
         } catch {}
@@ -264,7 +310,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
       console.warn("[SpeakAlong] Failed to start recognition:", err);
       return false;
     }
-  }, [handleSpeechResult, status]);
+  }, [handleSpeechResult]);
 
   const loadSentence = useCallback(
     (pageNumber: number) => {
@@ -278,7 +324,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
       sentenceReader.highlightCurrentSentence("tts");
       sentenceReader.scrollToCurrentSentence();
 
-      const words = extractRealWords(current.sentence);
+      const words = extractRealWordsWithHyphenation(current.sentence);
       wordsRef.current = words;
       currentWordIndexRef.current = 0;
 
@@ -287,17 +333,13 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
 
       const firstWord = words[0];
       if (firstWord) {
-        setCurrentWord(firstWord.word);
-        sentenceReader.highlightWordInSentence(
-          firstWord.charOffset,
-          firstWord.word.length,
-          "rsvp",
-        );
+        setCurrentWord(firstWord.displayWord);
+        highlightSpeakAlongWord(firstWord);
       }
 
       return true;
     },
-    [sentenceReader],
+    [sentenceReader, highlightSpeakAlongWord],
   );
 
   const start = useCallback(
@@ -325,14 +367,33 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     sentenceReader.removeAllHighlights();
   }, [sentenceReader, stopRecognition]);
 
+  const pause = useCallback(() => {
+    stopRecognition();
+    setStatus(SPEAK_ALONG_STATUS.PAUSED);
+  }, [stopRecognition]);
+
+  const resume = useCallback(() => {
+    setStatus(SPEAK_ALONG_STATUS.LISTENING);
+    hasShownErrorRef.current = false;
+    startRecognition();
+  }, [startRecognition]);
+
   const nextWord = useCallback(() => {
-    if (status !== SPEAK_ALONG_STATUS.LISTENING) return;
+    if (
+      status !== SPEAK_ALONG_STATUS.LISTENING &&
+      status !== SPEAK_ALONG_STATUS.PAUSED
+    )
+      return;
     currentWordIndexRef.current += 1;
     updateWordDisplay();
   }, [status, updateWordDisplay]);
 
   const previousWord = useCallback(() => {
-    if (status !== SPEAK_ALONG_STATUS.LISTENING) return;
+    if (
+      status !== SPEAK_ALONG_STATUS.LISTENING &&
+      status !== SPEAK_ALONG_STATUS.PAUSED
+    )
+      return;
     currentWordIndexRef.current = Math.max(0, currentWordIndexRef.current - 1);
     updateWordDisplay();
   }, [status, updateWordDisplay]);
@@ -370,7 +431,10 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
 
   const updatePage = useCallback(
     (pageNumber: number) => {
-      if (status === SPEAK_ALONG_STATUS.LISTENING) {
+      if (
+        status === SPEAK_ALONG_STATUS.LISTENING ||
+        status === SPEAK_ALONG_STATUS.PAUSED
+      ) {
         loadSentence(pageNumber);
       }
     },
@@ -394,6 +458,8 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     showDefinition,
     start,
     stop,
+    pause,
+    resume,
     nextWord,
     previousWord,
     speakCurrentWord,
