@@ -1,3 +1,9 @@
+import {
+  FloatingPanel,
+  FloatingPanelBody,
+  FloatingPanelFooter,
+  FloatingPanelIconButton,
+} from "@/components/pdf-reader/floating-panel";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import {
@@ -19,7 +25,6 @@ import {
   PauseIcon,
   PlayIcon,
   Square,
-  XIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -37,8 +42,7 @@ type RsvpReaderProps = {
   pageCount: number;
 };
 
-// ORP lookup table based on word length (from speedread implementation)
-// This positions the focus point slightly left of center for optimal recognition
+// ORP lookup table based on word length - this positions the focus point slightly left of center for optimal recognition (from https://github.com/pasky/speedread)
 const ORP_TABLE = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3];
 
 function getOrpIndex(word: string): number {
@@ -51,7 +55,9 @@ function WordDisplay({ word }: { word: string | null }) {
   if (!word) {
     return (
       <div className="flex items-center justify-center h-12">
-        <span className="text-muted-foreground text-lg">Press play to start</span>
+        <span className="text-muted-foreground text-lg">
+          Press play to start
+        </span>
       </div>
     );
   }
@@ -67,7 +73,6 @@ function WordDisplay({ word }: { word: string | null }) {
         className="absolute text-3xl font-mono whitespace-nowrap"
         style={{
           left: "50%",
-          // offset by: chars before ORP + half the ORP char width
           transform: `translateX(calc(-${before.length}ch - 0.5ch))`,
         }}
       >
@@ -95,7 +100,7 @@ const SHORTCUTS = [
   { label: "Close", displayKey: "Esc", hotkey: "escape" },
 ] as const satisfies Shortcut[];
 
-type Hotkey = (typeof SHORTCUTS[number])["hotkey"]
+type Hotkey = (typeof SHORTCUTS)[number]["hotkey"];
 
 function ShortcutsTooltip() {
   return (
@@ -110,7 +115,10 @@ function ShortcutsTooltip() {
           <p className="font-medium text-sm mb-2">Keyboard Shortcuts</p>
           <div className="grid gap-1.5 text-xs">
             {SHORTCUTS.map(({ label, displayKey }) => (
-              <div key={displayKey} className="flex items-center justify-between gap-4">
+              <div
+                key={displayKey}
+                className="flex items-center justify-between gap-4"
+              >
                 <span className="text-muted-foreground">{label}</span>
                 <Kbd>{displayKey}</Kbd>
               </div>
@@ -134,7 +142,10 @@ function WpmDropdown({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -153,10 +164,7 @@ function WpmDropdown({
         <span>{wpm} wpm</span>
         <ChevronDownIcon
           size={14}
-          className={cn(
-            "transition-transform",
-            isOpen && "rotate-180"
-          )}
+          className={cn("transition-transform", isOpen && "rotate-180")}
         />
       </Button>
       <AnimatePresence>
@@ -177,7 +185,7 @@ function WpmDropdown({
                 }}
                 className={cn(
                   "w-full px-4 py-2 text-sm text-left hover:bg-muted/50 transition-colors",
-                  wpm === preset.value && "bg-primary/10"
+                  wpm === preset.value && "bg-primary/10",
                 )}
               >
                 {preset.label}
@@ -225,7 +233,10 @@ export function RsvpReader({ pageNumber, pageCount }: RsvpReaderProps) {
   };
 
   const hotkeyActions: Record<Hotkey, (e?: KeyboardEvent) => void> = {
-    space: (e) => { e?.preventDefault(); togglePlay(); },
+    space: (e) => {
+      e?.preventDefault();
+      togglePlay();
+    },
     arrowleft: prevWord,
     arrowright: nextWord,
     arrowup: () => cycleWpm("up"),
@@ -240,66 +251,58 @@ export function RsvpReader({ pageNumber, pageCount }: RsvpReaderProps) {
       const hotkey = (handler.keys?.join("") ?? "") as Hotkey;
       hotkeyActions[hotkey]?.(e);
     },
-    { enabled: rsvpOpen }
+    { enabled: rsvpOpen },
   );
 
   if (!rsvpOpen) return null;
 
-  const PLAYBACK_CONTROLS = [
-    { key: "prev", onClick: prevWord, icon: <ChevronLeftIcon size={18} />, title: undefined, variant: "ghost" },
-    { key: "playpause", onClick: togglePlay, icon: isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />, title: undefined, variant: "ghost" },
-    { key: "next", onClick: nextWord, icon: <ChevronRightIcon size={18} />, title: undefined, variant: "ghost" },
-    { key: "stop", onClick: stop, icon: <Square size={14} />, title: "Stop and reset", variant: "ghost" },
-    { key: "follow", onClick: toggleFollowAlong, icon: <EyeIcon size={16} />, title: followAlongEnabled ? "Follow along (on)" : "Follow along (off)", variant: (followAlongEnabled ? "default" : "ghost") },
-  ] as const;
+  const playbackControls = [
+    { key: "prev", onClick: prevWord, icon: <ChevronLeftIcon size={18} /> },
+    {
+      key: "playpause",
+      onClick: togglePlay,
+      icon: isPlaying ? <PauseIcon size={18} /> : <PlayIcon size={18} />,
+    },
+    { key: "next", onClick: nextWord, icon: <ChevronRightIcon size={18} /> },
+    {
+      key: "stop",
+      onClick: stop,
+      icon: <Square size={14} />,
+      title: "Stop and reset",
+    },
+    {
+      key: "follow",
+      onClick: toggleFollowAlong,
+      icon: <EyeIcon size={16} />,
+      title: followAlongEnabled ? "Follow along (on)" : "Follow along (off)",
+      active: followAlongEnabled,
+    },
+  ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.95 }}
-      transition={{
-        duration: 0.25,
-        ease: [0.16, 1, 0.3, 1],
-      }}
-      className="mb-2 w-[400px]"
-    >
-      <div className="bg-background border rounded-xl shadow-xl overflow-hidden">
-        <div className="relative px-6 py-8 flex items-center justify-center min-h-[100px]">
-          <div className="absolute top-0 bottom-0 left-1/2 w-px bg-orange-500/20" />
+    <FloatingPanel open={rsvpOpen} onClose={close}>
+      <FloatingPanelBody className="py-8">
+        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-orange-500/20" />
+        <WordDisplay word={currentWord} />
+      </FloatingPanelBody>
 
-          <button
-            onClick={close}
-            className="absolute top-2 right-2 p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-          >
-            <XIcon size={16} className="text-muted-foreground" />
-          </button>
-
-          <WordDisplay word={currentWord} />
+      <FloatingPanelFooter>
+        <div className="flex items-center gap-1">
+          {playbackControls.map(({ key, onClick, icon, title, active }) => (
+            <FloatingPanelIconButton
+              key={key}
+              onClick={onClick}
+              icon={icon}
+              title={title}
+              active={active}
+            />
+          ))}
         </div>
-
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-t">
-          <div className="flex items-center gap-1">
-            {PLAYBACK_CONTROLS.map(({ key, onClick, icon, title, variant }) => (
-              <Button
-                key={key}
-                variant={variant}
-                size="sm"
-                onClick={onClick}
-                className="h-8 w-8 p-0"
-                title={title}
-              >
-                {icon}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <ShortcutsTooltip />
-            <WpmDropdown wpm={rsvpWpm} onWpmChange={setRsvpWpm} />
-          </div>
+        <div className="flex items-center gap-2">
+          <ShortcutsTooltip />
+          <WpmDropdown wpm={rsvpWpm} onWpmChange={setRsvpWpm} />
         </div>
-      </div>
-    </motion.div>
+      </FloatingPanelFooter>
+    </FloatingPanel>
   );
 }
