@@ -1,4 +1,10 @@
 export type TTSStatus = "idle" | "speaking" | "paused" | "loading";
+// export enum TTSStatusEnum {
+//   IDLE = "idle",
+//   SPEAKING = "speaking",
+//   PAUSED = "paused",
+//   LOADING = "loading",
+// }
 
 export interface TTSVoice<T extends string> {
   id: T;
@@ -55,4 +61,26 @@ export interface WordTiming {
   charLength: number;
   startTime: number;
   endTime: number;
+}
+
+export interface CachedAudio {
+  audioBuffer: AudioBuffer;
+  wordTimings: WordTiming[];
+}
+
+export interface LocalTtsHook {
+  speak: (text: string, opts: { speed: number }) => Promise<void>;
+  pregenerate: (text: string) => Promise<void>;
+  pause: () => void;
+  resume: () => Promise<void>;
+  stop: () => void;
+  reset: () => void;
+  status: TTSStatus;
+  setVoice: (voice: string) => void;
+  changeSpeed: (speed: number) => void;
+  restartAtNewSpeed: (newSpeed: number) => Promise<void>;
+  clearCache: () => void;
+  getIsPaused: () => boolean;
+  canResume: () => boolean;
+  getVoice: () => string;
 }
