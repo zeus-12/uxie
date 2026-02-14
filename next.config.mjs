@@ -6,9 +6,6 @@ await import("./src/env.mjs");
 const config = {
   reactStrictMode: true,
   swcMinify: true,
-  experimental: {
-    esmExternals: "loose",
-  },
   images: {
     domains: ["lh3.googleusercontent.com", "utfs.io"],
   },
