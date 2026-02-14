@@ -571,12 +571,18 @@ const usePdfReader = ({
   const readSelectedText = useCallback(
     async ({
       text,
+      selectionBlockIndex,
+      selectionOffsetInBlock,
+      selectionPageNumber,
     }: {
       text?: string | null;
       readingSpeed?: number;
       readingMode?: READING_MODE;
       continueReadingFromLastPosition?: boolean;
       highlightInsideSameBlockByIndexes?: any;
+      selectionBlockIndex?: number;
+      selectionOffsetInBlock?: number;
+      selectionPageNumber?: number;
     }) => {
       const selectedText = text ?? window.getSelection()?.toString();
       if (!selectedText) return;
@@ -594,10 +600,13 @@ const usePdfReader = ({
       browserTts.reset();
       supertonicTts.reset();
 
-      const startPage = pageNumberInView > 0 ? pageNumberInView : 1;
+      const startPage =
+        selectionPageNumber ?? (pageNumberInView > 0 ? pageNumberInView : 1);
       const position = sentenceReader.startFromTextOnPage(
         startPage,
         selectedText,
+        selectionBlockIndex,
+        selectionOffsetInBlock,
       );
 
       if (!position) {

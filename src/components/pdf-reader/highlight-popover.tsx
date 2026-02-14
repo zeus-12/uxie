@@ -10,6 +10,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useRouter } from "next/router";
+import type { RefObject } from "react";
 
 export const TextSelectionPopover = ({
   content,
@@ -19,6 +20,7 @@ export const TextSelectionPopover = ({
   sendMessage,
   showAiFeatures,
   readSelectedText,
+  selectionInfoRef,
 }: {
   position: any;
   addHighlight: () => void;
@@ -29,17 +31,20 @@ export const TextSelectionPopover = ({
   hideTipAndSelection: () => void;
   sendMessage: ((message: string) => void) | null;
   showAiFeatures: boolean;
-  readSelectedText: ({
-    text,
-    readingSpeed,
-    continueReadingFromLastPosition,
-    readingMode,
-  }: {
+  readSelectedText: (args: {
     text?: string;
     readingSpeed?: number;
     continueReadingFromLastPosition?: boolean;
     readingMode: READING_MODE;
+    selectionBlockIndex?: number;
+    selectionOffsetInBlock?: number;
+    selectionPageNumber?: number;
   }) => Promise<void>;
+  selectionInfoRef: RefObject<{
+    blockIndex: number;
+    offsetInBlock: number;
+    pageNumber: number;
+  } | null>;
 }) => {
   const router = useRouter();
   const isTextHighlight = content.text !== undefined;
@@ -64,9 +69,14 @@ export const TextSelectionPopover = ({
     },
     isTextHighlight && {
       onClick: () => {
+        const info = selectionInfoRef.current;
+
         readSelectedText({
           text: content.text,
           readingMode: READING_MODE.TEXT,
+          selectionBlockIndex: info?.blockIndex,
+          selectionOffsetInBlock: info?.offsetInBlock,
+          selectionPageNumber: info?.pageNumber,
         });
         hideTipAndSelection();
       },

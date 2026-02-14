@@ -528,19 +528,64 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   );
 
   const startFromTextOnPage = useCallback(
-    (pageNumber: number, selectedText: string): SentencePosition | null => {
+    (
+      pageNumber: number,
+      selectedText: string,
+      selectionBlockIndex?: number,
+      selectionOffsetInBlock?: number,
+    ): SentencePosition | null => {
       const sentences = loadPageSentences(pageNumber);
       if (sentences.length === 0) return null;
 
       const normalised = selectedText.trim().replace(/\s+/g, " ");
-
-      // Find the sentence that best matches the selected text
       let bestIdx = -1;
-      for (let i = 0; i < sentences.length; i++) {
-        const s = sentences[i]!;
-        if (s.includes(normalised) || normalised.includes(s.trim())) {
-          bestIdx = i;
-          break;
+
+      // Use the exact block + char offset captured on mouseup to find
+      // the sentence at the user's actual selection position.
+      if (selectionBlockIndex !== undefined && selectionBlockIndex >= 0) {
+        let absoluteCharOffset = 0;
+        for (
+          let i = 0;
+          i < selectionBlockIndex && i < blockContentsRef.current.length;
+          i++
+        ) {
+          absoluteCharOffset += (blockContentsRef.current[i] ?? "").length;
+        }
+        absoluteCharOffset += selectionOffsetInBlock ?? 0;
+
+        const fullText = blockContentsRef.current.join("");
+        let searchStart = 0;
+        for (let i = 0; i < sentences.length; i++) {
+          const pos = fullText.indexOf(sentences[i]!, searchStart);
+          if (pos === -1) continue;
+          const sentenceEnd = pos + sentences[i]!.length;
+          if (
+            absoluteCharOffset >= pos &&
+            absoluteCharOffset < sentenceEnd
+          ) {
+            bestIdx = i;
+            break;
+          }
+          if (pos > absoluteCharOffset && bestIdx === -1) {
+            bestIdx = i;
+            break;
+          }
+          searchStart = sentenceEnd;
+        }
+
+        if (bestIdx === -1 && sentences.length > 0) {
+          bestIdx = sentences.length - 1;
+        }
+      }
+
+      // Fallback: text-based matching
+      if (bestIdx === -1) {
+        for (let i = 0; i < sentences.length; i++) {
+          const s = sentences[i]!;
+          if (s.includes(normalised) || normalised.includes(s.trim())) {
+            bestIdx = i;
+            break;
+          }
         }
       }
 

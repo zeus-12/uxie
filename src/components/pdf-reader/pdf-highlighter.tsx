@@ -10,7 +10,7 @@ import { type AddHighlightType } from "@/types/highlight";
 import { HighlightTypeEnum } from "@prisma/client";
 import { type inferRouterOutputs } from "@trpc/server";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -55,22 +55,75 @@ const PdfHighlighter = ({
   doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
   addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
   deleteHighlight: (id: string) => void;
-  readSelectedText: ({
-    text,
-    readingSpeed,
-    continueReadingFromLastPosition,
-    readingMode,
-  }: {
+  readSelectedText: (args: {
     text?: string | null;
     readingSpeed?: number;
     continueReadingFromLastPosition?: boolean;
     readingMode: READING_MODE;
+    selectionBlockIndex?: number;
+    selectionOffsetInBlock?: number;
+    selectionPageNumber?: number;
   }) => Promise<void>;
 }) => {
   const highlights = doc.highlights ?? [];
   const utils = api.useContext();
   const { sendMessage } = useChatStore();
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
+
+  const selectionInfoRef = useRef<{
+    blockIndex: number;
+    offsetInBlock: number;
+    pageNumber: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+
+      const range = sel.getRangeAt(0);
+      const startNode = range.startContainer;
+      let el: Element | null =
+        startNode instanceof Element
+          ? startNode
+          : startNode.parentElement;
+
+      while (el && !el.matches?.('span[role="presentation"]')) {
+        el = el.parentElement;
+      }
+      if (!el) return;
+
+      const pageEl = el.closest(".page[data-page-number]");
+      if (!pageEl) return;
+
+      const pn = parseInt(
+        pageEl.getAttribute("data-page-number") ?? "",
+        10,
+      );
+      if (isNaN(pn)) return;
+
+      const allBlocks = pageEl.querySelectorAll(
+        "span[role='presentation']",
+      );
+      const blockIdx = Array.from(allBlocks).indexOf(el);
+      if (blockIdx === -1) return;
+
+      const measureRange = document.createRange();
+      measureRange.setStart(el, 0);
+      measureRange.setEnd(range.startContainer, range.startOffset);
+      const offsetInBlock = measureRange.toString().length;
+      measureRange.detach();
+
+      selectionInfoRef.current = {
+        blockIndex: blockIdx,
+        offsetInBlock,
+        pageNumber: pn,
+      };
+    };
+
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => document.removeEventListener("mouseup", handleMouseUp);
+  }, []);
 
   useEffect(() => {
     const handleLinkClick = (event: MouseEvent) => {
@@ -160,6 +213,7 @@ const PdfHighlighter = ({
             position={position}
             addHighlight={() => addHighlight({ content, position })}
             readSelectedText={readSelectedText}
+            selectionInfoRef={selectionInfoRef}
           />
         );
       }}
