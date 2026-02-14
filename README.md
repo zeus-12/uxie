@@ -50,17 +50,15 @@ I'd love for you to give Uxie a try and share your valuable [feedback](https://u
 - PDF text-to-speech (local ai models & browser inbuilt) with sentence-by-sentence highlighting. (spent insane amt of hours on this, and super happy with how it turned out :)
 - PDF OCR support (English only)
 - Craft simple flashcards to test your knowledge, answer questions, and receive instant feedback through AI evaluation.
-- Bionic reading mode, RSVP reading mode disable hyperlinks, full-screen pdf view.
+- Bionic reading mode, RSVP reading mode disable hyperlinks, read-along mode (helping people read), full-screen pdf view.
 - SOON => Semantic search, improved RAG (with better results & listing sources -> w intuitive ui), pdf summary, & more :)
 
 ### Bugs
 
 - [ ] add proper prompts for each item in custom/ai/popover.tsx
-- [ ] display a x% done in /f, (& nice book like ui that opens the pdf on hover)
 - [ ] build a category/tags system for documents => doesn't matter if ui is bad, just build it
 - [ ] implement ratelimit (esp for everything ai related) using redis kv => checkout upstash
 - [ ] better error,loading pages
-- [ ] editor loads with empty data before the data is loaded.
 - [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
 
 ## New ideas
