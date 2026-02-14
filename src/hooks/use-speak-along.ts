@@ -337,16 +337,19 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     updateWordDisplay();
   }, [status, updateWordDisplay]);
 
-  const getTtsInstanceFromEngine = (engine: string) => {
-    if (engine === "kokoro") {
-      return kokoroTts;
-    } else if (engine === "supertonic") {
-      return supertonicTts;
-    } else if (engine === "browser") {
-      return supertonicTts;
-    }
-    return null;
-  };
+  const getTtsInstanceFromEngine = useCallback(
+    (engine: string) => {
+      if (engine === "kokoro") {
+        return kokoroTts;
+      } else if (engine === "supertonic") {
+        return supertonicTts;
+      } else if (engine === "browser") {
+        return supertonicTts;
+      }
+      return null;
+    },
+    [kokoroTts, supertonicTts],
+  );
 
   const speakCurrentWord = useCallback(async () => {
     if (!currentWord) return;
@@ -363,7 +366,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
 
     tts.reset();
     await tts.speak(cleanSentenceForTts(currentWord), { speed: 1 });
-  }, [currentWord, kokoroTts, supertonicTts, currentVoice]);
+  }, [currentWord, getTtsInstanceFromEngine, currentVoice]);
 
   const updatePage = useCallback(
     (pageNumber: number) => {
