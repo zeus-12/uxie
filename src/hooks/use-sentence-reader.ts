@@ -1,4 +1,10 @@
-import { useCallback, useRef } from "react";
+import {
+  buildWordMap,
+  extractWords,
+  splitSentences,
+  type WordMapEntry,
+} from "@/lib/tts/utils";
+import { useCallback, useEffect, useRef } from "react";
 
 export type HighlightMode = "tts" | "rsvp";
 
@@ -69,10 +75,9 @@ export function cleanSentenceForTts(text: string): string {
 
 function extractSentencesFromBlocks(blockContents: string[]): string[] {
   const fullText = blockContents.join("");
-  const matches = fullText.match(/[^.!?]+[.!?]+/g);
-  if (!matches) return [];
+  const sentences = splitSentences(fullText);
 
-  return matches.filter((sentence) => {
+  return sentences.filter((sentence) => {
     const cleaned = cleanSentenceForTts(sentence);
     const alphanumericCount = (cleaned.match(/[a-zA-Z0-9]/g) || []).length;
     return alphanumericCount >= 3 && alphanumericCount / cleaned.length > 0.3;
@@ -91,6 +96,8 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const blocksRef = useRef<Element[]>([]);
   const blockContentsRef = useRef<string[]>([]);
   const blockLengthsRef = useRef<number[]>([]);
+  const wordMapRef = useRef<WordMapEntry[]>([]);
+  const lastHighlightModeRef = useRef<HighlightMode>("tts");
 
   // Highlight inside a single block
   const highlightInsideSameBlockByIndexes = useCallback(
@@ -265,6 +272,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
   const highlightCurrentSentence = useCallback(
     (mode: HighlightMode = "tts") => {
+      lastHighlightModeRef.current = mode;
       const idx = currentSentenceIndexRef.current;
       const sentence = sentencesRef.current[idx];
       if (!sentence) return;
@@ -292,37 +300,48 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const sentence = sentencesRef.current[currentSentenceIndexRef.current];
       if (!sentence || wordLength <= 0) return;
 
-      // Find where this sentence starts in the full block text
-      const fullText = blockContentsRef.current.join("");
-      const sentenceStart = fullText.indexOf(sentence);
-      if (sentenceStart === -1) return;
+      // Find the sentence highlight span(s) already in the DOM
+      const sentenceHighlights = Array.from(
+        document.querySelectorAll(
+          `.${HIGHLIGHT_CLASS.sentence}, .${HIGHLIGHT_CLASS_RSVP.sentence}`,
+        ),
+      );
+      if (sentenceHighlights.length === 0) return;
 
-      const wordStartInFullText = sentenceStart + charOffsetInSentence;
+      // Walk through highlight spans to find which one contains the char offset
+      let consumed = 0;
+      for (const el of sentenceHighlights) {
+        const spanLen = (el.textContent || "").length;
 
-      // Convert absolute position to block coordinates
-      let remaining = wordStartInFullText;
-      let blockY = 0;
-      let blockX = 0;
+        if (consumed + spanLen > charOffsetInSentence) {
+          const parentBlock = el.parentElement;
+          if (!parentBlock) return;
 
-      for (let i = 0; i < blockLengthsRef.current.length; i++) {
-        const blockLen = blockLengthsRef.current[i] ?? 0;
-        if (remaining < blockLen) {
-          blockY = i;
-          blockX = remaining;
-          break;
+          const blockY = blocksRef.current.indexOf(parentBlock);
+          if (blockY === -1) return;
+
+          // Use a Range to find the exact character offset of the highlight
+          // span within its parent block — no indexOf, no duplicate ambiguity.
+          const range = document.createRange();
+          range.setStart(parentBlock, 0);
+          range.setEndBefore(el);
+          const highlightStartInBlock = range.toString().length;
+
+          const offsetInSpan = charOffsetInSentence - consumed;
+          const startIndex = highlightStartInBlock + offsetInSpan;
+
+          highlightInsideSameBlockByIndexes({
+            startIndex,
+            endIndex: startIndex + wordLength,
+            type: "word",
+            blockYIndex: blockY,
+            removePreviousHighlights: true,
+            mode,
+          });
+          return;
         }
-        remaining -= blockLen;
+        consumed += spanLen;
       }
-
-      // Highlight the word
-      highlightInsideSameBlockByIndexes({
-        startIndex: blockX,
-        endIndex: blockX + wordLength,
-        type: "word",
-        blockYIndex: blockY,
-        removePreviousHighlights: true,
-        mode,
-      });
     },
     [highlightInsideSameBlockByIndexes],
   );
@@ -333,7 +352,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const sentence = sentencesRef.current[currentSentenceIndexRef.current];
       if (!sentence) return;
 
-      const words = sentence.split(/\s+/).filter((w) => w.length > 0);
+      const words = extractWords(sentence);
       if (wordIndex < 0 || wordIndex >= words.length) return;
 
       const targetWord = words[wordIndex];
@@ -507,6 +526,53 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     ],
   );
 
+  const startFromTextOnPage = useCallback(
+    (pageNumber: number, selectedText: string): SentencePosition | null => {
+      const sentences = loadPageSentences(pageNumber);
+      if (sentences.length === 0) return null;
+
+      const normalised = selectedText.trim().replace(/\s+/g, " ");
+
+      // Find the sentence that best matches the selected text
+      let bestIdx = -1;
+      for (let i = 0; i < sentences.length; i++) {
+        const s = sentences[i]!;
+        if (s.includes(normalised) || normalised.includes(s.trim())) {
+          bestIdx = i;
+          break;
+        }
+      }
+
+      // Fallback: partial overlap — find sentence with most shared words
+      if (bestIdx === -1) {
+        const selectedWords = new Set(normalised.toLowerCase().split(/\s+/));
+        let bestScore = 0;
+        for (let i = 0; i < sentences.length; i++) {
+          const words = sentences[i]!.toLowerCase().split(/\s+/);
+          const score = words.filter((w) => selectedWords.has(w)).length;
+          if (score > bestScore) {
+            bestScore = score;
+            bestIdx = i;
+          }
+        }
+      }
+
+      if (bestIdx === -1) bestIdx = 0;
+
+      currentSentenceIndexRef.current = bestIdx;
+      sentenceIndex.current = { x: 0, y: bestIdx };
+      calculateBlockIndexForSentence(bestIdx);
+      highlightCurrentSentence();
+      return getCurrentSentence();
+    },
+    [
+      loadPageSentences,
+      highlightCurrentSentence,
+      getCurrentSentence,
+      calculateBlockIndexForSentence,
+    ],
+  );
+
   const reset = useCallback(() => {
     currentPageRef.current = 1;
     currentSentenceIndexRef.current = 0;
@@ -516,6 +582,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     blocksRef.current = [];
     blockContentsRef.current = [];
     blockLengthsRef.current = [];
+    wordMapRef.current = [];
     removeAllHighlights();
   }, []);
 
@@ -528,112 +595,37 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     }
   }, []);
 
-  // Word highlighting for browser TTS - track position as words are spoken
   const highlightWord = useCallback(
-    (charIndex: number, charLength: number, spokenText?: string) => {
-      // Get the expected word from the spoken text (cleaned sentence)
-      const expectedWord =
-        spokenText?.substring(charIndex, charIndex + charLength)?.trim() ?? "";
-
-      // Get current block text
-      const currentBlockText =
-        blockContentsRef.current[blockIndex.current.y] ?? "";
-
-      // Try to find the expected word near current position with self-correction
-      let startX = blockIndex.current.x;
-      let blockY = blockIndex.current.y;
-      let foundMatch = false;
-
-      // Search within a range of positions to find the word
-      const MAX_SEARCH_RANGE = 10;
-
-      for (
-        let offset = 0;
-        offset <= MAX_SEARCH_RANGE && !foundMatch;
-        offset++
-      ) {
-        // Try current position + offset
-        for (const delta of offset === 0 ? [0] : [-offset, offset]) {
-          const tryX = blockIndex.current.x + delta;
-          const tryBlockText = blockContentsRef.current[blockY] ?? "";
-
-          if (tryX >= 0 && tryX < tryBlockText.length) {
-            const wordAtPos = tryBlockText
-              .substring(tryX, tryX + charLength)
-              .trim();
-            if (wordAtPos === expectedWord) {
-              startX = tryX;
-              foundMatch = true;
-              break;
-            }
-          }
-        }
-
-        // If word might span blocks or be in next block
-        if (!foundMatch && offset > 0) {
-          const nextBlockY = blockY + 1;
-          if (nextBlockY < blockContentsRef.current.length) {
-            const nextBlockText = blockContentsRef.current[nextBlockY] ?? "";
-            for (
-              let tryX = 0;
-              tryX < Math.min(MAX_SEARCH_RANGE, nextBlockText.length);
-              tryX++
-            ) {
-              const wordAtPos = nextBlockText
-                .substring(tryX, tryX + charLength)
-                .trim();
-              if (wordAtPos === expectedWord) {
-                blockY = nextBlockY;
-                startX = tryX;
-                foundMatch = true;
-                break;
-              }
-            }
-          }
+    (charIndex: number, _charLength: number, spokenText?: string) => {
+      // Build word map lazily on first call for this sentence
+      if (wordMapRef.current.length === 0 && spokenText) {
+        const sentence = sentencesRef.current[currentSentenceIndexRef.current];
+        if (sentence) {
+          wordMapRef.current = buildWordMap(sentence, spokenText);
         }
       }
 
-      // Skip leading space at highlight position
-      const blockText = blockContentsRef.current[blockY] ?? "";
-      if (blockText[startX] === " " && startX + 1 < blockText.length) {
-        startX += 1;
+      const map = wordMapRef.current;
+
+      // Find which mapped word contains this charIndex in the cleaned text
+      for (const entry of map) {
+        if (charIndex >= entry.cleanedOffset && charIndex < entry.cleanedEnd) {
+          highlightWordInSentence(
+            entry.originalOffset,
+            entry.originalLength,
+            "tts",
+          );
+          return;
+        }
       }
-
-      // Update blockIndex to the found position
-      blockIndex.current.x = startX;
-      blockIndex.current.y = blockY;
-
-      // Highlight the word
-      highlightInsideSameBlockByIndexes({
-        startIndex: startX,
-        endIndex: startX + charLength,
-        type: "word",
-        blockYIndex: blockY,
-      });
-
-      // Advance position for next word
-      blockIndex.current.x = startX + charLength;
-
-      // Handle block overflow
-      while (
-        blockIndex.current.y < blockLengthsRef.current.length &&
-        blockIndex.current.x >=
-          (blockLengthsRef.current[blockIndex.current.y] ?? 0)
-      ) {
-        blockIndex.current.x -=
-          blockLengthsRef.current[blockIndex.current.y] ?? 0;
-        blockIndex.current.y += 1;
-      }
-
-      // Update sentence tracking
-      sentenceIndex.current.x = charIndex + charLength;
     },
-    [highlightInsideSameBlockByIndexes],
+    [highlightWordInSentence],
   );
 
   // Reset word tracking when starting a new sentence
   const resetWordTracking = useCallback(() => {
     sentenceIndex.current.x = 0;
+    wordMapRef.current = [];
   }, []);
 
   // Reset blockIndex to the start of the current sentence (for speed change, voice change, restart)
@@ -642,10 +634,53 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const currentIdx = currentSentenceIndexRef.current;
       calculateBlockIndexForSentence(currentIdx);
       sentenceIndex.current.x = 0;
+      wordMapRef.current = [];
       highlightCurrentSentence(mode);
     },
     [calculateBlockIndexForSentence, highlightCurrentSentence],
   );
+
+  const refreshHighlights = useCallback(
+    (mode?: HighlightMode) => {
+      if (blocksRef.current.length === 0) return;
+
+      const modeToUse = mode ?? lastHighlightModeRef.current;
+      const pageNumber = currentPageRef.current;
+      const savedSentenceIdx = currentSentenceIndexRef.current;
+      const savedBlockIndex = { ...blockIndex.current };
+      const savedSentenceIndex = { ...sentenceIndex.current };
+
+      loadPageSentences(pageNumber);
+
+      if (sentencesRef.current.length === 0) return;
+
+      currentSentenceIndexRef.current = savedSentenceIdx;
+      calculateBlockIndexForSentence(savedSentenceIdx);
+      highlightCurrentSentence(modeToUse);
+
+      // Restore word position so next word boundary continues from where it was
+      blockIndex.current = savedBlockIndex;
+      sentenceIndex.current = savedSentenceIndex;
+    },
+    [
+      loadPageSentences,
+      calculateBlockIndexForSentence,
+      highlightCurrentSentence,
+    ],
+  );
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const pageNumber = (e as CustomEvent).detail?.pageNumber;
+      if (blocksRef.current.length === 0) return;
+      if (pageNumber !== undefined && pageNumber !== currentPageRef.current)
+        return;
+      refreshHighlights();
+    };
+
+    document.addEventListener("pdf:textlayerrendered", handler);
+    return () => document.removeEventListener("pdf:textlayerrendered", handler);
+  }, [refreshHighlights]);
 
   const getTotalSentences = useCallback(() => sentencesRef.current.length, []);
   const getCurrentIndex = useCallback(
@@ -657,6 +692,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
   return {
     startFromPage,
+    startFromTextOnPage,
     advanceToNextSentence,
     goToPreviousSentence,
     getCurrentSentence,
@@ -669,6 +705,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     resetToCurrentSentenceStart,
     scrollToCurrentSentence,
     removeAllHighlights,
+    refreshHighlights,
     getTotalSentences,
     getCurrentIndex,
     getCurrentPage,
@@ -681,3 +718,108 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     blocksRef,
   };
 }
+
+// HIGHLIGHT SELF-CORRECTING MECHANISM
+// NOT USED ANYMORE
+
+// const highlightWord = useCallback(
+//   (charIndex: number, charLength: number, spokenText?: string) => {
+//     // Get the expected word from the spoken text (cleaned sentence)
+//     const expectedWord =
+//       spokenText?.substring(charIndex, charIndex + charLength)?.trim() ?? "";
+
+//     // Get current block text
+//     const currentBlockText =
+//       blockContentsRef.current[blockIndex.current.y] ?? "";
+
+//     // Try to find the expected word near current position with self-correction
+//     let startX = blockIndex.current.x;
+//     let blockY = blockIndex.current.y;
+//     let foundMatch = false;
+
+//     // Search within a range of positions to find the word
+//     const MAX_SEARCH_RANGE = 10;
+
+//     for (
+//       let offset = 0;
+//       offset <= MAX_SEARCH_RANGE && !foundMatch;
+//       offset++
+//     ) {
+//       // Try current position + offset
+//       for (const delta of offset === 0 ? [0] : [-offset, offset]) {
+//         const tryX = blockIndex.current.x + delta;
+//         const tryBlockText = blockContentsRef.current[blockY] ?? "";
+
+//         if (tryX >= 0 && tryX < tryBlockText.length) {
+//           const wordAtPos = tryBlockText
+//             .substring(tryX, tryX + charLength)
+//             .trim();
+//           if (wordAtPos === expectedWord) {
+//             startX = tryX;
+//             foundMatch = true;
+//             break;
+//           }
+//         }
+//       }
+
+//       // If word might span blocks or be in next block
+//       if (!foundMatch && offset > 0) {
+//         const nextBlockY = blockY + 1;
+//         if (nextBlockY < blockContentsRef.current.length) {
+//           const nextBlockText = blockContentsRef.current[nextBlockY] ?? "";
+//           for (
+//             let tryX = 0;
+//             tryX < Math.min(MAX_SEARCH_RANGE, nextBlockText.length);
+//             tryX++
+//           ) {
+//             const wordAtPos = nextBlockText
+//               .substring(tryX, tryX + charLength)
+//               .trim();
+//             if (wordAtPos === expectedWord) {
+//               blockY = nextBlockY;
+//               startX = tryX;
+//               foundMatch = true;
+//               break;
+//             }
+//           }
+//         }
+//       }
+//     }
+
+//     // Skip leading space at highlight position
+//     const blockText = blockContentsRef.current[blockY] ?? "";
+//     if (blockText[startX] === " " && startX + 1 < blockText.length) {
+//       startX += 1;
+//     }
+
+//     // Update blockIndex to the found position
+//     blockIndex.current.x = startX;
+//     blockIndex.current.y = blockY;
+
+//     // Highlight the word
+//     highlightInsideSameBlockByIndexes({
+//       startIndex: startX,
+//       endIndex: startX + charLength,
+//       type: "word",
+//       blockYIndex: blockY,
+//     });
+
+//     // Advance position for next word
+//     blockIndex.current.x = startX + charLength;
+
+//     // Handle block overflow
+//     while (
+//       blockIndex.current.y < blockLengthsRef.current.length &&
+//       blockIndex.current.x >=
+//         (blockLengthsRef.current[blockIndex.current.y] ?? 0)
+//     ) {
+//       blockIndex.current.x -=
+//         blockLengthsRef.current[blockIndex.current.y] ?? 0;
+//       blockIndex.current.y += 1;
+//     }
+
+//     // Update sentence tracking
+//     sentenceIndex.current.x = charIndex + charLength;
+//   },
+//   [highlightInsideSameBlockByIndexes],
+// );

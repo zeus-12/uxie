@@ -8,11 +8,12 @@ import {
   removeAllHighlights,
   useSentenceReader,
 } from "@/hooks/use-sentence-reader";
+import { useLocalTts } from "@/hooks/use-local-tts";
 import { useTtsBrowser } from "@/hooks/use-tts-browser";
-import { useTtsLocal } from "@/hooks/use-tts-local";
 import { api } from "@/lib/api";
 import { usePdfSettingsStore } from "@/lib/store";
 import { getEngineFromVoice } from "@/lib/tts";
+import type { LocalTtsHook } from "@/lib/tts/types";
 import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -58,20 +59,32 @@ const usePdfReader = ({
 
   const sentenceReader = useSentenceReader({ pageCount });
 
-  const localTts = useTtsLocal({
-    onWordBoundary: (charIndex, charLength, spokenText) => {
+  const ttsParams = {
+    onWordBoundary: (
+      charIndex: number,
+      charLength: number,
+      spokenText: string,
+    ) => {
       sentenceReader.highlightWord(charIndex, charLength, spokenText);
       scrollToHighlightRef.current();
     },
     onEnd: () => handleAudioEndRef.current(),
-  });
-  const browserTts = useTtsBrowser({
-    onWordBoundary: (charIndex, charLength, spokenText) => {
-      sentenceReader.highlightWord(charIndex, charLength, spokenText);
-      scrollToHighlightRef.current();
+  };
+
+  const kokoroTts = useLocalTts("kokoro", ttsParams);
+
+  const browserTts = useTtsBrowser(ttsParams);
+
+  const supertonicTts = useLocalTts("supertonic", ttsParams);
+
+  const getLocalTts = useCallback(
+    (engine: string): LocalTtsHook | null => {
+      if (engine === "kokoro") return kokoroTts;
+      if (engine === "supertonic") return supertonicTts;
+      return null;
     },
-    onEnd: () => handleAudioEndRef.current(),
-  });
+    [kokoroTts, supertonicTts],
+  );
 
   const resetWordTrackingRef = useRef<() => void>(() => {});
   resetWordTrackingRef.current = sentenceReader.resetWordTracking;
@@ -101,9 +114,10 @@ const usePdfReader = ({
   // Cancel all pending operations
   const cancelAllOperations = useCallback(() => {
     currentOperationIdRef.current++;
-    localTts.stop();
+    kokoroTts.stop();
     browserTts.stop();
-  }, [localTts, browserTts]);
+    supertonicTts.stop();
+  }, [kokoroTts, browserTts, supertonicTts]);
 
   const playCurrentSentenceAudio = useCallback(
     async (operationId?: number) => {
@@ -121,9 +135,10 @@ const usePdfReader = ({
 
       sentenceReader.resetWordTracking();
 
-      if (engine === "local") {
-        localTts.setVoice(voice);
-        localTts.reset();
+      const tts = getLocalTts(engine);
+      if (tts) {
+        tts.setVoice(voice);
+        tts.reset();
 
         const sentences = sentenceReader.getSentences();
         const currentIdx = sentenceReader.getCurrentIndex();
@@ -131,13 +146,13 @@ const usePdfReader = ({
         for (let i = 1; i <= 2; i++) {
           const nextSentence = sentences[currentIdx + i];
           if (nextSentence) {
-            localTts.pregenerate(cleanSentenceForTts(nextSentence));
+            tts.pregenerate(cleanSentenceForTts(nextSentence));
           }
         }
 
         if (thisOperationId !== currentOperationIdRef.current) return;
 
-        await localTts.speak(textToSpeak, { speed: currentReadingSpeed });
+        await tts.speak(textToSpeak, { speed: currentReadingSpeed });
       } else {
         browserTts.reset();
 
@@ -149,7 +164,7 @@ const usePdfReader = ({
         });
       }
     },
-    [sentenceReader, localTts, browserTts, currentReadingSpeed],
+    [sentenceReader, getLocalTts, browserTts, currentReadingSpeed],
   );
 
   // Debounced play for skip/speed change
@@ -186,9 +201,18 @@ const usePdfReader = ({
       if (e.scale) setCurrentZoom(e.scale);
     };
 
+    const handleTextLayerRendered = (e: { pageNumber: number }) => {
+      document.dispatchEvent(
+        new CustomEvent("pdf:textlayerrendered", {
+          detail: { pageNumber: e.pageNumber },
+        }),
+      );
+    };
+
     viewer.eventBus.on("pagechanging", handlePageChanging);
     viewer.eventBus.on("pagesloaded", handlePagesLoaded);
     viewer.eventBus.on("scalechanging", handleScaleChanging);
+    viewer.eventBus.on("textlayerrendered", handleTextLayerRendered);
   }, [debouncedUpdateLastReadPage, lastReadPage, pageNumberInView]);
 
   useEffect(() => {
@@ -205,6 +229,7 @@ const usePdfReader = ({
       window.PdfViewer?.viewer?.eventBus.off("pagechanging", () => {});
       window.PdfViewer?.viewer?.eventBus.off("pagesloaded", () => {});
       window.PdfViewer?.viewer?.eventBus.off("scalechanging", () => {});
+      window.PdfViewer?.viewer?.eventBus.off("textlayerrendered", () => {});
     };
   }, [initPdfViewer]);
 
@@ -317,8 +342,9 @@ const usePdfReader = ({
         currentOperationIdRef.current++;
         const thisOperationId = currentOperationIdRef.current;
 
-        localTts.reset();
+        kokoroTts.reset();
         browserTts.reset();
+        supertonicTts.reset();
 
         const startPage = isContinueReading
           ? sentenceReader.getCurrentPage()
@@ -349,13 +375,15 @@ const usePdfReader = ({
         stopReading();
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       pageNumberInView,
       sentenceReader,
       scrollToHighlight,
       playCurrentSentenceAudio,
-      localTts,
+      kokoroTts,
       browserTts,
+      supertonicTts,
     ],
   );
 
@@ -378,6 +406,7 @@ const usePdfReader = ({
     } else {
       stopReading();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     cancelAllOperations,
     debouncedPlayAfterSkip,
@@ -411,14 +440,15 @@ const usePdfReader = ({
 
     debouncedPlayAfterSkip.cancel();
 
-    if (engine === "local") {
+    const localTts = getLocalTts(engine);
+    if (localTts) {
       localTts.pause();
     } else {
       browserTts.pause();
     }
 
     setReadingStatus(READING_STATUS.PAUSED);
-  }, [localTts, browserTts, debouncedPlayAfterSkip]);
+  }, [getLocalTts, browserTts, debouncedPlayAfterSkip]);
 
   const resumeReading = useCallback(async () => {
     const voice = usePdfSettingsStore.getState().voice;
@@ -426,7 +456,8 @@ const usePdfReader = ({
 
     setReadingStatus(READING_STATUS.READING);
 
-    if (engine === "local") {
+    const localTts = getLocalTts(engine);
+    if (localTts) {
       if (localTts.canResume()) {
         await localTts.resume();
       } else {
@@ -441,7 +472,7 @@ const usePdfReader = ({
         await playCurrentSentenceAudio();
       }
     }
-  }, [localTts, browserTts, playCurrentSentenceAudio]);
+  }, [getLocalTts, browserTts, playCurrentSentenceAudio]);
 
   const stopReading = useCallback(() => {
     shouldStopRef.current = true;
@@ -462,14 +493,7 @@ const usePdfReader = ({
     if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current)
       return;
 
-    // For selected text reading (TEXT mode), just stop - don't continue to page reading
-    if (currentReadingMode.current === READING_MODE.TEXT) {
-      setReadingStatus(READING_STATUS.IDLE);
-      isReadingRef.current = false;
-      return;
-    }
-
-    // For page-by-page reading, continue to next sentence
+    // Continue to next sentence
     const next = sentenceReader.advanceToNextSentence();
     if (next) {
       scrollToHighlight();
@@ -492,15 +516,16 @@ const usePdfReader = ({
       const voice = usePdfSettingsStore.getState().voice;
       const engine = getEngineFromVoice(voice);
 
-      if (engine === "local") {
+      const localTts = getLocalTts(engine);
+      if (localTts) {
         localTts.changeSpeed(newSpeed);
         if (readingStatus === READING_STATUS.READING) {
+          sentenceReader.resetToCurrentSentenceStart();
           await localTts.restartAtNewSpeed(newSpeed);
         }
       } else if (readingStatus === READING_STATUS.READING) {
         browserTts.stop();
         browserTts.reset();
-        // Reset blockIndex to start of current sentence before replaying
         sentenceReader.resetToCurrentSentenceStart();
         await playCurrentSentenceAudio();
       }
@@ -546,46 +571,57 @@ const usePdfReader = ({
   const readSelectedText = useCallback(
     async ({
       text,
-      readingMode,
     }: {
       text?: string | null;
       readingSpeed?: number;
-      readingMode: READING_MODE;
+      readingMode?: READING_MODE;
       continueReadingFromLastPosition?: boolean;
       highlightInsideSameBlockByIndexes?: any;
     }) => {
       const selectedText = text ?? window.getSelection()?.toString();
       if (!selectedText) return;
 
-      currentReadingMode.current = readingMode;
-      selectedTextToRead.current = selectedText;
-
-      setReadingStatus(READING_STATUS.READING);
-      isReadingRef.current = true;
       shouldStopRef.current = false;
+      isReadingRef.current = true;
+      isSkippingRef.current = false;
+      setReadingStatus(READING_STATUS.READING);
+      currentReadingMode.current = READING_MODE.PAGE;
 
-      const voice = usePdfSettingsStore.getState().voice;
-      const engine = getEngineFromVoice(voice);
-      const textToSpeak = cleanSentenceForTts(selectedText);
+      currentOperationIdRef.current++;
+      const thisOperationId = currentOperationIdRef.current;
 
-      if (engine === "local") {
-        localTts.setVoice(voice);
-        localTts.reset();
-        await localTts.speak(textToSpeak, { speed: currentReadingSpeed });
-      } else {
-        browserTts.reset();
-        await browserTts.speak(textToSpeak, {
-          speed: currentReadingSpeed,
-          voice: voice,
-        });
+      kokoroTts.reset();
+      browserTts.reset();
+      supertonicTts.reset();
+
+      const startPage = pageNumberInView > 0 ? pageNumberInView : 1;
+      const position = sentenceReader.startFromTextOnPage(
+        startPage,
+        selectedText,
+      );
+
+      if (!position) {
+        toast.error("Could not find the selected text on this page");
+        stopReading();
+        return;
       }
 
-      if (!shouldStopRef.current) {
-        setReadingStatus(READING_STATUS.IDLE);
-        isReadingRef.current = false;
+      scrollToHighlight();
+
+      if (thisOperationId === currentOperationIdRef.current) {
+        await playCurrentSentenceAudio(thisOperationId);
       }
     },
-    [localTts, browserTts, currentReadingSpeed],
+    [
+      sentenceReader,
+      kokoroTts,
+      browserTts,
+      supertonicTts,
+      pageNumberInView,
+      scrollToHighlight,
+      playCurrentSentenceAudio,
+      stopReading,
+    ],
   );
 
   useEffect(() => {

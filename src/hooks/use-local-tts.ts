@@ -1,14 +1,29 @@
-import { KokoroProvider } from "@/lib/tts/providers/kokoro-provider";
+import type { BaseAudioProvider } from "@/lib/tts/base-audio-provider";
+import {
+  KOKORO_VOICES,
+  KokoroProvider,
+} from "@/lib/tts/providers/kokoro-provider";
+import {
+  SUPERTONIC_VOICES,
+  SupertonicProvider,
+} from "@/lib/tts/providers/supertonic-provider";
 import type { TTSStatus } from "@/lib/tts/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-export type KokoroLoadProgress = {
+type LocalTtsEngine = "kokoro" | "supertonic";
+
+const DEFAULT_VOICES: Record<LocalTtsEngine, string> = {
+  kokoro: KOKORO_VOICES[0].id,
+  supertonic: SUPERTONIC_VOICES[0].id,
+};
+
+type LocalTtsLoadProgress = {
   status: "downloading" | "loading" | "ready";
   progress?: number;
 };
 
-interface UseTtsLocalOptions {
+interface UseLocalTtsOptions {
   onWordBoundary?: (
     charIndex: number,
     charLength: number,
@@ -17,18 +32,31 @@ interface UseTtsLocalOptions {
   onEnd?: () => void;
 }
 
-let providerInstance: KokoroProvider | null = null;
+const providers = new Map<LocalTtsEngine, BaseAudioProvider<string>>();
 
-function getProvider(): KokoroProvider {
-  if (!providerInstance) {
-    providerInstance = new KokoroProvider();
+function getProvider(engine: LocalTtsEngine): BaseAudioProvider<string> {
+  let instance = providers.get(engine);
+
+  if (!instance) {
+    if (engine === "kokoro") {
+      instance = new KokoroProvider();
+    } else if (engine === "supertonic") {
+      instance = new SupertonicProvider();
+    } else {
+      throw new Error("Invalid TTS engine.");
+    }
+    providers.set(engine, instance);
   }
-  return providerInstance;
+
+  return instance;
 }
 
-export function useTtsLocal(options: UseTtsLocalOptions = {}) {
+export function useLocalTts(
+  engine: LocalTtsEngine,
+  options: UseLocalTtsOptions = {},
+) {
   const [status, setStatus] = useState<TTSStatus>("idle");
-  const [loadProgress, setLoadProgress] = useState<KokoroLoadProgress | null>(
+  const [loadProgress, setLoadProgress] = useState<LocalTtsLoadProgress | null>(
     null,
   );
 
@@ -36,7 +64,7 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
   const isPausedRef = useRef(false);
   const currentTextRef = useRef("");
   const speedRef = useRef(1);
-  const voiceRef = useRef("af_heart");
+  const voiceRef = useRef(DEFAULT_VOICES[engine]);
   const modelLoadedRef = useRef(false);
   const loadingToastShownRef = useRef(false);
   const generatingToastIdRef = useRef<string | number | null>(null);
@@ -57,16 +85,16 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
   const handleCancel = useCallback(() => {
     dismissGeneratingToast();
     isStoppedRef.current = true;
-    getProvider().stop();
+    getProvider(engine).stop();
     setStatus("idle");
-  }, [dismissGeneratingToast]);
+  }, [dismissGeneratingToast, engine]);
 
   useEffect(() => {
-    const provider = getProvider();
+    const provider = getProvider(engine);
 
     provider.onLoadProgress = (progress) => {
       setLoadProgress({
-        status: progress.status as KokoroLoadProgress["status"],
+        status: progress.status as LocalTtsLoadProgress["status"],
         progress: progress.progress,
       });
 
@@ -137,7 +165,7 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
       provider.onWordBoundary = undefined;
       provider.onGenerating = undefined;
     };
-  }, [dismissGeneratingToast, handleCancel]);
+  }, [engine, dismissGeneratingToast, handleCancel]);
 
   const speak = useCallback(
     async (text: string, opts: { speed: number }) => {
@@ -148,7 +176,7 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
       setStatus("loading");
 
       try {
-        await getProvider().speak(text, {
+        await getProvider(engine).speak(text, {
           speed: opts.speed,
           voice: voiceRef.current,
         });
@@ -156,58 +184,67 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
           setStatus("idle");
         }
       } catch (err) {
-        console.error("[TTS] Speak error:", err);
+        console.error(`[TTS ${engine}] Speak error:`, err);
         dismissGeneratingToast();
         setStatus("idle");
       }
     },
-    [dismissGeneratingToast],
+    [engine, dismissGeneratingToast],
   );
 
-  const pregenerate = useCallback(async (text: string) => {
-    const provider = getProvider();
-    provider.setVoice(voiceRef.current);
-    provider.setSpeed(speedRef.current);
-    await provider.pregenerate(text);
-  }, []);
+  const pregenerate = useCallback(
+    async (text: string) => {
+      const provider = getProvider(engine);
+      provider.setVoice(voiceRef.current);
+      provider.setSpeed(speedRef.current);
+      await provider.pregenerate(text);
+    },
+    [engine],
+  );
 
   const pause = useCallback(() => {
     isPausedRef.current = true;
-    getProvider().pause();
+    getProvider(engine).pause();
     setStatus("paused");
-  }, []);
+  }, [engine]);
 
   const resume = useCallback(async () => {
     if (!isPausedRef.current) return;
     isPausedRef.current = false;
     isStoppedRef.current = false;
     setStatus("speaking");
-    await getProvider().resume();
-  }, []);
+    await getProvider(engine).resume();
+  }, [engine]);
 
   const stop = useCallback(() => {
     isStoppedRef.current = true;
     isPausedRef.current = false;
     dismissGeneratingToast();
-    getProvider().stop();
+    getProvider(engine).stop();
     currentTextRef.current = "";
     setStatus("idle");
-  }, [dismissGeneratingToast]);
+  }, [engine, dismissGeneratingToast]);
 
   const reset = useCallback(() => {
     isStoppedRef.current = false;
     isPausedRef.current = false;
   }, []);
 
-  const setVoice = useCallback((voice: string) => {
-    voiceRef.current = voice;
-    getProvider().setVoice(voice);
-  }, []);
+  const setVoice = useCallback(
+    (voice: string) => {
+      voiceRef.current = voice;
+      getProvider(engine).setVoice(voice);
+    },
+    [engine],
+  );
 
-  const changeSpeed = useCallback((speed: number) => {
-    speedRef.current = speed;
-    getProvider().setSpeed(speed);
-  }, []);
+  const changeSpeed = useCallback(
+    (speed: number) => {
+      speedRef.current = speed;
+      getProvider(engine).setSpeed(speed);
+    },
+    [engine],
+  );
 
   const restartAtNewSpeed = useCallback(
     async (newSpeed: number) => {
@@ -217,12 +254,12 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
         return;
       }
 
-      getProvider().stop();
+      getProvider(engine).stop();
       changeSpeed(newSpeed);
       setStatus("loading");
 
       try {
-        await getProvider().speak(text, {
+        await getProvider(engine).speak(text, {
           speed: newSpeed,
           voice: voiceRef.current,
         });
@@ -230,16 +267,16 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
           setStatus("idle");
         }
       } catch (err) {
-        console.error("[TTS] restartAtNewSpeed error:", err);
+        console.error(`[TTS ${engine}] restartAtNewSpeed error:`, err);
         setStatus("idle");
       }
     },
-    [changeSpeed],
+    [engine, changeSpeed],
   );
 
   const clearCache = useCallback(() => {
-    getProvider().clearCache();
-  }, []);
+    getProvider(engine).clearCache();
+  }, [engine]);
 
   return {
     speak,
@@ -255,7 +292,8 @@ export function useTtsLocal(options: UseTtsLocalOptions = {}) {
     loadProgress,
     clearCache,
     getIsPaused: () => isPausedRef.current,
-    canResume: () => isPausedRef.current && getProvider().canResumeFromPosition,
+    canResume: () =>
+      isPausedRef.current && getProvider(engine).canResumeFromPosition,
     getVoice: () => voiceRef.current,
   };
 }
