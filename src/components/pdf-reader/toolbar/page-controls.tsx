@@ -42,7 +42,7 @@ export const PageControlsIcon = ({
   return (
     <Button variant="ghost" size="xs">
       {pageNumberInView > 0 ? (
-        <p className="">
+        <p>
           {pageNumberInView}{" "}
           <span className="text-muted-foreground px-[2px]">/</span>{" "}
           <span className="text-muted-foreground">{totalPages}</span>
