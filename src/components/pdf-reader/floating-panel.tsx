@@ -72,7 +72,7 @@ export function FloatingPanelFooter({
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-4 py-3 bg-muted/30 border-t",
+        "flex items-center justify-between px-4 py-2 bg-muted/30 border-t",
         className,
       )}
     >
