@@ -3,13 +3,13 @@ import {
   READING_SPEEDS,
   READING_STATUS,
 } from "@/components/pdf-reader/constants";
+import { useBrowserTts } from "@/hooks/use-browser-tts";
+import { useLocalTts } from "@/hooks/use-local-tts";
 import {
   cleanSentenceForTts,
   removeAllHighlights,
   useSentenceReader,
 } from "@/hooks/use-sentence-reader";
-import { useLocalTts } from "@/hooks/use-local-tts";
-import { useTtsBrowser } from "@/hooks/use-tts-browser";
 import { api } from "@/lib/api";
 import { usePdfSettingsStore } from "@/lib/store";
 import { getEngineFromVoice } from "@/lib/tts";
@@ -73,7 +73,7 @@ const usePdfReader = ({
 
   const kokoroTts = useLocalTts("kokoro", ttsParams);
 
-  const browserTts = useTtsBrowser(ttsParams);
+  const browserTts = useBrowserTts(ttsParams);
 
   const supertonicTts = useLocalTts("supertonic", ttsParams);
 

@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { BROWSER_VOICES } from "@/lib/tts/providers/browser-provider";
 import type { TTSStatus } from "@/lib/tts/types";
-
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const DEFAULT_VOICE = BROWSER_VOICES[0].id;
 
-interface UseTtsBrowserOptions {
-  onWordBoundary?: (charIndex: number, charLength: number, spokenText: string) => void;
+interface useBrowserTtsOptions {
+  onWordBoundary?: (
+    charIndex: number,
+    charLength: number,
+    spokenText: string,
+  ) => void;
   onEnd?: () => void;
 }
 
-export function useTtsBrowser(options: UseTtsBrowserOptions = {}) {
+export function useBrowserTts(options: useBrowserTtsOptions = {}) {
   const [status, setStatus] = useState<TTSStatus>("idle");
   const speechSynthesisRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -55,7 +58,8 @@ export function useTtsBrowser(options: UseTtsBrowserOptions = {}) {
 
       const voices = speechSynthesisRef.current.getVoices();
       utterance.voice =
-        voices.find((voice) => voice.name === (opts.voice || DEFAULT_VOICE)) || null;
+        voices.find((voice) => voice.name === (opts.voice || DEFAULT_VOICE)) ||
+        null;
 
       utterance.rate = opts.speed;
       utteranceRef.current = utterance;
