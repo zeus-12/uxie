@@ -112,7 +112,7 @@ const BottomToolbar = ({
           />
         ),
         icon: <TTSControlsIcon />,
-        clickOutsideToClose: false,
+        clickOutsideToClose: readingStatus === READING_STATUS.IDLE,
       },
       {
         children: (
