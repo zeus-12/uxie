@@ -155,7 +155,7 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
           <Button
             variant="ghost"
             size="icon"
-            className="group w-fit px-2 bg-gray-100 rounded-md m-[2px]"
+            className="group w-fit px-2 bg-gray-100 rounded-md m-[2px] mt-auto"
             type={isLoading ? "button" : "submit"}
             onClick={isLoading ? stop : undefined}
           >
