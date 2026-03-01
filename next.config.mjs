@@ -11,7 +11,7 @@ const config = {
   },
   headers: async () => [
     {
-      source: "/:path*",
+      source: "/f/:path*",
       headers: [
         {
           key: "Cross-Origin-Embedder-Policy",
