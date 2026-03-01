@@ -45,7 +45,7 @@ type RsvpReaderProps = {
 // ORP lookup table based on word length - this positions the focus point slightly left of center for optimal recognition (from https://github.com/pasky/speedread)
 const ORP_TABLE = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3];
 
-function getOrpIndex(word: string): number {
+export function getOrpIndex(word: string): number {
   const len = word.length;
   if (len > 13) return 4;
   return ORP_TABLE[len] ?? 0;

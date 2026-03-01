@@ -1,13 +1,11 @@
-import Features from "@/components/other/features";
+import BentoGrid from "@/components/other/bento-grid";
 import SlideUpWhenVisible from "@/components/other/slide-up-when-visible";
 import YoutubeEmbed from "@/components/other/youtube-embed";
 import { Button } from "@/components/ui/button";
-import ButtonRotatingBackgroundGradient from "@/components/ui/button-rotating-bg-gradient";
 import { cn } from "@/lib/utils";
 import {
   ArrowRightIcon,
   ChevronRightIcon,
-  GithubIcon,
   MessageSquarePlusIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -25,7 +23,7 @@ export default function Home() {
           <HeroSection />
         </div>
 
-        <Features />
+        <BentoGrid />
 
         <Link
           href="/feedback"
