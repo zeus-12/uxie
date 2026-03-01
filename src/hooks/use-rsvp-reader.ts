@@ -63,7 +63,13 @@ function getProcessedWordStrings(processed: ProcessedWord[]): string[] {
   return processed.map((p) => p.word);
 }
 
-export function useRsvpReader({ pageCount }: { pageCount: number }) {
+export function useRsvpReader({
+  pageCount,
+  pageNumber,
+}: {
+  pageCount: number;
+  pageNumber: number;
+}) {
   const sentenceReader = useSentenceReader({ pageCount });
 
   const rsvpWpm = usePdfSettingsStore((state) => state.rsvpWpm);
@@ -82,6 +88,9 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
   const sentencesRef = useRef<string[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastHighlightedSentenceRef = useRef<number>(-1);
+  const currentPageRef = useRef(1);
+  const viewedPageRef = useRef(pageNumber);
+  viewedPageRef.current = pageNumber;
 
   const clearPlayInterval = useCallback(() => {
     if (intervalRef.current) {
@@ -112,6 +121,7 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
         );
       }
 
+      currentPageRef.current = pageNumber;
       setCurrentPage(pageNumber);
       setCurrentSentenceIndex(0);
       setCurrentWordIndex(0);
@@ -135,7 +145,7 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
         return; // Already highlighted this sentence
       }
 
-      sentenceReader.startFromPage(currentPage);
+      sentenceReader.startFromPage(currentPageRef.current);
       for (let i = 0; i < sentenceIdx; i++) {
         sentenceReader.advanceToNextSentence();
       }
@@ -145,7 +155,7 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
         sentenceReader.scrollToCurrentSentence();
       }
     },
-    [currentPage, sentenceReader, followAlongEnabled],
+    [sentenceReader, followAlongEnabled],
   );
 
   const updateWordDisplay = useCallback(
@@ -291,10 +301,29 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
     advanceWord();
   }, [advanceWord]);
 
+  const startFromPage = useCallback(
+    (pageNumber: number) => {
+      const loaded = loadPage(pageNumber);
+      if (loaded) {
+        lastHighlightedSentenceRef.current = -1;
+        // Find first non-skip word
+        const words = wordsRef.current;
+        for (let i = 0; i < words.length; i++) {
+          const displayed = updateWordDisplay(0, i, true);
+          if (displayed) return;
+        }
+      }
+    },
+    [loadPage, updateWordDisplay],
+  );
+
   const play = useCallback(() => {
-    if (!isInitialized) return;
+    if (!isInitialized) {
+      // Stopped state: initialize from the page the user is currently viewing
+      startFromPage(viewedPageRef.current);
+    }
     setIsPlaying(true);
-  }, [isInitialized]);
+  }, [isInitialized, startFromPage]);
 
   const pause = useCallback(() => {
     setIsPlaying(false);
@@ -345,22 +374,6 @@ export function useRsvpReader({ pageCount }: { pageCount: number }) {
 
     return clearPlayInterval;
   }, [isPlaying, rsvpWpm, advanceWord, clearPlayInterval, pause]);
-
-  const startFromPage = useCallback(
-    (pageNumber: number) => {
-      const loaded = loadPage(pageNumber);
-      if (loaded) {
-        lastHighlightedSentenceRef.current = -1;
-        // Find first non-skip word
-        const words = wordsRef.current;
-        for (let i = 0; i < words.length; i++) {
-          const displayed = updateWordDisplay(0, i, true);
-          if (displayed) return;
-        }
-      }
-    },
-    [loadPage, updateWordDisplay],
-  );
 
   return {
     currentWord,

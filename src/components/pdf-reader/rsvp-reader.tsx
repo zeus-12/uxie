@@ -206,7 +206,6 @@ export function RsvpReader({ pageNumber, pageCount }: RsvpReaderProps) {
   const {
     currentWord,
     isPlaying,
-    isInitialized,
     togglePlay,
     stop,
     close,
@@ -215,13 +214,20 @@ export function RsvpReader({ pageNumber, pageCount }: RsvpReaderProps) {
     startFromPage,
     followAlongEnabled,
     toggleFollowAlong,
-  } = useRsvpReader({ pageCount });
+  } = useRsvpReader({ pageCount, pageNumber });
+
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (rsvpOpen && !isInitialized) {
+    if (!rsvpOpen) {
+      hasInitializedRef.current = false;
+      return;
+    }
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
       startFromPage(pageNumber);
     }
-  }, [rsvpOpen, isInitialized, pageNumber, startFromPage]);
+  }, [rsvpOpen, pageNumber, startFromPage]);
 
   const cycleWpm = (direction: "up" | "down") => {
     const currentIdx = WPM_PRESETS.findIndex((p) => p.value === rsvpWpm);
