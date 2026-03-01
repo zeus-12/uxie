@@ -42,25 +42,6 @@ export default function Home() {
           </button>
         </Link>
       </div>
-      <div className="flex hd-screen flex-col items-center justify-center bg-black px-4 py-2 lg:px-16">
-        <h1 className="text-center text-5xl font-semibold tracking-tighter text-white 2xl:text-7xl">
-          Proudly open-source
-        </h1>
-        <p className="my-5 max-w-md text-center text-gray-400 2xl:max-w-lg 2xl:text-2xl">
-          Our source code is available on GitHub - feel free to read, review, or
-          contribute to it however you want!
-        </p>
-        <a
-          href="https://github.com/zeus-12/uxie"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <ButtonRotatingBackgroundGradient>
-            <GithubIcon size="18" className="mr-2" />
-            View on GitHub
-          </ButtonRotatingBackgroundGradient>
-        </a>
-      </div>
     </>
   );
 }
