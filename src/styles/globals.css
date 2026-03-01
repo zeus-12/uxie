@@ -145,6 +145,16 @@
   text-decoration-skip: none; /* works in Safari, not in Firefox & Chrome */
 }
 
+/* Make annotation highlights blend with reading highlights (TTS/RSVP).
+   The highlight layer (z-index 3) sits above text spans (z-index auto)
+   within .textLayer. Without this, opaque annotation rects fully hide
+   reading-highlight backgrounds on the text spans beneath. Applying
+   multiply to the layer itself makes it blend with its backdrop (the
+   text spans), so both annotation and reading colours are visible. */
+.PdfHighlighter__highlight-layer {
+  mix-blend-mode: multiply;
+}
+
 .current-sentence {
   background-color: #e3ffdd !important;
   border-radius: 4px;
