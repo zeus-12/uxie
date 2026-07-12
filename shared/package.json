@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./schema": "./schema/index.ts",
     "./*": "./*"
+  },
+  "dependencies": {
+    "@paralleldrive/cuid2": "^2.2.2",
+    "drizzle-orm": "^0.44.6"
   }
 }

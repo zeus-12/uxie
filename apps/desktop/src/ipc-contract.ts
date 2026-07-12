@@ -15,9 +15,16 @@
  * Only type-erasable imports plus the API_* name maps live here — no Electron
  * or Node imports — so the renderer program can safely include this file.
  *
- * This starts deliberately small (just the app:info health check). CRUD and AI
- * channels land in later phases of the desktop migration.
+ * AI streaming channels land in a later phase of the desktop migration.
  */
+
+import type {
+  AddHighlightInput,
+  CreateDocumentInput,
+  Document,
+  DocumentWithHighlights,
+  RectInput,
+} from "@uxie/shared/schema";
 
 /** Basic host facts, fetched over a real IPC round-trip to prove the bridge. */
 export interface AppInfo {
@@ -29,6 +36,32 @@ export interface AppInfo {
 /** Request/response channels: `ipcRenderer.invoke` ↔ `ipcMain.handle`. */
 export interface IpcInvokeContract {
   "app:info": { args: []; result: AppInfo };
+
+  // Documents
+  "documents:list": { args: []; result: Document[] };
+  "documents:get": {
+    args: [id: string];
+    result: DocumentWithHighlights | null;
+  };
+  "documents:create": { args: [input: CreateDocumentInput]; result: Document };
+  "documents:updateNotes": { args: [id: string, note: string]; result: void };
+  "documents:updateLastReadPage": {
+    args: [id: string, lastReadPage: number];
+    result: void;
+  };
+  "documents:updateTitle": {
+    args: [id: string, title: string];
+    result: void;
+  };
+  "documents:delete": { args: [id: string]; result: void };
+
+  // Highlights
+  "highlights:add": { args: [input: AddHighlightInput]; result: void };
+  "highlights:delete": { args: [id: string]; result: void };
+  "highlights:updateArea": {
+    args: [id: string, boundingRect: RectInput];
+    result: void;
+  };
 }
 
 /** Fire-and-forget renderer→main channels: `ipcRenderer.send` ↔ `ipcMain.on`. */
@@ -48,6 +81,18 @@ export interface IpcEventContract {
 
 export const API_INVOKE = {
   getAppInfo: "app:info",
+
+  listDocuments: "documents:list",
+  getDocument: "documents:get",
+  createDocument: "documents:create",
+  updateDocumentNotes: "documents:updateNotes",
+  updateLastReadPage: "documents:updateLastReadPage",
+  updateDocumentTitle: "documents:updateTitle",
+  deleteDocument: "documents:delete",
+
+  addHighlight: "highlights:add",
+  deleteHighlight: "highlights:delete",
+  updateAreaHighlight: "highlights:updateArea",
 } as const satisfies Record<string, keyof IpcInvokeContract>;
 
 export const API_SEND = {} as const satisfies Record<

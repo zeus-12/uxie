@@ -9,12 +9,18 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@uxie/shared/*": ["../../shared/*"]
+    }
   },
   "include": [
     "src/main/**/*.ts",
     "src/preload/**/*.ts",
     "src/ipc-contract.ts",
+    "test/**/*.ts",
+    "drizzle.config.ts",
+    "vitest.config.ts",
     "electron.vite.config.ts"
   ],
   "exclude": ["node_modules"]

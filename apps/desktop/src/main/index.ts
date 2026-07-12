@@ -1,6 +1,20 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from "electron";
 import { join } from "path";
 import type { IpcInvokeContract } from "../ipc-contract";
+import {
+  addHighlight,
+  createDocument,
+  deleteDocument,
+  deleteHighlight,
+  getDb,
+  getDocument,
+  initDatabase,
+  listDocuments,
+  updateAreaHighlight,
+  updateDocumentNotes,
+  updateDocumentTitle,
+  updateLastReadPage,
+} from "./db";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -20,6 +34,22 @@ const invokeHandlers: {
     electronVersion: process.versions.electron,
     platform: process.platform,
   }),
+
+  "documents:list": () => listDocuments(getDb()),
+  "documents:get": (id) => getDocument(getDb(), id),
+  "documents:create": (input) => createDocument(getDb(), input),
+  "documents:updateNotes": (id, note) =>
+    updateDocumentNotes(getDb(), id, note),
+  "documents:updateLastReadPage": (id, page) =>
+    updateLastReadPage(getDb(), id, page),
+  "documents:updateTitle": (id, title) =>
+    updateDocumentTitle(getDb(), id, title),
+  "documents:delete": (id) => deleteDocument(getDb(), id),
+
+  "highlights:add": (input) => addHighlight(getDb(), input),
+  "highlights:delete": (id) => deleteHighlight(getDb(), id),
+  "highlights:updateArea": (id, boundingRect) =>
+    updateAreaHighlight(getDb(), id, boundingRect),
 };
 
 function registerIpc() {
@@ -66,6 +96,8 @@ function createMainWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
+  // Open + migrate the local DB before any IPC handler can touch it.
+  initDatabase();
   registerIpc();
   mainWindow = createMainWindow();
 

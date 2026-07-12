@@ -2,6 +2,8 @@
   "name": "@uxie/desktop",
   "version": "0.1.0",
   "private": true,
+  "description": "Uxie desktop — local-first PDF reader",
+  "author": "Uxie",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -12,19 +14,28 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:renderer",
     "format": "prettier --write . --ignore-path ../../.prettierignore",
     "format:check": "prettier --check . --ignore-path ../../.prettierignore",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
     "pack": "electron-vite build && electron-builder --mac",
     "pack:dmg": "electron-vite build && electron-builder --mac dmg"
   },
   "dependencies": {
-    "@uxie/shared": "workspace:*"
+    "@paralleldrive/cuid2": "^2.2.2",
+    "@uxie/shared": "workspace:*",
+    "better-sqlite3": "^11.8.1",
+    "drizzle-orm": "^0.44.6"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4",
     "autoprefixer": "^10",
+    "drizzle-kit": "^0.31.5",
     "electron": "^35",
     "electron-builder": "^26.8.1",
     "electron-vite": "^3",
@@ -32,6 +43,7 @@
     "react": "^19",
     "react-dom": "^19",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   }
 }

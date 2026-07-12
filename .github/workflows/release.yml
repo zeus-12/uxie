@@ -52,6 +52,11 @@ jobs:
           echo "Building version $VERSION"
           (cd apps/desktop && npm pkg set version="$VERSION")
 
+      # better-sqlite3 is a native module — rebuild it against Electron's ABI
+      # before bundling/packaging (install gives the plain-Node build).
+      - name: Rebuild native modules
+        run: pnpm --filter @uxie/desktop run rebuild
+
       - name: Build app bundle
         run: pnpm --filter @uxie/desktop exec electron-vite build
 
