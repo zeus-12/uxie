@@ -1,0 +1,37 @@
+{
+  "name": "@uxie/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:renderer": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:renderer",
+    "format": "prettier --write . --ignore-path ../../.prettierignore",
+    "format:check": "prettier --check . --ignore-path ../../.prettierignore",
+    "pack": "electron-vite build && electron-builder --mac",
+    "pack:dmg": "electron-vite build && electron-builder --mac dmg"
+  },
+  "dependencies": {
+    "@uxie/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "autoprefixer": "^10",
+    "electron": "^35",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^3",
+    "postcss": "^8",
+    "react": "^19",
+    "react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

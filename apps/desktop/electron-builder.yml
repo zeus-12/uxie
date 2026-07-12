@@ -1,0 +1,26 @@
+appId: com.uxie.desktop
+productName: Uxie
+# Include the arch so per-arch DMGs don't overwrite each other.
+artifactName: ${productName}-${version}-${arch}.dmg
+# Native modules (added from Phase 2 onward) are rebuilt explicitly, so don't
+# let electron-builder rebuild them itself — that path is flaky under pnpm.
+npmRebuild: false
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+mac:
+  # No custom icon yet — electron-builder falls back to the default Electron
+  # icon. Drop a build/icon.icns here and add `icon: build/icon.icns` to brand it.
+  target:
+    - dmg
+  category: public.app-category.education
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
