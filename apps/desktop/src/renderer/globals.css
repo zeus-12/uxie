@@ -5,10 +5,11 @@
 /* Tailwind auto-scans this app; point it at the shared package too. */
 @source "../../../../shared";
 
-/* Let the native window vibrancy show through — content surfaces set their own
-   background on top of the frosted material. */
+/* Light theme only for now — force a solid white surface, ignore OS dark mode. */
 html,
-body {
-  background: transparent !important;
+body,
+#root {
+  background: #ffffff;
+  color-scheme: light;
 }
 

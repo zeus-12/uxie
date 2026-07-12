@@ -87,10 +87,7 @@ function createMainWindow(): BrowserWindow {
     minHeight: 600,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 18, y: 18 },
-    // Native macOS frosted-glass material behind the (transparent) web content.
-    vibrancy: "under-window",
-    visualEffectState: "active",
-    backgroundColor: "#00000000",
+    backgroundColor: "#ffffff",
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
     },
