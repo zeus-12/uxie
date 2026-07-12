@@ -87,7 +87,6 @@ function createMainWindow(): BrowserWindow {
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#09090b" : "#fafafa",
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
-      plugins: true, // Chromium's built-in PDF viewer (reader iframe)
     },
   });
 

@@ -25,15 +25,17 @@
     "@uxie/shared": "workspace:*",
     "better-sqlite3": "^11.8.1",
     "drizzle-orm": "^0.44.6",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "2.16.105",
+    "react-pdf-highlighter": "^6.1.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.1",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4",
     "autoprefixer": "^10",
     "drizzle-kit": "^0.31.5",
@@ -41,8 +43,8 @@
     "electron-builder": "^26.8.1",
     "electron-vite": "^3",
     "postcss": "^8",
-    "react": "^19",
-    "react-dom": "^19",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.0"

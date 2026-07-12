@@ -13,20 +13,32 @@ const pdfUrl = (id: string) => `${PDF_SCHEME}://doc/${id}`;
 
 export const PDF_PRIVILEGE = {
   scheme: PDF_SCHEME,
-  privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  privileges: {
+    standard: true,
+    secure: true,
+    supportFetchAPI: true,
+    stream: true,
+    corsEnabled: true,
+  },
 };
+
+// pdf.js fetches the bytes cross-origin (renderer is file:// / localhost), so
+// the response needs an Access-Control-Allow-Origin header or it's CORS-blocked.
+const CORS = { "access-control-allow-origin": "*" };
 
 export function registerPdfProtocol(): void {
   protocol.handle(PDF_SCHEME, async (request) => {
     const id = new URL(request.url).pathname.replace(/^\//, "");
-    if (!/^[a-z0-9]+$/i.test(id)) return new Response("bad id", { status: 400 });
+    if (!/^[a-z0-9]+$/i.test(id)) {
+      return new Response("bad id", { status: 400, headers: CORS });
+    }
     try {
       const data = await readFile(pdfPath(documentsDir(), id));
       return new Response(data, {
-        headers: { "content-type": "application/pdf" },
+        headers: { "content-type": "application/pdf", ...CORS },
       });
     } catch {
-      return new Response("not found", { status: 404 });
+      return new Response("not found", { status: 404, headers: CORS });
     }
   });
 }
