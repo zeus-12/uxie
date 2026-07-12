@@ -6,11 +6,9 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 export function Library({
   onOpen,
   onSettings,
-  onAssistant,
 }: {
   onOpen: (id: string) => void;
   onSettings: () => void;
-  onAssistant: () => void;
 }) {
   const [docs, setDocs] = useState<Document[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,15 +49,9 @@ export function Library({
 
   return (
     <div className="min-h-full bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <header className="flex items-center justify-between px-8 py-6">
+      <header className="app-drag flex items-center justify-between py-4 pl-24 pr-8">
         <h1 className="text-xl font-semibold tracking-tight">Uxie</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onAssistant}
-            className="rounded-md px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
-            Assistant
-          </button>
+        <div className="app-no-drag flex items-center gap-2">
           <button
             onClick={onSettings}
             className="rounded-md px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"

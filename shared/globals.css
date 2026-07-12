@@ -1,0 +1,272 @@
+/* This file holds the shadcn theme tokens + app CSS. The consuming app's CSS
+   entry provides `@import "tailwindcss"` and the @source globs (Tailwind must
+   resolve those from the app, not this package). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --breakpoint-xs: 450px;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+/* TW4's default border/ring colour is currentColor; normalize to the token so
+   the primitives match web. */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    overscroll-behavior: none;
+    @apply bg-background text-foreground;
+  }
+}
+
+.ProseMirror {
+  margin-left: 5px !important;
+  margin-right: 5px !important;
+}
+
+.tippy-box {
+  background-color: transparent !important;
+  background: transparent !important;
+  z-index: 10;
+}
+
+.tippy-arrow {
+  display: none !important;
+}
+
+.break-word-overflow {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  -ms-word-break: break-all;
+  word-break: break-word;
+}
+
+.hideScrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hideScrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.bouncing-loader {
+  display: flex;
+  justify-content: center;
+  margin: 1px auto;
+}
+
+.bouncing-loader > div {
+  width: 6px;
+  height: 6px;
+  margin: 3px;
+  border-radius: 50%;
+  background-color: #a3a1a1;
+  opacity: 1;
+  animation: bouncing-loader 0.6s infinite alternate;
+}
+
+@keyframes bouncing-loader {
+  to {
+    opacity: 0.1;
+    transform: translateY(-2px);
+  }
+}
+
+.bouncing-loader > div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.bouncing-loader > div:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Blend annotation highlights with reading (TTS/RSVP) highlights. */
+.PdfHighlighter__highlight-layer {
+  mix-blend-mode: multiply;
+}
+
+.current-sentence {
+  background-color: #e3ffdd !important;
+  border-radius: 4px;
+}
+
+.current-word {
+  background-color: #74f273 !important;
+  display: inline !important;
+  border-radius: 4px;
+}
+
+.rsvp-sentence {
+  background-color: #fff3e0 !important;
+  transition: background-color 20s ease-out;
+}
+
+.rsvp-word {
+  background-color: #ffb74d !important;
+  display: inline !important;
+  border-radius: 4px;
+}
+
+@layer utilities {
+  .hd-screen {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .max-hd-screen {
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+}
+
+[data-panel-group] {
+  transition: all 0.3s ease-in-out;
+}
+
+[data-panel] {
+  transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+[data-panel-id] {
+  transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.annotationLayer a[href] {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.annotationLayer a[href]:has(~ *) {
+  pointer-events: auto;
+}
+
+/* Bionic reading fonts — bundled relative paths (a bare /fonts/ URL won't
+   resolve under Electron's file:// origin). */
+@font-face {
+  font-family: "BR Sans";
+  src: url("./assets/fonts/br-sans.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "BR Serif";
+  src: url("./assets/fonts/br-serif.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "BR Mono";
+  src: url("./assets/fonts/br-mono.ttf") format("truetype");
+}
+
+.bionic-reading-active .canvasWrapper {
+  visibility: hidden;
+}
+
+.bionic-reading-active .textLayer {
+  opacity: 1 !important;
+}
+
+.bionic-reading-active .textLayer > span {
+  color: black !important;
+  font-family: "BR Sans", sans-serif !important;
+  font-size: 100% !important;
+}
+
+.bionic-reading-active .Highlight__part {
+  background: rgba(255, 226, 143, 0.4) !important;
+}
+
+.bionic-reading-active .AreaHighlight__part {
+  background-color: rgba(252, 232, 151, 0.4) !important;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+/* Electron window drag regions. The frameless macOS window overlays the traffic
+   lights at the top-left, so top bars are draggable and reserve left space; put
+   .app-no-drag on any interactive control inside them. */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}

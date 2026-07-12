@@ -56,7 +56,15 @@ const toRectInput = (s: { pageNumber?: number } & RectInput): RectInput => ({
   pageNumber: s.pageNumber ?? null,
 });
 
-export function Reader({ id, onBack }: { id: string; onBack: () => void }) {
+export function Reader({
+  id,
+  onBack,
+  onSettings,
+}: {
+  id: string;
+  onBack: () => void;
+  onSettings: () => void;
+}) {
   const [doc, setDoc] = useState<DocumentWithHighlights | null | undefined>(
     undefined,
   );
@@ -144,19 +152,27 @@ export function Reader({ id, onBack }: { id: string; onBack: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
-      <header className="flex items-center gap-4 border-b border-zinc-200 px-6 py-3 dark:border-zinc-800">
+      <header className="app-drag flex items-center gap-4 border-b border-zinc-200 py-3 pl-24 pr-6 dark:border-zinc-800">
         <button
           onClick={onBack}
-          className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          className="app-no-drag text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
         >
           ← Library
         </button>
         <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
           {doc?.title ?? ""}
         </span>
-        <span className="ml-auto text-xs text-zinc-400">
-          Select text to highlight · Alt-drag for an area
-        </span>
+        <div className="app-no-drag ml-auto flex items-center gap-4">
+          <span className="text-xs text-zinc-400">
+            Select text to highlight · Alt-drag for an area
+          </span>
+          <button
+            onClick={onSettings}
+            className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            Settings
+          </button>
+        </div>
       </header>
 
       {error ? (

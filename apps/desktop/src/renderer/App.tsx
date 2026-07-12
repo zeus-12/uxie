@@ -1,33 +1,29 @@
 import { useState } from "react";
-import { Assistant } from "./assistant";
 import { Library } from "./library";
 import { Reader } from "./reader";
-import { SettingsPage } from "./settings";
+import { SettingsDialog } from "./settings";
 
-type View =
-  | { name: "library" }
-  | { name: "reader"; id: string }
-  | { name: "settings" }
-  | { name: "assistant" };
+type View = { name: "library" } | { name: "reader"; id: string };
 
 export default function App() {
   const [view, setView] = useState<View>({ name: "library" });
-  const toLibrary = () => setView({ name: "library" });
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
-  switch (view.name) {
-    case "reader":
-      return <Reader id={view.id} onBack={toLibrary} />;
-    case "settings":
-      return <SettingsPage onBack={toLibrary} />;
-    case "assistant":
-      return <Assistant onBack={toLibrary} />;
-    default:
-      return (
+  return (
+    <>
+      {view.name === "reader" ? (
+        <Reader
+          id={view.id}
+          onBack={() => setView({ name: "library" })}
+          onSettings={() => setSettingsOpen(true)}
+        />
+      ) : (
         <Library
           onOpen={(id) => setView({ name: "reader", id })}
-          onSettings={() => setView({ name: "settings" })}
-          onAssistant={() => setView({ name: "assistant" })}
+          onSettings={() => setSettingsOpen(true)}
         />
-      );
-  }
+      )}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
+  );
 }

@@ -1,19 +1,6 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "@uxie/shared/globals.css";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-:root {
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-
-html,
-body,
-#root {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  font-family: var(--font-sans);
-}
+/* Tailwind auto-scans this app; point it at the shared package too. */
+@source "../../../../shared";
