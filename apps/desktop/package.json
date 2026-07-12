@@ -21,13 +21,16 @@
     "pack:dmg": "electron-vite build && electron-builder --mac dmg"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.7",
     "@paralleldrive/cuid2": "^2.2.2",
     "@uxie/shared": "workspace:*",
+    "ai": "^7.0.22",
     "better-sqlite3": "^11.8.1",
     "drizzle-orm": "^0.44.6",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "2.16.105",
-    "react-pdf-highlighter": "^6.1.0"
+    "react-pdf-highlighter": "^6.1.0",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.1",

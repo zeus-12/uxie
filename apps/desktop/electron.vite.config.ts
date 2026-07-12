@@ -4,11 +4,16 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   main: {
-    // @uxie/shared is TypeScript source in the workspace — bundle it into main
-    // rather than externalizing it (Node can't require its .ts at runtime).
-    // Everything else (better-sqlite3 native addon, drizzle-orm, etc.) stays
-    // external and loads from node_modules.
-    plugins: [externalizeDepsPlugin({ exclude: ["@uxie/shared"] })],
+    // Bundle (don't externalize): @uxie/shared is workspace TS source, and the
+    // AI SDK is ESM-only (@ai-sdk/openai-compatible) — Node can't require either
+    // from the CJS main bundle. Bundling also keeps a single copy of the AI SDK
+    // so models flow into streamText correctly. Native/CJS deps (better-sqlite3,
+    // drizzle-orm, etc.) stay external.
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: ["@uxie/shared", "ai", "@ai-sdk/openai-compatible", "zod"],
+      }),
+    ],
     resolve: {
       alias: {
         "@uxie/shared": resolve(__dirname, "../../shared"),

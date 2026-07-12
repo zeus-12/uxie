@@ -1,0 +1,63 @@
+import { streamText } from "ai";
+import type { WebContents } from "electron";
+import type { ChatMessage } from "../../ipc-contract";
+import { getSettings } from "../settings";
+import { llmModel } from "./provider";
+
+const controllers = new Map<string, AbortController>();
+
+export function cancelChat(streamId: string): void {
+  controllers.get(streamId)?.abort();
+}
+
+export async function streamChat(
+  wc: WebContents,
+  streamId: string,
+  messages: ChatMessage[],
+): Promise<void> {
+  const send = (channel: string, ...args: unknown[]) => {
+    if (!wc.isDestroyed()) wc.send(channel, ...args);
+  };
+
+  const { llm } = getSettings();
+  if (!llm.baseUrl || !llm.model) {
+    send(
+      "chat:error",
+      streamId,
+      "LLM not configured — set a base URL and model in Settings.",
+    );
+    return;
+  }
+
+  const controller = new AbortController();
+  controllers.set(streamId, controller);
+  try {
+    const result = streamText({
+      model: llmModel(llm),
+      abortSignal: controller.signal,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    });
+    // fullStream (not textStream) so provider/HTTP errors surface as parts
+    // instead of being silently dropped.
+    for await (const part of result.fullStream) {
+      if (wc.isDestroyed()) return;
+      if (part.type === "text-delta") {
+        send("chat:delta", streamId, part.text);
+      } else if (part.type === "error") {
+        const err = part.error;
+        send(
+          "chat:error",
+          streamId,
+          err instanceof Error ? err.message : String(err),
+        );
+        return;
+      }
+    }
+    send("chat:done", streamId);
+  } catch (e) {
+    if (controller.signal.aborted) return;
+    send("chat:error", streamId, e instanceof Error ? e.message : String(e));
+  } finally {
+    controllers.delete(streamId);
+  }
+}

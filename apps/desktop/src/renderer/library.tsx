@@ -3,7 +3,15 @@ import type { Document } from "@uxie/shared/schema";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function Library({ onOpen }: { onOpen: (id: string) => void }) {
+export function Library({
+  onOpen,
+  onSettings,
+  onAssistant,
+}: {
+  onOpen: (id: string) => void;
+  onSettings: () => void;
+  onAssistant: () => void;
+}) {
   const [docs, setDocs] = useState<Document[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -45,13 +53,27 @@ export function Library({ onOpen }: { onOpen: (id: string) => void }) {
     <div className="min-h-full bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <header className="flex items-center justify-between px-8 py-6">
         <h1 className="text-xl font-semibold tracking-tight">Uxie</h1>
-        <button
-          onClick={onImport}
-          disabled={importing}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-zinc-900"
-        >
-          {importing ? "Importing…" : "Import PDF"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onAssistant}
+            className="rounded-md px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            Assistant
+          </button>
+          <button
+            onClick={onSettings}
+            className="rounded-md px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            Settings
+          </button>
+          <button
+            onClick={onImport}
+            disabled={importing}
+            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-white dark:text-zinc-900"
+          >
+            {importing ? "Importing…" : "Import PDF"}
+          </button>
+        </div>
       </header>
 
       <main className="px-8 pb-12">

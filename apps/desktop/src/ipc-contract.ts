@@ -33,6 +33,21 @@ export interface AppInfo {
   platform: NodeJS.Platform;
 }
 
+export interface LlmSettings {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+export interface Settings {
+  llm: LlmSettings;
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 /** Request/response channels: `ipcRenderer.invoke` ↔ `ipcMain.handle`. */
 export interface IpcInvokeContract {
   "app:info": { args: []; result: AppInfo };
@@ -63,16 +78,23 @@ export interface IpcInvokeContract {
     args: [id: string, boundingRect: RectInput];
     result: void;
   };
+
+  // Settings
+  "settings:get": { args: []; result: Settings };
+  "settings:set": { args: [settings: Settings]; result: void };
 }
 
 /** Fire-and-forget renderer→main channels: `ipcRenderer.send` ↔ `ipcMain.on`. */
 export interface IpcSendContract {
-  // (none yet)
+  "chat:send": [streamId: string, messages: ChatMessage[]];
+  "chat:cancel": [streamId: string];
 }
 
 /** Main→renderer push channels: `webContents.send` ↔ `ipcRenderer.on`. */
 export interface IpcEventContract {
-  // (none yet)
+  "chat:delta": [streamId: string, delta: string];
+  "chat:done": [streamId: string];
+  "chat:error": [streamId: string, message: string];
 }
 
 // ── window.uxieAPI surface ───────────────────────────────────────────
@@ -95,17 +117,21 @@ export const API_INVOKE = {
   addHighlight: "highlights:add",
   deleteHighlight: "highlights:delete",
   updateAreaHighlight: "highlights:updateArea",
+
+  getSettings: "settings:get",
+  setSettings: "settings:set",
 } as const satisfies Record<string, keyof IpcInvokeContract>;
 
-export const API_SEND = {} as const satisfies Record<
-  string,
-  keyof IpcSendContract
->;
+export const API_SEND = {
+  sendChat: "chat:send",
+  cancelChat: "chat:cancel",
+} as const satisfies Record<string, keyof IpcSendContract>;
 
-export const API_EVENTS = {} as const satisfies Record<
-  string,
-  keyof IpcEventContract
->;
+export const API_EVENTS = {
+  onChatDelta: "chat:delta",
+  onChatDone: "chat:done",
+  onChatError: "chat:error",
+} as const satisfies Record<string, keyof IpcEventContract>;
 
 /** The renderer-facing API, derived method-by-method from the maps above.
  *  Event subscriptions return an unsubscribe function. */

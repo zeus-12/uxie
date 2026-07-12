@@ -27,6 +27,8 @@ import {
   PDF_PRIVILEGE,
   registerPdfProtocol,
 } from "./pdf";
+import { getSettings, setSettings } from "./settings";
+import { cancelChat, streamChat } from "./ai/chat";
 
 protocol.registerSchemesAsPrivileged([PDF_PRIVILEGE]);
 
@@ -65,6 +67,9 @@ const invokeHandlers: {
   "highlights:delete": (id) => deleteHighlight(getDb(), id),
   "highlights:updateArea": (id, boundingRect) =>
     updateAreaHighlight(getDb(), id, boundingRect),
+
+  "settings:get": () => getSettings(),
+  "settings:set": (settings) => setSettings(settings),
 };
 
 function registerIpc() {
@@ -73,6 +78,11 @@ function registerIpc() {
       (handler as (...a: unknown[]) => unknown)(...args),
     );
   }
+
+  ipcMain.on("chat:send", (event, streamId, messages) => {
+    void streamChat(event.sender, streamId, messages);
+  });
+  ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
 }
 
 // ── Window ───────────────────────────────────────────────────────────
