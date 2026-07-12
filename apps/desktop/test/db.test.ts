@@ -35,6 +35,17 @@ function rect(over: Partial<Record<string, number>> = {}) {
   return { x1: 1, y1: 2, x2: 3, y2: 4, width: 2, height: 2, ...over };
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function makeDoc(db: DB) {
+  return createDocument(db, {
+    title: "Doc",
+    url: "/x.pdf",
+    coverImageUrl: "/x.png",
+    pageCount: 1,
+  });
+}
+
 describe("desktop db layer", () => {
   let db: DB;
   beforeEach(() => {
@@ -169,5 +180,50 @@ describe("desktop db layer", () => {
     await updateDocumentNotes(db, doc.id, "my notes");
     const loaded = await getDocument(db, doc.id);
     expect(loaded!.note).toBe("my notes");
+  });
+
+  it("bumps updatedAt on update and re-sorts the library", async () => {
+    const a = await makeDoc(db);
+    await sleep(3);
+    const b = await makeDoc(db);
+    expect((await listDocuments(db))[0].id).toBe(b.id);
+
+    const before = (await getDocument(db, a.id))!.updatedAt;
+    await sleep(3);
+    await updateDocumentNotes(db, a.id, "touched");
+    const after = (await getDocument(db, a.id))!.updatedAt;
+
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
+    expect((await listDocuments(db))[0].id).toBe(a.id);
+  });
+
+  it("enforces foreign keys (rejects a highlight on a missing document)", async () => {
+    await expect(
+      addHighlight(db, {
+        id: "orphan",
+        documentId: "does-not-exist",
+        type: "TEXT",
+        pageNumber: 1,
+        boundingRect: rect(),
+        rects: [],
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("keeps an existing pageNumber when updateArea omits it", async () => {
+    const doc = await makeDoc(db);
+    await addHighlight(db, {
+      id: "hl-keep",
+      documentId: doc.id,
+      type: "IMAGE",
+      boundingRect: rect({ x1: 5, pageNumber: 3 }),
+      rects: [],
+    });
+
+    await updateAreaHighlight(db, "hl-keep", rect({ x1: 99 }));
+
+    const hl = (await getDocument(db, doc.id))!.highlights[0];
+    expect(hl.boundingRectangle?.x1).toBe(99);
+    expect(hl.boundingRectangle?.pageNumber).toBe(3);
   });
 });

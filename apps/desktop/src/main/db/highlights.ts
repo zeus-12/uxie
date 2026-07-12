@@ -3,7 +3,7 @@ import * as schema from "@uxie/shared/schema";
 import type { AddHighlightInput, RectInput } from "@uxie/shared/schema";
 import type { DB } from "./client";
 
-function cordinateValues(rect: RectInput) {
+function rectColumns(rect: RectInput) {
   return {
     x1: rect.x1,
     y1: rect.y1,
@@ -11,20 +11,14 @@ function cordinateValues(rect: RectInput) {
     y2: rect.y2,
     width: rect.width,
     height: rect.height,
-    pageNumber: rect.pageNumber ?? null,
   };
 }
 
-/**
- * Create a highlight together with its single bounding rectangle and its many
- * rectangles, atomically. The client supplies the highlight `id` so it matches
- * the id react-pdf-highlighter uses in the reader.
- */
 export async function addHighlight(
   db: DB,
   input: AddHighlightInput,
 ): Promise<void> {
-  const highlightPageNumber =
+  const pageNumber =
     input.pageNumber ?? input.boundingRect.pageNumber ?? null;
 
   db.transaction((tx) => {
@@ -33,13 +27,14 @@ export async function addHighlight(
         id: input.id,
         type: input.type,
         documentId: input.documentId,
-        pageNumber: highlightPageNumber,
+        pageNumber,
       })
       .run();
 
     tx.insert(schema.cordinate)
       .values({
-        ...cordinateValues(input.boundingRect),
+        ...rectColumns(input.boundingRect),
+        pageNumber: input.boundingRect.pageNumber ?? null,
         highlightedBoundingRectangleId: input.id,
       })
       .run();
@@ -48,7 +43,8 @@ export async function addHighlight(
       tx.insert(schema.cordinate)
         .values(
           input.rects.map((rect) => ({
-            ...cordinateValues(rect),
+            ...rectColumns(rect),
+            pageNumber: rect.pageNumber ?? null,
             highlightedRectangleId: input.id,
           })),
         )
@@ -57,12 +53,12 @@ export async function addHighlight(
   });
 }
 
-/** Delete a highlight; its bounding rect + rectangles cascade (FK ON DELETE). */
 export async function deleteHighlight(db: DB, id: string): Promise<void> {
   await db.delete(schema.highlight).where(eq(schema.highlight.id, id));
 }
 
-/** Update the bounding rectangle of an (area) highlight in place. */
+// Only updates supplied fields — an omitted pageNumber is left untouched
+// rather than nulled.
 export async function updateAreaHighlight(
   db: DB,
   id: string,
@@ -70,6 +66,11 @@ export async function updateAreaHighlight(
 ): Promise<void> {
   await db
     .update(schema.cordinate)
-    .set(cordinateValues(boundingRect))
+    .set({
+      ...rectColumns(boundingRect),
+      ...(boundingRect.pageNumber != null
+        ? { pageNumber: boundingRect.pageNumber }
+        : {}),
+    })
     .where(eq(schema.cordinate.highlightedBoundingRectangleId, id));
 }

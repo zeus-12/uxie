@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f9167f17-2ece-4c95-a41d-a4c2ae11489c",
+  "id": "4ecd887f-a959-4513-8091-1564834d3721",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "Account": {
@@ -486,7 +486,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -756,7 +756,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "Message_documentId_Document_id_fk": {

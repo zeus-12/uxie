@@ -65,7 +65,7 @@ CREATE TABLE `Feedback` (
 	`type` text NOT NULL,
 	`createdAt` integer NOT NULL,
 	`userId` text,
-	FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
 CREATE TABLE `Flashcard` (
@@ -105,7 +105,7 @@ CREATE TABLE `Message` (
 	`userId` text,
 	`documentId` text NOT NULL,
 	`parts` text,
-	FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE set null,
 	FOREIGN KEY (`documentId`) REFERENCES `Document`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint

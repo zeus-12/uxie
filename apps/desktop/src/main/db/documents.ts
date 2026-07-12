@@ -7,7 +7,6 @@ import type {
 } from "@uxie/shared/schema";
 import { LOCAL_USER_ID, type DB } from "./client";
 
-/** All documents, most-recently-updated first (the library view). */
 export async function listDocuments(db: DB): Promise<Document[]> {
   return db
     .select()
@@ -15,7 +14,8 @@ export async function listDocuments(db: DB): Promise<Document[]> {
     .orderBy(desc(schema.document.updatedAt));
 }
 
-/** One document with its highlights (each with bounding rect + rectangles). */
+// Assembled with explicit queries, not Drizzle relations: Cordinate has two FKs
+// to Highlight, which trips drizzle's inverse-one() (config?.fields.reduce).
 export async function getDocument(
   db: DB,
   id: string,
@@ -112,7 +112,6 @@ export async function updateDocumentTitle(
     .where(eq(schema.document.id, id));
 }
 
-/** Delete a document; highlights/messages/flashcards cascade (FK ON DELETE). */
 export async function deleteDocument(db: DB, id: string): Promise<void> {
   await db.delete(schema.document).where(eq(schema.document.id, id));
 }
