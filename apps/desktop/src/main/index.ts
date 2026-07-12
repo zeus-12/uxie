@@ -1,10 +1,16 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  nativeTheme,
+  protocol,
+  shell,
+} from "electron";
 import { join } from "path";
 import type { IpcInvokeContract } from "../ipc-contract";
 import {
   addHighlight,
   createDocument,
-  deleteDocument,
   deleteHighlight,
   getDb,
   getDocument,
@@ -15,6 +21,14 @@ import {
   updateDocumentTitle,
   updateLastReadPage,
 } from "./db";
+import {
+  deleteDocumentWithFile,
+  importPdf,
+  PDF_PRIVILEGE,
+  registerPdfProtocol,
+} from "./pdf";
+
+protocol.registerSchemesAsPrivileged([PDF_PRIVILEGE]);
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -35,6 +49,7 @@ const invokeHandlers: {
     platform: process.platform,
   }),
 
+  "documents:import": () => importPdf(),
   "documents:list": () => listDocuments(getDb()),
   "documents:get": (id) => getDocument(getDb(), id),
   "documents:create": (input) => createDocument(getDb(), input),
@@ -44,7 +59,7 @@ const invokeHandlers: {
     updateLastReadPage(getDb(), id, page),
   "documents:updateTitle": (id, title) =>
     updateDocumentTitle(getDb(), id, title),
-  "documents:delete": (id) => deleteDocument(getDb(), id),
+  "documents:delete": (id) => deleteDocumentWithFile(id),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
   "highlights:delete": (id) => deleteHighlight(getDb(), id),
@@ -72,7 +87,7 @@ function createMainWindow(): BrowserWindow {
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#09090b" : "#fafafa",
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
-      sandbox: false,
+      plugins: true, // Chromium's built-in PDF viewer (reader iframe)
     },
   });
 
@@ -96,8 +111,8 @@ function createMainWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
-  // Open + migrate the local DB before any IPC handler can touch it.
   initDatabase();
+  registerPdfProtocol();
   registerIpc();
   mainWindow = createMainWindow();
 

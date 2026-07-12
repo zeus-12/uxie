@@ -218,6 +218,7 @@ export interface AddHighlightInput {
 }
 
 export interface CreateDocumentInput {
+  id?: string;
   title: string;
   url: string;
   coverImageUrl: string;

@@ -38,6 +38,7 @@ export interface IpcInvokeContract {
   "app:info": { args: []; result: AppInfo };
 
   // Documents
+  "documents:import": { args: []; result: Document | null };
   "documents:list": { args: []; result: Document[] };
   "documents:get": {
     args: [id: string];
@@ -82,6 +83,7 @@ export interface IpcEventContract {
 export const API_INVOKE = {
   getAppInfo: "app:info",
 
+  importDocument: "documents:import",
   listDocuments: "documents:list",
   getDocument: "documents:get",
   createDocument: "documents:create",

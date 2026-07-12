@@ -68,6 +68,7 @@ export async function createDocument(
   const [row] = await db
     .insert(schema.document)
     .values({
+      ...(input.id ? { id: input.id } : {}),
       title: input.title,
       url: input.url,
       coverImageUrl: input.coverImageUrl,
