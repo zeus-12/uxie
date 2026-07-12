@@ -1,11 +1,4 @@
-import {
-  app,
-  BrowserWindow,
-  ipcMain,
-  nativeTheme,
-  protocol,
-  shell,
-} from "electron";
+import { app, BrowserWindow, ipcMain, protocol, shell } from "electron";
 import { join } from "path";
 import type { IpcInvokeContract } from "../ipc-contract";
 import {
@@ -93,8 +86,11 @@ function createMainWindow(): BrowserWindow {
     minWidth: 900,
     minHeight: 600,
     titleBarStyle: "hiddenInset",
-    trafficLightPosition: { x: 16, y: 16 },
-    backgroundColor: nativeTheme.shouldUseDarkColors ? "#09090b" : "#fafafa",
+    trafficLightPosition: { x: 18, y: 18 },
+    // Native macOS frosted-glass material behind the (transparent) web content.
+    vibrancy: "under-window",
+    visualEffectState: "active",
+    backgroundColor: "#00000000",
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
     },

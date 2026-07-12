@@ -33,6 +33,9 @@ importers:
       drizzle-orm:
         specifier: ^0.44.6
         version: 0.44.7(@opentelemetry/api@1.9.0)(@prisma/client@5.11.0(prisma@5.11.0))(@types/better-sqlite3@7.6.13)(better-sqlite3@11.10.0)(prisma@5.11.0)
+      lucide-react:
+        specifier: ^0.563.0
+        version: 0.563.0(react@18.3.1)
       pdf-lib:
         specifier: ^1.17.1
         version: 1.17.1
@@ -13987,7 +13990,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.13.2)
+      retry-axios: 2.6.0(axios@1.13.2(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -16110,7 +16113,7 @@ snapshots:
     dependencies:
       lowercase-keys: 2.0.0
 
-  retry-axios@2.6.0(axios@1.13.2):
+  retry-axios@2.6.0(axios@1.13.2(debug@4.4.3)):
     dependencies:
       axios: 1.13.2(debug@4.4.3)
 

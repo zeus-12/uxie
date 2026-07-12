@@ -29,6 +29,7 @@
     "ai": "^7.0.22",
     "better-sqlite3": "^11.8.1",
     "drizzle-orm": "^0.44.6",
+    "lucide-react": "^0.563.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "2.16.105",
     "react-pdf-highlighter": "^6.1.0",

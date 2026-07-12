@@ -4,3 +4,11 @@
 
 /* Tailwind auto-scans this app; point it at the shared package too. */
 @source "../../../../shared";
+
+/* Let the native window vibrancy show through — content surfaces set their own
+   background on top of the frosted material. */
+html,
+body {
+  background: transparent !important;
+}
+
