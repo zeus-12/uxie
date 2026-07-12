@@ -6,6 +6,7 @@
   "author": "Uxie",
   "main": "out/main/index.js",
   "scripts": {
+    "predev": "electron-rebuild -f -w better-sqlite3",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
@@ -14,11 +15,12 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:renderer",
     "format": "prettier --write . --ignore-path ../../.prettierignore",
     "format:check": "prettier --check . --ignore-path ../../.prettierignore",
+    "pretest": "pnpm rebuild better-sqlite3",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "pack": "electron-vite build && electron-builder --mac",
-    "pack:dmg": "electron-vite build && electron-builder --mac dmg"
+    "pack": "electron-rebuild -f -w better-sqlite3 && electron-vite build && electron-builder --mac",
+    "pack:dmg": "electron-rebuild -f -w better-sqlite3 && electron-vite build && electron-builder --mac dmg"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.7",
