@@ -11,12 +11,19 @@ import {
   type IHighlight,
   type ScaledPosition,
 } from "react-pdf-highlighter";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@uxie/shared/components/ui/resizable";
+import { Sidebar } from "@uxie/shared/components/workspace/sidebar";
 import type {
   Cordinate,
   DocumentWithHighlights,
   HighlightWithRects,
   RectInput,
 } from "@uxie/shared/schema";
+import { Chat } from "./chat";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -32,8 +39,7 @@ const scaled = (c: Cordinate | RectInput) => ({
 
 function toViewerHighlight(h: HighlightWithRects): IHighlight | null {
   if (!h.boundingRectangle) return null;
-  const pageNumber =
-    h.pageNumber ?? h.boundingRectangle.pageNumber ?? 1;
+  const pageNumber = h.pageNumber ?? h.boundingRectangle.pageNumber ?? 1;
   return {
     id: h.id,
     position: {
@@ -55,6 +61,14 @@ const toRectInput = (s: { pageNumber?: number } & RectInput): RectInput => ({
   height: s.height,
   pageNumber: s.pageNumber ?? null,
 });
+
+function TabPlaceholder({ label }: { label: string }) {
+  return (
+    <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
+      {label}
+    </div>
+  );
+}
 
 export function Reader({
   id,
@@ -137,9 +151,7 @@ export function Reader({
     const prev = highlights;
     setHighlights((hs) =>
       hs.map((h) =>
-        h.id === hlId
-          ? { ...h, position: { ...h.position, boundingRect } }
-          : h,
+        h.id === hlId ? { ...h, position: { ...h.position, boundingRect } } : h,
       ),
     );
     try {
@@ -150,116 +162,128 @@ export function Reader({
     }
   }
 
+  const pdfPane = (
+    <div className="relative h-full w-full overflow-hidden bg-white">
+      {error ? (
+        <p className="p-6 text-sm text-destructive">{error}</p>
+      ) : doc === undefined ? (
+        <p className="p-6 text-sm text-muted-foreground">Loading…</p>
+      ) : doc === null ? (
+        <p className="p-6 text-sm text-muted-foreground">Document not found.</p>
+      ) : (
+        <PdfLoader
+          url={doc.url}
+          workerSrc={workerSrc}
+          beforeLoad={
+            <p className="p-6 text-sm text-muted-foreground">Loading PDF…</p>
+          }
+        >
+          {(pdfDocument: PDFDocumentProxy) => (
+            <PdfHighlighter
+              pdfDocument={pdfDocument}
+              enableAreaSelection={(e) => e.altKey}
+              onScrollChange={() => {}}
+              scrollRef={() => {}}
+              onSelectionFinished={(position, content, hideTipAndSelection) => (
+                <button
+                  className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow"
+                  onClick={() => {
+                    void addHighlight(position, content);
+                    hideTipAndSelection();
+                  }}
+                >
+                  Highlight
+                </button>
+              )}
+              highlightTransform={(
+                highlight,
+                index,
+                setTip,
+                hideTip,
+                viewportToScaled,
+                _screenshot,
+                isScrolledTo,
+              ) => {
+                const isText = highlight.position.rects?.length !== 0;
+                const component = isText ? (
+                  <Highlight
+                    isScrolledTo={isScrolledTo}
+                    position={highlight.position}
+                    comment={highlight.comment}
+                  />
+                ) : (
+                  <AreaHighlight
+                    isScrolledTo={isScrolledTo}
+                    highlight={highlight}
+                    onChange={(rect) =>
+                      void updateArea(highlight.id, viewportToScaled(rect))
+                    }
+                  />
+                );
+                return (
+                  <Popup
+                    key={index}
+                    onMouseOver={(popupContent) =>
+                      setTip(highlight, () => popupContent)
+                    }
+                    onMouseOut={hideTip}
+                    popupContent={
+                      <button
+                        className="rounded bg-white px-2 py-1 text-xs text-red-600 shadow"
+                        onClick={() => void deleteHighlight(highlight.id)}
+                      >
+                        Delete
+                      </button>
+                    }
+                  >
+                    {component}
+                  </Popup>
+                );
+              }}
+              highlights={highlights}
+            />
+          )}
+        </PdfLoader>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex h-full flex-col bg-zinc-50 dark:bg-zinc-950">
-      <header className="app-drag flex items-center gap-4 border-b border-zinc-200 py-3 pl-24 pr-6 dark:border-zinc-800">
+    <div className="flex h-full flex-col bg-gray-50">
+      <header className="app-drag flex items-center gap-3 py-2 pl-24 pr-4">
         <button
           onClick={onBack}
-          className="app-no-drag text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+          className="app-no-drag rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
         >
           ← Library
         </button>
-        <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          {doc?.title ?? ""}
-        </span>
-        <div className="app-no-drag ml-auto flex items-center gap-4">
-          <span className="text-xs text-zinc-400">
-            Select text to highlight · Alt-drag for an area
-          </span>
-          <button
-            onClick={onSettings}
-            className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            Settings
-          </button>
-        </div>
+        <span className="truncate text-sm font-medium">{doc?.title ?? ""}</span>
+        <button
+          onClick={onSettings}
+          className="app-no-drag ml-auto rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+        >
+          Settings
+        </button>
       </header>
 
-      {error ? (
-        <p className="p-6 text-sm text-red-600 dark:text-red-400">{error}</p>
-      ) : doc === undefined ? (
-        <p className="p-6 text-sm text-zinc-500">Loading…</p>
-      ) : doc === null ? (
-        <p className="p-6 text-sm text-zinc-500">Document not found.</p>
-      ) : (
-        <div className="relative flex-1 overflow-hidden">
-          <PdfLoader
-            url={doc.url}
-            workerSrc={workerSrc}
-            beforeLoad={<p className="p-6 text-sm text-zinc-500">Loading PDF…</p>}
-          >
-            {(pdfDocument: PDFDocumentProxy) => (
-              <PdfHighlighter
-                pdfDocument={pdfDocument}
-                enableAreaSelection={(e) => e.altKey}
-                onScrollChange={() => {}}
-                scrollRef={() => {}}
-                onSelectionFinished={(
-                  position,
-                  content,
-                  hideTipAndSelection,
-                ) => (
-                  <button
-                    className="rounded bg-zinc-900 px-2 py-1 text-xs font-medium text-white shadow dark:bg-white dark:text-zinc-900"
-                    onClick={() => {
-                      void addHighlight(position, content);
-                      hideTipAndSelection();
-                    }}
-                  >
-                    Highlight
-                  </button>
-                )}
-                highlightTransform={(
-                  highlight,
-                  index,
-                  setTip,
-                  hideTip,
-                  viewportToScaled,
-                  _screenshot,
-                  isScrolledTo,
-                ) => {
-                  const isText = highlight.position.rects?.length !== 0;
-                  const component = isText ? (
-                    <Highlight
-                      isScrolledTo={isScrolledTo}
-                      position={highlight.position}
-                      comment={highlight.comment}
-                    />
-                  ) : (
-                    <AreaHighlight
-                      isScrolledTo={isScrolledTo}
-                      highlight={highlight}
-                      onChange={(rect) =>
-                        void updateArea(highlight.id, viewportToScaled(rect))
-                      }
-                    />
-                  );
-                  return (
-                    <Popup
-                      key={index}
-                      onMouseOver={(popupContent) =>
-                        setTip(highlight, () => popupContent)
-                      }
-                      onMouseOut={hideTip}
-                      popupContent={
-                        <button
-                          className="rounded bg-white px-2 py-1 text-xs text-red-600 shadow"
-                          onClick={() => void deleteHighlight(highlight.id)}
-                        >
-                          Delete
-                        </button>
-                      }
-                    >
-                      {component}
-                    </Popup>
-                  );
-                }}
-                highlights={highlights}
-              />
-            )}
-          </PdfLoader>
-        </div>
-      )}
+      <ResizablePanelGroup
+        direction="horizontal"
+        className="flex-1 overflow-hidden"
+      >
+        <ResizablePanel defaultSize={55} minSize={30}>
+          <div className="h-full border-r border-stone-200 shadow-sm sm:rounded-lg">
+            {pdfPane}
+          </div>
+        </ResizablePanel>
+        <ResizableHandle className="w-1 bg-gray-200 hover:bg-primary" />
+        <ResizablePanel defaultSize={45} minSize={25}>
+          <Sidebar
+            chat={<Chat />}
+            notes={<TabPlaceholder label="Notes editor — coming soon" />}
+            flashcards={<TabPlaceholder label="Flashcards — coming soon" />}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

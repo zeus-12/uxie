@@ -1,0 +1,75 @@
+import { AlbumIcon, Layers, MessagesSquareIcon } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { CustomTooltip } from "../ui/tooltip";
+
+const TABS = [
+  { value: "notes", tooltip: "Take notes", icon: <AlbumIcon size={20} /> },
+  {
+    value: "chat",
+    tooltip: "Chat with the pdf",
+    icon: <MessagesSquareIcon size={20} />,
+  },
+  {
+    value: "flashcards",
+    tooltip: "Generate flashcards from the pdf",
+    icon: <Layers size={20} />,
+  },
+];
+
+const CONTENT_TW =
+  "break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto";
+
+export function Sidebar({
+  notes,
+  chat,
+  flashcards,
+  defaultTab = "chat",
+}: {
+  notes: ReactNode;
+  chat: ReactNode;
+  flashcards: ReactNode;
+  defaultTab?: string;
+}) {
+  const [tab, setTab] = useState(defaultTab);
+
+  const contents = [
+    { value: "notes", tw: `flex-1 pb-0 ${CONTENT_TW}`, children: notes },
+    { value: "chat", tw: `p-2 pb-0 ${CONTENT_TW}`, children: chat },
+    { value: "flashcards", tw: `p-2 pb-0 ${CONTENT_TW}`, children: flashcards },
+  ];
+
+  return (
+    <div className="h-full bg-gray-50">
+      <Tabs
+        value={tab}
+        onValueChange={setTab}
+        className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-2 md:pl-0 md:pr-1">
+          <TabsList className="h-12 rounded-md bg-gray-200">
+            {TABS.map((item) => (
+              <CustomTooltip content={item.tooltip} key={item.value}>
+                <TabsTrigger value={item.value} className="relative">
+                  {item.icon}
+                </TabsTrigger>
+              </CustomTooltip>
+            ))}
+          </TabsList>
+        </div>
+
+        {contents.map((item) => (
+          <TabsContent
+            key={item.value}
+            forceMount
+            hidden={item.value !== tab}
+            value={item.value}
+            className={item.tw}
+          >
+            {item.children}
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
+  );
+}
