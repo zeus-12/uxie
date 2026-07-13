@@ -419,6 +419,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.3.1
         version: 3.3.1(react-hook-form@7.47.0(react@18.3.1))
+      '@huggingface/transformers':
+        specifier: ^3.8.1
+        version: 3.8.1
       '@paralleldrive/cuid2':
         specifier: ^2.2.2
         version: 2.2.2
@@ -467,6 +470,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.31)
+      '@types/sbd':
+        specifier: ^1.0.5
+        version: 1.0.5
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.0
@@ -482,9 +488,15 @@ importers:
       framer-motion:
         specifier: ^10.16.4
         version: 10.16.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      kokoro-js:
+        specifier: ^1.2.1
+        version: 1.2.1
       lucide-react:
         specifier: ^0.563.0
         version: 0.563.0(react@18.3.1)
+      pdfjs-dist:
+        specifier: 2.16.105
+        version: 2.16.105
       react:
         specifier: ^18
         version: 18.3.1
@@ -494,21 +506,33 @@ importers:
       react-hook-form:
         specifier: ^7.46.2
         version: 7.47.0(react@18.3.1)
+      react-hotkeys-hook:
+        specifier: ^5.2.3
+        version: 5.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-resizable-panels:
         specifier: ^2.0.10
         version: 2.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      sbd:
+        specifier: ^1.0.19
+        version: 1.0.19
       sonner:
         specifier: ^1.4.41
         version: 1.4.41(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tailwind-merge:
         specifier: ^2.5.0
         version: 2.6.1
+      use-debounce:
+        specifier: ^9.0.4
+        version: 9.0.4(react@18.3.1)
       usehooks-ts:
         specifier: ^3.1.1
         version: 3.1.1(react@18.3.1)
       vaul:
         specifier: ^1.0.0
         version: 1.0.0(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      zustand:
+        specifier: ^4.4.6
+        version: 4.4.6(@types/react@18.3.31)(react@18.3.1)
 
 packages:
 
@@ -15732,6 +15756,11 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
+  react-hotkeys-hook@5.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   react-icons@5.3.0(react@18.2.0):
     dependencies:
       react: 18.2.0
@@ -16212,7 +16241,7 @@ snapshots:
       htmlparser2: 8.0.2
       is-plain-object: 5.0.0
       parse-srcset: 1.0.2
-      postcss: 8.5.6
+      postcss: 8.5.16
 
   sax@1.6.0: {}
 
@@ -16868,6 +16897,10 @@ snapshots:
     dependencies:
       react: 18.2.0
 
+  use-debounce@9.0.4(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
   use-isomorphic-layout-effect@1.1.2(@types/react@18.2.25)(react@18.2.0):
     dependencies:
       react: 18.2.0
@@ -16900,6 +16933,10 @@ snapshots:
   use-sync-external-store@1.2.0(react@18.2.0):
     dependencies:
       react: 18.2.0
+
+  use-sync-external-store@1.2.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
 
   use-sync-external-store@1.6.0(react@18.2.0):
     dependencies:
@@ -17241,5 +17278,12 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.2.25
       react: 18.2.0
+
+  zustand@4.4.6(@types/react@18.3.31)(react@18.3.1):
+    dependencies:
+      use-sync-external-store: 1.2.0(react@18.3.1)
+    optionalDependencies:
+      '@types/react': 18.3.31
+      react: 18.3.1
 
   zwitch@2.0.4: {}
