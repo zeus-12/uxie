@@ -8,6 +8,9 @@
     "./*": "./*"
   },
   "dependencies": {
+    "@blocknote/core": "^0.17.1",
+    "@blocknote/mantine": "^0.17.1",
+    "@blocknote/react": "^0.17.1",
     "@huggingface/transformers": "^3.8.1",
     "@paralleldrive/cuid2": "^2.2.2",
     "@types/react": "^18.3.12",

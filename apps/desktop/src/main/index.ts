@@ -22,6 +22,8 @@ import {
 } from "./pdf";
 import { getSettings, setSettings } from "./settings";
 import { cancelChat, streamChat } from "./ai/chat";
+import { getFlashcardsByDocId } from "./db/flashcards";
+import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 
 protocol.registerSchemesAsPrivileged([PDF_PRIVILEGE]);
 
@@ -63,6 +65,9 @@ const invokeHandlers: {
 
   "settings:get": () => getSettings(),
   "settings:set": (settings) => setSettings(settings),
+
+  "flashcards:getByDocId": (docId) => getFlashcardsByDocId(getDb(), docId),
+  "flashcards:generate": (docId) => generateFlashcardsForDoc(docId),
 };
 
 function registerIpc() {
@@ -76,6 +81,9 @@ function registerIpc() {
     void streamChat(event.sender, streamId, messages);
   });
   ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
+  ipcMain.on("flashcard:evaluate", (event, streamId, input) => {
+    void evaluateFlashcard(event.sender, streamId, input);
+  });
 }
 
 // ── Window ───────────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ import { countPdfPages, deletePdf, pdfPath, storePdf } from "./pdf-store";
 
 export const PDF_SCHEME = "uxie-pdf";
 
-const documentsDir = () => join(app.getPath("userData"), "documents");
+export const documentsDir = () => join(app.getPath("userData"), "documents");
 const pdfUrl = (id: string) => `${PDF_SCHEME}://doc/${id}`;
 
 export const PDF_PRIVILEGE = {

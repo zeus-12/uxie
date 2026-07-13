@@ -23,8 +23,20 @@ import type {
   CreateDocumentInput,
   Document,
   DocumentWithHighlights,
+  Flashcard,
+  FlashcardAttempt,
   RectInput,
 } from "@uxie/shared/schema";
+
+export type FlashcardWithAttempts = Flashcard & {
+  flashcardAttempts: FlashcardAttempt[];
+};
+
+export interface FlashcardFeedback {
+  correctResponse: string;
+  incorrectResponse: string;
+  moreInfo: string;
+}
 
 /** Basic host facts, fetched over a real IPC round-trip to prove the bridge. */
 export interface AppInfo {
@@ -82,12 +94,23 @@ export interface IpcInvokeContract {
   // Settings
   "settings:get": { args: []; result: Settings };
   "settings:set": { args: [settings: Settings]; result: void };
+
+  // Flashcards
+  "flashcards:getByDocId": {
+    args: [docId: string];
+    result: FlashcardWithAttempts[];
+  };
+  "flashcards:generate": { args: [docId: string]; result: number };
 }
 
 /** Fire-and-forget renderer→main channels: `ipcRenderer.send` ↔ `ipcMain.on`. */
 export interface IpcSendContract {
   "chat:send": [streamId: string, messages: ChatMessage[]];
   "chat:cancel": [streamId: string];
+  "flashcard:evaluate": [
+    streamId: string,
+    input: { flashcardId: string; prompt: string },
+  ];
 }
 
 /** Main→renderer push channels: `webContents.send` ↔ `ipcRenderer.on`. */
@@ -95,6 +118,12 @@ export interface IpcEventContract {
   "chat:delta": [streamId: string, delta: string];
   "chat:done": [streamId: string];
   "chat:error": [streamId: string, message: string];
+  "flashcard:evaluate:delta": [
+    streamId: string,
+    partial: Partial<FlashcardFeedback>,
+  ];
+  "flashcard:evaluate:done": [streamId: string, feedback: FlashcardFeedback];
+  "flashcard:evaluate:error": [streamId: string, message: string];
 }
 
 // ── window.uxieAPI surface ───────────────────────────────────────────
@@ -120,17 +149,24 @@ export const API_INVOKE = {
 
   getSettings: "settings:get",
   setSettings: "settings:set",
+
+  getFlashcards: "flashcards:getByDocId",
+  generateFlashcards: "flashcards:generate",
 } as const satisfies Record<string, keyof IpcInvokeContract>;
 
 export const API_SEND = {
   sendChat: "chat:send",
   cancelChat: "chat:cancel",
+  evaluateFlashcard: "flashcard:evaluate",
 } as const satisfies Record<string, keyof IpcSendContract>;
 
 export const API_EVENTS = {
   onChatDelta: "chat:delta",
   onChatDone: "chat:done",
   onChatError: "chat:error",
+  onFlashcardEvalDelta: "flashcard:evaluate:delta",
+  onFlashcardEvalDone: "flashcard:evaluate:done",
+  onFlashcardEvalError: "flashcard:evaluate:error",
 } as const satisfies Record<string, keyof IpcEventContract>;
 
 /** The renderer-facing API, derived method-by-method from the maps above.

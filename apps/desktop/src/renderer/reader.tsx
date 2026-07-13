@@ -26,6 +26,8 @@ import type {
   RectInput,
 } from "@uxie/shared/schema";
 import { Chat } from "./chat";
+import { Notes } from "./notes";
+import { FlashcardsPanel } from "./flashcards";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -63,14 +65,6 @@ const toRectInput = (s: { pageNumber?: number } & RectInput): RectInput => ({
   height: s.height,
   pageNumber: s.pageNumber ?? null,
 });
-
-function TabPlaceholder({ label }: { label: string }) {
-  return (
-    <div className="flex h-full items-center justify-center p-6 text-center text-sm text-muted-foreground">
-      {label}
-    </div>
-  );
-}
 
 export function Reader({
   id,
@@ -335,9 +329,10 @@ function ReaderContent({
       <ResizableHandle className="w-1 bg-gray-200 hover:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
         <Sidebar
+          notes={<Notes docId={docId} note={doc.note} />}
           chat={<Chat />}
-          notes={<TabPlaceholder label="Notes editor — coming soon" />}
-          flashcards={<TabPlaceholder label="Flashcards — coming soon" />}
+          flashcards={<FlashcardsPanel docId={docId} />}
+          defaultTab="notes"
         />
       </ResizablePanel>
     </ResizablePanelGroup>

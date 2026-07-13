@@ -1,3 +1,3 @@
-// Placeholder until the Blocknote notes editor is ported. The pdf settings
-// store references this type; nothing in the toolbar path uses the editor yet.
-export type BlockNoteEditorType = unknown;
+import { schema } from "../lib/editor-utils";
+
+export type BlockNoteEditorType = typeof schema.BlockNoteEditor;
