@@ -331,7 +331,7 @@ function ReaderContent({
       <ResizablePanel defaultSize={45} minSize={25}>
         <Sidebar
           notes={<Notes docId={docId} note={doc.note} />}
-          chat={<Chat />}
+          chat={<Chat docId={docId} />}
           flashcards={<FlashcardsPanel docId={docId} />}
           defaultTab="notes"
         />

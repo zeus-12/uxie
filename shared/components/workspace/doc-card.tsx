@@ -122,20 +122,13 @@ export function DocCard({
         <div className="flex flex-col gap-1 p-2.5">
           <div className="flex w-full items-center justify-between gap-2">
             <p className="min-w-0 truncate text-sm font-medium">{title}</p>
-            <CustomTooltip
-              content={
-                isVectorised
-                  ? "Document is AI vectorised"
-                  : "Document isn't AI vectorised"
-              }
-            >
-              <Sparkle
-                className={cn(
-                  "h-4 w-4 shrink-0",
-                  isVectorised ? "text-primary" : "text-gray-200",
-                )}
-              />
-            </CustomTooltip>
+            {/* Only shown once a doc is actually vectorised — no misleading badge
+                while local embeddings aren't wired yet. */}
+            {isVectorised && (
+              <CustomTooltip content="Document is AI vectorised">
+                <Sparkle className="h-4 w-4 shrink-0 text-primary" />
+              </CustomTooltip>
+            )}
           </div>
 
           {isCollab && (

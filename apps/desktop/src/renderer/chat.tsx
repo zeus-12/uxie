@@ -3,7 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { SendHorizonalIcon } from "lucide-react";
 import type { ChatMessage } from "../ipc-contract";
 
-export function Chat() {
+export function Chat({ docId: _docId }: { docId: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -69,7 +69,8 @@ export function Chat() {
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-1">
         {messages.length === 0 && !streamingText && (
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Ask about this document. Uses the model set in Settings.
+            Ask anything — answered by the model set in Settings. (Document-aware
+            answers are coming.)
           </p>
         )}
         {messages.map((m, i) => (

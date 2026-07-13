@@ -45,7 +45,12 @@ export async function generateFlashcardsForDoc(docId: string): Promise<number> {
     throw new Error("LLM not configured — set a base URL and model in Settings.");
   }
 
-  const bytes = await readFile(pdfPath(documentsDir(), docId));
+  let bytes: Buffer;
+  try {
+    bytes = await readFile(pdfPath(documentsDir(), docId));
+  } catch {
+    throw new Error("Couldn't read this document's PDF file on disk.");
+  }
   const { text } = (await pdfParse(bytes)) as { text: string };
   const chunks = chunkText(text).slice(0, MAX_CHUNKS);
   const model = llmModel(llm);
