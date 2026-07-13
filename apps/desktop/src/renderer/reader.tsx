@@ -18,6 +18,10 @@ import {
 } from "@uxie/shared/components/ui/resizable";
 import { Sidebar } from "@uxie/shared/components/workspace/sidebar";
 import BottomToolbar from "@uxie/shared/components/pdf-reader/toolbar";
+import {
+  HighlightedTextPopover,
+  TextSelectionPopover,
+} from "@uxie/shared/components/pdf-reader/highlight-popover";
 import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import type {
   Cordinate,
@@ -148,6 +152,7 @@ function ReaderContent({
     skipSentence,
     handleZoomChange,
     handlePageChange,
+    readSelectedText,
     currentZoom,
     pageColour,
     pageColourChangeHandler,
@@ -245,15 +250,12 @@ function ReaderContent({
                 onScrollChange={() => {}}
                 scrollRef={() => {}}
                 onSelectionFinished={(position, content, hideTipAndSelection) => (
-                  <button
-                    className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow"
-                    onClick={() => {
-                      void addHighlight(position, content);
-                      hideTipAndSelection();
-                    }}
-                  >
-                    Highlight
-                  </button>
+                  <TextSelectionPopover
+                    content={content}
+                    hideTipAndSelection={hideTipAndSelection}
+                    addHighlight={() => void addHighlight(position, content)}
+                    readSelectedText={readSelectedText}
+                  />
                 )}
                 highlightTransform={(
                   highlight,
@@ -288,12 +290,11 @@ function ReaderContent({
                       }
                       onMouseOut={hideTip}
                       popupContent={
-                        <button
-                          className="rounded bg-white px-2 py-1 text-xs text-red-600 shadow"
-                          onClick={() => void deleteHighlight(highlight.id)}
-                        >
-                          Delete
-                        </button>
+                        <HighlightedTextPopover
+                          id={highlight.id}
+                          deleteHighlight={(hid) => void deleteHighlight(hid)}
+                          hideTip={hideTip}
+                        />
                       }
                     >
                       {component}
