@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, SettingsIcon } from "lucide-react";
 import { Button } from "@uxie/shared/components/ui/button";
 import { Input } from "@uxie/shared/components/ui/input";
 import { Skeleton } from "@uxie/shared/components/ui/skeleton";
@@ -72,9 +72,16 @@ export function Library({
               </p>
             </div>
             <div className="app-no-drag flex items-center gap-2">
-              <Button variant="ghost" onClick={onSettings}>
-                Settings
-              </Button>
+              <button
+                onClick={onSettings}
+                aria-label="Settings"
+                className="rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-90"
+              >
+                <SettingsIcon
+                  size={18}
+                  className="transition-transform duration-300 hover:rotate-45"
+                />
+              </button>
               <Button onClick={onImport} disabled={importing}>
                 {importing ? "Importing…" : "Import PDF"}
               </Button>
