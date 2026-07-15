@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
-import { SendHorizonalIcon } from "lucide-react";
+import { SendHorizonalIcon, SparklesIcon } from "lucide-react";
+import { Button } from "@uxie/shared/components/ui/button";
 import type { ChatMessage } from "../ipc-contract";
 import { retrieve, vectorise } from "./rag";
 
@@ -13,18 +14,70 @@ export function Chat({
   docId: string;
   isVectorised: boolean;
 }) {
+  const [indexed, setIndexed] = useState(isVectorised);
+
+  if (!indexed) {
+    return <IndexGate docId={docId} onIndexed={() => setIndexed(true)} />;
+  }
+  return <ChatView docId={docId} />;
+}
+
+function IndexGate({
+  docId,
+  onIndexed,
+}: {
+  docId: string;
+  onIndexed: () => void;
+}) {
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  async function index() {
+    setError(null);
+    setProgress({ done: 0, total: 0 });
+    try {
+      await vectorise(docId, (done, total) => setProgress({ done, total }));
+      onIndexed();
+    } catch (e) {
+      setError(message(e));
+      setProgress(null);
+    }
+  }
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
+      <SparklesIcon className="h-8 w-8 text-primary" />
+      <div>
+        <p className="font-medium">Chat with this document</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Index the PDF once (on-device) to ask questions grounded in its
+          contents.
+        </p>
+      </div>
+      {progress ? (
+        <p className="text-sm text-muted-foreground">
+          Indexing…{" "}
+          {progress.total ? `${progress.done}/${progress.total} chunks` : ""}
+        </p>
+      ) : (
+        <Button onClick={index}>Index document</Button>
+      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function ChatView({ docId }: { docId: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [index, setIndex] = useState<{ done: number; total: number } | null>(
-    null,
-  );
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const streamIdRef = useRef<string | null>(null);
   const streamTextRef = useRef("");
-  const indexedRef = useRef(isVectorised);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,7 +113,7 @@ export function Chat({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages, streamingText, index]);
+  }, [messages, streamingText]);
 
   async function send() {
     const text = input.trim();
@@ -70,15 +123,7 @@ export function Chat({
     setInput("");
     setError(null);
     setStreaming(true);
-
     try {
-      // Index the document once (embeds its chunks locally); progress is real.
-      if (!indexedRef.current) {
-        setIndex({ done: 0, total: 0 });
-        await vectorise(docId, (done, total) => setIndex({ done, total }));
-        indexedRef.current = true;
-        setIndex(null);
-      }
       const context = await retrieve(docId, text);
       const sid = createId();
       streamIdRef.current = sid;
@@ -88,27 +133,21 @@ export function Chat({
     } catch (e) {
       setError(message(e));
       setStreaming(false);
-      setIndex(null);
     }
   }
 
   return (
     <div className="flex h-full flex-col">
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-1">
-        {messages.length === 0 && !streamingText && !index && (
+        {messages.length === 0 && !streamingText && (
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Ask about this document. Answered by the model set in Settings.
+            Ask about this document.
           </p>
         )}
         {messages.map((m, i) => (
           <Bubble key={i} role={m.role} content={m.content} />
         ))}
         {streamingText && <Bubble role="assistant" content={streamingText} />}
-        {index && (
-          <p className="text-center text-xs text-muted-foreground">
-            Indexing document… {index.total ? `${index.done}/${index.total}` : ""}
-          </p>
-        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 

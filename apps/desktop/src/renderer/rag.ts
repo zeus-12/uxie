@@ -1,8 +1,9 @@
-import { chunkText, embedBatch, embedText } from "@uxie/shared/lib/embeddings";
+import { chunkText } from "@uxie/shared/lib/embeddings";
+import { embedBatchInWorker, embedTextInWorker } from "./embed-client";
 
 const MAX_CHUNKS = 300;
 
-/** Embed a document's chunks (in-renderer) and store the vectors in main. */
+/** Embed a document's chunks (off the main thread) and store the vectors. */
 export async function vectorise(
   docId: string,
   onProgress?: (done: number, total: number) => void,
@@ -10,7 +11,7 @@ export async function vectorise(
   const text = await window.uxieAPI.getDocumentText(docId);
   const chunks = chunkText(text).slice(0, MAX_CHUNKS);
   if (chunks.length === 0) return;
-  const embeddings = await embedBatch(chunks, onProgress);
+  const embeddings = await embedBatchInWorker(chunks, onProgress);
   await window.uxieAPI.storeEmbeddings(
     docId,
     chunks.map((chunk, i) => ({ chunk, embedding: embeddings[i] })),
@@ -23,6 +24,6 @@ export async function retrieve(
   query: string,
   k = 4,
 ): Promise<string[]> {
-  const embedding = await embedText(query);
+  const embedding = await embedTextInWorker(query);
   return window.uxieAPI.queryEmbeddings(docId, embedding, k);
 }

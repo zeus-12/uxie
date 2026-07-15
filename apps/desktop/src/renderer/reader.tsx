@@ -17,6 +17,7 @@ import {
   ResizablePanelGroup,
 } from "@uxie/shared/components/ui/resizable";
 import { Sidebar } from "@uxie/shared/components/workspace/sidebar";
+import { useBlocknoteEditorStore } from "@uxie/shared/lib/store";
 import BottomToolbar from "@uxie/shared/components/pdf-reader/toolbar";
 import {
   HighlightedTextPopover,
@@ -69,6 +70,26 @@ const toRectInput = (s: { pageNumber?: number } & RectInput): RectInput => ({
   height: s.height,
   pageNumber: s.pageNumber ?? null,
 });
+
+// Mirror the web: a text highlight also drops a linked "highlight" block into
+// the notes editor (no-op if the notes tab hasn't mounted the editor yet).
+function addHighlightToNotes(highlightId: string, text: string) {
+  const editor = useBlocknoteEditorStore.getState().editor as
+    | {
+        insertBlocks: (blocks: unknown[], ref: unknown) => void;
+        document: unknown[];
+      }
+    | null;
+  if (!editor) return;
+  try {
+    editor.insertBlocks(
+      [{ type: "highlight", content: text, props: { highlightId } }],
+      editor.document[editor.document.length - 1],
+    );
+  } catch {
+    // block schema/insert edge cases shouldn't break highlighting
+  }
+}
 
 export function Reader({
   id,
@@ -177,6 +198,7 @@ function ReaderContent({
       ...prev,
       { id: hlId, position, content, comment: { text: "", emoji: "" } },
     ]);
+    if (isText && content.text) addHighlightToNotes(hlId, content.text);
     try {
       await window.uxieAPI.addHighlight({
         id: hlId,
@@ -327,7 +349,7 @@ function ReaderContent({
           />
         </div>
       </ResizablePanel>
-      <ResizableHandle className="w-1 bg-gray-200 hover:bg-primary" />
+      <ResizableHandle className="relative w-2 border-0 bg-gray-50 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-neutral-400 after:transition-colors hover:after:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
         <Sidebar
           notes={<Notes docId={docId} note={doc.note} />}
