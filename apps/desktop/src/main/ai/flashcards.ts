@@ -62,13 +62,9 @@ export async function generateFlashcardsForDoc(docId: string): Promise<number> {
         generateObject({
           model,
           schema,
-          messages: [
-            { role: "system", content: GENERATE_PROMPT },
-            {
-              role: "user",
-              content: `Create question-answer pairs for the following text:\n\n${chunk}`,
-            },
-          ],
+          // Fold the instruction into the prompt — some endpoints (e.g. Anthropic
+          // proxies) reject role:"system" messages in the messages array.
+          prompt: `${GENERATE_PROMPT}\n\nCreate question-answer pairs for the following text:\n\n${chunk}`,
         }).then((r) => r.object.cards),
       ),
     );

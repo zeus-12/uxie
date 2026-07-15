@@ -51,11 +51,21 @@ export async function streamChat(
   const controller = new AbortController();
   controllers.set(streamId, controller);
   try {
+    // Fold the retrieved context into the latest user message rather than using
+    // a system message — some endpoints reject role:"system" in messages.
+    const modelMessages = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+    const last = modelMessages[modelMessages.length - 1];
+    if (systemContext && last && last.role === "user") {
+      last.content = `${RAG_SYSTEM(systemContext)}\n\nQuestion: ${last.content}`;
+    }
+
     const result = streamText({
       model: llmModel(llm),
       abortSignal: controller.signal,
-      ...(systemContext ? { system: RAG_SYSTEM(systemContext) } : {}),
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      messages: modelMessages,
     });
     // fullStream (not textStream) so provider/HTTP errors surface as parts
     // instead of being silently dropped.

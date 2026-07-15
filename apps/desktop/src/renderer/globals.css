@@ -14,3 +14,36 @@ body,
   color-scheme: light;
 }
 
+/* Native desktop feel: controls use the arrow cursor (not the web pointer), and
+   chrome text isn't selectable — real content still is. */
+html {
+  -webkit-font-smoothing: antialiased;
+}
+button,
+[role="button"],
+[role="tab"],
+label,
+summary,
+a {
+  cursor: default;
+}
+button,
+[role="button"],
+[role="tab"],
+.app-drag,
+header {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable="true"],
+.prose,
+.ProseMirror,
+.textLayer,
+.select-text {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: auto;
+}
+

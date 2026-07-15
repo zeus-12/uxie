@@ -226,7 +226,7 @@ function ChatBubble({ role, content }: { role: string; content: string }) {
     <Message align={isUser ? "end" : "start"}>
       <MessageContent>
         {isUser ? (
-          <div className="w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
+          <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
             {content}
           </div>
         ) : (
