@@ -76,12 +76,15 @@ export function FlashcardsPanel({ docId }: { docId: string }) {
   useEffect(refresh, [refresh]);
 
   async function onGenerate() {
+    console.log("[flashcards] onGenerate clicked", docId);
     setIsGenerating(true);
     setError(null);
     try {
-      await window.uxieAPI.generateFlashcards(docId);
+      const count = await window.uxieAPI.generateFlashcards(docId);
+      console.log("[flashcards] generated count:", count);
       refresh();
     } catch (e) {
+      console.error("[flashcards] generate error:", e);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsGenerating(false);
@@ -89,15 +92,21 @@ export function FlashcardsPanel({ docId }: { docId: string }) {
   }
 
   return (
-    <div className="h-full">
-      {error && <p className="p-2 text-sm text-destructive">{error}</p>}
-      <Flashcards
-        flashcards={flashcards}
-        isLoading={isLoading}
-        onGenerate={onGenerate}
-        isGenerating={isGenerating}
-        useEvaluation={useFlashcardEvaluation}
-      />
+    <div className="flex h-full flex-col">
+      {error && (
+        <p className="shrink-0 whitespace-pre-wrap p-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="min-h-0 flex-1">
+        <Flashcards
+          flashcards={flashcards}
+          isLoading={isLoading}
+          onGenerate={onGenerate}
+          isGenerating={isGenerating}
+          useEvaluation={useFlashcardEvaluation}
+        />
+      </div>
     </div>
   );
 }

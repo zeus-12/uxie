@@ -23,6 +23,7 @@ function migrationsFolder(): string {
 export function initDatabase(): DB {
   if (db) return db;
   const filePath = join(app.getPath("userData"), "uxie.db");
+  console.log(`[uxie] SQLite DB: ${filePath}`);
   const opened = openDatabase(filePath);
   runMigrations(opened.db, migrationsFolder());
   seedLocalUser(opened.db);

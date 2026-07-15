@@ -42,6 +42,9 @@ export async function generateFlashcardsForDoc(docId: string): Promise<number> {
 
   const text = await extractPdfText(docId);
   const chunks = chunkText(text).slice(0, MAX_CHUNKS);
+  console.log(
+    `[flashcards] generate docId=${docId} textLen=${text.length} chunks=${chunks.length} model=${llm.model} baseUrl=${llm.baseUrl}`,
+  );
   const model = llmModel(llm);
   const schema = z.object({
     cards: z.array(z.object({ question: z.string(), answer: z.string() })),
@@ -71,13 +74,17 @@ export async function generateFlashcardsForDoc(docId: string): Promise<number> {
     );
     for (const s of settled) {
       if (s.status === "fulfilled") cards.push(...s.value);
-      else if (!firstError) {
-        firstError =
-          s.reason instanceof Error ? s.reason.message : String(s.reason);
+      else {
+        console.error("[flashcards] chunk failed:", s.reason);
+        if (!firstError) {
+          firstError =
+            s.reason instanceof Error ? s.reason.message : String(s.reason);
+        }
       }
     }
   }
 
+  console.log(`[flashcards] generated ${cards.length} cards`);
   // Surface a real error instead of silently returning 0 cards.
   if (cards.length === 0) {
     throw new Error(
