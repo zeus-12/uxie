@@ -136,6 +136,17 @@ function ChatView({ docId }: { docId: string }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    window.uxieAPI
+      .getMessages(docId)
+      .then((m) => !cancelled && setMessages(m))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [docId]);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, streamingText]);
 
@@ -155,7 +166,7 @@ function ChatView({ docId }: { docId: string }) {
       streamIdRef.current = sid;
       streamTextRef.current = "";
       setStreamingText("");
-      window.uxieAPI.sendChat(sid, history, context.join("\n\n---\n\n"));
+      window.uxieAPI.sendChat(sid, docId, history, context.join("\n\n---\n\n"));
     } catch (e) {
       setError(message(e));
       setStreaming(false);

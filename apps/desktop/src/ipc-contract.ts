@@ -107,6 +107,9 @@ export interface IpcInvokeContract {
   };
   "flashcards:generate": { args: [docId: string]; result: number };
 
+  // Chat history
+  "messages:getByDocId": { args: [docId: string]; result: ChatMessage[] };
+
   // RAG (document-grounded chat)
   "documents:getText": { args: [docId: string]; result: string };
   "embeddings:store": {
@@ -123,6 +126,7 @@ export interface IpcInvokeContract {
 export interface IpcSendContract {
   "chat:send": [
     streamId: string,
+    docId: string,
     messages: ChatMessage[],
     systemContext?: string,
   ];
@@ -173,6 +177,7 @@ export const API_INVOKE = {
   getFlashcards: "flashcards:getByDocId",
   generateFlashcards: "flashcards:generate",
 
+  getMessages: "messages:getByDocId",
   getDocumentText: "documents:getText",
   storeEmbeddings: "embeddings:store",
   queryEmbeddings: "embeddings:query",

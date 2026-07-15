@@ -1,6 +1,8 @@
 import { streamText } from "ai";
 import type { WebContents } from "electron";
 import type { ChatMessage } from "../../ipc-contract";
+import { getDb } from "../db";
+import { createMessage } from "../db/messages";
 import { getSettings } from "../settings";
 import { llmModel } from "./provider";
 
@@ -20,6 +22,7 @@ ${context}
 export async function streamChat(
   wc: WebContents,
   streamId: string,
+  docId: string,
   messages: ChatMessage[],
   systemContext?: string,
 ): Promise<void> {
@@ -37,6 +40,14 @@ export async function streamChat(
     return;
   }
 
+  // Persist the just-sent user message.
+  const lastUser = messages[messages.length - 1];
+  if (lastUser?.role === "user") {
+    await createMessage(getDb(), docId, "user", lastUser.content).catch(
+      () => {},
+    );
+  }
+
   const controller = new AbortController();
   controllers.set(streamId, controller);
   try {
@@ -48,9 +59,11 @@ export async function streamChat(
     });
     // fullStream (not textStream) so provider/HTTP errors surface as parts
     // instead of being silently dropped.
+    let assistantText = "";
     for await (const part of result.fullStream) {
       if (wc.isDestroyed()) return;
       if (part.type === "text-delta") {
+        assistantText += part.text;
         send("chat:delta", streamId, part.text);
       } else if (part.type === "error") {
         const err = part.error;
@@ -61,6 +74,11 @@ export async function streamChat(
         );
         return;
       }
+    }
+    if (assistantText) {
+      await createMessage(getDb(), docId, "assistant", assistantText).catch(
+        () => {},
+      );
     }
     send("chat:done", streamId);
   } catch (e) {
