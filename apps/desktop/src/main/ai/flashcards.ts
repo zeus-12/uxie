@@ -43,31 +43,49 @@ export async function generateFlashcardsForDoc(docId: string): Promise<number> {
   const text = await extractPdfText(docId);
   const chunks = chunkText(text).slice(0, MAX_CHUNKS);
   const model = llmModel(llm);
+  const schema = z.object({
+    cards: z.array(z.object({ question: z.string(), answer: z.string() })),
+  });
 
-  const results = await Promise.allSettled(
-    chunks.map(async (chunk) => {
-      const { object } = await generateObject({
-        model,
-        schema: z.object({
-          cards: z.array(
-            z.object({ question: z.string(), answer: z.string() }),
-          ),
-        }),
-        messages: [
-          { role: "system", content: GENERATE_PROMPT },
-          {
-            role: "user",
-            content: `Create question-answer pairs for the following text:\n\n${chunk}`,
-          },
-        ],
-      });
-      return object.cards;
-    }),
-  );
+  const cards: { question: string; answer: string }[] = [];
+  let firstError: string | null = null;
 
-  const cards = results.flatMap((r) =>
-    r.status === "fulfilled" ? r.value : [],
-  );
+  // Small batches so we don't fire dozens of concurrent requests at the endpoint.
+  const CONCURRENCY = 3;
+  for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+    const batch = chunks.slice(i, i + CONCURRENCY);
+    const settled = await Promise.allSettled(
+      batch.map((chunk) =>
+        generateObject({
+          model,
+          schema,
+          messages: [
+            { role: "system", content: GENERATE_PROMPT },
+            {
+              role: "user",
+              content: `Create question-answer pairs for the following text:\n\n${chunk}`,
+            },
+          ],
+        }).then((r) => r.object.cards),
+      ),
+    );
+    for (const s of settled) {
+      if (s.status === "fulfilled") cards.push(...s.value);
+      else if (!firstError) {
+        firstError =
+          s.reason instanceof Error ? s.reason.message : String(s.reason);
+      }
+    }
+  }
+
+  // Surface a real error instead of silently returning 0 cards.
+  if (cards.length === 0) {
+    throw new Error(
+      firstError
+        ? `Flashcard generation failed: ${firstError}`
+        : "The model returned no flashcards for this document.",
+    );
+  }
   return createFlashcards(getDb(), docId, cards);
 }
 

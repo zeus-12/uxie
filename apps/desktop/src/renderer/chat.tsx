@@ -95,6 +95,14 @@ function ChatView({ docId }: { docId: string }) {
   const streamIdRef = useRef<string | null>(null);
   const streamTextRef = useRef("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  function grow() {
+    const t = taRef.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = `${Math.min(t.scrollHeight, 160)}px`;
+  }
 
   useEffect(() => {
     const offDelta = window.uxieAPI.onChatDelta((sid, delta) => {
@@ -139,6 +147,7 @@ function ChatView({ docId }: { docId: string }) {
     setInput("");
     setError(null);
     setStreaming(true);
+    if (taRef.current) taRef.current.style.height = "auto";
     try {
       const { retrieve } = await import("./rag");
       const context = await retrieve(docId, text);
@@ -156,11 +165,6 @@ function ChatView({ docId }: { docId: string }) {
   return (
     <div className="flex h-full flex-col">
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
-        {messages.length === 0 && !streamingText && (
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Ask about this document.
-          </p>
-        )}
         {messages.map((m, i) => (
           <ChatBubble key={i} role={m.role} content={m.content} />
         ))}
@@ -169,34 +173,36 @@ function ChatView({ docId }: { docId: string }) {
       </div>
 
       <div className="p-2">
-        <div className="flex flex-col rounded-2xl border border-input bg-muted/60 px-3 py-2 focus-within:border-ring">
+        <div className="flex items-end gap-2 rounded-2xl border border-input bg-muted/60 py-2 pl-3.5 pr-2 focus-within:border-ring">
           <textarea
+            ref={taRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              grow();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 send();
               }
             }}
-            rows={1}
+            rows={2}
             placeholder="Ask about this document…"
-            className="max-h-40 w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="max-h-40 min-h-[3.25rem] flex-1 resize-none self-stretch bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
           />
-          <div className="flex justify-end">
-            <button
-              onClick={send}
-              disabled={streaming || !input.trim()}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
-              aria-label="Send"
-            >
-              {streaming ? (
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUpIcon className="h-4 w-4" />
-              )}
-            </button>
-          </div>
+          <button
+            onClick={send}
+            disabled={streaming || !input.trim()}
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
+            aria-label="Send"
+          >
+            {streaming ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowUpIcon className="h-4 w-4" />
+            )}
+          </button>
         </div>
       </div>
     </div>
