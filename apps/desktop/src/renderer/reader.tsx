@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
-import { SettingsIcon } from "lucide-react";
+import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
@@ -142,9 +142,10 @@ export function Reader({
       <header className="app-drag flex h-12 items-center gap-3 pl-24 pr-4">
         <button
           onClick={onBack}
-          className="app-no-drag rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+          aria-label="Back to library"
+          className="app-no-drag rounded-md p-1.5 text-muted-foreground hover:bg-gray-100 hover:text-foreground"
         >
-          ← Library
+          <ArrowLeftIcon size={18} />
         </button>
       </header>
       {error ? (
@@ -277,14 +278,15 @@ function ReaderContent({
     >
       <ResizablePanel defaultSize={55} minSize={30}>
         <div className="flex h-full flex-col border-r border-stone-200">
-          <div className="app-drag flex h-12 shrink-0 items-center gap-3 border-b border-stone-200 pl-24 pr-3">
+          <div className="app-drag flex h-12 shrink-0 items-center gap-3 pl-24 pr-3">
             <button
               onClick={onBack}
-              className="app-no-drag rounded-md px-2 py-1 text-sm text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-95"
+              aria-label="Back to library"
+              className="app-no-drag rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-95"
             >
-              ← Library
+              <ArrowLeftIcon size={18} />
             </button>
-            <span className="ml-auto truncate text-sm font-medium text-muted-foreground">
+            <span className="truncate text-sm font-medium text-muted-foreground">
               {doc.title}
             </span>
           </div>
@@ -394,7 +396,7 @@ function ReaderContent({
       <ResizableHandle className="relative w-2 border-0 bg-gray-50 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-neutral-400 after:transition-colors hover:after:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
         <div className="flex h-full flex-col">
-          <div className="app-drag flex h-12 shrink-0 items-center border-b border-stone-200 px-3">
+          <div className="app-drag flex h-12 shrink-0 items-center px-3">
             <SidebarTabs className="app-no-drag" />
             <button
               onClick={onSettings}
