@@ -20,8 +20,9 @@ extraResources:
   - from: drizzle
     to: drizzle
 mac:
-  # No custom icon yet — electron-builder falls back to the default Electron
-  # icon. Drop a build/icon.icns here and add `icon: build/icon.icns` to brand it.
+  # App icon: the UXIE mark on a rounded tile. Regenerate from build/icon.svg
+  # (see scripts/generate-icons.sh) if the logo changes.
+  icon: build/icon.icns
   target:
     - dmg
   category: public.app-category.education

@@ -34,7 +34,17 @@ export const SEO = {
   additionalLinkTags: [
     {
       rel: "icon",
-      href: "https://uxie.vercel.app/favicon.ico",
+      href: "/favicon.ico",
+      sizes: "any",
+    },
+    {
+      rel: "icon",
+      href: "/logo.svg",
+      type: "image/svg+xml",
+    },
+    {
+      rel: "apple-touch-icon",
+      href: "/apple-touch-icon.png",
     },
   ],
 };

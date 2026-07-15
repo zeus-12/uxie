@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { SearchIcon, SettingsIcon } from "lucide-react";
-import { Button } from "@uxie/shared/components/ui/button";
 import { Input } from "@uxie/shared/components/ui/input";
 import { Skeleton } from "@uxie/shared/components/ui/skeleton";
+import { AddDocCard } from "@uxie/shared/components/workspace/add-doc-card";
 import { DocCard } from "@uxie/shared/components/workspace/doc-card";
 import type { Document } from "@uxie/shared/schema";
 
@@ -82,9 +82,6 @@ export function Library({
                   className="transition-transform duration-300 hover:rotate-45"
                 />
               </button>
-              <Button onClick={onImport} disabled={importing}>
-                {importing ? "Importing…" : "Import PDF"}
-              </Button>
             </div>
           </div>
 
@@ -97,28 +94,34 @@ export function Library({
             </div>
           )}
 
-          {docs && docs.length > 0 && (
-            <div className="flex flex-col justify-center">
-              <div className="relative my-4">
-                <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="border-gray-200 pl-9"
-                  type="search"
-                  placeholder="Search for a document"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
+          {docs &&
+            (() => {
+              const filtered = docs.filter((d) =>
+                d.title
+                  .trim()
+                  .toLowerCase()
+                  .includes(search.trim().toLowerCase()),
+              );
+              const searching = search.trim().length > 0;
+              return (
+                <div className="mt-4 flex flex-col">
+                  {docs.length > 0 && (
+                    <div className="relative mb-4">
+                      <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="border-gray-200 pl-9"
+                        type="search"
+                        placeholder="Search for a document"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                    </div>
+                  )}
 
-              {(() => {
-                const filtered = docs.filter((d) =>
-                  d.title
-                    .trim()
-                    .toLowerCase()
-                    .includes(search.trim().toLowerCase()),
-                );
-                return filtered.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-3">
+                    {!searching && (
+                      <AddDocCard onClick={onImport} importing={importing} />
+                    )}
                     {filtered.map((doc) => (
                       <DocCard
                         key={doc.id}
@@ -133,14 +136,15 @@ export function Library({
                       />
                     ))}
                   </div>
-                ) : (
-                  <p className="text-muted-foreground">
-                    No documents found, try changing your search query.
-                  </p>
-                );
-              })()}
-            </div>
-          )}
+
+                  {searching && filtered.length === 0 && (
+                    <p className="mt-4 text-muted-foreground">
+                      No documents found, try changing your search query.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
         </div>
       )}
     </div>

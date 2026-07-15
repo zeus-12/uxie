@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <path id="cloud" d="
+      M 36,133
+      L 203,133
+      L 203,50
+      C 203,28 187,16 159,17
+      C 139,17 125,23 116,35
+      C 110,25 98,18 84,20
+      C 66,23 57,38 60,55
+      C 51,55 43,60 39,68
+      C 33,79 36,92 46,98
+      C 40,104 37,111 37,118
+      C 37,127 42,133 51,133
+      Z"/>
+    <g id="constellation-tr">
+      <path d="M270,77 L315,101" />
+      <path d="M270,77 L250,58 M270,77 L292,60 M270,77 L246,88 M270,77 L258,100" />
+      <path d="M315,101 L336,84 M315,101 L338,112 M315,101 L300,126 M315,101 L322,128" />
+      <circle cx="270" cy="77" r="9" fill="#004AAD" stroke="none"/>
+      <circle cx="315" cy="101" r="9" fill="#004AAD" stroke="none"/>
+    </g>
+    <g id="constellation-br">
+      <path d="M261,269 L280,322 M280,322 L349,309 M346,272 L349,309 M261,269 L346,272 M280,322 L346,272" />
+      <path d="M261,269 L240,252 M261,269 L236,278 M346,272 L368,258 M346,272 L370,280 M280,322 L272,350 M349,309 L372,320" />
+      <circle cx="261" cy="269" r="9" fill="#004AAD" stroke="none"/>
+      <circle cx="280" cy="322" r="9" fill="#004AAD" stroke="none"/>
+      <circle cx="346" cy="272" r="9" fill="#004AAD" stroke="none"/>
+      <circle cx="349" cy="309" r="9" fill="#004AAD" stroke="none"/>
+    </g>
+    <g id="mark">
+      <use href="#cloud" fill="#004AAD"/>
+      <use href="#cloud" fill="#004AAD" transform="translate(0,384) scale(1,-1)"/>
+      <use href="#cloud" fill="none" stroke="#004AAD" stroke-width="5" transform="translate(420,0) scale(-1,1)"/>
+      <use href="#cloud" fill="none" stroke="#004AAD" stroke-width="5" transform="translate(420,384) scale(-1,-1)"/>
+      <g fill="none" stroke="#004AAD" stroke-width="4" stroke-linecap="round">
+        <use href="#constellation-tr"/>
+        <use href="#constellation-br"/>
+      </g>
+      <g fill="#0b0b0d" font-family="Georgia, 'Times New Roman', serif" font-size="70" text-anchor="middle">
+        <text x="119" y="215">U</text>
+        <text x="191" y="215">X</text>
+        <text x="249" y="215">I</text>
+        <text x="304" y="215">E</text>
+      </g>
+    </g>
+  </defs>
+
+  <!-- macOS-style rounded tile -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#ffffff"/>
+  <!-- mark: 420x392 scaled 1.6 and centered on the tile -->
+  <use href="#mark" transform="translate(176,199) scale(1.6)"/>
+</svg>
