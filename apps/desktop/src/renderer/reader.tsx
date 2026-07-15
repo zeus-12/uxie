@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
+import { SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
@@ -16,7 +17,10 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@uxie/shared/components/ui/resizable";
-import { Sidebar } from "@uxie/shared/components/workspace/sidebar";
+import {
+  Sidebar,
+  SidebarTabs,
+} from "@uxie/shared/components/workspace/sidebar";
 import {
   useBlocknoteEditorStore,
   useChatStore,
@@ -129,12 +133,16 @@ export function Reader({
         >
           ← Library
         </button>
-        <span className="truncate text-sm font-medium">{doc?.title ?? ""}</span>
+        {doc && <SidebarTabs className="app-no-drag" />}
+        <span className="truncate text-sm font-medium text-muted-foreground">
+          {doc?.title ?? ""}
+        </span>
         <button
           onClick={onSettings}
-          className="app-no-drag ml-auto rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+          aria-label="Settings"
+          className="app-no-drag ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-gray-100 hover:text-foreground"
         >
-          Settings
+          <SettingsIcon size={18} />
         </button>
       </header>
 

@@ -19,7 +19,26 @@ const TABS = [
 ];
 
 const CONTENT_TW =
-  "break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto";
+  "mt-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto";
+
+export function SidebarTabs({ className }: { className?: string }) {
+  const tab = useSidebarTabStore((s) => s.tab);
+  const setTab = useSidebarTabStore((s) => s.setTab);
+
+  return (
+    <Tabs value={tab} onValueChange={setTab} className={className}>
+      <TabsList className="h-9 rounded-md bg-gray-200">
+        {TABS.map((item) => (
+          <CustomTooltip content={item.tooltip} key={item.value}>
+            <TabsTrigger value={item.value} className="relative px-2.5 py-1">
+              {item.icon}
+            </TabsTrigger>
+          </CustomTooltip>
+        ))}
+      </TabsList>
+    </Tabs>
+  );
+}
 
 export function Sidebar({
   notes,
@@ -54,18 +73,6 @@ export function Sidebar({
         onValueChange={setTab}
         className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden"
       >
-        <div className="flex items-center justify-between px-2 md:pl-0 md:pr-1">
-          <TabsList className="h-12 rounded-md bg-gray-200">
-            {TABS.map((item) => (
-              <CustomTooltip content={item.tooltip} key={item.value}>
-                <TabsTrigger value={item.value} className="relative">
-                  {item.icon}
-                </TabsTrigger>
-              </CustomTooltip>
-            ))}
-          </TabsList>
-        </div>
-
         {contents.map((item) => (
           <TabsContent
             key={item.value}
