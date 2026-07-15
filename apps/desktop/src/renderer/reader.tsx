@@ -124,36 +124,35 @@ export function Reader({
     };
   }, [id]);
 
+  if (doc) {
+    return (
+      <div className="flex h-full flex-col bg-gray-50">
+        <ReaderContent
+          docId={id}
+          doc={doc}
+          onBack={onBack}
+          onSettings={onSettings}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full flex-col bg-gray-50">
-      <header className="app-drag flex items-center gap-3 py-2 pl-24 pr-4">
+      <header className="app-drag flex h-12 items-center gap-3 pl-24 pr-4">
         <button
           onClick={onBack}
           className="app-no-drag rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
         >
           ← Library
         </button>
-        {doc && <SidebarTabs className="app-no-drag" />}
-        <span className="truncate text-sm font-medium text-muted-foreground">
-          {doc?.title ?? ""}
-        </span>
-        <button
-          onClick={onSettings}
-          aria-label="Settings"
-          className="app-no-drag ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-gray-100 hover:text-foreground"
-        >
-          <SettingsIcon size={18} />
-        </button>
       </header>
-
       {error ? (
         <p className="p-6 text-sm text-destructive">{error}</p>
       ) : doc === undefined ? (
         <p className="p-6 text-sm text-muted-foreground">Loading…</p>
-      ) : doc === null ? (
-        <p className="p-6 text-sm text-muted-foreground">Document not found.</p>
       ) : (
-        <ReaderContent docId={id} doc={doc} />
+        <p className="p-6 text-sm text-muted-foreground">Document not found.</p>
       )}
     </div>
   );
@@ -162,9 +161,13 @@ export function Reader({
 function ReaderContent({
   docId,
   doc,
+  onBack,
+  onSettings,
 }: {
   docId: string;
   doc: DocumentWithHighlights;
+  onBack: () => void;
+  onSettings: () => void;
 }) {
   const [highlights, setHighlights] = useState<IHighlight[]>(() =>
     doc.highlights
@@ -273,11 +276,23 @@ function ReaderContent({
       className="flex-1 overflow-hidden"
     >
       <ResizablePanel defaultSize={55} minSize={30}>
-        <div
-          className="relative h-full w-full overflow-hidden border-r border-stone-200 shadow-sm"
-          style={{ background: pageColour }}
-        >
-          {error && (
+        <div className="flex h-full flex-col border-r border-stone-200">
+          <div className="app-drag flex h-12 shrink-0 items-center gap-3 border-b border-stone-200 pl-24 pr-3">
+            <button
+              onClick={onBack}
+              className="app-no-drag rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+            >
+              ← Library
+            </button>
+            <span className="ml-auto truncate text-sm font-medium text-muted-foreground">
+              {doc.title}
+            </span>
+          </div>
+          <div
+            className="relative flex-1 overflow-hidden shadow-sm"
+            style={{ background: pageColour }}
+          >
+            {error && (
             <p className="absolute left-2 top-2 z-50 rounded bg-red-50 px-2 py-1 text-xs text-destructive">
               {error}
             </p>
@@ -373,16 +388,31 @@ function ReaderContent({
             followAlongEnabled={followAlongEnabled}
             toggleFollowAlong={toggleFollowAlong}
           />
+          </div>
         </div>
       </ResizablePanel>
       <ResizableHandle className="relative w-2 border-0 bg-gray-50 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-neutral-400 after:transition-colors hover:after:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
-        <Sidebar
-          notes={<Notes docId={docId} note={doc.note} />}
-          chat={<Chat docId={docId} isVectorised={doc.isVectorised} />}
-          flashcards={<FlashcardsPanel docId={docId} />}
-          defaultTab="notes"
-        />
+        <div className="flex h-full flex-col">
+          <div className="app-drag flex h-12 shrink-0 items-center border-b border-stone-200 px-3">
+            <SidebarTabs className="app-no-drag" />
+            <button
+              onClick={onSettings}
+              aria-label="Settings"
+              className="app-no-drag ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+            >
+              <SettingsIcon size={18} />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <Sidebar
+              notes={<Notes docId={docId} note={doc.note} />}
+              chat={<Chat docId={docId} isVectorised={doc.isVectorised} />}
+              flashcards={<FlashcardsPanel docId={docId} />}
+              defaultTab="notes"
+            />
+          </div>
+        </div>
       </ResizablePanel>
     </ResizablePanelGroup>
   );
