@@ -280,7 +280,7 @@ function ReaderContent({
           <div className="app-drag flex h-12 shrink-0 items-center gap-3 border-b border-stone-200 pl-24 pr-3">
             <button
               onClick={onBack}
-              className="app-no-drag rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+              className="app-no-drag rounded-md px-2 py-1 text-sm text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-95"
             >
               ← Library
             </button>
@@ -399,9 +399,12 @@ function ReaderContent({
             <button
               onClick={onSettings}
               aria-label="Settings"
-              className="app-no-drag ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+              className="app-no-drag ml-auto rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-90"
             >
-              <SettingsIcon size={18} />
+              <SettingsIcon
+                size={18}
+                className="transition-transform duration-300 hover:rotate-45"
+              />
             </button>
           </div>
           <div className="min-h-0 flex-1">

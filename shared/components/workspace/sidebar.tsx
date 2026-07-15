@@ -30,7 +30,10 @@ export function SidebarTabs({ className }: { className?: string }) {
       <TabsList className="h-9 rounded-md bg-gray-200">
         {TABS.map((item) => (
           <CustomTooltip content={item.tooltip} key={item.value}>
-            <TabsTrigger value={item.value} className="relative px-2.5 py-1">
+            <TabsTrigger
+              value={item.value}
+              className="relative px-2.5 py-1 text-muted-foreground transition-all duration-150 hover:bg-white/60 hover:text-foreground active:scale-95 data-[state=active]:text-foreground"
+            >
               {item.icon}
             </TabsTrigger>
           </CustomTooltip>
