@@ -9,7 +9,7 @@ export async function vectorise(
   onProgress?: (done: number, total: number) => void,
 ): Promise<void> {
   const text = await window.uxieAPI.getDocumentText(docId);
-  const chunks = chunkText(text).slice(0, MAX_CHUNKS);
+  const chunks = (await chunkText(text)).slice(0, MAX_CHUNKS);
   if (chunks.length === 0) return;
   const embeddings = await embedBatchInWorker(chunks, onProgress);
   await window.uxieAPI.storeEmbeddings(

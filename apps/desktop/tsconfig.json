@@ -12,7 +12,8 @@
     "jsx": "react-jsx",
     "skipLibCheck": true,
     "paths": {
-      "@uxie/shared/*": ["../../shared/*"]
+      "@uxie/shared/*": ["../../shared/*"],
+      "@/*": ["./src/renderer/*"]
     }
   },
   "include": [

@@ -27,6 +27,7 @@ export default defineConfig({
     resolve: {
       alias: {
         "@uxie/shared": resolve(__dirname, "../../shared"),
+        "@": resolve(__dirname, "src/renderer"),
       },
     },
     plugins: [react()],

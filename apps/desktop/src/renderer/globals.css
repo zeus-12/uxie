@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@uxie/shared/globals.css";
+@plugin "@tailwindcss/typography";
 
 /* Tailwind auto-scans this app; point it at the shared package too. */
 @source "../../../../shared";

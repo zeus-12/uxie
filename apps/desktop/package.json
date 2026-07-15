@@ -25,6 +25,7 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.7",
     "@paralleldrive/cuid2": "^2.2.2",
+    "@shadcn/react": "^0.2.1",
     "@uxie/shared": "workspace:*",
     "ai": "^7.0.22",
     "better-sqlite3": "^11.8.1",
@@ -32,14 +33,17 @@
     "lucide-react": "^0.563.0",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",
-    "sqlite-vec": "^0.1.6",
     "pdfjs-dist": "2.16.105",
+    "radix-ui": "^1.6.2",
+    "react-markdown": "^9.0.0",
     "react-pdf-highlighter": "^6.1.0",
+    "sqlite-vec": "^0.1.6",
     "zod": "^4.1.13"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.1",
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.15",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22",
     "@types/pdf-parse": "^1.1.4",

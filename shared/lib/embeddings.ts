@@ -2,6 +2,7 @@ import {
   pipeline,
   type FeatureExtractionPipeline,
 } from "@huggingface/transformers";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
 // 384-dim; must match EMBEDDING_DIM in the main-process vector store.
 export const EMBEDDING_MODEL = "Xenova/all-MiniLM-L6-v2";
@@ -42,17 +43,13 @@ export async function embedBatch(
   return out;
 }
 
-export function chunkText(text: string, size = 1000): string[] {
-  const paras = text.split(/\n\s*\n/);
-  const chunks: string[] = [];
-  let cur = "";
-  for (const p of paras) {
-    if (cur && (cur + p).length > size) {
-      chunks.push(cur);
-      cur = "";
-    }
-    cur += (cur ? "\n\n" : "") + p;
-  }
-  if (cur.trim()) chunks.push(cur);
+// Same splitter + config the web app uses (langchain RecursiveCharacterTextSplitter
+// 1000 / 200 overlap) so chunking matches; only the embedding model differs.
+export async function chunkText(text: string): Promise<string[]> {
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 1000,
+    chunkOverlap: 200,
+  });
+  const chunks = await splitter.splitText(text);
   return chunks.filter((c) => c.trim().length > 20);
 }

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@blocknote/core": "^0.17.1",
+    "@langchain/textsplitters": "^0.1.0",
     "@blocknote/mantine": "^0.17.1",
     "@blocknote/react": "^0.17.1",
     "@huggingface/transformers": "^3.8.1",

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CheckIcon, Loader2Icon } from "lucide-react";
 import { Button } from "@uxie/shared/components/ui/button";
 import {
   Dialog,
@@ -22,11 +23,12 @@ export function SettingsDialog({
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setSaved(false);
+    setStatus("idle");
     window.uxieAPI
       .getSettings()
       .then(setSettings)
@@ -34,18 +36,22 @@ export function SettingsDialog({
   }, [open]);
 
   function patchLlm(patch: Partial<Settings["llm"]>) {
-    setSaved(false);
+    setStatus("idle");
     setSettings((s) => (s ? { ...s, llm: { ...s.llm, ...patch } } : s));
   }
 
   async function save() {
-    if (!settings) return;
+    if (!settings || status === "saving") return;
+    setStatus("saving");
     try {
       await window.uxieAPI.setSettings(settings);
-      setSaved(true);
       setError(null);
+      setStatus("saved");
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setStatus("idle"), 2000);
     } catch (e) {
       setError(message(e));
+      setStatus("idle");
     }
   }
 
@@ -92,12 +98,21 @@ export function SettingsDialog({
               />
             </div>
 
-            <div className="flex items-center gap-3">
-              <Button onClick={save}>Save</Button>
-              {saved && (
-                <span className="text-sm text-emerald-600">Saved</span>
+            <Button
+              onClick={save}
+              disabled={status === "saving"}
+              className="w-28"
+            >
+              {status === "saving" ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : status === "saved" ? (
+                <>
+                  <CheckIcon className="mr-1.5 h-4 w-4" /> Saved
+                </>
+              ) : (
+                "Save"
               )}
-            </div>
+            </Button>
           </div>
         )}
 

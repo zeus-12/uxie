@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
-import { SendHorizonalIcon, SparklesIcon } from "lucide-react";
+import { ArrowUpIcon, Loader2Icon, SparklesIcon } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@uxie/shared/components/ui/button";
+import { Message, MessageContent } from "@/components/ui/message";
 import type { ChatMessage } from "../ipc-contract";
-import { retrieve, vectorise } from "./rag";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -35,6 +36,7 @@ function IndexGate({
   const [error, setError] = useState<string | null>(null);
 
   async function index() {
+    const { vectorise } = await import("./rag");
     setError(null);
     setProgress({ done: 0, total: 0 });
     try {
@@ -48,7 +50,9 @@ function IndexGate({
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
-      <SparklesIcon className="h-8 w-8 text-primary" />
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+        <SparklesIcon className="h-6 w-6 text-primary" />
+      </div>
       <div>
         <p className="font-medium">Chat with this document</p>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -57,12 +61,24 @@ function IndexGate({
         </p>
       </div>
       {progress ? (
-        <p className="text-sm text-muted-foreground">
-          Indexing…{" "}
-          {progress.total ? `${progress.done}/${progress.total} chunks` : ""}
-        </p>
+        <div className="flex w-56 flex-col items-center gap-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2Icon className="h-4 w-4 animate-spin" />
+            Indexing document…
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{
+                width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 5}%`,
+              }}
+            />
+          </div>
+        </div>
       ) : (
-        <Button onClick={index}>Index document</Button>
+        <Button onClick={index} className="rounded-full">
+          <SparklesIcon className="mr-1.5 h-4 w-4" /> Index document
+        </Button>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
@@ -124,6 +140,7 @@ function ChatView({ docId }: { docId: string }) {
     setError(null);
     setStreaming(true);
     try {
+      const { retrieve } = await import("./rag");
       const context = await retrieve(docId, text);
       const sid = createId();
       streamIdRef.current = sid;
@@ -138,58 +155,69 @@ function ChatView({ docId }: { docId: string }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-1">
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
         {messages.length === 0 && !streamingText && (
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Ask about this document.
           </p>
         )}
         {messages.map((m, i) => (
-          <Bubble key={i} role={m.role} content={m.content} />
+          <ChatBubble key={i} role={m.role} content={m.content} />
         ))}
-        {streamingText && <Bubble role="assistant" content={streamingText} />}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {streamingText && <ChatBubble role="assistant" content={streamingText} />}
+        {error && <p className="px-2 text-sm text-destructive">{error}</p>}
       </div>
 
-      <div className="flex items-end gap-2 border-t border-stone-200 p-2">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          rows={1}
-          placeholder="Ask a question…"
-          className="max-h-32 flex-1 resize-none rounded-md border border-stone-200 px-3 py-2 text-sm outline-none focus:border-stone-300"
-        />
-        <button
-          onClick={send}
-          disabled={streaming || !input.trim()}
-          className="rounded-md bg-primary p-2 text-primary-foreground disabled:opacity-50"
-        >
-          <SendHorizonalIcon size={16} />
-        </button>
+      <div className="p-2">
+        <div className="flex flex-col rounded-2xl border border-input bg-muted/60 px-3 py-2 focus-within:border-ring">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            rows={1}
+            placeholder="Ask about this document…"
+            className="max-h-40 w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+          <div className="flex justify-end">
+            <button
+              onClick={send}
+              disabled={streaming || !input.trim()}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
+              aria-label="Send"
+            >
+              {streaming ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpIcon className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function Bubble({ role, content }: { role: string; content: string }) {
+function ChatBubble({ role, content }: { role: string; content: string }) {
   const isUser = role === "user";
   return (
-    <div className={isUser ? "flex justify-end" : "flex justify-start"}>
-      <div
-        className={
-          isUser
-            ? "max-w-[85%] whitespace-pre-wrap rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground"
-            : "max-w-[85%] whitespace-pre-wrap rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-900"
-        }
-      >
-        {content}
-      </div>
-    </div>
+    <Message align={isUser ? "end" : "start"}>
+      <MessageContent>
+        {isUser ? (
+          <div className="w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
+            {content}
+          </div>
+        ) : (
+          <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mt-2 prose-headings:mb-1">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
+        )}
+      </MessageContent>
+    </Message>
   );
 }
