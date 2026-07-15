@@ -1,5 +1,6 @@
 import { streamText } from "ai";
 import type { WebContents } from "electron";
+import { buildCompletionPrompt } from "@uxie/shared/lib/ai-prompts";
 import { getSettings } from "../settings";
 import { llmModel } from "./provider";
 
@@ -8,15 +9,6 @@ const controllers = new Map<string, AbortController>();
 export function cancelCompletion(streamId: string): void {
   controllers.get(streamId)?.abort();
 }
-
-// Same instruction as the web app's /api/completion route, folded into the user
-// message — some endpoints reject role:"system".
-const INSTRUCTION =
-  "You are an AI writing assistant that continues existing text based on context from prior text. " +
-  "Give more weight/priority to the later characters than the beginning ones. " +
-  "Limit your response to no more than 200 characters, but make sure to construct complete sentences. " +
-  "Only return the text that you generate, not the prompt. " +
-  "Don't put quotes around the text, just return the text.";
 
 export async function streamCompletion(
   wc: WebContents,
@@ -44,9 +36,7 @@ export async function streamCompletion(
       model: llmModel(llm),
       abortSignal: controller.signal,
       temperature: 0.7,
-      messages: [
-        { role: "user", content: `${INSTRUCTION}\n\nContinue this text:\n${prompt}` },
-      ],
+      messages: [{ role: "user", content: buildCompletionPrompt(prompt) }],
     });
     for await (const part of result.fullStream) {
       if (wc.isDestroyed()) return;

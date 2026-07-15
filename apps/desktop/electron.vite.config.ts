@@ -11,7 +11,15 @@ export default defineConfig({
     // drizzle-orm, etc.) stay external.
     plugins: [
       externalizeDepsPlugin({
-        exclude: ["@uxie/shared", "ai", "@ai-sdk/openai-compatible", "zod"],
+        exclude: [
+          "@uxie/shared",
+          "ai",
+          "@ai-sdk/openai-compatible",
+          "zod",
+          // Bundled because it's pulled in via @uxie/shared but isn't a direct
+          // dependency of the desktop app, so a runtime require wouldn't resolve.
+          "@langchain/textsplitters",
+        ],
       }),
     ],
     resolve: {
