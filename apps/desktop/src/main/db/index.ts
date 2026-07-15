@@ -1,8 +1,11 @@
 import { app } from "electron";
 import { join } from "path";
+import type Database from "better-sqlite3";
 import { openDatabase, runMigrations, seedLocalUser, type DB } from "./client";
+import { initVectorStore } from "./vectors";
 
 let db: DB | null = null;
+let sqlite: Database.Database | null = null;
 
 /** Where the generated migrations live at runtime (bundled via extraResources). */
 function migrationsFolder(): string {
@@ -23,7 +26,9 @@ export function initDatabase(): DB {
   const opened = openDatabase(filePath);
   runMigrations(opened.db, migrationsFolder());
   seedLocalUser(opened.db);
+  initVectorStore(opened.sqlite);
   db = opened.db;
+  sqlite = opened.sqlite;
   return db;
 }
 
@@ -32,6 +37,13 @@ export function getDb(): DB {
     throw new Error("Database not initialised — call initDatabase() first");
   }
   return db;
+}
+
+export function getSqlite(): Database.Database {
+  if (!sqlite) {
+    throw new Error("Database not initialised — call initDatabase() first");
+  }
+  return sqlite;
 }
 
 export * from "./documents";

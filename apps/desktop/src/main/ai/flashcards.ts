@@ -1,16 +1,11 @@
-import { readFile } from "fs/promises";
 import { generateObject, streamObject } from "ai";
 import type { WebContents } from "electron";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import * as schema from "@uxie/shared/schema";
-// lib entry avoids pdf-parse's debug-mode index.js (which reads a test file).
-// @ts-expect-error no bundled types for the subpath
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { getDb } from "../db";
 import { createFlashcardAttempt, createFlashcards } from "../db/flashcards";
-import { documentsDir } from "../pdf";
-import { pdfPath } from "../pdf-store";
+import { extractPdfText } from "../pdf-text";
 import { getSettings } from "../settings";
 import { llmModel } from "./provider";
 
@@ -45,13 +40,7 @@ export async function generateFlashcardsForDoc(docId: string): Promise<number> {
     throw new Error("LLM not configured — set a base URL and model in Settings.");
   }
 
-  let bytes: Buffer;
-  try {
-    bytes = await readFile(pdfPath(documentsDir(), docId));
-  } catch {
-    throw new Error("Couldn't read this document's PDF file on disk.");
-  }
-  const { text } = (await pdfParse(bytes)) as { text: string };
+  const text = await extractPdfText(docId);
   const chunks = chunkText(text).slice(0, MAX_CHUNKS);
   const model = llmModel(llm);
 

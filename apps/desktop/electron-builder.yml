@@ -10,6 +10,10 @@ directories:
   output: dist
 files:
   - out/**/*
+# sqlite-vec is a loadable SQLite extension (.dylib) — it must be a real file on
+# disk (not inside the asar) so better-sqlite3 can loadExtension it.
+asarUnpack:
+  - "**/node_modules/sqlite-vec*/**"
 # Ship the generated SQL migrations alongside the app; the main process applies
 # them from process.resourcesPath/drizzle at startup.
 extraResources:

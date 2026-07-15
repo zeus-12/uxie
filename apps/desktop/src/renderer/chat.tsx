@@ -2,16 +2,29 @@ import { useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
 import { SendHorizonalIcon } from "lucide-react";
 import type { ChatMessage } from "../ipc-contract";
+import { retrieve, vectorise } from "./rag";
 
-export function Chat({ docId: _docId }: { docId: string }) {
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+export function Chat({
+  docId,
+  isVectorised,
+}: {
+  docId: string;
+  isVectorised: boolean;
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [index, setIndex] = useState<{ done: number; total: number } | null>(
+    null,
+  );
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const streamIdRef = useRef<string | null>(null);
   const streamTextRef = useRef("");
+  const indexedRef = useRef(isVectorised);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,36 +60,55 @@ export function Chat({ docId: _docId }: { docId: string }) {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages, streamingText]);
+  }, [messages, streamingText, index]);
 
-  function send() {
+  async function send() {
     const text = input.trim();
     if (!text || streaming) return;
     const history: ChatMessage[] = [...messages, { role: "user", content: text }];
     setMessages(history);
     setInput("");
     setError(null);
-    const sid = createId();
-    streamIdRef.current = sid;
-    streamTextRef.current = "";
-    setStreamingText("");
     setStreaming(true);
-    window.uxieAPI.sendChat(sid, history);
+
+    try {
+      // Index the document once (embeds its chunks locally); progress is real.
+      if (!indexedRef.current) {
+        setIndex({ done: 0, total: 0 });
+        await vectorise(docId, (done, total) => setIndex({ done, total }));
+        indexedRef.current = true;
+        setIndex(null);
+      }
+      const context = await retrieve(docId, text);
+      const sid = createId();
+      streamIdRef.current = sid;
+      streamTextRef.current = "";
+      setStreamingText("");
+      window.uxieAPI.sendChat(sid, history, context.join("\n\n---\n\n"));
+    } catch (e) {
+      setError(message(e));
+      setStreaming(false);
+      setIndex(null);
+    }
   }
 
   return (
     <div className="flex h-full flex-col">
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-1">
-        {messages.length === 0 && !streamingText && (
+        {messages.length === 0 && !streamingText && !index && (
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Ask anything — answered by the model set in Settings. (Document-aware
-            answers are coming.)
+            Ask about this document. Answered by the model set in Settings.
           </p>
         )}
         {messages.map((m, i) => (
           <Bubble key={i} role={m.role} content={m.content} />
         ))}
         {streamingText && <Bubble role="assistant" content={streamingText} />}
+        {index && (
+          <p className="text-center text-xs text-muted-foreground">
+            Indexing document… {index.total ? `${index.done}/${index.total}` : ""}
+          </p>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
 

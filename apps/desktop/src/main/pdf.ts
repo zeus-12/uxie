@@ -3,7 +3,8 @@ import { readFile } from "fs/promises";
 import { basename, join } from "path";
 import { createId } from "@paralleldrive/cuid2";
 import type { Document } from "@uxie/shared/schema";
-import { createDocument, deleteDocument, getDb } from "./db";
+import { createDocument, deleteDocument, getDb, getSqlite } from "./db";
+import { deleteVectors } from "./db/vectors";
 import { countPdfPages, deletePdf, pdfPath, storePdf } from "./pdf-store";
 
 export const PDF_SCHEME = "uxie-pdf";
@@ -73,6 +74,7 @@ export async function importPdf(): Promise<Document | null> {
 }
 
 export async function deleteDocumentWithFile(id: string): Promise<void> {
+  deleteVectors(getSqlite(), id);
   await deleteDocument(getDb(), id);
   await deletePdf(documentsDir(), id);
 }

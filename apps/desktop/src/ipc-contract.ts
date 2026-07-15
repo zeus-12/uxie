@@ -60,6 +60,11 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface EmbeddedChunk {
+  chunk: string;
+  embedding: number[];
+}
+
 /** Request/response channels: `ipcRenderer.invoke` ↔ `ipcMain.handle`. */
 export interface IpcInvokeContract {
   "app:info": { args: []; result: AppInfo };
@@ -101,11 +106,26 @@ export interface IpcInvokeContract {
     result: FlashcardWithAttempts[];
   };
   "flashcards:generate": { args: [docId: string]; result: number };
+
+  // RAG (document-grounded chat)
+  "documents:getText": { args: [docId: string]; result: string };
+  "embeddings:store": {
+    args: [docId: string, items: EmbeddedChunk[]];
+    result: void;
+  };
+  "embeddings:query": {
+    args: [docId: string, embedding: number[], k: number];
+    result: string[];
+  };
 }
 
 /** Fire-and-forget renderer→main channels: `ipcRenderer.send` ↔ `ipcMain.on`. */
 export interface IpcSendContract {
-  "chat:send": [streamId: string, messages: ChatMessage[]];
+  "chat:send": [
+    streamId: string,
+    messages: ChatMessage[],
+    systemContext?: string,
+  ];
   "chat:cancel": [streamId: string];
   "flashcard:evaluate": [
     streamId: string,
@@ -152,6 +172,10 @@ export const API_INVOKE = {
 
   getFlashcards: "flashcards:getByDocId",
   generateFlashcards: "flashcards:generate",
+
+  getDocumentText: "documents:getText",
+  storeEmbeddings: "embeddings:store",
+  queryEmbeddings: "embeddings:query",
 } as const satisfies Record<string, keyof IpcInvokeContract>;
 
 export const API_SEND = {

@@ -10,10 +10,18 @@ export function cancelChat(streamId: string): void {
   controllers.get(streamId)?.abort();
 }
 
+const RAG_SYSTEM = (context: string) =>
+  `You are a helpful assistant answering questions about a PDF document. Use the excerpts below to answer. If the answer isn't in them, say the document doesn't cover it — don't invent facts.
+
+<document excerpts>
+${context}
+</document excerpts>`;
+
 export async function streamChat(
   wc: WebContents,
   streamId: string,
   messages: ChatMessage[],
+  systemContext?: string,
 ): Promise<void> {
   const send = (channel: string, ...args: unknown[]) => {
     if (!wc.isDestroyed()) wc.send(channel, ...args);
@@ -35,6 +43,7 @@ export async function streamChat(
     const result = streamText({
       model: llmModel(llm),
       abortSignal: controller.signal,
+      ...(systemContext ? { system: RAG_SYSTEM(systemContext) } : {}),
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     });
     // fullStream (not textStream) so provider/HTTP errors surface as parts
