@@ -87,25 +87,21 @@ export default function Editor({
   const isLoading = ai?.isLoading ?? false;
   const stop = ai?.stop;
 
-  // Stream the completion into the current block as it arrives.
-  const prev = useRef("");
-  useEffect(() => {
-    if (!editor || !ai) return;
-    if (!completion) {
-      prev.current = "";
-      return;
-    }
-    const diff = completion.slice(prev.current.length);
-    prev.current = completion;
-    if (!diff) return;
+  // The block being completed and its text before generation started. We rewrite
+  // the whole block as `base + completion` on every tick (idempotent) instead of
+  // appending per-delta diffs — appending would race the async markdown read and
+  // drop/reorder tokens under a fast stream.
+  const gen = useRef<{ blockId: string; base: string } | null>(null);
 
-    const block = editor.getTextCursorPosition().block;
-    void (async () => {
-      const blockText = (await editor.blocksToMarkdownLossy([block])).trim();
-      editor.updateBlock(block, { id: block.id, content: blockText + diff });
-    })();
+  useEffect(() => {
+    if (!editor) return;
+    const target = gen.current;
+    if (!target || !completion) return;
+    editor.updateBlock(target.blockId, {
+      content: target.base + completion,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completion, isLoading]);
+  }, [completion]);
 
   // Escape / cmd+z aborts an in-flight generation and restores the "++" trigger.
   useEffect(() => {
@@ -113,14 +109,11 @@ export default function Editor({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
         stop?.();
-        if (e.key === "Escape") {
-          const from = editor._tiptapEditor.state.selection.from;
-          editor._tiptapEditor.commands.deleteRange({
-            from: from - completion.length,
-            to: from,
-          });
+        const target = gen.current;
+        if (target) {
+          editor.updateBlock(target.blockId, { content: `${target.base}++` });
         }
-        editor._tiptapEditor.commands.insertContent("++");
+        gen.current = null;
       }
     };
     const onMouseDown = (e: MouseEvent) => {
@@ -151,10 +144,9 @@ export default function Editor({
               await editor.blocksToMarkdownLossy([block])
             ).trim();
             if (blockText.slice(-2) === "++") {
-              editor.updateBlock(block, {
-                id: block.id,
-                content: blockText.slice(0, -2),
-              });
+              const base = blockText.slice(0, -2);
+              editor.updateBlock(block, { content: base });
+              gen.current = { blockId: block.id, base };
               ai.complete(blockText.slice(-500));
             }
           }
