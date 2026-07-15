@@ -3,6 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { ArrowUpIcon, Loader2Icon, SparklesIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@uxie/shared/components/ui/button";
+import { useChatStore } from "@uxie/shared/lib/store";
 import { Message, MessageContent } from "@/components/ui/message";
 import type { ChatMessage } from "../ipc-contract";
 
@@ -150,8 +151,8 @@ function ChatView({ docId }: { docId: string }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, streamingText]);
 
-  async function send() {
-    const text = input.trim();
+  async function send(override?: string) {
+    const text = (override ?? input).trim();
     if (!text || streaming) return;
     const history: ChatMessage[] = [...messages, { role: "user", content: text }];
     setMessages(history);
@@ -172,6 +173,15 @@ function ChatView({ docId }: { docId: string }) {
       setStreaming(false);
     }
   }
+
+  // Let the highlight popover push a message into this chat. Route through a ref
+  // so the registered handler always uses the latest state (messages/streaming).
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  const setSendMessage = useChatStore((s) => s.setSendMessage);
+  useEffect(() => {
+    setSendMessage((text: string) => sendRef.current(text));
+  }, [setSendMessage]);
 
   return (
     <div className="flex h-full flex-col">
@@ -203,7 +213,7 @@ function ChatView({ docId }: { docId: string }) {
             className="max-h-40 min-h-[3.25rem] flex-1 resize-none self-stretch bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
           />
           <button
-            onClick={send}
+            onClick={() => send()}
             disabled={streaming || !input.trim()}
             className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
             aria-label="Send"

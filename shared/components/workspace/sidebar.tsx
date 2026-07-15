@@ -1,5 +1,6 @@
 import { AlbumIcon, Layers, MessagesSquareIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { useSidebarTabStore } from "../../lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { CustomTooltip } from "../ui/tooltip";
 
@@ -24,14 +25,21 @@ export function Sidebar({
   notes,
   chat,
   flashcards,
-  defaultTab = "chat",
+  defaultTab = "notes",
 }: {
   notes: ReactNode;
   chat: ReactNode;
   flashcards: ReactNode;
   defaultTab?: string;
 }) {
-  const [tab, setTab] = useState(defaultTab);
+  const tab = useSidebarTabStore((s) => s.tab);
+  const setTab = useSidebarTabStore((s) => s.setTab);
+
+  useEffect(() => {
+    setTab(defaultTab);
+    // Only on mount — a new document should start on the default tab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const contents = [
     { value: "notes", tw: `flex-1 pb-0 ${CONTENT_TW}`, children: notes },

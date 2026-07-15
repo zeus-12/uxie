@@ -108,3 +108,13 @@ export const useMobileSidebarStore = create<MobileSidebarStore>((set) => ({
   isDrawerOpen: false,
   setDrawerOpen: (open) => set({ isDrawerOpen: open }),
 }));
+
+interface SidebarTabStore {
+  tab: string;
+  setTab: (tab: string) => void;
+}
+
+export const useSidebarTabStore = create<SidebarTabStore>((set) => ({
+  tab: "notes",
+  setTab: (tab) => set({ tab }),
+}));

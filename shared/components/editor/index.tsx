@@ -23,19 +23,29 @@ import {
   SuggestionMenuController,
   TextAlignButton,
 } from "@blocknote/react";
-import { useLayoutEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { SpinnerCentered } from "../ui/spinner";
 import { useDebouncedCallback } from "use-debounce";
+
+/** Minimal streaming-completion contract (matches the AI SDK's useCompletion). */
+export type EditorAiCompletion = {
+  complete: (prompt: string) => void;
+  completion: string;
+  isLoading: boolean;
+  stop: () => void;
+};
 
 export default function Editor({
   canEdit,
   note,
   onSaveNotes,
+  ai,
 }: {
   canEdit: boolean;
   note: string | null;
   onSaveNotes: (note: string) => void;
+  ai?: EditorAiCompletion | null;
 }) {
   const debounced = useDebouncedCallback((value: string) => {
     onSaveNotes(value);
@@ -73,6 +83,59 @@ export default function Editor({
     setEditor(editor);
   }, [editor, setEditor]);
 
+  const completion = ai?.completion ?? "";
+  const isLoading = ai?.isLoading ?? false;
+  const stop = ai?.stop;
+
+  // Stream the completion into the current block as it arrives.
+  const prev = useRef("");
+  useEffect(() => {
+    if (!editor || !ai) return;
+    if (!completion) {
+      prev.current = "";
+      return;
+    }
+    const diff = completion.slice(prev.current.length);
+    prev.current = completion;
+    if (!diff) return;
+
+    const block = editor.getTextCursorPosition().block;
+    void (async () => {
+      const blockText = (await editor.blocksToMarkdownLossy([block])).trim();
+      editor.updateBlock(block, { id: block.id, content: blockText + diff });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completion, isLoading]);
+
+  // Escape / cmd+z aborts an in-flight generation and restores the "++" trigger.
+  useEffect(() => {
+    if (!editor || !ai || !isLoading) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
+        stop?.();
+        if (e.key === "Escape") {
+          const from = editor._tiptapEditor.state.selection.from;
+          editor._tiptapEditor.commands.deleteRange({
+            from: from - completion.length,
+            to: from,
+          });
+        }
+        editor._tiptapEditor.commands.insertContent("++");
+      }
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      stop?.();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("mousedown", onMouseDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [editor, ai, isLoading, stop, completion.length]);
+
   if (editor === undefined) {
     return <SpinnerCentered />;
   }
@@ -81,7 +144,20 @@ export default function Editor({
     <div>
       <BlockNoteView
         sideMenu={false}
-        onChange={() => {
+        onChange={async () => {
+          if (ai && !isLoading) {
+            const block = editor.getTextCursorPosition().block;
+            const blockText = (
+              await editor.blocksToMarkdownLossy([block])
+            ).trim();
+            if (blockText.slice(-2) === "++") {
+              editor.updateBlock(block, {
+                id: block.id,
+                content: blockText.slice(0, -2),
+              });
+              ai.complete(blockText.slice(-500));
+            }
+          }
           debounced(JSON.stringify(editor.document, null, 2));
         }}
         className="w-full flex-1"

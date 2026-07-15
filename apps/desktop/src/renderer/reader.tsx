@@ -17,7 +17,11 @@ import {
   ResizablePanelGroup,
 } from "@uxie/shared/components/ui/resizable";
 import { Sidebar } from "@uxie/shared/components/workspace/sidebar";
-import { useBlocknoteEditorStore } from "@uxie/shared/lib/store";
+import {
+  useBlocknoteEditorStore,
+  useChatStore,
+  useSidebarTabStore,
+} from "@uxie/shared/lib/store";
 import BottomToolbar from "@uxie/shared/components/pdf-reader/toolbar";
 import {
   HighlightedTextPopover,
@@ -161,6 +165,18 @@ function ReaderContent({
   );
   const [error, setError] = useState<string | null>(null);
 
+  const chatSendMessage = useChatStore((s) => s.sendMessage);
+  const setSidebarTab = useSidebarTabStore((s) => s.setTab);
+  // Switch to the chat tab and hand the selection to it. Only offered once the
+  // document is indexed (the chat registers a sender then).
+  const sendToChat =
+    doc.isVectorised && chatSendMessage
+      ? (text: string) => {
+          setSidebarTab("chat");
+          chatSendMessage(text);
+        }
+      : null;
+
   const {
     pageNumberInView,
     currentReadingSpeed,
@@ -277,6 +293,8 @@ function ReaderContent({
                     hideTipAndSelection={hideTipAndSelection}
                     addHighlight={() => void addHighlight(position, content)}
                     readSelectedText={readSelectedText}
+                    sendMessage={sendToChat}
+                    showAiFeatures={!!sendToChat}
                   />
                 )}
                 highlightTransform={(

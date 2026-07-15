@@ -22,6 +22,7 @@ import {
 } from "./pdf";
 import { getSettings, setSettings } from "./settings";
 import { cancelChat, streamChat } from "./ai/chat";
+import { cancelCompletion, streamCompletion } from "./ai/completion";
 import { getFlashcardsByDocId } from "./db/flashcards";
 import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 import { extractPdfText } from "./pdf-text";
@@ -94,6 +95,12 @@ function registerIpc() {
     void streamChat(event.sender, streamId, docId, messages, systemContext);
   });
   ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
+  ipcMain.on("completion:start", (event, streamId, prompt) => {
+    void streamCompletion(event.sender, streamId, prompt);
+  });
+  ipcMain.on("completion:cancel", (_event, streamId) =>
+    cancelCompletion(streamId),
+  );
   ipcMain.on("flashcard:evaluate", (event, streamId, input) => {
     void evaluateFlashcard(event.sender, streamId, input);
   });

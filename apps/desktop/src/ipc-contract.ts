@@ -131,6 +131,8 @@ export interface IpcSendContract {
     systemContext?: string,
   ];
   "chat:cancel": [streamId: string];
+  "completion:start": [streamId: string, prompt: string];
+  "completion:cancel": [streamId: string];
   "flashcard:evaluate": [
     streamId: string,
     input: { flashcardId: string; prompt: string },
@@ -142,6 +144,9 @@ export interface IpcEventContract {
   "chat:delta": [streamId: string, delta: string];
   "chat:done": [streamId: string];
   "chat:error": [streamId: string, message: string];
+  "completion:delta": [streamId: string, delta: string];
+  "completion:done": [streamId: string];
+  "completion:error": [streamId: string, message: string];
   "flashcard:evaluate:delta": [
     streamId: string,
     partial: Partial<FlashcardFeedback>,
@@ -186,6 +191,8 @@ export const API_INVOKE = {
 export const API_SEND = {
   sendChat: "chat:send",
   cancelChat: "chat:cancel",
+  startCompletion: "completion:start",
+  cancelCompletion: "completion:cancel",
   evaluateFlashcard: "flashcard:evaluate",
 } as const satisfies Record<string, keyof IpcSendContract>;
 
@@ -193,6 +200,9 @@ export const API_EVENTS = {
   onChatDelta: "chat:delta",
   onChatDone: "chat:done",
   onChatError: "chat:error",
+  onCompletionDelta: "completion:delta",
+  onCompletionDone: "completion:done",
+  onCompletionError: "completion:error",
   onFlashcardEvalDelta: "flashcard:evaluate:delta",
   onFlashcardEvalDone: "flashcard:evaluate:done",
   onFlashcardEvalError: "flashcard:evaluate:error",
