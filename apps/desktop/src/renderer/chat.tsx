@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { createId } from "@paralleldrive/cuid2";
 import { ArrowUpIcon, Loader2Icon, SparklesIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@uxie/shared/components/ui/button";
@@ -90,11 +89,11 @@ function ChatView({ docId }: { docId: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingText, setStreamingText] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [retrieving, setRetrieving] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const streamIdRef = useRef<string | null>(null);
-  const streamTextRef = useRef("");
+  const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -106,34 +105,7 @@ function ChatView({ docId }: { docId: string }) {
   }
 
   useEffect(() => {
-    const offDelta = window.uxieAPI.onChatDelta((sid, delta) => {
-      if (sid !== streamIdRef.current) return;
-      streamTextRef.current += delta;
-      setStreamingText(streamTextRef.current);
-    });
-    const offDone = window.uxieAPI.onChatDone((sid) => {
-      if (sid !== streamIdRef.current) return;
-      const text = streamTextRef.current;
-      if (text) setMessages((m) => [...m, { role: "assistant", content: text }]);
-      streamTextRef.current = "";
-      setStreamingText("");
-      setStreaming(false);
-      streamIdRef.current = null;
-    });
-    const offError = window.uxieAPI.onChatError((sid, msg) => {
-      if (sid !== streamIdRef.current) return;
-      setError(msg);
-      streamTextRef.current = "";
-      setStreamingText("");
-      setStreaming(false);
-      streamIdRef.current = null;
-    });
-    return () => {
-      offDelta();
-      offDone();
-      offError();
-      if (streamIdRef.current) window.uxieAPI.cancelChat(streamIdRef.current);
-    };
+    return () => abortRef.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -159,18 +131,39 @@ function ChatView({ docId }: { docId: string }) {
     setInput("");
     setError(null);
     setStreaming(true);
+    setRetrieving(false);
+    setStreamingText("");
     if (taRef.current) taRef.current.style.height = "auto";
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    void window.uxieAPI.createMessage(docId, "user", text).catch(() => {});
+
     try {
-      const { retrieve } = await import("./rag");
-      const context = await retrieve(docId, text);
-      const sid = createId();
-      streamIdRef.current = sid;
-      streamTextRef.current = "";
-      setStreamingText("");
-      window.uxieAPI.sendChat(sid, docId, history, context.join("\n\n---\n\n"));
+      const { runChat } = await import("./chat-engine");
+      let acc = "";
+      const answer = await runChat(docId, history, {
+        signal: controller.signal,
+        onRetrieving: () => setRetrieving(true),
+        onDelta: (delta) => {
+          setRetrieving(false);
+          acc += delta;
+          setStreamingText(acc);
+        },
+      });
+      if (answer) {
+        setMessages((m) => [...m, { role: "assistant", content: answer }]);
+        void window.uxieAPI
+          .createMessage(docId, "assistant", answer)
+          .catch(() => {});
+      }
     } catch (e) {
-      setError(message(e));
+      if (!controller.signal.aborted) setError(message(e));
+    } finally {
       setStreaming(false);
+      setRetrieving(false);
+      setStreamingText("");
+      abortRef.current = null;
     }
   }
 
@@ -190,6 +183,12 @@ function ChatView({ docId }: { docId: string }) {
           <ChatBubble key={i} role={m.role} content={m.content} />
         ))}
         {streamingText && <ChatBubble role="assistant" content={streamingText} />}
+        {streaming && !streamingText && (
+          <div className="flex items-center gap-2 px-2 text-sm text-muted-foreground">
+            <Loader2Icon className="h-4 w-4 animate-spin" />
+            {retrieving ? "Searching the document…" : "Thinking…"}
+          </div>
+        )}
         {error && <p className="px-2 text-sm text-destructive">{error}</p>}
       </div>
 

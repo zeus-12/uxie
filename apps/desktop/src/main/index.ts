@@ -21,13 +21,12 @@ import {
   registerPdfProtocol,
 } from "./pdf";
 import { getSettings, setSettings } from "./settings";
-import { cancelChat, streamChat } from "./ai/chat";
 import { cancelCompletion, streamCompletion } from "./ai/completion";
 import { getFlashcardsByDocId } from "./db/flashcards";
 import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 import { extractPdfText } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
-import { getMessagesByDocId } from "./db/messages";
+import { createMessage, getMessagesByDocId } from "./db/messages";
 
 protocol.registerSchemesAsPrivileged([PDF_PRIVILEGE]);
 
@@ -77,6 +76,8 @@ const invokeHandlers: {
     getMessagesByDocId(getDb(), docId).then((msgs) =>
       msgs.map((m) => ({ role: m.role, content: m.content })),
     ),
+  "messages:create": (docId, role, content) =>
+    createMessage(getDb(), docId, role, content),
 
   "documents:getText": (docId) => extractPdfText(docId),
   "embeddings:store": (docId, items) => storeEmbeddings(docId, items),
@@ -91,10 +92,6 @@ function registerIpc() {
     );
   }
 
-  ipcMain.on("chat:send", (event, streamId, docId, messages, systemContext) => {
-    void streamChat(event.sender, streamId, docId, messages, systemContext);
-  });
-  ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
   ipcMain.on("completion:start", (event, streamId, prompt) => {
     void streamCompletion(event.sender, streamId, prompt);
   });

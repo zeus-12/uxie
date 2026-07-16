@@ -109,6 +109,10 @@ export interface IpcInvokeContract {
 
   // Chat history
   "messages:getByDocId": { args: [docId: string]; result: ChatMessage[] };
+  "messages:create": {
+    args: [docId: string, role: "user" | "assistant", content: string];
+    result: void;
+  };
 
   // RAG (document-grounded chat)
   "documents:getText": { args: [docId: string]; result: string };
@@ -124,13 +128,6 @@ export interface IpcInvokeContract {
 
 /** Fire-and-forget renderer→main channels: `ipcRenderer.send` ↔ `ipcMain.on`. */
 export interface IpcSendContract {
-  "chat:send": [
-    streamId: string,
-    docId: string,
-    messages: ChatMessage[],
-    systemContext?: string,
-  ];
-  "chat:cancel": [streamId: string];
   "completion:start": [streamId: string, prompt: string];
   "completion:cancel": [streamId: string];
   "flashcard:evaluate": [
@@ -141,9 +138,6 @@ export interface IpcSendContract {
 
 /** Main→renderer push channels: `webContents.send` ↔ `ipcRenderer.on`. */
 export interface IpcEventContract {
-  "chat:delta": [streamId: string, delta: string];
-  "chat:done": [streamId: string];
-  "chat:error": [streamId: string, message: string];
   "completion:delta": [streamId: string, delta: string];
   "completion:done": [streamId: string];
   "completion:error": [streamId: string, message: string];
@@ -183,23 +177,19 @@ export const API_INVOKE = {
   generateFlashcards: "flashcards:generate",
 
   getMessages: "messages:getByDocId",
+  createMessage: "messages:create",
   getDocumentText: "documents:getText",
   storeEmbeddings: "embeddings:store",
   queryEmbeddings: "embeddings:query",
 } as const satisfies Record<string, keyof IpcInvokeContract>;
 
 export const API_SEND = {
-  sendChat: "chat:send",
-  cancelChat: "chat:cancel",
   startCompletion: "completion:start",
   cancelCompletion: "completion:cancel",
   evaluateFlashcard: "flashcard:evaluate",
 } as const satisfies Record<string, keyof IpcSendContract>;
 
 export const API_EVENTS = {
-  onChatDelta: "chat:delta",
-  onChatDone: "chat:done",
-  onChatError: "chat:error",
   onCompletionDelta: "completion:delta",
   onCompletionDone: "completion:done",
   onCompletionError: "completion:error",
