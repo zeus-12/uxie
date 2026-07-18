@@ -31,20 +31,22 @@ export const SEO = {
     },
   ],
 
+  // ?v=2 busts the browser's (very sticky) favicon cache; bump it whenever the
+  // icon changes.
   additionalLinkTags: [
     {
       rel: "icon",
-      href: "/favicon.ico",
+      href: "/favicon.ico?v=2",
       sizes: "any",
     },
     {
       rel: "icon",
-      href: "/favicon.svg",
+      href: "/favicon.svg?v=2",
       type: "image/svg+xml",
     },
     {
       rel: "apple-touch-icon",
-      href: "/apple-touch-icon.png",
+      href: "/apple-touch-icon.png?v=2",
     },
   ],
 };
