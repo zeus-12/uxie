@@ -7,6 +7,8 @@ import {
 } from "../ui/accordion";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
+import { ShimmeringText } from "../ui/shimmering-text";
+import { Kbd, KbdGroup } from "../ui/kbd";
 import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -159,6 +161,17 @@ const IndividualFlashcardQuestion = ({
           <Textarea
             value={userResponse}
             onChange={(e) => setUserResponse(e.target.value)}
+            onKeyDown={(e) => {
+              if (
+                (e.metaKey || e.ctrlKey) &&
+                e.key === "Enter" &&
+                userResponse.trim()
+              ) {
+                e.preventDefault();
+                toggleAttempt();
+                complete(userResponse);
+              }
+            }}
             className="h-24 w-full p-2 border-t-0 rounded-b-lg rounded-t-none focus-visible:ring-0 focus-visible:ring-offset-0"
             placeholder="Enter your answer..."
           />
@@ -171,9 +184,13 @@ const IndividualFlashcardQuestion = ({
                 toggleAttempt();
                 complete(userResponse);
               }}
-              className="bg-blue-400 text-white hover:bg-blue-500"
+              className="gap-2 bg-blue-500 text-white hover:bg-blue-600"
             >
               Answer
+              <KbdGroup>
+                <Kbd className="bg-white/20 text-white">⌘</Kbd>
+                <Kbd className="bg-white/20 text-white">↵</Kbd>
+              </KbdGroup>
             </Button>
             <Button
               onClick={() => {
@@ -271,11 +288,21 @@ const IndividualFlashcardReport = ({
         {(isLoading || feedback) && (
           <>
             <h2 className="mb-2 px-2 font-semibold text-gray-600">Feedback</h2>
-            <Feedback
-              correctResponse={feedback?.correctResponse}
-              wrongResponse={feedback?.incorrectResponse}
-              moreInfo={feedback?.moreInfo}
-            />
+            {isLoading && !feedback ? (
+              <div className="px-2 py-1">
+                <ShimmeringText
+                  text="Evaluating your answer…"
+                  startOnView={false}
+                  className="text-sm"
+                />
+              </div>
+            ) : (
+              <Feedback
+                correctResponse={feedback?.correctResponse}
+                wrongResponse={feedback?.incorrectResponse}
+                moreInfo={feedback?.moreInfo}
+              />
+            )}
           </>
         )}
         <Accordion

@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, streamObject } from "ai";
 import type { WebContents } from "electron";
 import { eq } from "drizzle-orm";
 import * as schema from "@uxie/shared/schema";
@@ -6,8 +6,10 @@ import {
   buildFlashcardFeedbackPrompt,
   buildFlashcardGenerationPrompt,
   chunkTextForFlashcards,
+  flashcardFeedbackSchema,
   parseFlashcardFeedback,
   parseFlashcards,
+  type FlashcardFeedbackData,
 } from "@uxie/shared/lib/flashcards";
 import { getDb } from "../db";
 import { createFlashcardAttempt, createFlashcards } from "../db/flashcards";
@@ -92,19 +94,36 @@ export async function evaluateFlashcard(
     return;
   }
 
+  const model = llmModel(llm);
+  const prompt = buildFlashcardFeedbackPrompt({
+    question: card.question,
+    answer: card.answer,
+    userResponse: input.prompt,
+  });
+
   try {
-    // Plain text + JSON parse (not streamObject) so it works on endpoints
-    // without `response_format` support.
-    const { text } = await generateText({
-      model: llmModel(llm),
-      prompt: buildFlashcardFeedbackPrompt({
-        question: card.question,
-        answer: card.answer,
-        userResponse: input.prompt,
-      }),
-    });
+    let feedback: FlashcardFeedbackData;
+    try {
+      // Preferred path: stream the object so each field (right / wrong / more)
+      // fills in as it arrives.
+      const result = streamObject({
+        model,
+        schema: flashcardFeedbackSchema,
+        prompt,
+      });
+      for await (const partial of result.partialObjectStream) {
+        if (wc.isDestroyed()) return;
+        send("flashcard:evaluate:delta", streamId, partial);
+      }
+      feedback = await result.object;
+    } catch {
+      // Fallback for endpoints without structured-output/JSON-mode support:
+      // one non-streamed generation + tolerant parse (works everywhere).
+      const { text } = await generateText({ model, prompt });
+      feedback = parseFlashcardFeedback(text);
+    }
+
     if (wc.isDestroyed()) return;
-    const feedback = parseFlashcardFeedback(text);
     await createFlashcardAttempt(getDb(), {
       flashcardId: input.flashcardId,
       userResponse: input.prompt,

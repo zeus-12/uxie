@@ -1,6 +1,7 @@
 import IndividualFlashcard, { type FlashcardFeedback } from "./card";
-import FeatureCard from "../other/feature-card";
+import { EmptyStatePrompt } from "../other/empty-state-prompt";
 import { SpinnerPage } from "../ui/spinner";
+import { LayersIcon } from "lucide-react";
 import { useState } from "react";
 
 export interface FlashcardEvaluation {
@@ -44,17 +45,14 @@ const Flashcards = ({
   return (
     <div className="h-full">
       {flashcards.length === 0 && (
-        <FeatureCard
-          isLoading={isGenerating}
-          bulletPoints={[
-            "✅ Celebrate correct answers.",
-            "❌ Address misunderstandings.",
-            "ℹ️ Expand your understanding with additional insights.",
-          ]}
+        <EmptyStatePrompt
+          icon={<LayersIcon className="h-6 w-6" />}
+          title="Generate flashcards"
+          subtext="Turn this document into flashcards and get instant, AI-graded feedback on your answers."
+          buttonText="Generate flashcards"
+          loadingText="Generating…"
+          loading={isGenerating}
           onClick={onGenerate}
-          buttonText="Generate Flashcards"
-          subtext="Test your knowledge and receive instant feedback:"
-          title="Transform your study materials into dynamic flashcards!"
         />
       )}
 

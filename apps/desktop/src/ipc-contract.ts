@@ -86,6 +86,10 @@ export interface IpcInvokeContract {
     args: [id: string, title: string];
     result: void;
   };
+  "documents:setCover": {
+    args: [id: string, png: Uint8Array];
+    result: string;
+  };
   "documents:delete": { args: [id: string]; result: void };
 
   // Highlights
@@ -134,6 +138,11 @@ export interface IpcSendContract {
     streamId: string,
     input: { flashcardId: string; prompt: string },
   ];
+  // Document chat runs in main (so streaming actually streams, like every other
+  // AI feature). Retrieval stays in the renderer worker via the reply channel.
+  "chat:start": [streamId: string, docId: string, messages: ChatMessage[]];
+  "chat:cancel": [streamId: string];
+  "chat:retrieve:reply": [reqId: string, chunks: string[] | null];
 }
 
 /** Main→renderer push channels: `webContents.send` ↔ `ipcRenderer.on`. */
@@ -147,6 +156,12 @@ export interface IpcEventContract {
   ];
   "flashcard:evaluate:done": [streamId: string, feedback: FlashcardFeedback];
   "flashcard:evaluate:error": [streamId: string, message: string];
+  // Document chat stream + the main→renderer retrieval request.
+  "chat:delta": [streamId: string, delta: string];
+  "chat:retrieving": [streamId: string];
+  "chat:done": [streamId: string, fullText: string];
+  "chat:error": [streamId: string, message: string];
+  "chat:retrieve": [reqId: string, docId: string, question: string];
 }
 
 // ── window.uxieAPI surface ───────────────────────────────────────────
@@ -164,6 +179,7 @@ export const API_INVOKE = {
   updateDocumentNotes: "documents:updateNotes",
   updateLastReadPage: "documents:updateLastReadPage",
   updateDocumentTitle: "documents:updateTitle",
+  setDocumentCover: "documents:setCover",
   deleteDocument: "documents:delete",
 
   addHighlight: "highlights:add",
@@ -187,6 +203,9 @@ export const API_SEND = {
   startCompletion: "completion:start",
   cancelCompletion: "completion:cancel",
   evaluateFlashcard: "flashcard:evaluate",
+  startChat: "chat:start",
+  cancelChat: "chat:cancel",
+  chatRetrieveReply: "chat:retrieve:reply",
 } as const satisfies Record<string, keyof IpcSendContract>;
 
 export const API_EVENTS = {
@@ -196,6 +215,11 @@ export const API_EVENTS = {
   onFlashcardEvalDelta: "flashcard:evaluate:delta",
   onFlashcardEvalDone: "flashcard:evaluate:done",
   onFlashcardEvalError: "flashcard:evaluate:error",
+  onChatDelta: "chat:delta",
+  onChatRetrieving: "chat:retrieving",
+  onChatDone: "chat:done",
+  onChatError: "chat:error",
+  onChatRetrieve: "chat:retrieve",
 } as const satisfies Record<string, keyof IpcEventContract>;
 
 /** The renderer-facing API, derived method-by-method from the maps above.

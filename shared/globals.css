@@ -270,3 +270,23 @@ body {
 .app-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* Chat message list scrollbar: thin, subtle, sitting flush at the right edge
+   instead of the chunky default that looked out of place. */
+.uxie-chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent; /* slate-300 */
+}
+.uxie-chat-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.uxie-chat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.uxie-chat-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+}
+.uxie-chat-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225); /* slate-300, only on hover */
+}

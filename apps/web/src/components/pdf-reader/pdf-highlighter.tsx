@@ -4,7 +4,8 @@ import {
   TextSelectionPopover,
 } from "@/components/pdf-reader/highlight-popover";
 import { api } from "@/lib/api";
-import { useChatStore, usePdfSettingsStore } from "@/lib/store";
+import { usePdfSettingsStore } from "@/lib/store";
+import { useChatStore } from "@uxie/shared/lib/store";
 import { type AppRouter } from "@/server/api/root";
 import { type AddHighlightType } from "@/types/highlight";
 import { HighlightTypeEnum } from "@prisma/client";
@@ -214,6 +215,7 @@ const PdfHighlighter = ({
             addHighlight={() => addHighlight({ content, position })}
             readSelectedText={readSelectedText}
             selectionInfoRef={selectionInfoRef}
+            transformSelection={transformSelection}
           />
         );
       }}

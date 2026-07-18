@@ -48,24 +48,30 @@ export function Sidebar({
   chat,
   flashcards,
   defaultTab = "notes",
+  resetTabOnMount = true,
 }: {
   notes: ReactNode;
   chat: ReactNode;
   flashcards: ReactNode;
   defaultTab?: string;
+  // Desktop resets to the default tab on mount (a new document starts on notes).
+  // Web owns the initial tab via the URL (?tab=), so it opts out.
+  resetTabOnMount?: boolean;
 }) {
   const tab = useSidebarTabStore((s) => s.tab);
   const setTab = useSidebarTabStore((s) => s.setTab);
 
   useEffect(() => {
-    setTab(defaultTab);
+    if (resetTabOnMount) setTab(defaultTab);
     // Only on mount — a new document should start on the default tab.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const contents = [
     { value: "notes", tw: `flex-1 pb-0 ${CONTENT_TW}`, children: notes },
-    { value: "chat", tw: `p-2 pb-0 ${CONTENT_TW}`, children: chat },
+    // Chat manages its own internal padding (ChatPanel), so it gets none here —
+    // keeps its bubbles/input aligned with the tab strip.
+    { value: "chat", tw: CONTENT_TW, children: chat },
     { value: "flashcards", tw: `p-2 pb-0 ${CONTENT_TW}`, children: flashcards },
   ];
 

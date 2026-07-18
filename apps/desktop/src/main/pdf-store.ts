@@ -23,3 +23,20 @@ export async function storePdf(
 export async function deletePdf(dir: string, id: string): Promise<void> {
   await rm(pdfPath(dir, id), { force: true });
 }
+
+export function coverPath(dir: string, id: string): string {
+  return join(dir, `${id}.png`);
+}
+
+export async function storeCover(
+  dir: string,
+  id: string,
+  bytes: Uint8Array,
+): Promise<void> {
+  await mkdir(dir, { recursive: true });
+  await writeFile(coverPath(dir, id), bytes);
+}
+
+export async function deleteCover(dir: string, id: string): Promise<void> {
+  await rm(coverPath(dir, id), { force: true });
+}

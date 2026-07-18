@@ -1,4 +1,4 @@
-import { streamText } from "ai";
+import { smoothStream, streamText } from "ai";
 import type { WebContents } from "electron";
 import { buildCompletionPrompt } from "@uxie/shared/lib/ai-prompts";
 import { getSettings } from "../settings";
@@ -37,6 +37,8 @@ export async function streamCompletion(
       abortSignal: controller.signal,
       temperature: 0.7,
       messages: [{ role: "user", content: buildCompletionPrompt(prompt) }],
+      // Same proxy chunking as chat — smooth the coarse deltas into a typing feel.
+      experimental_transform: smoothStream({ delayInMs: 12, chunking: "word" }),
     });
     for await (const part of result.fullStream) {
       if (wc.isDestroyed()) return;

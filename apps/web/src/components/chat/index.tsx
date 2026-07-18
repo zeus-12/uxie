@@ -1,53 +1,89 @@
-import FeatureCard from "@/components/other/feature-card";
-import BouncingLoader from "@/components/ui/bouncing-loader";
-import { Button } from "@/components/ui/button";
-import { SpinnerCentered } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
-import { useChatStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
 import { useChat } from "@ai-sdk/react";
+import {
+  ChatPanel,
+  type ChatRow,
+} from "@uxie/shared/components/chat/chat-panel";
+import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
+import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
+import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp, BanIcon } from "lucide-react";
+import { SparklesIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import TextareaAutosize from "react-textarea-autosize";
-import { toast } from "sonner";
 
-const INITIAL_MESSAGE = `Welcome to **Uxie**! I'm here to assist you. Feel free to ask questions or discuss topics based on the data provided.`;
+const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
 
 export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { query } = useRouter();
   const docId = typeof query?.docId === "string" ? query.docId : "";
 
-  const { messages, status, stop, sendMessage } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      body: { docId },
-    }),
-    onError: (err) => {
-      toast.error("Something went wrong. Please try again.", {
-        duration: 3000,
+  if (!isVectorised) {
+    return <VectoriseGate docId={docId} />;
+  }
+  return <ChatView docId={docId} />;
+}
+
+function VectoriseGate({ docId }: { docId: string }) {
+  const utils = api.useContext();
+  const { mutate: vectorise, isLoading: isVectorising } =
+    api.document.vectorise.useMutation({
+      onSuccess: () => {
+        utils.document.getDocData.setData({ docId }, (prev) =>
+          prev ? { ...prev, isVectorised: true } : undefined,
+        );
+      },
+    });
+
+  return (
+    <EmptyStatePrompt
+      icon={<SparklesIcon className="h-6 w-6" />}
+      title="Chat with this document"
+      subtext="Ask anything and get instant answers straight from your PDF — perfect for summarizing, studying, and turning it into flashcards."
+      buttonText="Start chatting"
+      loadingText="Getting ready…"
+      loading={isVectorising}
+      onClick={() => vectorise({ documentId: docId })}
+    />
+  );
+}
+
+// A stored/streamed message part, loosely typed — the same shape flows from the
+// live `useChat` stream and from persisted DB messages (trpc JSON).
+type LoosePart = { type: string; text?: string; state?: string };
+const partsOf = (m: { parts?: unknown }): LoosePart[] =>
+  Array.isArray(m.parts) ? (m.parts as LoosePart[]) : [];
+
+// Fan a message's parts into flat rows: text → a bubble, a tool call → a chip
+// that sits OUTSIDE the bubble (ChatGPT-style). tool-result parts are internal.
+function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
+  const displayRole = role === "user" ? "user" : "assistant";
+  const rows: ChatRow[] = [];
+  for (const p of parts) {
+    if (p.type === "text") {
+      if (p.text?.trim()) {
+        rows.push({ kind: "message", role: displayRole, content: p.text });
+      }
+    } else if (p.type.startsWith("tool-") && p.type !== "tool-result") {
+      const active =
+        p.state !== undefined &&
+        p.state !== "output-available" &&
+        p.state !== "output-error";
+      rows.push({
+        kind: "tool",
+        label: active ? "Searching the document…" : "Searched the document",
+        active,
       });
-    },
-  });
-
-  const isLoading = status === "streaming";
-
-  const [localInput, setLocalInput] = useState("");
-  const { setSendMessage } = useChatStore();
-
-  useEffect(() => {
-    setSendMessage((message: string) => sendMessage({ text: message }));
-  }, [sendMessage, setSendMessage]);
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (localInput.trim()) {
-      sendMessage({ text: localInput.trim() });
-      setLocalInput("");
     }
-  };
+  }
+  return rows;
+}
+
+function ChatView({ docId }: { docId: string }) {
+  const { messages, status, stop, sendMessage } = useChat({
+    transport: new DefaultChatTransport({ api: "/api/chat", body: { docId } }),
+  });
 
   const { data: prevChatMessages, isLoading: isChatsLoading } =
     api.message.getAllByDocId.useQuery(
@@ -55,198 +91,90 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
       { refetchOnWindowFocus: false },
     );
 
-  const messageWindowRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const streaming = status === "streaming" || status === "submitted";
 
+  const submit = () => {
+    const text = input.trim();
+    if (!text || streaming) return;
+    sendMessage({ text });
+    setInput("");
+  };
+
+  // Register a sender (highlight popover → chat) + a focuser (⌘L) on the shared
+  // store, and focus the input whenever the chat tab becomes active.
+  const setSendMessage = useChatStore((s) => s.setSendMessage);
+  const setFocusInput = useChatStore((s) => s.setFocusInput);
+  const tab = useSidebarTabStore((s) => s.tab);
   useEffect(() => {
-    messageWindowRef.current?.scrollTo(
-      0,
-      messageWindowRef.current.scrollHeight,
-    );
-  }, [messages, prevChatMessages]);
+    setSendMessage((text: string) => sendMessage({ text }));
+  }, [sendMessage, setSendMessage]);
+  useEffect(() => {
+    const focus = () => inputRef.current?.focus();
+    setFocusInput(focus);
+    return () => setFocusInput(null);
+  }, [setFocusInput]);
+  useEffect(() => {
+    if (tab === "chat") inputRef.current?.focus();
+  }, [tab]);
 
-  const { mutate: vectoriseDocMutation, isLoading: isVectorising } =
-    api.document.vectorise.useMutation({
-      onSuccess: () => {
-        utils.document.getDocData.setData({ docId }, (prev) => {
-          if (!prev) return undefined;
-          return { ...prev, isVectorised: true };
-        });
-      },
-    });
+  // ⌘1/2/3 switch tabs; ⌘L jumps to chat and focuses its input.
+  const setTab = useSidebarTabStore((s) => s.setTab);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+      if (e.key === "1") {
+        e.preventDefault();
+        setTab("notes");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        setTab("chat");
+      } else if (e.key === "3") {
+        e.preventDefault();
+        setTab("flashcards");
+      } else if (e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        setTab("chat");
+        setTimeout(() => inputRef.current?.focus(), 0);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setTab]);
 
-  const utils = api.useContext();
+  if (isChatsLoading) return <SpinnerCentered />;
 
-  if (!isVectorised) {
-    return (
-      <FeatureCard
-        isLoading={isVectorising}
-        bulletPoints={[
-          "🔍 Search and ask questions about any part of your PDF.",
-          "📝 Summarize content with ease.",
-          "📊 Analyze and extract data effortlessly.",
-        ]}
-        onClick={() => {
-          vectoriseDocMutation(
-            { documentId: docId },
-            {
-              onError: (err) => {
-                toast.error(err.message, { duration: 3000 });
-              },
-            },
-          );
-        }}
-        buttonText="Turn PDF Interactive"
-        subtext="Easily extract key information and ask questions on the fly:"
-        title="Unleash the power of your PDF documents through interactive chat!"
-      />
-    );
+  const history = [...(prevChatMessages ?? []), ...messages];
+  const rows: ChatRow[] = [];
+  for (const m of history) rows.push(...messageToRows(m.role, partsOf(m)));
+
+  // Current turn hasn't produced a tool chip or any text yet → a Thinking
+  // shimmer, driven by the real in-flight request status.
+  if (streaming) {
+    const last = messages[messages.length - 1];
+    const lastHasAssistantContent =
+      !!last &&
+      last.role !== "user" &&
+      messageToRows(last.role, partsOf(last)).length > 0;
+    if (!lastHasAssistantContent) rows.push({ kind: "thinking", label: "Thinking…" });
   }
 
-  if (isChatsLoading) {
-    return <SpinnerCentered />;
+  if (status === "error") {
+    rows.push({ kind: "error", content: "Something went wrong. Please try again." });
   }
 
-  const lastStreamingMsg = messages[messages.length - 1];
-  const streamingHasContent =
-    lastStreamingMsg?.parts.some(
-      (p) => (p.type === "text" && p.text.trim()) || p.type.startsWith("tool-"),
-    ) ?? false;
-
   return (
-    <div className="flex h-full w-full flex-col gap-1 overflow-hidden md:gap-2">
-      <div
-        className="hideScrollbar flex flex-1 flex-col gap-3 overflow-auto"
-        ref={messageWindowRef}
-      >
-        <MessageBubble role="assistant">
-          <ReactMarkdown>{INITIAL_MESSAGE}</ReactMarkdown>
-        </MessageBubble>
-
-        {[...(prevChatMessages ?? []), ...(messages ?? [])]?.map((m) => (
-          <MessageView key={m.id} role={m.role} parts={m.parts} />
-        ))}
-
-        {isLoading && !streamingHasContent && (
-          <MessageBubble role="assistant">
-            <BouncingLoader />
-          </MessageBubble>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="mx-[2px] mb-1">
-        <div className="flex w-full border border-gray-300 rounded-md focus-within:ring-blue-500 focus-within:ring-2">
-          <TextareaAutosize
-            maxLength={1000}
-            placeholder="Type your question here..."
-            className="resize-none rounded-lg px-3 py-2 font-normal active:ring-0 focus-visible:ring-0 focus:ring-0 focus:outline-none w-full"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !isLoading) {
-                e.preventDefault();
-                handleSubmit();
-              } else if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-              }
-            }}
-            value={localInput}
-            onChange={(e) => setLocalInput(e.target.value)}
-            autoFocus
-            maxRows={4}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="group w-fit px-2 bg-gray-100 rounded-md m-[2px] mt-auto"
-            type={isLoading ? "button" : "submit"}
-            onClick={isLoading ? stop : undefined}
-          >
-            {isLoading ? (
-              <BanIcon
-                size={24}
-                className="text-gray-500 group-hover:text-gray-700"
-              />
-            ) : (
-              <ArrowUp
-                size={24}
-                className="text-gray-500 group-hover:text-gray-700"
-              />
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function MessageBubble({
-  role,
-  children,
-}: {
-  role: "user" | "assistant";
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        role === "user" && "ml-auto",
-        role === "assistant" && "mr-auto",
-        "max-w-[80%] text-left",
-      )}
-    >
-      <div
-        className={cn(
-          role === "user" &&
-            "prose-invert bg-blue-500 text-gray-50 prose-code:text-gray-100",
-          role === "assistant" && "bg-gray-100",
-          "prose rounded-xl px-3 py-1 prose-ul:pl-2 prose-li:px-2",
-        )}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-const TOOL_NAME_TO_MESSAGE: Record<string, string> = {
-  getInformation: "Reading the document...",
-};
-
-interface MessagePart {
-  type: string;
-  text?: string;
-  toolName?: string;
-}
-
-function MessageView({ role, parts }: { role: string; parts: unknown }) {
-  if (!Array.isArray(parts)) return null;
-
-  const hasContent = parts.some((p: MessagePart) => {
-    if (p.type === "text" && p.text?.trim()) return true;
-    if (p.type.startsWith("tool-") && p.type !== "tool-result") return true;
-    return false;
-  });
-  if (!hasContent) return null;
-
-  const displayRole = role === "user" ? "user" : "assistant";
-
-  return (
-    <MessageBubble role={displayRole}>
-      {parts.map((part, i) => {
-        if (part.type === "text" && part.text?.trim()) {
-          return <ReactMarkdown key={i}>{part.text}</ReactMarkdown>;
-        }
-
-        if (part.type.startsWith("tool-") && part.type !== "tool-result") {
-          const toolName = part.type.replace("tool-", "");
-          const msg = TOOL_NAME_TO_MESSAGE[toolName] || `${toolName} called`;
-          return (
-            <div key={i} className="mb-1 text-xs text-gray-500 italic">
-              {msg}
-            </div>
-          );
-        }
-
-        return null;
-      })}
-    </MessageBubble>
+    <ChatPanel
+      rows={rows}
+      loaded={!isChatsLoading}
+      input={input}
+      onInputChange={setInput}
+      onSubmit={submit}
+      onStop={stop}
+      streaming={streaming}
+      renderMarkdown={renderMarkdown}
+      inputRef={inputRef}
+    />
   );
 }

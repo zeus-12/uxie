@@ -26,15 +26,9 @@ export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
   setEditor: (editor) => set({ editor }),
 }));
 
-interface ChatMessageStore {
-  sendMessage: null | ((message: string) => void);
-  setSendMessage: (sendMessage: (message: string) => void) => void;
-}
-export const useChatStore = create<ChatMessageStore>((set) => ({
-  sendMessage: null,
-  setSendMessage: (sendMessage: (message: string) => void) =>
-    set({ sendMessage }),
-}));
+// Chat sender + input focus now live in @uxie/shared/lib/store so the shared
+// chat/sidebar components and the highlight popover all coordinate through one
+// store instance.
 
 interface PdfSettingsStore {
   linksDisabled: boolean;

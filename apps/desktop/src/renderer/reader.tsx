@@ -189,6 +189,32 @@ function ReaderContent({
         }
       : null;
 
+  // ⌘1/2/3 switch tabs; ⌘L jumps to chat and focuses its input. Kept out of the
+  // UI — just shortcuts.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+      const focusChat = () =>
+        setTimeout(() => useChatStore.getState().focusInput?.(), 0);
+      if (e.key === "1") {
+        e.preventDefault();
+        setSidebarTab("notes");
+      } else if (e.key === "2") {
+        e.preventDefault();
+        setSidebarTab("chat");
+      } else if (e.key === "3") {
+        e.preventDefault();
+        setSidebarTab("flashcards");
+      } else if (e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        setSidebarTab("chat");
+        focusChat();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setSidebarTab]);
+
   const {
     pageNumberInView,
     currentReadingSpeed,
@@ -312,7 +338,12 @@ function ReaderContent({
                 enableAreaSelection={(e) => e.altKey}
                 onScrollChange={() => {}}
                 scrollRef={() => {}}
-                onSelectionFinished={(position, content, hideTipAndSelection) => (
+                onSelectionFinished={(
+                  position,
+                  content,
+                  hideTipAndSelection,
+                  transformSelection,
+                ) => (
                   <TextSelectionPopover
                     content={content}
                     hideTipAndSelection={hideTipAndSelection}
@@ -320,6 +351,7 @@ function ReaderContent({
                     readSelectedText={readSelectedText}
                     sendMessage={sendToChat}
                     showAiFeatures={!!sendToChat}
+                    transformSelection={transformSelection}
                   />
                 )}
                 highlightTransform={(
@@ -396,7 +428,7 @@ function ReaderContent({
       <ResizableHandle className="relative w-2 border-0 bg-gray-50 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-neutral-400 after:transition-colors hover:after:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
         <div className="flex h-full flex-col">
-          <div className="app-drag flex h-12 shrink-0 items-center px-3">
+          <div className="app-drag flex h-12 shrink-0 items-center px-2">
             <SidebarTabs className="app-no-drag" />
             <button
               onClick={onSettings}

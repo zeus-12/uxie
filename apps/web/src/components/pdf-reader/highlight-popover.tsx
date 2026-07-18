@@ -1,16 +1,16 @@
 import { READING_MODE } from "@/components/pdf-reader/constants";
 import { CustomTooltip } from "@/components/ui/tooltip";
 import { copyTextToClipboard } from "@/lib/utils";
+import { AskAiMenu } from "@uxie/shared/components/pdf-reader/ask-ai-menu";
 import {
   AudioLines,
-  BookOpenCheck,
   ClipboardCopy,
   Highlighter,
-  Lightbulb,
+  Sparkles,
   TrashIcon,
 } from "lucide-react";
-import { useRouter } from "next/router";
-import type { RefObject } from "react";
+import { useSidebarTabStore } from "@uxie/shared/lib/store";
+import { useState, type RefObject } from "react";
 
 export const TextSelectionPopover = ({
   content,
@@ -21,8 +21,12 @@ export const TextSelectionPopover = ({
   showAiFeatures,
   readSelectedText,
   selectionInfoRef,
+  transformSelection,
 }: {
   position: any;
+  // Paints a persistent ghost highlight so the selection stays visible once the
+  // AI input steals focus and collapses the native selection.
+  transformSelection: () => void;
   addHighlight: () => void;
   content: {
     text?: string | undefined;
@@ -46,17 +50,25 @@ export const TextSelectionPopover = ({
     pageNumber: number;
   } | null>;
 }) => {
-  const router = useRouter();
+  const setSidebarTab = useSidebarTabStore((s) => s.setTab);
   const isTextHighlight = content.text !== undefined;
+  const [mode, setMode] = useState<"actions" | "ai">("actions");
 
-  const switchSidebarTabToChat = () => {
-    router.push({
-      query: {
-        ...router.query,
-        tab: "chat",
-      },
-    });
-  };
+  const switchSidebarTabToChat = () => setSidebarTab("chat");
+
+  if (mode === "ai" && sendMessage) {
+    return (
+      <AskAiMenu
+        selection={content.text ?? ""}
+        onSubmit={(prompt) => {
+          sendMessage(prompt);
+          switchSidebarTabToChat();
+          hideTipAndSelection();
+        }}
+        onClose={() => setMode("actions")}
+      />
+    );
+  }
 
   const OPTIONS = [
     isTextHighlight && {
@@ -94,32 +106,12 @@ export const TextSelectionPopover = ({
     showAiFeatures &&
       sendMessage && {
         onClick: () => {
-          // dont show this in clients chat- instead create some "summarise-template" which simply shows "summarise" and then the message, prob need to change the data model for this
-          sendMessage(
-            "**Explain the following text in simple terms**: \n'" +
-              content.text +
-              "'",
-          );
-          switchSidebarTabToChat();
-          hideTipAndSelection();
+          transformSelection();
+          setMode("ai");
         },
-        icon: Lightbulb,
-        tooltip: "Explain the text",
-      },
-    showAiFeatures &&
-      sendMessage && {
-        onClick: () => {
-          // dont show this in clients chat- instead create some "summarise-template" which simply shows "summarise" and then the message, prob need to change the data model for this
-          sendMessage(
-            "**Summarise the following text in simple terms**: \n'" +
-              content.text +
-              "'",
-          );
-          switchSidebarTabToChat();
-          hideTipAndSelection();
-        },
-        icon: BookOpenCheck,
-        tooltip: "Summarise the text",
+        icon: Sparkles,
+        tooltip: "Ask AI",
+        accent: true,
       },
   ].filter(Boolean);
 
@@ -137,7 +129,13 @@ export const TextSelectionPopover = ({
               onClick={option.onClick}
             >
               <CustomTooltip content={option.tooltip}>
-                <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
+                <option.icon
+                  className={
+                    "accent" in option && option.accent
+                      ? "h-5 w-5 text-violet-400 group-hover:text-violet-300"
+                      : "h-5 w-5 text-gray-300 group-hover:text-gray-50"
+                  }
+                />
               </CustomTooltip>
             </div>
           );

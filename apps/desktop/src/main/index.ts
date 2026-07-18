@@ -19,9 +19,11 @@ import {
   importPdf,
   PDF_PRIVILEGE,
   registerPdfProtocol,
+  setDocumentCover,
 } from "./pdf";
 import { getSettings, setSettings } from "./settings";
 import { cancelCompletion, streamCompletion } from "./ai/completion";
+import { cancelChat, resolveChatRetrieve, streamChat } from "./ai/chat";
 import { getFlashcardsByDocId } from "./db/flashcards";
 import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 import { extractPdfText } from "./pdf-text";
@@ -59,6 +61,7 @@ const invokeHandlers: {
     updateLastReadPage(getDb(), id, page),
   "documents:updateTitle": (id, title) =>
     updateDocumentTitle(getDb(), id, title),
+  "documents:setCover": (id, png) => setDocumentCover(id, png),
   "documents:delete": (id) => deleteDocumentWithFile(id),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
@@ -101,6 +104,13 @@ function registerIpc() {
   ipcMain.on("flashcard:evaluate", (event, streamId, input) => {
     void evaluateFlashcard(event.sender, streamId, input);
   });
+  ipcMain.on("chat:start", (event, streamId, docId, messages) => {
+    void streamChat(event.sender, streamId, docId, messages);
+  });
+  ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
+  ipcMain.on("chat:retrieve:reply", (_event, reqId, chunks) =>
+    resolveChatRetrieve(reqId, chunks),
+  );
 }
 
 // ── Window ───────────────────────────────────────────────────────────

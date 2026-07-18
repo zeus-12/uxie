@@ -6,6 +6,8 @@ await import("./src/env.mjs");
 const config = {
   reactStrictMode: true,
   swcMinify: true,
+  // Compile the workspace package's TS/TSX (Next won't transpile node_modules by default).
+  transpilePackages: ["@uxie/shared"],
   images: {
     domains: ["lh3.googleusercontent.com", "utfs.io"],
   },

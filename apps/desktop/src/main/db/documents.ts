@@ -113,6 +113,17 @@ export async function updateDocumentTitle(
     .where(eq(schema.document.id, id));
 }
 
+export async function updateDocumentCover(
+  db: DB,
+  id: string,
+  coverImageUrl: string,
+): Promise<void> {
+  await db
+    .update(schema.document)
+    .set({ coverImageUrl })
+    .where(eq(schema.document.id, id));
+}
+
 export async function deleteDocument(db: DB, id: string): Promise<void> {
   await db.delete(schema.document).where(eq(schema.document.id, id));
 }

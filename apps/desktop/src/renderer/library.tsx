@@ -36,11 +36,33 @@ export function Library({
     setImporting(true);
     try {
       const doc = await window.uxieAPI.importDocument();
-      if (doc) refresh();
+      if (doc) {
+        refresh();
+        void generateCoverFor(doc.id);
+      }
     } catch (e) {
       setError(message(e));
     } finally {
       setImporting(false);
+    }
+  }
+
+  // Best-effort thumbnail: the card falls back to the file icon if this fails,
+  // and the cover only appears once the PNG is actually written to disk.
+  async function generateCoverFor(id: string) {
+    try {
+      const { generateCover } = await import("./pdf-cover");
+      const png = await generateCover(id);
+      if (!png) {
+        console.warn(`[cover] no PNG produced for ${id}`);
+        return;
+      }
+      console.log(`[cover] generated ${png.byteLength} bytes for ${id}`);
+      await window.uxieAPI.setDocumentCover(id, png);
+      refresh();
+    } catch (e) {
+      // A missing cover is non-fatal, but log it so it isn't invisible.
+      console.error("[cover] generation failed:", e);
     }
   }
 

@@ -4,9 +4,14 @@ import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
 import { google } from "@ai-sdk/google";
 import { type Message } from "@prisma/client";
+import {
+  CHAT_SYSTEM_PROMPT,
+  GET_INFORMATION_TOOL_DESCRIPTION,
+  GET_INFORMATION_TOOL_NAME,
+  getInformationInputSchema,
+} from "@uxie/shared/lib/chat";
 import { convertToModelMessages, stepCountIs, streamText, tool } from "ai";
 import { getServerSession } from "next-auth";
-import { z } from "zod";
 
 function getProperty(obj: object, key: string): unknown {
   if (!Object.prototype.hasOwnProperty.call(obj, key)) return undefined;
@@ -90,7 +95,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: google("gemini-2.5-flash"),
       messages: await convertToModelMessages(messages),
-      system: SYSTEM_PROMPT,
+      system: CHAT_SYSTEM_PROMPT,
       tools: AI_TOOLS({ docId }),
       toolChoice: "auto",
       stopWhen: stepCountIs(3),
@@ -154,31 +159,10 @@ export async function POST(req: Request) {
   }
 }
 
-const SYSTEM_PROMPT = `You are a helpful assistant with access to a PDF document. Your primary task is to answer questions based on the content of this PDF.
-
-WORKFLOW:
-1. When a user asks a question, ALWAYS use the 'getInformation' function to search the PDF for relevant information
-2. After receiving the search results, analyze the information and provide a comprehensive response based on what you found
-3. Structure your response clearly and cite specific information from the document
-
-IMPORTANT: 
-- Use the getInformation function for every question, even if you think you might know the answer
-- ALWAYS provide a detailed response after calling the function - don't just return the raw search results
-- Base your answers entirely on the retrieved document content
-- If the information isn't found in the PDF after searching, clearly state that the information couldn't be found in the document
-- Don't make up or assume any information beyond what's explicitly stated in the retrieved content
-
-Remember: Your goal is to be a helpful assistant that provides accurate, well-formatted responses based on the PDF content, not just a tool executor.`;
-
 const AI_TOOLS = ({ docId }: { docId: string }) => ({
-  getInformation: tool({
-    description:
-      "Search the PDF document for relevant information to answer the user's question. Call this function and then provide a comprehensive response based on the results.",
-    inputSchema: z.object({
-      question: z
-        .string()
-        .describe("the user's question or query about the PDF content"),
-    }),
+  [GET_INFORMATION_TOOL_NAME]: tool({
+    description: GET_INFORMATION_TOOL_DESCRIPTION,
+    inputSchema: getInformationInputSchema,
     execute: async ({ question }) => {
       const results = await retrieveRelevantDocumentContent(docId, question);
 

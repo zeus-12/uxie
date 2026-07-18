@@ -33,6 +33,12 @@
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+
+    /* Full-colour aliases used by shared (Tailwind v4) components — e.g.
+       ShimmeringText reads var(--color-*) directly. They resolve the HSL
+       token triples above (and pick up the .dark overrides automatically). */
+    --color-foreground: hsl(var(--foreground));
+    --color-muted-foreground: hsl(var(--muted-foreground));
   }
 
   .dark {

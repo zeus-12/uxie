@@ -1,12 +1,13 @@
+import { useState } from "react";
 import { READING_MODE } from "./constants";
 import { CustomTooltip } from "../ui/tooltip";
 import { copyTextToClipboard } from "../../lib/utils";
+import { AskAiMenu } from "./ask-ai-menu";
 import {
   AudioLines,
-  BookOpenCheck,
   ClipboardCopy,
   Highlighter,
-  Lightbulb,
+  Sparkles,
   TrashIcon,
 } from "lucide-react";
 
@@ -22,6 +23,7 @@ export const TextSelectionPopover = ({
   sendMessage,
   showAiFeatures,
   readSelectedText,
+  transformSelection,
 }: {
   content: { text?: string; image?: string };
   hideTipAndSelection: () => void;
@@ -29,8 +31,25 @@ export const TextSelectionPopover = ({
   sendMessage?: ((message: string) => void) | null;
   showAiFeatures?: boolean;
   readSelectedText?: ReadSelectedText;
+  // Paints a persistent ghost highlight so the selection stays visible once the
+  // AI input steals focus and collapses the native selection.
+  transformSelection?: () => void;
 }) => {
   const isTextHighlight = content.text !== undefined;
+  const [mode, setMode] = useState<"actions" | "ai">("actions");
+
+  if (mode === "ai" && sendMessage) {
+    return (
+      <AskAiMenu
+        selection={content.text ?? ""}
+        onSubmit={(prompt) => {
+          sendMessage(prompt);
+          hideTipAndSelection();
+        }}
+        onClose={() => setMode("actions")}
+      />
+    );
+  }
 
   const OPTIONS = [
     isTextHighlight && {
@@ -64,28 +83,12 @@ export const TextSelectionPopover = ({
     showAiFeatures &&
       sendMessage && {
         onClick: () => {
-          sendMessage(
-            "**Explain the following text in simple terms**: \n'" +
-              content.text +
-              "'",
-          );
-          hideTipAndSelection();
+          transformSelection?.();
+          setMode("ai");
         },
-        icon: Lightbulb,
-        tooltip: "Explain the text",
-      },
-    showAiFeatures &&
-      sendMessage && {
-        onClick: () => {
-          sendMessage(
-            "**Summarise the following text in simple terms**: \n'" +
-              content.text +
-              "'",
-          );
-          hideTipAndSelection();
-        },
-        icon: BookOpenCheck,
-        tooltip: "Summarise the text",
+        icon: Sparkles,
+        tooltip: "Ask AI",
+        accent: true,
       },
   ].filter(Boolean);
 
@@ -103,7 +106,13 @@ export const TextSelectionPopover = ({
               onClick={option.onClick}
             >
               <CustomTooltip content={option.tooltip}>
-                <option.icon className="h-5 w-5 text-gray-300 group-hover:text-gray-50" />
+                <option.icon
+                  className={
+                    "accent" in option && option.accent
+                      ? "h-5 w-5 text-violet-400 group-hover:text-violet-300"
+                      : "h-5 w-5 text-gray-300 group-hover:text-gray-50"
+                  }
+                />
               </CustomTooltip>
             </div>
           );

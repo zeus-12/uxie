@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpIcon, Loader2Icon, SparklesIcon } from "lucide-react";
+import { createId } from "@paralleldrive/cuid2";
+import { Loader2Icon, SparklesIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { Button } from "@uxie/shared/components/ui/button";
-import { useChatStore } from "@uxie/shared/lib/store";
-import { Message, MessageContent } from "@/components/ui/message";
+import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
+import {
+  ChatPanel,
+  type ChatRow,
+} from "@uxie/shared/components/chat/chat-panel";
+import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import type { ChatMessage } from "../ipc-contract";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
 
 export function Chat({
   docId,
@@ -48,19 +53,9 @@ function IndexGate({
     }
   }
 
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-        <SparklesIcon className="h-6 w-6 text-primary" />
-      </div>
-      <div>
-        <p className="font-medium">Chat with this document</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Index the PDF once (on-device) to ask questions grounded in its
-          contents.
-        </p>
-      </div>
-      {progress ? (
+  if (progress) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="flex w-56 flex-col items-center gap-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2Icon className="h-4 w-4 animate-spin" />
@@ -75,55 +70,142 @@ function IndexGate({
             />
           </div>
         </div>
-      ) : (
-        <Button onClick={index} className="rounded-full">
-          <SparklesIcon className="mr-1.5 h-4 w-4" /> Index document
-        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <EmptyStatePrompt
+        icon={<SparklesIcon className="h-6 w-6" />}
+        title="Chat with this document"
+        subtext="Ask anything and get instant answers straight from your PDF — perfect for summarizing, studying, and turning it into flashcards."
+        buttonText="Start chatting"
+        loadingText="Getting ready…"
+        onClick={index}
+      />
+      {error && (
+        <p className="pb-3 text-center text-sm text-destructive">{error}</p>
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
 
 function ChatView({ docId }: { docId: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [retrieving, setRetrieving] = useState(false);
+  const [searchedOnce, setSearchedOnce] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const abortRef = useRef<AbortController | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const taRef = useRef<HTMLTextAreaElement>(null);
-
-  function grow() {
-    const t = taRef.current;
-    if (!t) return;
-    t.style.height = "auto";
-    t.style.height = `${Math.min(t.scrollHeight, 160)}px`;
-  }
-
-  useEffect(() => {
-    return () => abortRef.current?.abort();
-  }, []);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const streamIdRef = useRef<string | null>(null);
+  const accRef = useRef("");
 
   useEffect(() => {
     let cancelled = false;
+    setLoaded(false);
     window.uxieAPI
       .getMessages(docId)
-      .then((m) => !cancelled && setMessages(m))
-      .catch(() => {});
+      .then((m) => {
+        if (cancelled) return;
+        setMessages(m);
+        setLoaded(true);
+      })
+      .catch(() => !cancelled && setLoaded(true));
     return () => {
       cancelled = true;
     };
   }, [docId]);
 
+  // The chat itself streams from main over IPC. We only keep the retrieval here
+  // because the embedding model lives in the renderer's Web Worker.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages, streamingText]);
+    function finalize() {
+      streamIdRef.current = null;
+      accRef.current = "";
+      setStreaming(false);
+      setRetrieving(false);
+      setStreamingText("");
+    }
 
-  async function send(override?: string) {
+    const offDelta = window.uxieAPI.onChatDelta((sid, delta) => {
+      if (sid !== streamIdRef.current) return;
+      setRetrieving(false);
+      accRef.current += delta;
+      setStreamingText(accRef.current);
+    });
+    const offRetrieving = window.uxieAPI.onChatRetrieving((sid) => {
+      if (sid !== streamIdRef.current) return;
+      setRetrieving(true);
+      setSearchedOnce(true);
+    });
+    const offDone = window.uxieAPI.onChatDone((sid, full) => {
+      if (sid !== streamIdRef.current) return;
+      if (full) {
+        setMessages((m) => [...m, { role: "assistant", content: full }]);
+        void window.uxieAPI.createMessage(docId, "assistant", full).catch(() => {});
+      }
+      finalize();
+    });
+    const offError = window.uxieAPI.onChatError((sid, msg) => {
+      if (sid !== streamIdRef.current) return;
+      setError(msg);
+      finalize();
+    });
+    // Main asks us to retrieve (embed in the worker + query the vector store).
+    const offRetrieve = window.uxieAPI.onChatRetrieve((reqId, dId, question) => {
+      import("./rag")
+        .then(({ retrieve }) => retrieve(dId, question))
+        .then((chunks) => window.uxieAPI.chatRetrieveReply(reqId, chunks))
+        .catch(() => window.uxieAPI.chatRetrieveReply(reqId, null));
+    });
+
+    return () => {
+      offDelta();
+      offRetrieving();
+      offDone();
+      offError();
+      offRetrieve();
+    };
+  }, [docId]);
+
+  // Register a focuser + auto-focus when the chat tab becomes active.
+  const setFocusInput = useChatStore((s) => s.setFocusInput);
+  const tab = useSidebarTabStore((s) => s.tab);
+  useEffect(() => {
+    const focus = () => inputRef.current?.focus();
+    setFocusInput(focus);
+    return () => setFocusInput(null);
+  }, [setFocusInput]);
+  useEffect(() => {
+    if (tab === "chat") inputRef.current?.focus();
+  }, [tab]);
+
+  const rows: ChatRow[] = messages.map((m) => ({
+    kind: "message",
+    role: m.role,
+    content: m.content,
+  }));
+  // The current assistant turn: an optional tool chip (outside the bubble, like
+  // ChatGPT), then either the streaming answer or a "thinking" shimmer.
+  if (streaming) {
+    if (searchedOnce) {
+      rows.push({
+        kind: "tool",
+        label: retrieving ? "Searching the document…" : "Searched the document",
+        active: retrieving,
+      });
+    }
+    if (streamingText) rows.push({ kind: "streaming", content: streamingText });
+    else if (!retrieving) rows.push({ kind: "thinking", label: "Thinking…" });
+  }
+  if (error) rows.push({ kind: "error", content: error });
+
+  function send(override?: string) {
     const text = (override ?? input).trim();
     if (!text || streaming) return;
     const history: ChatMessage[] = [...messages, { role: "user", content: text }];
@@ -132,39 +214,18 @@ function ChatView({ docId }: { docId: string }) {
     setError(null);
     setStreaming(true);
     setRetrieving(false);
+    setSearchedOnce(false);
     setStreamingText("");
-    if (taRef.current) taRef.current.style.height = "auto";
+    accRef.current = "";
 
-    const controller = new AbortController();
-    abortRef.current = controller;
+    const streamId = createId();
+    streamIdRef.current = streamId;
     void window.uxieAPI.createMessage(docId, "user", text).catch(() => {});
+    window.uxieAPI.startChat(streamId, docId, history);
+  }
 
-    try {
-      const { runChat } = await import("./chat-engine");
-      let acc = "";
-      const answer = await runChat(docId, history, {
-        signal: controller.signal,
-        onRetrieving: () => setRetrieving(true),
-        onDelta: (delta) => {
-          setRetrieving(false);
-          acc += delta;
-          setStreamingText(acc);
-        },
-      });
-      if (answer) {
-        setMessages((m) => [...m, { role: "assistant", content: answer }]);
-        void window.uxieAPI
-          .createMessage(docId, "assistant", answer)
-          .catch(() => {});
-      }
-    } catch (e) {
-      if (!controller.signal.aborted) setError(message(e));
-    } finally {
-      setStreaming(false);
-      setRetrieving(false);
-      setStreamingText("");
-      abortRef.current = null;
-    }
+  function stop() {
+    if (streamIdRef.current) window.uxieAPI.cancelChat(streamIdRef.current);
   }
 
   // Let the highlight popover push a message into this chat. Route through a ref
@@ -177,73 +238,16 @@ function ChatView({ docId }: { docId: string }) {
   }, [setSendMessage]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
-        {messages.map((m, i) => (
-          <ChatBubble key={i} role={m.role} content={m.content} />
-        ))}
-        {streamingText && <ChatBubble role="assistant" content={streamingText} />}
-        {streaming && !streamingText && (
-          <div className="flex items-center gap-2 px-2 text-sm text-muted-foreground">
-            <Loader2Icon className="h-4 w-4 animate-spin" />
-            {retrieving ? "Searching the document…" : "Thinking…"}
-          </div>
-        )}
-        {error && <p className="px-2 text-sm text-destructive">{error}</p>}
-      </div>
-
-      <div className="p-2">
-        <div className="flex items-end gap-2 rounded-2xl border border-input bg-muted/60 py-2 pl-3.5 pr-2 focus-within:border-ring">
-          <textarea
-            ref={taRef}
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              grow();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-            rows={2}
-            placeholder="Ask about this document…"
-            className="max-h-40 min-h-[3.25rem] flex-1 resize-none self-stretch bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <button
-            onClick={() => send()}
-            disabled={streaming || !input.trim()}
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
-            aria-label="Send"
-          >
-            {streaming ? (
-              <Loader2Icon className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUpIcon className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChatBubble({ role, content }: { role: string; content: string }) {
-  const isUser = role === "user";
-  return (
-    <Message align={isUser ? "end" : "start"}>
-      <MessageContent>
-        {isUser ? (
-          <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
-            {content}
-          </div>
-        ) : (
-          <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mt-2 prose-headings:mb-1">
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </div>
-        )}
-      </MessageContent>
-    </Message>
+    <ChatPanel
+      rows={rows}
+      loaded={loaded}
+      input={input}
+      onInputChange={setInput}
+      onSubmit={() => send()}
+      onStop={stop}
+      streaming={streaming}
+      renderMarkdown={renderMarkdown}
+      inputRef={inputRef}
+    />
   );
 }
