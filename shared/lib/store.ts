@@ -114,12 +114,26 @@ export const useMobileSidebarStore = create<MobileSidebarStore>((set) => ({
   setDrawerOpen: (open) => set({ isDrawerOpen: open }),
 }));
 
+// The reader sidebar's tabs — the single source of truth for their names and
+// order. The sidebar UI, the store default, and web's URL sync all read from here.
+export const SIDEBAR_TABS = ["notes", "chat", "flashcards"] as const;
+export type SidebarTab = (typeof SIDEBAR_TABS)[number];
+export const DEFAULT_SIDEBAR_TAB: SidebarTab = "notes";
+
 interface SidebarTabStore {
-  tab: string;
-  setTab: (tab: string) => void;
+  tab: SidebarTab;
+  setTab: (tab: SidebarTab) => void;
 }
 
-export const useSidebarTabStore = create<SidebarTabStore>((set) => ({
-  tab: "notes",
-  setTab: (tab) => set({ tab }),
-}));
+// Persisted so the reader reopens on the tab you left it on — including across
+// app restarts (desktop). Web treats the URL (?tab=) as the source of truth on
+// mount, so the rehydrated value there is immediately overwritten; harmless.
+export const useSidebarTabStore = create<SidebarTabStore>()(
+  persist(
+    (set) => ({
+      tab: DEFAULT_SIDEBAR_TAB,
+      setTab: (tab) => set({ tab }),
+    }),
+    { name: "sidebar-tab" },
+  ),
+);

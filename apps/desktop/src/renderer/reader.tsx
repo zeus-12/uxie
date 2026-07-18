@@ -299,6 +299,7 @@ function ReaderContent({
 
   return (
     <ResizablePanelGroup
+      autoSaveId="reader-layout"
       direction="horizontal"
       className="flex-1 overflow-hidden"
     >
