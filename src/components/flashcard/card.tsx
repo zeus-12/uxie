@@ -16,11 +16,17 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-interface FlashcardAttemptType {
+export interface FlashcardAttemptType {
   userResponse: string;
   correctResponse: string | null;
   incorrectResponse: string | null;
   moreInfo: string | null;
+}
+
+export interface FlashcardEvaluation {
+  correctResponse?: string;
+  incorrectResponse?: string;
+  moreInfo?: string;
 }
 
 const IndividualFlashcard = ({
@@ -31,6 +37,7 @@ const IndividualFlashcard = ({
   setCurrent,
   id,
   attempts,
+  evaluate,
 }: {
   question: string;
   answer: string;
@@ -39,16 +46,22 @@ const IndividualFlashcard = ({
   setCurrent: React.Dispatch<React.SetStateAction<number>>;
   id: string;
   attempts: FlashcardAttemptType[];
+  // When provided, grading is done locally (e.g. the demo) instead of the
+  // /api/evaluate backend.
+  evaluate?: (userResponse: string) => FlashcardEvaluation;
 }) => {
   const [hasAttempted, setHasAttempted] = useState(false);
+  const [demoFeedback, setDemoFeedback] = useState<
+    FlashcardEvaluation | undefined
+  >(undefined);
 
   const { query } = useRouter();
   const documentId = query?.docId as string;
   const utils = api.useContext();
 
   const {
-    isLoading,
-    object: feedback,
+    isLoading: aiIsLoading,
+    object: aiFeedback,
     submit,
   } = useObject({
     schema: flashcardFeedbackSchema,
@@ -87,6 +100,17 @@ const IndividualFlashcard = ({
     api: "/api/evaluate",
   });
 
+  const feedback = evaluate ? demoFeedback : aiFeedback;
+  const isLoading = evaluate ? false : aiIsLoading;
+
+  const handleComplete = (prompt: string) => {
+    if (evaluate) {
+      setDemoFeedback(evaluate(prompt));
+      return;
+    }
+    submit({ flashcardId: id, docId: documentId, prompt });
+  };
+
   const toggleAttempt = () => {
     setHasAttempted((prev) => !prev);
   };
@@ -113,9 +137,7 @@ const IndividualFlashcard = ({
           <IndividualFlashcardQuestion
             attempts={attempts}
             setCompletion={() => {}}
-            complete={(prompt: string) =>
-              submit({ flashcardId: id, docId: documentId, prompt })
-            }
+            complete={handleComplete}
             question={question}
             answer={answer}
             toggleAttempt={toggleAttempt}

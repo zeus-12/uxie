@@ -14,7 +14,7 @@ import ReactMarkdown from "react-markdown";
 import TextareaAutosize from "react-textarea-autosize";
 import { toast } from "sonner";
 
-const INITIAL_MESSAGE = `Welcome to **Uxie**! I'm here to assist you. Feel free to ask questions or discuss topics based on the data provided.`;
+export const INITIAL_MESSAGE = `Welcome to **Uxie**! I'm here to assist you. Feel free to ask questions or discuss topics based on the data provided.`;
 
 export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { query } = useRouter();

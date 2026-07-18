@@ -15,12 +15,13 @@ const MyApp: AppType<{ session: Session | null }> = ({
   pageProps: { session, ...pageProps },
 }) => {
   const router = useRouter();
-  const isReader = router.pathname === "/f/[docId]";
+  // Pages that render full-bleed (no navbar chrome).
+  const isFullBleed = ["/f/[docId]", "/demo"].includes(router.pathname);
 
   return (
     <SessionProvider session={session}>
       <DefaultSeo {...SEO} />
-      {isReader ? (
+      {isFullBleed ? (
         <Component {...pageProps} />
       ) : (
         <main>

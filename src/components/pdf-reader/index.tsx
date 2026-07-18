@@ -15,7 +15,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const addHighlightToNotes = async (
+export const addHighlightToNotes = async (
   content: string,
   highlightId: string,
   type: HighlightContentType,

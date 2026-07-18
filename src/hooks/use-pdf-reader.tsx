@@ -26,10 +26,14 @@ const usePdfReader = ({
   lastReadPage,
   docId,
   pageCount,
+  onUpdateLastReadPage,
 }: {
   lastReadPage: number;
   docId: string;
   pageCount: number;
+  // When provided, last-read-page persistence is delegated to the caller
+  // (e.g. the local-only demo) instead of the tRPC backend.
+  onUpdateLastReadPage?: (docId: string, pageNumber: number) => void;
 }) => {
   const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
     READING_STATUS.IDLE,
@@ -99,6 +103,10 @@ const usePdfReader = ({
 
   const debouncedUpdateLastReadPage = useDebouncedCallback(
     async (pageNumber: number) => {
+      if (onUpdateLastReadPage) {
+        onUpdateLastReadPage(docId, pageNumber);
+        return;
+      }
       await mutateAsync({ docId, lastReadPage: pageNumber });
     },
     2000,

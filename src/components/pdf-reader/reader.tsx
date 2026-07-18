@@ -2,19 +2,31 @@ import PdfHighlighter from "@/components/pdf-reader/pdf-highlighter";
 import BottomToolbar from "@/components/pdf-reader/toolbar";
 import { SpinnerPage } from "@/components/ui/spinner";
 import usePdfReader from "@/hooks/use-pdf-reader";
-import { type AppRouter } from "@/server/api/root";
-import { type AddHighlightType } from "@/types/highlight";
-import { type inferRouterOutputs } from "@trpc/server";
+import {
+  type AddHighlightType,
+  type HighlightPositionType,
+} from "@/types/highlight";
+import { type ReaderDoc } from "@/types/reader";
 import { PdfLoader } from "react-pdf-highlighter";
 
 const PdfReader = ({
   addHighlight,
   deleteHighlight,
   doc,
+  onUpdateLastReadPage,
+  onUpdateAreaHighlight,
 }: {
   addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
   deleteHighlight: (id: string) => void;
-  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
+  doc: ReaderDoc;
+  // When provided (e.g. the local demo), these bypass the backend for the two
+  // persistence touchpoints; otherwise the components fall back to tRPC.
+  onUpdateLastReadPage?: (docId: string, pageNumber: number) => void;
+  onUpdateAreaHighlight?: (
+    id: string,
+    boundingRect: HighlightPositionType["boundingRect"],
+    pageNumber?: number,
+  ) => void;
 }) => {
   const { url: docUrl, pageCount, id: docId, lastReadPage } = doc;
 
@@ -40,6 +52,7 @@ const PdfReader = ({
     docId,
     lastReadPage,
     pageCount,
+    onUpdateLastReadPage,
   });
 
   return (
@@ -52,6 +65,7 @@ const PdfReader = ({
             addHighlight={addHighlight}
             deleteHighlight={deleteHighlight}
             readSelectedText={readSelectedText}
+            onUpdateAreaHighlight={onUpdateAreaHighlight}
           />
         )}
       </PdfLoader>
