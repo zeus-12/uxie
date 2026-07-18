@@ -1,10 +1,10 @@
 import { AlbumIcon, Layers, MessagesSquareIcon } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import { useSidebarTabStore } from "../../lib/store";
+import { DEFAULT_SIDEBAR_TAB, useSidebarTabStore, type SidebarTab } from "../../lib/store";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { CustomTooltip } from "../ui/tooltip";
 
-const TABS = [
+const TABS: { value: SidebarTab; tooltip: string; icon: ReactNode }[] = [
   { value: "notes", tooltip: "Take notes", icon: <AlbumIcon size={20} /> },
   {
     value: "chat",
@@ -26,7 +26,11 @@ export function SidebarTabs({ className }: { className?: string }) {
   const setTab = useSidebarTabStore((s) => s.setTab);
 
   return (
-    <Tabs value={tab} onValueChange={setTab} className={className}>
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as SidebarTab)}
+      className={className}
+    >
       <TabsList className="h-9 rounded-md bg-gray-200">
         {TABS.map((item) => (
           <CustomTooltip content={item.tooltip} key={item.value}>
@@ -47,13 +51,13 @@ export function Sidebar({
   notes,
   chat,
   flashcards,
-  defaultTab = "notes",
+  defaultTab = DEFAULT_SIDEBAR_TAB,
   resetTabOnMount = true,
 }: {
   notes: ReactNode;
   chat: ReactNode;
   flashcards: ReactNode;
-  defaultTab?: string;
+  defaultTab?: SidebarTab;
   // Desktop resets to the default tab on mount (a new document starts on notes).
   // Web owns the initial tab via the URL (?tab=), so it opts out.
   resetTabOnMount?: boolean;
@@ -79,7 +83,7 @@ export function Sidebar({
     <div className="h-full bg-gray-50">
       <Tabs
         value={tab}
-        onValueChange={setTab}
+        onValueChange={(v) => setTab(v as SidebarTab)}
         className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden"
       >
         {contents.map((item) => (

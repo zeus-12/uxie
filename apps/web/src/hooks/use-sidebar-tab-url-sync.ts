@@ -1,9 +1,14 @@
-import { useSidebarTabStore } from "@uxie/shared/lib/store";
+import {
+  DEFAULT_SIDEBAR_TAB,
+  SIDEBAR_TABS,
+  useSidebarTabStore,
+  type SidebarTab,
+} from "@uxie/shared/lib/store";
 import { useQueryState } from "nuqs";
 import { useEffect } from "react";
 
-const TAB_NAMES = ["notes", "chat", "flashcards"];
-const DEFAULT_TAB = "notes";
+const isSidebarTab = (v: string): v is SidebarTab =>
+  (SIDEBAR_TABS as readonly string[]).includes(v);
 
 // The shared sidebar drives tab state through the zustand store, but web keeps
 // the active tab in the URL (?tab=) for deep links + back/forward. This bridges
@@ -14,8 +19,8 @@ export function useSidebarTabUrlSync() {
   const tab = useSidebarTabStore((s) => s.tab);
   const setTab = useSidebarTabStore((s) => s.setTab);
   const [urlTab, setUrlTab] = useQueryState("tab", {
-    defaultValue: DEFAULT_TAB,
-    parse: (v) => (TAB_NAMES.includes(v) ? v : DEFAULT_TAB),
+    defaultValue: DEFAULT_SIDEBAR_TAB,
+    parse: (v): SidebarTab => (isSidebarTab(v) ? v : DEFAULT_SIDEBAR_TAB),
   });
 
   // URL -> store (mount + browser navigation).
