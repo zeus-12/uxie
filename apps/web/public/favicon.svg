@@ -2,8 +2,9 @@
   <style>
     /* Favicon: the logo on a transparent background. Whole mark + wordmark
        are blue on light UI and white on dark UI (matches the tab bar). */
-    .ink, .wm-u, .wm-x { fill: #004AAD; }
-    @media (prefers-color-scheme: dark) { .ink, .wm-u, .wm-x { fill: #ffffff; } }
+    .ink { fill: #004AAD; }              /* clouds: blue on light, white on dark */
+    .wm-u, .wm-x { fill: #ffffff; }       /* UXIE wordmark: always white */
+    @media (prefers-color-scheme: dark) { .ink { fill: #ffffff; } }
   </style>
   <g transform="translate(0.000000,1568.000000) scale(0.100000,-0.100000)" class="ink" stroke="none"><path d="M6166 15015 c-43 -15 -121 -30 -202 -39 -109 -12 -141 -19 -190 -44
 -33 -17 -79 -36 -104 -42 -25 -6 -65 -24 -90 -40 -25 -15 -70 -35 -101 -44
