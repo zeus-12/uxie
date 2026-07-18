@@ -12,6 +12,7 @@ import {
   combineSamples,
   computeChunkWordTimings,
   findChunkPosition,
+  findVoicedRangeMs,
 } from "../utils";
 
 export const SUPERTONIC_VOICES = [
@@ -118,12 +119,15 @@ export class SupertonicProvider extends BaseAudioProvider<SupertonicVoiceId> {
         const chunkStart = findChunkPosition(text, chunk, searchStartIndex);
 
         if (chunkStart !== -1) {
+          // Distribute word timings over the measured voiced region so
+          // highlights track actual speech rather than padding silence.
+          const voiced = findVoicedRangeMs(samples, SAMPLE_RATE);
           wordTimings.push(
             ...computeChunkWordTimings(
               chunk,
               chunkStart,
-              currentTimeMs,
-              chunkDurationMs,
+              currentTimeMs + voiced.startMs,
+              voiced.endMs - voiced.startMs,
             ),
           );
           searchStartIndex = chunkStart + chunk.length;
