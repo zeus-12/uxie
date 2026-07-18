@@ -20,8 +20,8 @@ extraResources:
   - from: drizzle
     to: drizzle
 mac:
-  # App icon: the UXIE mark on a rounded tile. Regenerate from build/icon.svg
-  # (see scripts/generate-icons.sh) if the logo changes.
+  # App icon: the UXIE logo on a rounded tile. Regenerate with
+  # `bash scripts/generate-icons.sh` (source: shared/assets/brand/app-icon.svg).
   icon: build/icon.icns
   target:
     - dmg

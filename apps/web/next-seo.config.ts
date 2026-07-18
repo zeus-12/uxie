@@ -39,7 +39,7 @@ export const SEO = {
     },
     {
       rel: "icon",
-      href: "/logo.svg",
+      href: "/favicon.svg",
       type: "image/svg+xml",
     },
     {

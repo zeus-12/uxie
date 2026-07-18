@@ -13,7 +13,13 @@ const Navbar = () => {
       <div className="flex items-center justify-between bg-opacity-30 backdrop-blur-lg backdrop-filter">
         <Link href="/">
           <div className="flex items-center gap-2">
-            <Image alt="Uxie" src="/logo.png" width={40} height={40} />
+            <Image
+              alt="Uxie"
+              src="/logo.svg"
+              width={40}
+              height={40}
+              unoptimized
+            />
             {/* <span className="font-semibold">Uxie</span> */}
           </div>
         </Link>
