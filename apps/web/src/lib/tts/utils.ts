@@ -43,6 +43,52 @@ export function isRealWord(word: string): boolean {
   return /[a-zA-Z0-9]/.test(word);
 }
 
+// Hyphen characters that appear at the end of a line when a word is split
+// across lines: ASCII hyphen-minus, Unicode hyphen, non-breaking hyphen,
+// soft hyphen. (En/em dashes are punctuation, not word-break hyphens.)
+const HYPHEN_CHARS = "\\u002d\\u2010\\u2011\\u00ad";
+export const LINE_BREAK_HYPHEN_END = new RegExp(`[${HYPHEN_CHARS}]$`);
+export const LINE_BREAK_HYPHEN_JOIN = new RegExp(
+  `(\\w)[${HYPHEN_CHARS}]\\s+(\\w)`,
+  "g",
+);
+
+export type NormalizedText = {
+  text: string;
+  toRaw: number[];
+  fromRaw: number[];
+};
+
+// Collapses every whitespace run (spaces, NBSP, newlines) to a single " " so
+// the result matches what sbd and the TTS engines operate on, while keeping
+// an offset map back to the raw string for DOM positioning.
+export function normalizeWhitespace(raw: string): NormalizedText {
+  let text = "";
+  const toRaw: number[] = [];
+  const fromRaw: number[] = new Array(raw.length);
+
+  let i = 0;
+  while (i < raw.length) {
+    const ch = raw[i]!;
+    if (/\s/.test(ch)) {
+      const normIndex = text.length;
+      text += " ";
+      toRaw.push(i);
+      while (i < raw.length && /\s/.test(raw[i]!)) {
+        fromRaw[i] = normIndex;
+        i++;
+      }
+    } else {
+      fromRaw[i] = text.length;
+      text += ch;
+      toRaw.push(i);
+      i++;
+    }
+  }
+
+  return { text, toRaw, fromRaw };
+}
+
 export function normalizeWord(word: string): string {
   return word.toLowerCase().replace(/[^a-z0-9]/gi, "");
 }
@@ -66,18 +112,38 @@ export function buildWordMap(
 
   for (const cw of cleanWords) {
     const cwNorm = normalizeWord(cw.word);
-    if (!cwNorm) continue;
+    if (!cwNorm) {
+      // Symbol-only token ("<", "&", "—"): match it verbatim against
+      // adjacent symbol tokens in the original; stop at the next real word
+      // so it can't pair with a distant duplicate.
+      for (let i = origIdx; i < origWords.length; i++) {
+        const ow = origWords[i]!;
+        if (ow.word === cw.word) {
+          map.push({
+            cleanedOffset: cw.charOffset,
+            cleanedEnd: cw.charOffset + cw.word.length,
+            originalOffset: ow.charOffset,
+            originalLength: ow.word.length,
+          });
+          origIdx = i + 1;
+          break;
+        }
+        if (normalizeWord(ow.word)) break;
+      }
+      continue;
+    }
 
     for (let i = origIdx; i < origWords.length; i++) {
       const ow = origWords[i]!;
       const owNorm = normalizeWord(ow.word);
       if (!owNorm) continue;
 
-      // handle hyphenated word split across lines
+      // handle hyphenated word split across lines. PDFs use several hyphen
+      // characters at line breaks (ASCII "-", U+2010 "‐", U+2011, soft hyphen).
       if (
         cwNorm.startsWith(owNorm) &&
         cwNorm !== owNorm &&
-        ow.word.endsWith("-") &&
+        LINE_BREAK_HYPHEN_END.test(ow.word) &&
         i + 1 < origWords.length
       ) {
         const nextOw = origWords[i + 1]!;
@@ -106,11 +172,15 @@ export function buildWordMap(
         owNorm.startsWith(cwNorm) ||
         cwNorm.startsWith(owNorm)
       ) {
+        // The original token may contain characters the cleaner stripped
+        // (footnote markers, superscripts). When the spoken word appears
+        // verbatim inside the token, highlight only that part.
+        const exact = ow.word.indexOf(cw.word);
         map.push({
           cleanedOffset: cw.charOffset,
           cleanedEnd: cw.charOffset + cw.word.length,
-          originalOffset: ow.charOffset,
-          originalLength: ow.word.length,
+          originalOffset: exact === -1 ? ow.charOffset : ow.charOffset + exact,
+          originalLength: exact === -1 ? ow.word.length : cw.word.length,
         });
         origIdx = i + 1;
         break;
@@ -207,6 +277,33 @@ export function computeChunkWordTimings(
   }
 
   return timings;
+}
+
+// Measures the leading/trailing silence in generated audio so word timings
+// can be distributed over the region where speech actually occurs.
+export function findVoicedRangeMs(
+  samples: Float32Array,
+  sampleRate: number,
+  threshold = 0.005,
+): { startMs: number; endMs: number } {
+  let first = 0;
+  while (first < samples.length && Math.abs(samples[first]!) < threshold) {
+    first++;
+  }
+
+  if (first === samples.length) {
+    return { startMs: 0, endMs: (samples.length / sampleRate) * 1000 };
+  }
+
+  let last = samples.length - 1;
+  while (last > first && Math.abs(samples[last]!) < threshold) {
+    last--;
+  }
+
+  return {
+    startMs: (first / sampleRate) * 1000,
+    endMs: ((last + 1) / sampleRate) * 1000,
+  };
 }
 
 export function findCurrentWordIndex(

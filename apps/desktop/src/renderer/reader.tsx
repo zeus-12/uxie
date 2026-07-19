@@ -229,6 +229,7 @@ function ReaderContent({
     handlePageChange,
     readSelectedText,
     currentZoom,
+    pdfScaleValue,
     pageColour,
     pageColourChangeHandler,
     followAlongEnabled,
@@ -336,6 +337,7 @@ function ReaderContent({
             {(pdfDocument: PDFDocumentProxy) => (
               <PdfHighlighter
                 pdfDocument={pdfDocument}
+                pdfScaleValue={pdfScaleValue}
                 enableAreaSelection={(e) => e.altKey}
                 onScrollChange={() => {}}
                 scrollRef={() => {}}

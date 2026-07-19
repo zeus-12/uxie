@@ -87,9 +87,16 @@ import { useDebouncedCallback } from "use-debounce";
 export default function Editor({
   canEdit,
   note,
+  onSave,
+  enableAi = true,
 }: {
   canEdit: boolean;
   note: string | null;
+  // When provided, note persistence is delegated to the caller (e.g. the
+  // local-only demo) instead of the tRPC backend.
+  onSave?: (note: string) => void;
+  // Disables the AI autocomplete / rewrite features, which require a backend.
+  enableAi?: boolean;
 }) {
   const { mutate: updateNotesMutation } =
     api.document.updateNotes.useMutation();
@@ -98,6 +105,10 @@ export default function Editor({
   const documentId = query?.docId as string;
 
   const debounced = useDebouncedCallback((value) => {
+    if (onSave) {
+      onSave(value);
+      return;
+    }
     updateNotesMutation({
       note: value,
       documentId,
@@ -221,7 +232,7 @@ export default function Editor({
           ).trim();
 
           const lastTwo = blockText?.slice(-2);
-          if (lastTwo === "++" && !isLoading) {
+          if (enableAi && lastTwo === "++" && !isLoading) {
             editor.updateBlock(block, {
               id: block.id,
               content: blockText?.slice(0, -2),
@@ -307,7 +318,9 @@ export default function Editor({
               dragHandleMenu={(props) => (
                 <DragHandleMenu {...props}>
                   <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
-                  <AiDragHandleMenu {...props} setRect={setRect} />
+                  {enableAi && (
+                    <AiDragHandleMenu {...props} setRect={setRect} />
+                  )}
 
                   <BlockColorsItem {...props}>Colors</BlockColorsItem>
                 </DragHandleMenu>
@@ -315,7 +328,7 @@ export default function Editor({
             />
           )}
         />
-        {rect && <AiPopover rect={rect} setRect={setRect} />}
+        {enableAi && rect && <AiPopover rect={rect} setRect={setRect} />}
       </BlockNoteView>
     </div>
   );

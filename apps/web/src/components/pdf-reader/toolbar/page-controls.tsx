@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useEffect, useRef } from "react";
 
 export const PageControlsContent = ({
   pageNumber,
@@ -12,8 +13,15 @@ export const PageControlsContent = ({
   debouncedHandlePageChange: (page: number) => void;
   totalPages: number;
 }) => {
+  // Mounts fresh each time the page tab opens, so focus on mount.
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
   return (
     <Input
+      ref={inputRef}
       className="h-7"
       value={pageNumber > 0 ? pageNumber : ""}
       onChange={(e) => {

@@ -86,14 +86,28 @@ const HeroSection = () => {
           Uxie turns PDFs into interactive learning tools with AI-powered
           summaries and flashcards
         </p>
-        <Link href="/f" className="group">
-          <Button>
-            Get started
-            <span className="ml-2 transition-all  group-hover:animate-pulse">
-              🚀
-            </span>
-          </Button>
-        </Link>
+        <div className="flex flex-col items-center gap-2">
+          <Link href="/f" className="group">
+            <Button>
+              Get started
+              <span className="ml-2 transition-all  group-hover:animate-pulse">
+                🚀
+              </span>
+            </Button>
+          </Link>
+          <p className="text-sm text-gray-500">
+            or{" "}
+            <Link
+              href="/demo"
+              className="group font-medium text-gray-700 underline decoration-gray-300 underline-offset-2 transition-colors hover:text-gray-900 hover:decoration-gray-500"
+            >
+              try the demo
+              <span className="ml-0.5 inline-block transition-transform group-hover:translate-x-0.5">
+                →
+              </span>
+            </Link>
+          </p>
+        </div>
       </div>
       <YoutubeEmbed />
     </SlideUpWhenVisible>

@@ -26,10 +26,14 @@ const usePdfReader = ({
   lastReadPage,
   docId,
   pageCount,
+  onUpdateLastReadPage,
 }: {
   lastReadPage: number;
   docId: string;
   pageCount: number;
+  // When provided, last-read-page persistence is delegated to the caller
+  // (e.g. the local-only demo) instead of the tRPC backend.
+  onUpdateLastReadPage?: (docId: string, pageNumber: number) => void;
 }) => {
   const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
     READING_STATUS.IDLE,
@@ -37,6 +41,9 @@ const usePdfReader = ({
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
   const [pageNumberInView, setPageNumberInView] = useState<number>(0);
   const [currentZoom, setCurrentZoom] = useState(1);
+  // Passed to react-pdf-highlighter, which re-applies it on every resize.
+  // Kept in sync with the user's zoom so a resize doesn't reset to "auto".
+  const [pdfScaleValue, setPdfScaleValue] = useState("auto");
   const [followAlongEnabled, setFollowAlongEnabled] = useState(true);
 
   // Page color from store (persisted)
@@ -99,6 +106,10 @@ const usePdfReader = ({
 
   const debouncedUpdateLastReadPage = useDebouncedCallback(
     async (pageNumber: number) => {
+      if (onUpdateLastReadPage) {
+        onUpdateLastReadPage(docId, pageNumber);
+        return;
+      }
       await mutateAsync({ docId, lastReadPage: pageNumber });
     },
     2000,
@@ -232,6 +243,15 @@ const usePdfReader = ({
       window.PdfViewer?.viewer?.eventBus.off("textlayerrendered", () => {});
     };
   }, [initPdfViewer]);
+
+  // Apply the user's zoom to the viewer. react-pdf-highlighter re-applies
+  // pdfScaleValue on resize but never on prop change, so we set it here (in a
+  // post-commit effect so it wins over the library's own scale handling).
+  useEffect(() => {
+    if (pdfViewerRef.current) {
+      pdfViewerRef.current.currentScaleValue = pdfScaleValue;
+    }
+  }, [pdfScaleValue]);
 
   // User scroll tracking
   useEffect(() => {
@@ -548,10 +568,8 @@ const usePdfReader = ({
   }, []);
 
   const handleZoomChange = useCallback((zoom: number) => {
-    if (pdfViewerRef.current) {
-      pdfViewerRef.current.currentScale = zoom;
-      setCurrentZoom(zoom);
-    }
+    setCurrentZoom(zoom);
+    setPdfScaleValue(String(zoom));
   }, []);
 
   const handlePageChange = useCallback((pageNumber: number) => {
@@ -690,6 +708,7 @@ const usePdfReader = ({
     handlePageChange,
     readSelectedText,
     currentZoom,
+    pdfScaleValue,
     pageColour,
     pageColourChangeHandler,
     followAlongEnabled,

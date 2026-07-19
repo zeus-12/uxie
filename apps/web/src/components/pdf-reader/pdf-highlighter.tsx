@@ -6,10 +6,12 @@ import {
 import { api } from "@/lib/api";
 import { usePdfSettingsStore } from "@/lib/store";
 import { useChatStore } from "@uxie/shared/lib/store";
-import { type AppRouter } from "@/server/api/root";
-import { type AddHighlightType } from "@/types/highlight";
+import {
+  type AddHighlightType,
+  type HighlightPositionType,
+} from "@/types/highlight";
+import { type ReaderDoc } from "@/types/reader";
 import { HighlightTypeEnum } from "@prisma/client";
-import { type inferRouterOutputs } from "@trpc/server";
 import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useEffect, useRef } from "react";
 import {
@@ -26,18 +28,13 @@ const resetHash = () => {
   document.location.hash = "";
 };
 
-const getHighlightById = (
-  id: string,
-  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"],
-) => {
+const getHighlightById = (id: string, doc: ReaderDoc) => {
   return doc?.highlights?.find((highlight) => highlight.id === id);
 };
 
 let scrollViewerTo = (highlight: any) => {};
 
-const scrollToHighlightFromHash = (
-  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"],
-) => {
+const scrollToHighlightFromHash = (doc: ReaderDoc) => {
   const highlight = getHighlightById(parseIdFromHash(), doc);
 
   if (highlight) {
@@ -51,11 +48,21 @@ const PdfHighlighter = ({
   addHighlight,
   deleteHighlight,
   readSelectedText,
+  onUpdateAreaHighlight,
+  pdfScaleValue,
 }: {
   pdfDocument: PDFDocumentProxy;
-  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
+  doc: ReaderDoc;
+  pdfScaleValue: string;
   addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
   deleteHighlight: (id: string) => void;
+  // When provided (e.g. the local demo), area-highlight resizes persist through
+  // this callback instead of the tRPC mutation.
+  onUpdateAreaHighlight?: (
+    id: string,
+    boundingRect: HighlightPositionType["boundingRect"],
+    pageNumber?: number,
+  ) => void;
   readSelectedText: (args: {
     text?: string | null;
     readingSpeed?: number;
@@ -193,6 +200,7 @@ const PdfHighlighter = ({
   return (
     <PdfHighlighterComponent
       pdfDocument={pdfDocument}
+      pdfScaleValue={pdfScaleValue}
       enableAreaSelection={(event) => event.altKey}
       onScrollChange={resetHash}
       scrollRef={(scrollTo) => {
@@ -244,6 +252,14 @@ const PdfHighlighter = ({
               isScrolledTo={isScrolledTo}
               highlight={highlight}
               onChange={(boundingRect) => {
+                if (onUpdateAreaHighlight) {
+                  onUpdateAreaHighlight(
+                    highlight.id,
+                    viewportToScaled(boundingRect),
+                    boundingRect.pageNumber,
+                  );
+                  return;
+                }
                 updateAreaHighlight({
                   id: highlight.id,
                   boundingRect: viewportToScaled(boundingRect),

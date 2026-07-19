@@ -1,34 +1,39 @@
 import {
   buildWordMap,
-  extractWords,
+  extractWordsWithPositions,
+  LINE_BREAK_HYPHEN_JOIN,
+  normalizeWhitespace,
   splitSentences,
+  type NormalizedText,
   type WordMapEntry,
 } from "@/lib/tts/utils";
 import { useCallback, useEffect, useRef } from "react";
 
 export type HighlightMode = "tts" | "rsvp";
 
-const HIGHLIGHT_CLASS = {
-  sentence: "current-sentence",
-  word: "current-word",
+// Highlights are painted as absolutely-positioned overlay <div>s (not by
+// wrapping text nodes). The pdf text layer stretches every span with a
+// `transform: scaleX(...)` to match the canvas; wrapping a sub-word in a
+// background span misaligns the background from the scaled glyphs (the word
+// looks shifted). Measuring the true on-screen rect with a DOM Range and
+// painting an overlay at that rect avoids the transform entirely, keeps the
+// text layer untouched, and — because a Range's per-line rects are continuous
+// — leaves no gaps between words.
+const OVERLAY_LAYER_CLASS = "tts-hl-layer";
+
+const OVERLAY_CLASS: Record<
+  "sentence" | "word",
+  Record<HighlightMode, string>
+> = {
+  sentence: { tts: "tts-hl-sentence", rsvp: "tts-hl-rsvp-sentence" },
+  word: { tts: "tts-hl-word", rsvp: "tts-hl-rsvp-word" },
 };
 
-const HIGHLIGHT_CLASS_RSVP = {
-  sentence: "rsvp-sentence",
-  word: "rsvp-word",
-};
-
-const HIGHLIGHT_TAG = {
-  sentence: "span",
-  word: "div",
-};
-
-// Get the appropriate class based on mode
 function getHighlightClass(
   type: "sentence" | "word",
   mode: HighlightMode = "tts",
 ) {
-  return mode === "rsvp" ? HIGHLIGHT_CLASS_RSVP[type] : HIGHLIGHT_CLASS[type];
+  return OVERLAY_CLASS[type][mode];
 }
 
 export type SentencePosition = {
@@ -38,24 +43,26 @@ export type SentencePosition = {
   sentenceForTts: string;
 };
 
+function getOverlayLayer(page: Element): HTMLElement {
+  let layer = page.querySelector<HTMLElement>(`.${OVERLAY_LAYER_CLASS}`);
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.className = OVERLAY_LAYER_CLASS;
+    page.appendChild(layer);
+  }
+  return layer;
+}
+
 function removeHighlightsByType(
   type: "sentence" | "word",
   mode?: HighlightMode,
 ) {
-  // Remove both TTS and RSVP highlights if no mode specified
   const classNames = mode
-    ? [mode === "rsvp" ? HIGHLIGHT_CLASS_RSVP[type] : HIGHLIGHT_CLASS[type]]
-    : [HIGHLIGHT_CLASS[type], HIGHLIGHT_CLASS_RSVP[type]];
-
-  classNames.forEach((className) => {
-    const elements = document.querySelectorAll(`.${className}`);
-    elements.forEach((el) => {
-      const text = el.textContent || "";
-      if (el.parentNode) {
-        el.parentNode.replaceChild(document.createTextNode(text), el);
-      }
-    });
-  });
+    ? [OVERLAY_CLASS[type][mode]]
+    : [OVERLAY_CLASS[type].tts, OVERLAY_CLASS[type].rsvp];
+  for (const className of classNames) {
+    document.querySelectorAll(`.${className}`).forEach((el) => el.remove());
+  }
 }
 
 export function removeAllHighlights() {
@@ -69,179 +76,275 @@ export function cleanSentenceForTts(text: string): string {
   text = text.replace(/[●○■□▪▫◆◇★☆►▶◀◄→←↑↓↔↕⇒⇐⇑⇓•◦‣⁃∙·§¶†‡※⁂⁑⁕]/g, "");
   text = text.replace(/[≠≈≡≤≥±∓×÷∞∑∏∫∂√∛∜∝∀∃∄∅∈∉∋∌⊂⊃⊄⊅⊆⊇⊈⊉⊊⊋∪∩]/g, "");
   text = text.replace(/[─━│┃┄┅┆┇┈┉┊┋╌╍╎╏═║╒╓╔╕╖╗╘╙╚╛╜╝╞╟╠╡╢╣╤╥╦╧╨╩╪╫╬]/g, "");
-  text = text.replace(/(\w)-\s+(\w)/g, "$1$2");
+  // Join words split across lines by a hyphen (ASCII or Unicode "‐", soft, …)
+  text = text.replace(LINE_BREAK_HYPHEN_JOIN, "$1$2");
   return text.trim();
 }
 
-function extractSentencesFromBlocks(blockContents: string[]): string[] {
-  const fullText = blockContents.join("");
-  const sentences = splitSentences(fullText);
+// All sentence and word offsets are expressed in normalized coordinates
+// (whitespace runs collapsed to single spaces — the text sbd and the TTS
+// engines actually see) and converted to raw DOM offsets only when
+// highlighting. This keeps highlight positions exact even when the PDF text
+// layer contains double spaces, NBSPs, or HTML-sensitive characters.
+type PageTextModel = {
+  pageElement: Element;
+  blocks: Element[];
+  // Length of each block's contribution to rawText, excluding the separator
+  // space appended between blocks (0 for whitespace-only blocks).
+  blockRawLens: number[];
+  blockStarts: number[];
+  norm: NormalizedText;
+  sentences: string[];
+  sentenceStarts: number[];
+};
 
-  return sentences.filter((sentence) => {
+function buildPageTextModel(pageElement: Element): PageTextModel {
+  const blocks = Array.from(
+    pageElement.querySelectorAll("span[role='presentation']"),
+  );
+
+  const blockRawLens: number[] = [];
+  const blockStarts: number[] = [];
+  let rawText = "";
+
+  for (const block of blocks) {
+    const text = block.textContent ?? "";
+    blockStarts.push(rawText.length);
+    if (text.trim().length === 0) {
+      blockRawLens.push(0);
+      continue;
+    }
+    blockRawLens.push(text.length);
+    rawText += /\s$/.test(text) ? text : `${text} `;
+  }
+
+  const norm = normalizeWhitespace(rawText);
+
+  const sentences: string[] = [];
+  const sentenceStarts: number[] = [];
+  let searchStart = 0;
+
+  for (const sentence of splitSentences(norm.text)) {
+    const pos = norm.text.indexOf(sentence, searchStart);
+    if (pos !== -1) searchStart = pos + sentence.length;
+
     const cleaned = cleanSentenceForTts(sentence);
     const alphanumericCount = (cleaned.match(/[a-zA-Z0-9]/g) || []).length;
-    return alphanumericCount >= 3 && alphanumericCount / cleaned.length > 0.3;
-  });
+    if (alphanumericCount >= 3 && alphanumericCount / cleaned.length > 0.3) {
+      sentences.push(sentence);
+      sentenceStarts.push(pos);
+    }
+  }
+
+  return {
+    pageElement,
+    blocks,
+    blockRawLens,
+    blockStarts,
+    norm,
+    sentences,
+    sentenceStarts,
+  };
+}
+
+function normRangeToRaw(
+  norm: NormalizedText,
+  normStart: number,
+  normEnd: number,
+): [number, number] | null {
+  if (normStart < 0 || normEnd <= normStart || normEnd > norm.toRaw.length) {
+    return null;
+  }
+  return [norm.toRaw[normStart]!, norm.toRaw[normEnd - 1]! + 1];
+}
+
+// Maps a raw-text position to a DOM (textNode, offset). Content blocks are
+// single text nodes; whitespace-only blocks (blockRawLen 0) and the synthetic
+// inter-block separators occupy no real DOM, so a position landing on one is
+// snapped to the nearest content block.
+function rawPosToDom(
+  model: PageTextModel,
+  rawPos: number,
+  atEnd: boolean,
+): { node: Node; offset: number } | null {
+  for (let i = 0; i < model.blocks.length; i++) {
+    const len = model.blockRawLens[i]!;
+    if (len === 0) continue;
+    const bs = model.blockStarts[i]!;
+    const be = bs + len;
+    const inside = atEnd ? rawPos > bs && rawPos <= be : rawPos >= bs && rawPos < be;
+    if (inside) {
+      const node = model.blocks[i]!.firstChild;
+      if (!node) return null;
+      return { node, offset: rawPos - bs };
+    }
+  }
+  if (atEnd) {
+    for (let i = model.blocks.length - 1; i >= 0; i--) {
+      const len = model.blockRawLens[i]!;
+      if (len === 0) continue;
+      const be = model.blockStarts[i]! + len;
+      const node = model.blocks[i]!.firstChild;
+      if (be <= rawPos && node) return { node, offset: len };
+    }
+  } else {
+    for (let i = 0; i < model.blocks.length; i++) {
+      const len = model.blockRawLens[i]!;
+      if (len === 0) continue;
+      const node = model.blocks[i]!.firstChild;
+      if (model.blockStarts[i]! >= rawPos && node) return { node, offset: 0 };
+    }
+  }
+  return null;
+}
+
+function rawRangeToRange(
+  model: PageTextModel,
+  rawStart: number,
+  rawEnd: number,
+): Range | null {
+  const s = rawPosToDom(model, rawStart, false);
+  const e = rawPosToDom(model, rawEnd, true);
+  if (!s || !e) return null;
+  const range = document.createRange();
+  try {
+    range.setStart(s.node, s.offset);
+    range.setEnd(e.node, e.offset);
+  } catch {
+    return null;
+  }
+  return range.collapsed ? null : range;
+}
+
+type Rect = { left: number; top: number; width: number; height: number };
+
+// getClientRects returns one rect per text run (per span), so a single line is
+// several adjacent rects. Merge same-line rects into one band per line —
+// otherwise sub-pixel seams show between words, and translucent overlays can't
+// simply overlap (they'd double-darken).
+function mergeRectsByLine(rects: DOMRectList): Rect[] {
+  const sorted = Array.from(rects)
+    .filter((r) => r.width >= 0.5 && r.height >= 0.5)
+    .sort((a, b) => a.top - b.top || a.left - b.left);
+
+  const lines: { left: number; right: number; top: number; bottom: number }[] =
+    [];
+  for (const r of sorted) {
+    const last = lines[lines.length - 1];
+    if (last && Math.abs(r.top - last.top) <= 4 && r.left <= last.right + 6) {
+      last.left = Math.min(last.left, r.left);
+      last.right = Math.max(last.right, r.right);
+      last.top = Math.min(last.top, r.top);
+      last.bottom = Math.max(last.bottom, r.bottom);
+    } else {
+      lines.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+    }
+  }
+  return lines.map((l) => ({
+    left: l.left,
+    top: l.top,
+    width: l.right - l.left,
+    height: l.bottom - l.top,
+  }));
+}
+
+// Paints one overlay per merged line-band of the range, positioned relative to
+// the page's overlay layer. getClientRects reflects the scaleX transform, so
+// overlays align exactly with the glyphs, and the merged bands are continuous.
+function paintOverlays(
+  range: Range,
+  page: Element,
+  className: string,
+): HTMLElement[] {
+  const layer = getOverlayLayer(page);
+  const origin = layer.getBoundingClientRect();
+  const text = range.toString();
+  const out: HTMLElement[] = [];
+  for (const r of mergeRectsByLine(range.getClientRects())) {
+    const el = document.createElement("div");
+    el.className = className;
+    el.setAttribute("data-hl-text", text);
+    el.style.left = `${r.left - origin.left}px`;
+    el.style.top = `${r.top - origin.top}px`;
+    el.style.width = `${r.width}px`;
+    el.style.height = `${r.height}px`;
+    layer.appendChild(el);
+    out.push(el);
+  }
+  return out;
+}
+
+function positionOverlay(el: HTMLElement, r: Rect, origin: DOMRect) {
+  el.style.left = `${r.left - origin.left}px`;
+  el.style.top = `${r.top - origin.top}px`;
+  el.style.width = `${r.width}px`;
+  el.style.height = `${r.height}px`;
+}
+
+// The word highlight reuses one overlay element across words so its position
+// can transition smoothly (the highlight glides to the next word). A word that
+// wraps across a line break (hyphen-split) needs a second, non-animated rect.
+function paintWordOverlay(range: Range, page: Element, className: string) {
+  const layer = getOverlayLayer(page);
+  const origin = layer.getBoundingClientRect();
+  const rects = mergeRectsByLine(range.getClientRects());
+
+  layer
+    .querySelectorAll(`.${className}.tts-hl-word-extra`)
+    .forEach((e) => e.remove());
+
+  if (rects.length === 0) {
+    layer.querySelectorAll(`.${className}`).forEach((e) => e.remove());
+    return;
+  }
+
+  const text = range.toString();
+  const isNew = !layer.querySelector(`.${className}:not(.tts-hl-word-extra)`);
+  let primary = layer.querySelector<HTMLElement>(
+    `.${className}:not(.tts-hl-word-extra)`,
+  );
+  if (!primary) {
+    primary = document.createElement("div");
+    primary.className = className;
+    layer.appendChild(primary);
+  }
+  primary.setAttribute("data-hl-text", text);
+
+  // Glide only within a line. When the next word is on a different line (or the
+  // element is brand new), snap instead — otherwise the highlight streaks
+  // diagonally across the whole page on every line wrap.
+  const target = rects[0]!;
+  const prevTop = parseFloat(primary.style.top || "NaN");
+  const newTop = target.top - origin.top;
+  const jump = isNew || !(Math.abs(newTop - prevTop) <= 6);
+  if (jump) primary.style.transition = "none";
+  positionOverlay(primary, target, origin);
+  if (jump) {
+    void primary.offsetHeight; // commit the snap before re-enabling transition
+    primary.style.transition = "";
+  }
+
+  for (let i = 1; i < rects.length; i++) {
+    const extra = document.createElement("div");
+    extra.className = `${className} tts-hl-word-extra`;
+    positionOverlay(extra, rects[i]!, origin);
+    layer.appendChild(extra);
+  }
 }
 
 export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const currentPageRef = useRef(1);
   const currentSentenceIndexRef = useRef(0);
-  const sentencesRef = useRef<string[]>([]);
-
-  // Block tracking
-  const blockIndex = useRef({ x: 0, y: 0 });
-  const sentenceIndex = useRef({ x: 0, y: 0 });
-
-  const blocksRef = useRef<Element[]>([]);
-  const blockContentsRef = useRef<string[]>([]);
-  const blockLengthsRef = useRef<number[]>([]);
-  const wordMapRef = useRef<WordMapEntry[]>([]);
+  const modelRef = useRef<PageTextModel | null>(null);
+  const wordMapRef = useRef<{ map: WordMapEntry[]; spoken: string } | null>(
+    null,
+  );
   const lastHighlightModeRef = useRef<HighlightMode>("tts");
-
-  // Highlight inside a single block
-  const highlightInsideSameBlockByIndexes = useCallback(
-    ({
-      startIndex,
-      endIndex,
-      type,
-      blockYIndex,
-      removePreviousHighlights = true,
-      mode = "tts" as HighlightMode,
-    }: {
-      startIndex: number;
-      endIndex: number;
-      type: "sentence" | "word";
-      blockYIndex: number;
-      removePreviousHighlights?: boolean;
-      mode?: HighlightMode;
-    }) => {
-      const currentBlockText = blockContentsRef.current[blockYIndex] ?? "";
-
-      if (currentBlockText[startIndex] === " ") {
-        startIndex += 1;
-        if (
-          endIndex < currentBlockText.length &&
-          currentBlockText[endIndex] !== " "
-        ) {
-          endIndex += 1;
-        }
-      }
-
-      const className = getHighlightClass(type, mode);
-      const sentenceClass = getHighlightClass("sentence", mode);
-
-      if (removePreviousHighlights) {
-        removeHighlightsByType(type, mode);
-      }
-
-      let block = blocksRef.current?.[blockYIndex];
-      if (!block) return;
-
-      if (type === "word") {
-        // Look for sentence highlight (either TTS or RSVP)
-        block =
-          block.querySelector(`.${sentenceClass}`) ??
-          block.querySelector(`.${HIGHLIGHT_CLASS.sentence}`) ??
-          block.querySelector(`.${HIGHLIGHT_CLASS_RSVP.sentence}`) ??
-          block;
-        if (!block) return;
-      }
-
-      const text =
-        type === "sentence"
-          ? blockContentsRef.current[blockYIndex]
-          : block.textContent;
-
-      if (!text) return;
-
-      if (startIndex < 0 || startIndex > endIndex) return;
-
-      if (endIndex > currentBlockText.length) {
-        endIndex = currentBlockText.length;
-      }
-
-      const lengthDif = currentBlockText.indexOf(text);
-      const ele = HIGHLIGHT_TAG[type];
-
-      let highlightedText = "";
-      let newHtml = "";
-
-      if (type === "word") {
-        const tex = block.innerHTML;
-        highlightedText = `<${ele} class="${className}">${currentBlockText.substring(
-          startIndex,
-          endIndex,
-        )}</${ele}>`;
-        newHtml =
-          tex.substring(0, startIndex - lengthDif) +
-          highlightedText +
-          tex.substring(endIndex - lengthDif);
-      } else {
-        highlightedText = `<${ele} class="${className}">${currentBlockText.substring(
-          startIndex,
-          endIndex,
-        )}</${ele}>`;
-        newHtml =
-          currentBlockText.substring(lengthDif, startIndex) +
-          highlightedText +
-          currentBlockText.substring(endIndex);
-      }
-
-      block.innerHTML = newHtml;
-    },
-    [],
-  );
-
-  // Recursive sentence highlight across blocks
-  const addClassAroundSentence = useCallback(
-    (
-      blockYIndex: number,
-      sentenceLength: number,
-      blockXIndex: number,
-      removePreviousHighlights: boolean = true,
-      mode: HighlightMode = "tts",
-    ) => {
-      if (
-        sentenceLength <= 0 ||
-        isNaN(sentenceLength) ||
-        blockXIndex < 0 ||
-        isNaN(blockXIndex) ||
-        blockYIndex < 0 ||
-        isNaN(blockYIndex)
-      ) {
-        return;
-      }
-
-      const blockLength = blockLengthsRef.current[blockYIndex] ?? 0;
-
-      if (blockLength - blockXIndex >= sentenceLength) {
-        highlightInsideSameBlockByIndexes({
-          startIndex: blockXIndex,
-          endIndex: blockXIndex + sentenceLength,
-          type: "sentence",
-          blockYIndex,
-          removePreviousHighlights,
-          mode,
-        });
-      } else {
-        highlightInsideSameBlockByIndexes({
-          startIndex: blockXIndex,
-          endIndex: blockLength,
-          type: "sentence",
-          blockYIndex,
-          removePreviousHighlights,
-          mode,
-        });
-
-        const remaining = sentenceLength - (blockLength - blockXIndex);
-        if (remaining > 0) {
-          addClassAroundSentence(blockYIndex + 1, remaining, 0, false, mode);
-        }
-      }
-    },
-    [highlightInsideSameBlockByIndexes],
-  );
+  // Replays the current word highlight. Overlay positions are absolute rects
+  // from getClientRects, so they go stale when the pdf text layer re-renders
+  // (font load, zoom, virtualization) — the glyphs move but the word overlay
+  // doesn't. refreshHighlights replays this after rebuilding the model.
+  const repaintWordRef = useRef<(() => void) | null>(null);
 
   const loadPageSentences = useCallback((pageNumber: number): string[] => {
     const pageElement = document.querySelector(
@@ -249,46 +352,61 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     );
     if (!pageElement) return [];
 
-    const textDivs = pageElement.querySelectorAll("span[role='presentation']");
-    const blocks = Array.from(textDivs);
-    blocksRef.current = blocks;
-
-    const blockContents = blocks
-      .map((block) => block.textContent ?? "")
-      .map((block) => {
-        if (block.trim().length === 0) return "";
-        return block.endsWith(" ") ? block : `${block} `;
-      });
-
-    blockContentsRef.current = blockContents;
-    blockLengthsRef.current = blockContents.map((b) => b.length);
-
-    const sentences = extractSentencesFromBlocks(blockContents);
-    sentencesRef.current = sentences;
+    const model = buildPageTextModel(pageElement);
+    modelRef.current = model;
     currentPageRef.current = pageNumber;
 
-    return sentences;
+    return model.sentences;
   }, []);
+
+  // pdf.js re-renders the text layer by REPLACING the span elements. The model
+  // caches references to those spans; a range built from a replaced span
+  // returns a stale rect, so the highlight ends up offset. Before every
+  // highlight, rebuild the model if the cached spans no longer match the live
+  // ones (different count or identity => the layer re-rendered).
+  const ensureFreshModel = useCallback(() => {
+    const model = modelRef.current;
+    const page = document.querySelector(
+      `.page[data-page-number="${currentPageRef.current}"]`,
+    );
+    if (!model || !page) {
+      loadPageSentences(currentPageRef.current);
+      return;
+    }
+    const liveSpans = page.querySelectorAll("span[role='presentation']");
+    if (
+      liveSpans.length !== model.blocks.length ||
+      liveSpans[0] !== model.blocks[0]
+    ) {
+      loadPageSentences(currentPageRef.current);
+    }
+  }, [loadPageSentences]);
 
   const highlightCurrentSentence = useCallback(
     (mode: HighlightMode = "tts") => {
       lastHighlightModeRef.current = mode;
+      ensureFreshModel();
+      const model = modelRef.current;
       const idx = currentSentenceIndexRef.current;
-      const sentence = sentencesRef.current[idx];
-      if (!sentence) return;
+      const sentence = model?.sentences[idx];
+      if (!model || !sentence) return;
 
-      addClassAroundSentence(
-        blockIndex.current.y,
-        sentence.length,
-        blockIndex.current.x,
-        true,
-        mode,
-      );
+      removeHighlightsByType("sentence", mode);
+
+      const start = model.sentenceStarts[idx] ?? -1;
+      if (start < 0) return;
+
+      const raw = normRangeToRaw(model.norm, start, start + sentence.length);
+      if (!raw) return;
+
+      const range = rawRangeToRange(model, raw[0], raw[1]);
+      if (!range) return;
+      paintOverlays(range, model.pageElement, getHighlightClass("sentence", mode));
     },
-    [addClassAroundSentence],
+    [ensureFreshModel],
   );
 
-  // Highlight a word in the current sentence by character offset and length (for RSVP)
+  // Highlight a word in the current sentence by character offset and length.
   // charOffsetInSentence: where the word starts within the sentence
   // wordLength: length of the word to highlight
   const highlightWordInSentence = useCallback(
@@ -298,81 +416,70 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       mode: HighlightMode = "rsvp",
       removePreviousHighlights = true,
     ) => {
-      const sentence = sentencesRef.current[currentSentenceIndexRef.current];
-      if (!sentence || wordLength <= 0) return;
-
-      // Find the sentence highlight span(s) already in the DOM
-      const sentenceHighlights = Array.from(
-        document.querySelectorAll(
-          `.${HIGHLIGHT_CLASS.sentence}, .${HIGHLIGHT_CLASS_RSVP.sentence}`,
-        ),
-      );
-      if (sentenceHighlights.length === 0) return;
-
-      // Walk through highlight spans to find which one contains the char offset
-      let consumed = 0;
-      for (const el of sentenceHighlights) {
-        const spanLen = (el.textContent || "").length;
-
-        if (consumed + spanLen > charOffsetInSentence) {
-          const parentBlock = el.parentElement;
-          if (!parentBlock) return;
-
-          const blockY = blocksRef.current.indexOf(parentBlock);
-          if (blockY === -1) return;
-
-          // Use a Range to find the exact character offset of the highlight
-          // span within its parent block — no indexOf, no duplicate ambiguity.
-          const range = document.createRange();
-          range.setStart(parentBlock, 0);
-          range.setEndBefore(el);
-          const highlightStartInBlock = range.toString().length;
-
-          const offsetInSpan = charOffsetInSentence - consumed;
-          const startIndex = highlightStartInBlock + offsetInSpan;
-
-          highlightInsideSameBlockByIndexes({
-            startIndex,
-            endIndex: startIndex + wordLength,
-            type: "word",
-            blockYIndex: blockY,
-            removePreviousHighlights,
-            mode,
-          });
-          return;
-        }
-        consumed += spanLen;
+      ensureFreshModel();
+      const model = modelRef.current;
+      const idx = currentSentenceIndexRef.current;
+      const sentence = model?.sentences[idx];
+      if (!model || !sentence || wordLength <= 0) return;
+      if (charOffsetInSentence < 0 || charOffsetInSentence >= sentence.length) {
+        return;
       }
+
+      const sentenceStart = model.sentenceStarts[idx] ?? -1;
+      if (sentenceStart < 0) return;
+
+      const end = Math.min(charOffsetInSentence + wordLength, sentence.length);
+
+      const raw = normRangeToRaw(
+        model.norm,
+        sentenceStart + charOffsetInSentence,
+        sentenceStart + end,
+      );
+      if (!raw) return;
+
+      const range = rawRangeToRange(model, raw[0], raw[1]);
+      if (!range) return;
+
+      const className = getHighlightClass("word", mode);
+      // removePreviousHighlights=false is used for the second half of a
+      // hyphen-split word, so keep the first half's overlay in place.
+      if (removePreviousHighlights) {
+        paintWordOverlay(range, model.pageElement, className);
+      } else {
+        paintOverlays(range, model.pageElement, `${className} tts-hl-word-extra`);
+      }
+
+      // Remember this single-word paint so it can be replayed after a text
+      // layer re-render. For a hyphen-split word, highlightWord overwrites this
+      // afterward with a parts-aware replay (see below).
+      repaintWordRef.current = () =>
+        highlightWordInSentence(
+          charOffsetInSentence,
+          wordLength,
+          mode,
+          removePreviousHighlights,
+        );
     },
-    [highlightInsideSameBlockByIndexes],
+    [ensureFreshModel],
   );
 
-  // Legacy function for compatibility - wraps highlightWordInSentence
   const highlightWordByIndex = useCallback(
     (wordIndex: number, mode: HighlightMode = "rsvp") => {
-      const sentence = sentencesRef.current[currentSentenceIndexRef.current];
+      const sentence =
+        modelRef.current?.sentences[currentSentenceIndexRef.current];
       if (!sentence) return;
 
-      const words = extractWords(sentence);
-      if (wordIndex < 0 || wordIndex >= words.length) return;
+      const word = extractWordsWithPositions(sentence)[wordIndex];
+      if (!word) return;
 
-      const targetWord = words[wordIndex];
-      if (!targetWord) return;
-
-      // Calculate character offset
-      let charOffset = 0;
-      for (let i = 0; i < wordIndex; i++) {
-        charOffset += (words[i]?.length ?? 0) + 1;
-      }
-
-      highlightWordInSentence(charOffset, targetWord.length, mode);
+      highlightWordInSentence(word.charOffset, word.word.length, mode);
     },
     [highlightWordInSentence],
   );
 
   const getCurrentSentence = useCallback((): SentencePosition | null => {
     const idx = currentSentenceIndexRef.current;
-    const sentence = sentencesRef.current[idx];
+    const sentence = modelRef.current?.sentences[idx];
     if (!sentence) return null;
 
     return {
@@ -383,62 +490,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     };
   }, []);
 
-  // Helper to calculate blockIndex for a given sentence index
-  // Finds where the sentence actually starts in the joined text
-  const calculateBlockIndexForSentence = useCallback(
-    (targetSentenceIdx: number) => {
-      const sentence = sentencesRef.current[targetSentenceIdx];
-      if (!sentence) {
-        blockIndex.current = { x: 0, y: 0 };
-        return;
-      }
-
-      // Join all blocks to find where this sentence starts
-      const fullText = blockContentsRef.current.join("");
-
-      // Find all sentence positions to get the correct one (in case of duplicates)
-      let searchStart = 0;
-      for (let i = 0; i < targetSentenceIdx; i++) {
-        const prevSentence = sentencesRef.current[i];
-        if (prevSentence) {
-          const pos = fullText.indexOf(prevSentence, searchStart);
-          if (pos !== -1) {
-            searchStart = pos + prevSentence.length;
-          }
-        }
-      }
-
-      const sentenceStart = fullText.indexOf(sentence, searchStart);
-      if (sentenceStart === -1) {
-        blockIndex.current = { x: 0, y: 0 };
-        return;
-      }
-
-      // Convert absolute position to block coordinates
-      let remaining = sentenceStart;
-      blockIndex.current = { x: 0, y: 0 };
-
-      for (let i = 0; i < blockLengthsRef.current.length; i++) {
-        const blockLen = blockLengthsRef.current[i] ?? 0;
-        if (remaining < blockLen) {
-          blockIndex.current = { x: remaining, y: i };
-          return;
-        }
-        remaining -= blockLen;
-      }
-    },
-    [],
-  );
-
   const advanceToNextSentence = useCallback((): SentencePosition | null => {
     const nextIdx = currentSentenceIndexRef.current + 1;
 
-    if (nextIdx < sentencesRef.current.length) {
-      // More sentences on current page
+    if (nextIdx < (modelRef.current?.sentences.length ?? 0)) {
       currentSentenceIndexRef.current = nextIdx;
-      sentenceIndex.current.y = nextIdx;
-      sentenceIndex.current.x = 0;
-      calculateBlockIndexForSentence(nextIdx);
       highlightCurrentSentence();
       return getCurrentSentence();
     }
@@ -449,8 +505,6 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const sentences = loadPageSentences(nextPage);
       if (sentences.length > 0) {
         currentSentenceIndexRef.current = 0;
-        sentenceIndex.current = { x: 0, y: 0 };
-        calculateBlockIndexForSentence(0);
         highlightCurrentSentence();
         return getCurrentSentence();
       }
@@ -458,13 +512,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     }
 
     return null; // End of document
-  }, [
-    pageCount,
-    loadPageSentences,
-    highlightCurrentSentence,
-    getCurrentSentence,
-    calculateBlockIndexForSentence,
-  ]);
+  }, [pageCount, loadPageSentences, highlightCurrentSentence, getCurrentSentence]);
 
   const goToPreviousSentence = useCallback((): SentencePosition | null => {
     const prevIdx = currentSentenceIndexRef.current - 1;
@@ -474,7 +522,6 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       if (prevPage < 1) {
         // Stay at first
         currentSentenceIndexRef.current = 0;
-        calculateBlockIndexForSentence(0);
         highlightCurrentSentence();
         return getCurrentSentence();
       }
@@ -484,23 +531,14 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
       // Go to last sentence
       currentSentenceIndexRef.current = sentences.length - 1;
-      calculateBlockIndexForSentence(currentSentenceIndexRef.current);
-
       highlightCurrentSentence();
       return getCurrentSentence();
     }
 
     currentSentenceIndexRef.current = prevIdx;
-    calculateBlockIndexForSentence(prevIdx);
-
     highlightCurrentSentence();
     return getCurrentSentence();
-  }, [
-    loadPageSentences,
-    highlightCurrentSentence,
-    getCurrentSentence,
-    calculateBlockIndexForSentence,
-  ]);
+  }, [loadPageSentences, highlightCurrentSentence, getCurrentSentence]);
 
   const startFromPage = useCallback(
     (pageNumber: number): SentencePosition | null => {
@@ -509,8 +547,6 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
         const sentences = loadPageSentences(currentPage);
         if (sentences.length > 0) {
           currentSentenceIndexRef.current = 0;
-          sentenceIndex.current = { x: 0, y: 0 };
-          calculateBlockIndexForSentence(0);
           highlightCurrentSentence();
           return getCurrentSentence();
         }
@@ -518,13 +554,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       }
       return null;
     },
-    [
-      pageCount,
-      loadPageSentences,
-      highlightCurrentSentence,
-      getCurrentSentence,
-      calculateBlockIndexForSentence,
-    ],
+    [pageCount, loadPageSentences, highlightCurrentSentence, getCurrentSentence],
   );
 
   const startFromTextOnPage = useCallback(
@@ -535,46 +565,39 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       selectionOffsetInBlock?: number,
     ): SentencePosition | null => {
       const sentences = loadPageSentences(pageNumber);
-      if (sentences.length === 0) return null;
+      const model = modelRef.current;
+      if (sentences.length === 0 || !model) return null;
 
       const normalised = selectedText.trim().replace(/\s+/g, " ");
       let bestIdx = -1;
 
       // Use the exact block + char offset captured on mouseup to find
       // the sentence at the user's actual selection position.
-      if (selectionBlockIndex !== undefined && selectionBlockIndex >= 0) {
-        let absoluteCharOffset = 0;
-        for (
-          let i = 0;
-          i < selectionBlockIndex && i < blockContentsRef.current.length;
-          i++
-        ) {
-          absoluteCharOffset += (blockContentsRef.current[i] ?? "").length;
-        }
-        absoluteCharOffset += selectionOffsetInBlock ?? 0;
+      if (
+        selectionBlockIndex !== undefined &&
+        selectionBlockIndex >= 0 &&
+        selectionBlockIndex < model.blocks.length
+      ) {
+        const blockLen = model.blockRawLens[selectionBlockIndex]!;
+        const offsetInBlock = Math.min(
+          selectionOffsetInBlock ?? 0,
+          Math.max(blockLen - 1, 0),
+        );
+        const rawOffset = model.blockStarts[selectionBlockIndex]! + offsetInBlock;
+        const normOffset = model.norm.fromRaw[rawOffset] ?? -1;
 
-        const fullText = blockContentsRef.current.join("");
-        let searchStart = 0;
-        for (let i = 0; i < sentences.length; i++) {
-          const pos = fullText.indexOf(sentences[i]!, searchStart);
-          if (pos === -1) continue;
-          const sentenceEnd = pos + sentences[i]!.length;
-          if (
-            absoluteCharOffset >= pos &&
-            absoluteCharOffset < sentenceEnd
-          ) {
-            bestIdx = i;
-            break;
+        if (normOffset >= 0) {
+          // First sentence that ends after the selection point (i.e. the
+          // sentence containing it, or the next one).
+          for (let i = 0; i < sentences.length; i++) {
+            const start = model.sentenceStarts[i]!;
+            if (start < 0) continue;
+            if (normOffset < start + sentences[i]!.length) {
+              bestIdx = i;
+              break;
+            }
           }
-          if (pos > absoluteCharOffset && bestIdx === -1) {
-            bestIdx = i;
-            break;
-          }
-          searchStart = sentenceEnd;
-        }
-
-        if (bestIdx === -1 && sentences.length > 0) {
-          bestIdx = sentences.length - 1;
+          if (bestIdx === -1) bestIdx = sentences.length - 1;
         }
       }
 
@@ -606,36 +629,24 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       if (bestIdx === -1) bestIdx = 0;
 
       currentSentenceIndexRef.current = bestIdx;
-      sentenceIndex.current = { x: 0, y: bestIdx };
-      calculateBlockIndexForSentence(bestIdx);
       highlightCurrentSentence();
       return getCurrentSentence();
     },
-    [
-      loadPageSentences,
-      highlightCurrentSentence,
-      getCurrentSentence,
-      calculateBlockIndexForSentence,
-    ],
+    [loadPageSentences, highlightCurrentSentence, getCurrentSentence],
   );
 
   const reset = useCallback(() => {
     currentPageRef.current = 1;
     currentSentenceIndexRef.current = 0;
-    sentencesRef.current = [];
-    blockIndex.current = { x: 0, y: 0 };
-    sentenceIndex.current = { x: 0, y: 0 };
-    blocksRef.current = [];
-    blockContentsRef.current = [];
-    blockLengthsRef.current = [];
-    wordMapRef.current = [];
+    modelRef.current = null;
+    wordMapRef.current = null;
     removeAllHighlights();
   }, []);
 
   const scrollToCurrentSentence = useCallback(() => {
     const highlight =
-      document.querySelector(`.${HIGHLIGHT_CLASS.sentence}`) ??
-      document.querySelector(`.${HIGHLIGHT_CLASS_RSVP.sentence}`);
+      document.querySelector(`.${OVERLAY_CLASS.sentence.tts}`) ??
+      document.querySelector(`.${OVERLAY_CLASS.sentence.rsvp}`);
     if (highlight) {
       highlight.scrollIntoView({ behavior: "smooth", block: "center" });
     }
@@ -644,92 +655,102 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const highlightWord = useCallback(
     (charIndex: number, _charLength: number, spokenText?: string) => {
       // Build word map lazily on first call for this sentence
-      if (wordMapRef.current.length === 0 && spokenText) {
-        const sentence = sentencesRef.current[currentSentenceIndexRef.current];
+      if (!wordMapRef.current && spokenText) {
+        const sentence =
+          modelRef.current?.sentences[currentSentenceIndexRef.current];
         if (sentence) {
-          wordMapRef.current = buildWordMap(sentence, spokenText);
+          wordMapRef.current = {
+            map: buildWordMap(sentence, spokenText),
+            spoken: spokenText,
+          };
         }
       }
+      if (!wordMapRef.current) return;
 
-      const map = wordMapRef.current;
+      const { map, spoken } = wordMapRef.current;
 
-      // Find which mapped word contains this charIndex in the cleaned text
-      for (const entry of map) {
-        if (charIndex >= entry.cleanedOffset && charIndex < entry.cleanedEnd) {
-          if (entry.parts && entry.parts.length > 1) {
-            entry.parts.forEach((part, idx) => {
-              highlightWordInSentence(
-                part.originalOffset,
-                part.originalLength,
-                "tts",
-                idx === 0,
-              );
-            });
-          } else {
+      // Find which mapped word contains this charIndex in the cleaned text.
+      // Some engines report the boundary on the whitespace before the word;
+      // snap forward to the next word in that case.
+      let entry = map.find(
+        (e) => charIndex >= e.cleanedOffset && charIndex < e.cleanedEnd,
+      );
+      if (!entry && spoken[charIndex] === " ") {
+        entry = map.find((e) => e.cleanedOffset > charIndex);
+      }
+      if (!entry) return;
+
+      const wordEntry = entry;
+      const paint = () => {
+        if (wordEntry.parts && wordEntry.parts.length > 1) {
+          wordEntry.parts.forEach((part, idx) => {
             highlightWordInSentence(
-              entry.originalOffset,
-              entry.originalLength,
+              part.originalOffset,
+              part.originalLength,
               "tts",
+              idx === 0,
             );
-          }
-          return;
+          });
+        } else {
+          highlightWordInSentence(
+            wordEntry.originalOffset,
+            wordEntry.originalLength,
+            "tts",
+          );
         }
-      }
+      };
+      paint();
+      // Overwrite the single-word replay stored by highlightWordInSentence with
+      // this parts-aware one, so a hyphen-split word repaints both halves.
+      repaintWordRef.current = paint;
     },
     [highlightWordInSentence],
   );
 
-  // Reset word tracking when starting a new sentence
+  // Reset word tracking when starting a new sentence. Also drop the word
+  // overlay so the animated highlight doesn't glide across the page from the
+  // previous sentence's last word to the new sentence's first word.
   const resetWordTracking = useCallback(() => {
-    sentenceIndex.current.x = 0;
-    wordMapRef.current = [];
+    wordMapRef.current = null;
+    repaintWordRef.current = null;
+    removeHighlightsByType("word");
   }, []);
 
-  // Reset blockIndex to the start of the current sentence (for speed change, voice change, restart)
+  // Re-highlight the current sentence from its start (for speed change, voice change, restart)
   const resetToCurrentSentenceStart = useCallback(
     (mode: HighlightMode = "tts") => {
-      const currentIdx = currentSentenceIndexRef.current;
-      calculateBlockIndexForSentence(currentIdx);
-      sentenceIndex.current.x = 0;
-      wordMapRef.current = [];
+      wordMapRef.current = null;
       highlightCurrentSentence(mode);
     },
-    [calculateBlockIndexForSentence, highlightCurrentSentence],
+    [highlightCurrentSentence],
   );
 
   const refreshHighlights = useCallback(
     (mode?: HighlightMode) => {
-      if (blocksRef.current.length === 0) return;
+      if (!modelRef.current) return;
 
       const modeToUse = mode ?? lastHighlightModeRef.current;
-      const pageNumber = currentPageRef.current;
       const savedSentenceIdx = currentSentenceIndexRef.current;
-      const savedBlockIndex = { ...blockIndex.current };
-      const savedSentenceIndex = { ...sentenceIndex.current };
 
-      loadPageSentences(pageNumber);
+      const sentences = loadPageSentences(currentPageRef.current);
+      if (sentences.length === 0) return;
 
-      if (sentencesRef.current.length === 0) return;
-
-      currentSentenceIndexRef.current = savedSentenceIdx;
-      calculateBlockIndexForSentence(savedSentenceIdx);
+      currentSentenceIndexRef.current = Math.min(
+        savedSentenceIdx,
+        sentences.length - 1,
+      );
       highlightCurrentSentence(modeToUse);
-
-      // Restore word position so next word boundary continues from where it was
-      blockIndex.current = savedBlockIndex;
-      sentenceIndex.current = savedSentenceIndex;
+      // The text layer just re-rendered with new span elements/scale, so the
+      // absolutely-positioned word overlay is now stale — repaint it.
+      repaintWordRef.current?.();
     },
-    [
-      loadPageSentences,
-      calculateBlockIndexForSentence,
-      highlightCurrentSentence,
-    ],
+    [loadPageSentences, highlightCurrentSentence],
   );
 
   useEffect(() => {
     const handler = (e: Event) => {
       const pageNumber = (e as CustomEvent).detail?.pageNumber;
-      if (blocksRef.current.length === 0) return;
+      if (!modelRef.current) return;
       if (pageNumber !== undefined && pageNumber !== currentPageRef.current)
         return;
       refreshHighlights();
@@ -739,13 +760,38 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     return () => document.removeEventListener("pdf:textlayerrendered", handler);
   }, [refreshHighlights]);
 
-  const getTotalSentences = useCallback(() => sentencesRef.current.length, []);
+  // While the user is selecting text (to copy/annotate), hide the reading
+  // highlight overlays. They sit over the same glyphs, so the green fills
+  // otherwise show through the selection and make it look broken/gappy.
+  useEffect(() => {
+    const onSelectionChange = () => {
+      const sel = document.getSelection();
+      const active =
+        !!sel && !sel.isCollapsed && (sel.toString().trim().length ?? 0) > 0;
+      document
+        .querySelectorAll<HTMLElement>(`.${OVERLAY_LAYER_CLASS}`)
+        .forEach((layer) => {
+          layer.style.visibility = active ? "hidden" : "";
+        });
+    };
+    document.addEventListener("selectionchange", onSelectionChange);
+    return () =>
+      document.removeEventListener("selectionchange", onSelectionChange);
+  }, []);
+
+  const getTotalSentences = useCallback(
+    () => modelRef.current?.sentences.length ?? 0,
+    [],
+  );
   const getCurrentIndex = useCallback(
     () => currentSentenceIndexRef.current,
     [],
   );
   const getCurrentPage = useCallback(() => currentPageRef.current, []);
-  const getSentences = useCallback(() => sentencesRef.current, []);
+  const getSentences = useCallback(
+    () => modelRef.current?.sentences ?? [],
+    [],
+  );
 
   return {
     startFromPage,
@@ -767,116 +813,5 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     getCurrentIndex,
     getCurrentPage,
     getSentences,
-    highlightInsideSameBlockByIndexes,
-    blockIndex,
-    sentenceIndex,
-    blockContentsRef,
-    blockLengthsRef,
-    blocksRef,
   };
 }
-
-// HIGHLIGHT SELF-CORRECTING MECHANISM
-// NOT USED ANYMORE
-
-// const highlightWord = useCallback(
-//   (charIndex: number, charLength: number, spokenText?: string) => {
-//     // Get the expected word from the spoken text (cleaned sentence)
-//     const expectedWord =
-//       spokenText?.substring(charIndex, charIndex + charLength)?.trim() ?? "";
-
-//     // Get current block text
-//     const currentBlockText =
-//       blockContentsRef.current[blockIndex.current.y] ?? "";
-
-//     // Try to find the expected word near current position with self-correction
-//     let startX = blockIndex.current.x;
-//     let blockY = blockIndex.current.y;
-//     let foundMatch = false;
-
-//     // Search within a range of positions to find the word
-//     const MAX_SEARCH_RANGE = 10;
-
-//     for (
-//       let offset = 0;
-//       offset <= MAX_SEARCH_RANGE && !foundMatch;
-//       offset++
-//     ) {
-//       // Try current position + offset
-//       for (const delta of offset === 0 ? [0] : [-offset, offset]) {
-//         const tryX = blockIndex.current.x + delta;
-//         const tryBlockText = blockContentsRef.current[blockY] ?? "";
-
-//         if (tryX >= 0 && tryX < tryBlockText.length) {
-//           const wordAtPos = tryBlockText
-//             .substring(tryX, tryX + charLength)
-//             .trim();
-//           if (wordAtPos === expectedWord) {
-//             startX = tryX;
-//             foundMatch = true;
-//             break;
-//           }
-//         }
-//       }
-
-//       // If word might span blocks or be in next block
-//       if (!foundMatch && offset > 0) {
-//         const nextBlockY = blockY + 1;
-//         if (nextBlockY < blockContentsRef.current.length) {
-//           const nextBlockText = blockContentsRef.current[nextBlockY] ?? "";
-//           for (
-//             let tryX = 0;
-//             tryX < Math.min(MAX_SEARCH_RANGE, nextBlockText.length);
-//             tryX++
-//           ) {
-//             const wordAtPos = nextBlockText
-//               .substring(tryX, tryX + charLength)
-//               .trim();
-//             if (wordAtPos === expectedWord) {
-//               blockY = nextBlockY;
-//               startX = tryX;
-//               foundMatch = true;
-//               break;
-//             }
-//           }
-//         }
-//       }
-//     }
-
-//     // Skip leading space at highlight position
-//     const blockText = blockContentsRef.current[blockY] ?? "";
-//     if (blockText[startX] === " " && startX + 1 < blockText.length) {
-//       startX += 1;
-//     }
-
-//     // Update blockIndex to the found position
-//     blockIndex.current.x = startX;
-//     blockIndex.current.y = blockY;
-
-//     // Highlight the word
-//     highlightInsideSameBlockByIndexes({
-//       startIndex: startX,
-//       endIndex: startX + charLength,
-//       type: "word",
-//       blockYIndex: blockY,
-//     });
-
-//     // Advance position for next word
-//     blockIndex.current.x = startX + charLength;
-
-//     // Handle block overflow
-//     while (
-//       blockIndex.current.y < blockLengthsRef.current.length &&
-//       blockIndex.current.x >=
-//         (blockLengthsRef.current[blockIndex.current.y] ?? 0)
-//     ) {
-//       blockIndex.current.x -=
-//         blockLengthsRef.current[blockIndex.current.y] ?? 0;
-//       blockIndex.current.y += 1;
-//     }
-
-//     // Update sentence tracking
-//     sentenceIndex.current.x = charIndex + charLength;
-//   },
-//   [highlightInsideSameBlockByIndexes],
-// );
