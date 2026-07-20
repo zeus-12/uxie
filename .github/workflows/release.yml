@@ -31,10 +31,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here on purpose — the root package.json's
+      # `packageManager: pnpm@9.14.2` is the single source of truth. Setting
+      # both makes action-setup fail with "Multiple versions of pnpm specified".
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node
         uses: actions/setup-node@v4
