@@ -49,34 +49,39 @@ function DocViewerContent({
 
   return (
     <>
-      <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
-        <ResizablePanel defaultSize={50} minSize={30}>
-          <div className="hd-screen min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
-            <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
+      {/* The panel group sizes itself to 100% of this wrapper, so the wrapper is
+          what makes every `h-full` below resolve against the viewport. Without a
+          definite height here the sidebar is content-sized and overflows the page. */}
+      <div className="hd-screen">
+        <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
+              <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
+            </div>
+          </ResizablePanel>
+          <div
+            className={cn(
+              "group items-center justify-center rounded-md bg-gray-50 hidden md:flex transition-all duration-200",
+              sidebarHidden ? "w-0 opacity-0" : "w-2",
+            )}
+          >
+            <ResizableHandle className="h-12 w-1 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24" />
           </div>
-        </ResizablePanel>
-        <div
-          className={cn(
-            "group items-center justify-center rounded-md bg-gray-50 hidden md:flex transition-all duration-200",
-            sidebarHidden ? "w-0 opacity-0" : "w-2",
-          )}
-        >
-          <ResizableHandle className="h-12 w-1 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24" />
-        </div>
 
-        <ResizablePanel
-          ref={sidebarPanelRef}
-          defaultSize={50}
-          minSize={30}
-          collapsible
-          collapsedSize={0}
-          className="hidden md:inline-flex"
-        >
-          <div className="h-full min-w-[25vw] flex-1">
-            {!isMobile && sidebar}
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          <ResizablePanel
+            ref={sidebarPanelRef}
+            defaultSize={50}
+            minSize={30}
+            collapsible
+            collapsedSize={0}
+            className="hidden md:inline-flex"
+          >
+            <div className="h-full min-w-[25vw] flex-1">
+              {!isMobile && sidebar}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
 
       {isMobile && <SidebarDrawerContent>{sidebar}</SidebarDrawerContent>}
     </>
