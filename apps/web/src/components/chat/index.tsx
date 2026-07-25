@@ -5,6 +5,10 @@ import {
   type ChatRow,
 } from "@uxie/shared/components/chat/chat-panel";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
+import {
+  IndexingFailed,
+  IndexingState,
+} from "@uxie/shared/components/other/indexing-state";
 import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import { DefaultChatTransport } from "ai";
@@ -27,14 +31,24 @@ export default function Chat({ isVectorised }: { isVectorised: boolean }) {
 
 function VectoriseGate({ docId }: { docId: string }) {
   const utils = api.useContext();
-  const { mutate: vectorise, isLoading: isVectorising } =
-    api.document.vectorise.useMutation({
-      onSuccess: () => {
-        utils.document.getDocData.setData({ docId }, (prev) =>
-          prev ? { ...prev, isVectorised: true } : undefined,
-        );
-      },
-    });
+  const {
+    mutate: vectorise,
+    isLoading: isVectorising,
+    error,
+  } = api.document.vectorise.useMutation({
+    onSuccess: () => {
+      utils.document.getDocData.setData({ docId }, (prev) =>
+        prev ? { ...prev, isVectorised: true } : undefined,
+      );
+    },
+  });
+
+  const start = () => vectorise({ documentId: docId });
+
+  if (error) return <IndexingFailed message={error.message} onRetry={start} />;
+  // The mutation reports "in flight" and nothing else, so there is no fraction
+  // to show here — only motion.
+  if (isVectorising) return <IndexingState value={null} />;
 
   return (
     <EmptyStatePrompt
@@ -42,9 +56,7 @@ function VectoriseGate({ docId }: { docId: string }) {
       title="Chat with this document"
       subtext="Ask anything and get instant answers straight from your PDF."
       buttonText="Start chatting"
-      loadingText="Getting ready…"
-      loading={isVectorising}
-      onClick={() => vectorise({ documentId: docId })}
+      onClick={start}
     />
   );
 }

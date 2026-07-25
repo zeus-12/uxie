@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
-import { Loader2Icon, SparklesIcon } from "lucide-react";
+import { SparklesIcon } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
+import {
+  IndexingFailed,
+  IndexingState,
+} from "@uxie/shared/components/other/indexing-state";
 import {
   ChatPanel,
   type ChatRow,
@@ -35,6 +39,7 @@ function IndexGate({
   docId: string;
   onIndexed: () => void;
 }) {
+  const [indexing, setIndexing] = useState(false);
   const [progress, setProgress] = useState<{
     done: number;
     total: number;
@@ -44,55 +49,38 @@ function IndexGate({
   async function index() {
     const { vectorise } = await import("./rag");
     setError(null);
-    setProgress({ done: 0, total: 0 });
+    setProgress(null);
+    setIndexing(true);
     try {
       await vectorise(docId, (done, total) => setProgress({ done, total }));
       onIndexed();
     } catch (e) {
       setError(message(e));
+      setIndexing(false);
       setProgress(null);
     }
   }
 
-  if (progress) {
+  if (error) return <IndexingFailed message={error} onRetry={index} />;
+
+  // No fraction until the text has been chunked — fetching and chunking report
+  // nothing, so those seconds run without a percentage.
+  if (indexing) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
-        <div className="flex w-56 flex-col items-center gap-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2Icon className="h-4 w-4 animate-spin" />
-            Indexing document…
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-300"
-              style={{
-                width: `${
-                  progress.total
-                    ? Math.round((progress.done / progress.total) * 100)
-                    : 5
-                }%`,
-              }}
-            />
-          </div>
-        </div>
-      </div>
+      <IndexingState
+        value={progress?.total ? progress.done / progress.total : null}
+      />
     );
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <EmptyStatePrompt
-        icon={<SparklesIcon className="h-6 w-6" />}
-        title="Chat with this document"
-        subtext="Ask anything and get instant answers straight from your PDF."
-        buttonText="Start chatting"
-        loadingText="Getting ready…"
-        onClick={index}
-      />
-      {error && (
-        <p className="pb-3 text-center text-sm text-destructive">{error}</p>
-      )}
-    </div>
+    <EmptyStatePrompt
+      icon={<SparklesIcon className="h-6 w-6" />}
+      title="Chat with this document"
+      subtext="Ask anything and get instant answers straight from your PDF."
+      buttonText="Start chatting"
+      onClick={index}
+    />
   );
 }
 
