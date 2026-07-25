@@ -81,6 +81,9 @@ export const document = sqliteTable("Document", {
   pageCount: integer("pageCount").notNull(),
   isUploaded: integer("isUploaded", { mode: "boolean" }).notNull().default(true),
   lastReadPage: integer("lastReadPage").notNull().default(1),
+  // The pdf.js scale to restore on open. Null means "auto" — the viewer's own
+  // fit-to-width default, which is what a document gets until the user zooms.
+  zoomLevel: real("zoomLevel"),
   coverImageUrl: text("coverImageUrl").notNull(),
   summary: text("summary"),
 });
@@ -229,6 +232,16 @@ export interface CreateDocumentInput {
   coverImageUrl: string;
   pageCount: number;
   isUploaded?: boolean;
+}
+
+/**
+ * Where the reader left off. Both fields are optional so a zoom change doesn't
+ * have to rewrite the page (or vice versa) — each is debounced and written on
+ * its own.
+ */
+export interface ReaderStateInput {
+  lastReadPage?: number;
+  zoomLevel?: number;
 }
 
 export type HighlightWithRects = Highlight & {

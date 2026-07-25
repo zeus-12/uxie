@@ -1,0 +1,1 @@
+ALTER TABLE `Document` ADD `zoomLevel` real;

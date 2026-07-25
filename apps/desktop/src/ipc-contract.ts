@@ -25,6 +25,7 @@ import type {
   DocumentWithHighlights,
   Flashcard,
   FlashcardAttempt,
+  ReaderStateInput,
   RectInput,
 } from "@uxie/shared/schema";
 
@@ -78,8 +79,8 @@ export interface IpcInvokeContract {
   };
   "documents:create": { args: [input: CreateDocumentInput]; result: Document };
   "documents:updateNotes": { args: [id: string, note: string]; result: void };
-  "documents:updateLastReadPage": {
-    args: [id: string, lastReadPage: number];
+  "documents:updateReaderState": {
+    args: [id: string, state: ReaderStateInput];
     result: void;
   };
   "documents:updateTitle": {
@@ -182,7 +183,7 @@ export const API_INVOKE = {
   getDocument: "documents:get",
   createDocument: "documents:create",
   updateDocumentNotes: "documents:updateNotes",
-  updateLastReadPage: "documents:updateLastReadPage",
+  updateReaderState: "documents:updateReaderState",
   updateDocumentTitle: "documents:updateTitle",
   setDocumentCover: "documents:setCover",
   deleteDocument: "documents:delete",

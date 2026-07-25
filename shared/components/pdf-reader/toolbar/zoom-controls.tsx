@@ -6,9 +6,20 @@ export const ZoomControlsContent = ({
   currentZoom,
   onZoomChange,
 }: {
-  currentZoom: number;
+  // Null until the viewer reports its scale — a document opened at "auto" fits
+  // to width, so there is no honest percentage to show before then.
+  currentZoom: number | null;
   onZoomChange: (zoom: number) => void;
 }) => {
+  if (currentZoom === null) {
+    return (
+      <div className="gap-2 flex items-center">
+        <div className="bg-gray-200 h-4 w-9 animate-pulse rounded-md" />
+        <div className="bg-gray-200 h-4 w-24 animate-pulse rounded-md" />
+      </div>
+    );
+  }
+
   return (
     <div className="gap-2 flex">
       <p className="text-sm font-medium">{Math.round(currentZoom * 100)}%</p>

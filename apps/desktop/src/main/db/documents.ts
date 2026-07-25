@@ -4,6 +4,7 @@ import type {
   CreateDocumentInput,
   Document,
   DocumentWithHighlights,
+  ReaderStateInput,
 } from "@uxie/shared/schema";
 import { LOCAL_USER_ID, type DB } from "./client";
 
@@ -91,14 +92,22 @@ export async function updateDocumentNotes(
     .where(eq(schema.document.id, id));
 }
 
-export async function updateLastReadPage(
+export async function updateReaderState(
   db: DB,
   id: string,
-  lastReadPage: number,
+  state: ReaderStateInput,
 ): Promise<void> {
+  const patch = {
+    ...(state.lastReadPage !== undefined && {
+      lastReadPage: state.lastReadPage,
+    }),
+    ...(state.zoomLevel !== undefined && { zoomLevel: state.zoomLevel }),
+  };
+  if (Object.keys(patch).length === 0) return;
+
   await db
     .update(schema.document)
-    .set({ lastReadPage })
+    .set(patch)
     .where(eq(schema.document.id, id));
 }
 

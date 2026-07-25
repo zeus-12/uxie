@@ -16,7 +16,10 @@ interface DemoDocStore extends DemoDoc {
   setNote: (note: string) => void;
   setTitle: (title: string) => void;
   setIsVectorised: (isVectorised: boolean) => void;
-  setLastReadPage: (lastReadPage: number) => void;
+  setReaderState: (state: {
+    lastReadPage?: number;
+    zoomLevel?: number;
+  }) => void;
   reset: () => void;
 }
 
@@ -55,7 +58,7 @@ export const useDemoDocStore = create<DemoDocStore>()(
       setNote: (note) => set({ note }),
       setTitle: (title) => set({ title }),
       setIsVectorised: (isVectorised) => set({ isVectorised }),
-      setLastReadPage: (lastReadPage) => set({ lastReadPage }),
+      setReaderState: (state) => set(state),
 
       reset: () => set({ ...DEMO_DOC_SEED }),
     }),
@@ -70,7 +73,7 @@ export const useDemoDocStore = create<DemoDocStore>()(
         setNote,
         setTitle,
         setIsVectorised,
-        setLastReadPage,
+        setReaderState,
         reset,
         ...doc
       }) => doc,

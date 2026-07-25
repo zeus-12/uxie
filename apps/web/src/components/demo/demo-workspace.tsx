@@ -32,12 +32,15 @@ const DemoWorkspace = () => {
       highlights: s.highlights,
     })),
   );
-  // Snapshot the last-read page for the reader's initial jump. Reading it
-  // reactively would re-trigger that jump every time the page changes as the
-  // user scrolls. Updates are still persisted to the store for the next visit.
-  const [lastReadPage] = useState(() => useDemoDocStore.getState().lastReadPage);
+  // Snapshot the restored page and zoom for the reader's initial layout.
+  // Reading them reactively would re-trigger that restore every time the user
+  // scrolls or zooms. Updates are still persisted for the next visit.
+  const [restored] = useState(() => {
+    const { lastReadPage, zoomLevel } = useDemoDocStore.getState();
+    return { lastReadPage, zoomLevel };
+  });
 
-  const doc: ReaderDoc = { ...docFields, lastReadPage };
+  const doc: ReaderDoc = { ...docFields, ...restored };
 
   const sidebarHidden = usePdfSettingsStore((state) => state.sidebarHidden);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);

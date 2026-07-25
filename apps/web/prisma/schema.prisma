@@ -66,6 +66,9 @@ model Document {
   isUploaded    Boolean        @default(true)
   flashcards    Flashcard[]
   lastReadPage  Int            @default(1)
+  // The pdf.js scale to restore on open. Null means "auto" — the viewer's own
+  // fit-to-width default, which is what a document gets until the user zooms.
+  zoomLevel     Float?
   coverImageUrl String
   summary       String?        @db.Text
 }

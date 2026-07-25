@@ -21,7 +21,7 @@ const DemoDocViewer = ({ doc }: { doc: ReaderDoc }) => {
   const addHighlightToStore = useDemoDocStore((s) => s.addHighlight);
   const deleteHighlight = useDemoDocStore((s) => s.deleteHighlight);
   const updateAreaHighlight = useDemoDocStore((s) => s.updateAreaHighlight);
-  const setLastReadPage = useDemoDocStore((s) => s.setLastReadPage);
+  const setReaderState = useDemoDocStore((s) => s.setReaderState);
 
   async function addHighlight({ content, position }: AddHighlightType) {
     const { text, image } = content;
@@ -65,7 +65,7 @@ const DemoDocViewer = ({ doc }: { doc: ReaderDoc }) => {
           doc={doc}
           addHighlight={addHighlight}
           deleteHighlight={deleteHighlight}
-          onUpdateLastReadPage={(_id, page) => setLastReadPage(page)}
+          onUpdateReaderState={(_id, state) => setReaderState(state)}
           onUpdateAreaHighlight={updateAreaHighlight}
         />
       </div>

@@ -44,7 +44,7 @@ const BottomToolbar = ({
   totalPages: number;
   onZoomChange: (zoom: number) => void;
   onPageChange: (page: number) => void;
-  currentZoom: number;
+  currentZoom: number | null;
   pageColour: string;
   pageColourChangeHandler: (colour: string) => void;
   followAlongEnabled: boolean;

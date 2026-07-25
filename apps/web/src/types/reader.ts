@@ -25,7 +25,13 @@ type Rect = {
  */
 export type ReaderDoc = Pick<
   inferRouterOutputs<AppRouter>["document"]["getDocData"],
-  "id" | "title" | "url" | "isVectorised" | "pageCount" | "lastReadPage"
+  | "id"
+  | "title"
+  | "url"
+  | "isVectorised"
+  | "pageCount"
+  | "lastReadPage"
+  | "zoomLevel"
 > & {
   highlights: Array<{
     id: string;

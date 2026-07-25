@@ -106,6 +106,7 @@ export const documentRouter = createTRPCRouter({
         },
         pageCount,
         lastReadPage: res.lastReadPage,
+        zoomLevel: res.zoomLevel,
         note: res.note,
       };
     }),
@@ -441,11 +442,15 @@ export const documentRouter = createTRPCRouter({
       return true;
     }),
 
-  updateLastReadPage: protectedProcedure
+  // Where the reader left off. Both fields are optional so a zoom change
+  // doesn't have to rewrite the page (or vice versa) — each is debounced and
+  // written on its own.
+  updateReaderState: protectedProcedure
     .input(
       z.object({
         docId: z.string(),
-        lastReadPage: z.number(),
+        lastReadPage: z.number().optional(),
+        zoomLevel: z.number().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -468,7 +473,10 @@ export const documentRouter = createTRPCRouter({
           id: input.docId,
         },
         data: {
-          lastReadPage: input.lastReadPage,
+          ...(input.lastReadPage !== undefined && {
+            lastReadPage: input.lastReadPage,
+          }),
+          ...(input.zoomLevel !== undefined && { zoomLevel: input.zoomLevel }),
         },
       });
 

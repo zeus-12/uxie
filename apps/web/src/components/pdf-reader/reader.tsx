@@ -18,7 +18,7 @@ const PdfReader = ({
   addHighlight,
   deleteHighlight,
   doc,
-  onUpdateLastReadPage,
+  onUpdateReaderState,
   onUpdateAreaHighlight,
 }: {
   addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
@@ -26,14 +26,17 @@ const PdfReader = ({
   doc: ReaderDoc;
   // When provided (e.g. the local demo), these bypass the backend for the two
   // persistence touchpoints; otherwise the components fall back to tRPC.
-  onUpdateLastReadPage?: (docId: string, pageNumber: number) => void;
+  onUpdateReaderState?: (
+    docId: string,
+    state: { lastReadPage?: number; zoomLevel?: number },
+  ) => void;
   onUpdateAreaHighlight?: (
     id: string,
     boundingRect: HighlightPositionType["boundingRect"],
     pageNumber?: number,
   ) => void;
 }) => {
-  const { url: docUrl, pageCount, id: docId, lastReadPage } = doc;
+  const { url: docUrl, pageCount, id: docId, lastReadPage, zoomLevel } = doc;
 
   // PdfHighlighter owns the pdf.js PDFViewer. Capture it here (stable callback
   // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
@@ -49,8 +52,8 @@ const PdfReader = ({
   // Persistence lives here, not in the shared components: they only report what
   // happened. The demo injects its own local writers instead.
   const utils = api.useContext();
-  const { mutateAsync: saveLastReadPage } =
-    api.document.updateLastReadPage.useMutation();
+  const { mutateAsync: saveReaderState } =
+    api.document.updateReaderState.useMutation();
 
   const { mutate: persistAreaHighlight } =
     api.highlight.updateAreaHighlight.useMutation({
@@ -116,14 +119,15 @@ const PdfReader = ({
   } = usePdfReader({
     docId,
     lastReadPage,
+    zoomLevel,
     pageCount,
     viewer: pdfViewer,
-    onSaveLastReadPage: (pageNumber) => {
-      if (onUpdateLastReadPage) {
-        onUpdateLastReadPage(docId, pageNumber);
+    onSaveReaderState: (state) => {
+      if (onUpdateReaderState) {
+        onUpdateReaderState(docId, state);
         return;
       }
-      void saveLastReadPage({ docId, lastReadPage: pageNumber });
+      void saveReaderState({ docId, ...state });
     },
   });
 

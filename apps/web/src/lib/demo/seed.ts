@@ -23,6 +23,7 @@ export interface DemoDoc {
   isVectorised: boolean;
   pageCount: number;
   lastReadPage: number;
+  zoomLevel: number | null;
   highlights: DemoHighlight[];
 }
 
@@ -34,6 +35,7 @@ export const DEMO_DOC_SEED: DemoDoc = {
   isVectorised: false,
   pageCount: 2,
   lastReadPage: 1,
+  zoomLevel: null,
   highlights: [],
 };
 

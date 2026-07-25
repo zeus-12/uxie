@@ -13,6 +13,7 @@ import {
   getDocument,
   listDocuments,
   updateDocumentNotes,
+  updateReaderState,
 } from "../src/main/db/documents";
 import {
   addHighlight,
@@ -180,6 +181,27 @@ describe("desktop db layer", () => {
     await updateDocumentNotes(db, doc.id, "my notes");
     const loaded = await getDocument(db, doc.id);
     expect(loaded!.note).toBe("my notes");
+  });
+
+  it("persists reader state, updating only the fields it is given", async () => {
+    const doc = await makeDoc(db);
+    expect(doc.lastReadPage).toBe(1);
+    expect(doc.zoomLevel).toBeNull();
+
+    await updateReaderState(db, doc.id, { lastReadPage: 7 });
+    let loaded = (await getDocument(db, doc.id))!;
+    expect(loaded.lastReadPage).toBe(7);
+    // A page write must not clear a zoom the user never touched.
+    expect(loaded.zoomLevel).toBeNull();
+
+    await updateReaderState(db, doc.id, { zoomLevel: 1.5 });
+    loaded = (await getDocument(db, doc.id))!;
+    expect(loaded.zoomLevel).toBe(1.5);
+    expect(loaded.lastReadPage).toBe(7);
+
+    await updateReaderState(db, doc.id, { lastReadPage: 2, zoomLevel: 0.75 });
+    loaded = (await getDocument(db, doc.id))!;
+    expect(loaded).toMatchObject({ lastReadPage: 2, zoomLevel: 0.75 });
   });
 
   it("bumps updatedAt on update and re-sorts the library", async () => {

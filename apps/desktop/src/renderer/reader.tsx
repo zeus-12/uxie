@@ -273,10 +273,11 @@ function ReaderContent({
   } = usePdfReader({
     docId,
     lastReadPage: doc.lastReadPage,
+    zoomLevel: doc.zoomLevel,
     pageCount: doc.pageCount,
     viewer: pdfViewer,
-    onSaveLastReadPage: (page) => {
-      void window.uxieAPI.updateLastReadPage(docId, page);
+    onSaveReaderState: (state) => {
+      void window.uxieAPI.updateReaderState(docId, state);
     },
   });
 

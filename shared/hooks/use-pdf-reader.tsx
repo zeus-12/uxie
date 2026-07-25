@@ -23,29 +23,43 @@ const SPEED_CHANGE_DEBOUNCE_MS = 400;
 
 const usePdfReader = ({
   lastReadPage,
+  zoomLevel,
   docId,
   pageCount,
   viewer,
-  onSaveLastReadPage,
+  onSaveReaderState,
 }: {
   lastReadPage: number;
+  // The persisted pdf.js scale, or null for "auto" (the viewer's own
+  // fit-to-width default) — what a document reads at until the user zooms.
+  zoomLevel: number | null;
   docId: string;
   pageCount: number;
   // The PDFViewer owned by the currently mounted PdfHighlighter, or null before
   // it mounts. Passed in rather than read off a global so opening a second
   // document binds to its viewer instead of the previous, discarded one.
   viewer: PDFViewer | null;
-  onSaveLastReadPage?: (page: number) => void;
+  onSaveReaderState?: (state: {
+    lastReadPage?: number;
+    zoomLevel?: number;
+  }) => void;
 }) => {
   const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
     READING_STATUS.IDLE,
   );
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
-  const [pageNumberInView, setPageNumberInView] = useState<number>(0);
-  const [currentZoom, setCurrentZoom] = useState(1);
-  // Passed to react-pdf-highlighter, which re-applies it on every resize.
-  // Kept in sync with the user's zoom so a resize doesn't reset to "auto".
-  const [pdfScaleValue, setPdfScaleValue] = useState("auto");
+  // Both start unknown — 0 for the page (the toolbar's existing "not ready"
+  // sentinel), null for the zoom — rather than at 1 / 100%. The toolbar shows a
+  // placeholder until the viewer reports where it actually is, so it can never
+  // display a page or zoom the reader isn't on.
+  const [pageNumberInView, setPageNumberInView] = useState(0);
+  const [currentZoom, setCurrentZoom] = useState<number | null>(zoomLevel);
+  // Passed to react-pdf-highlighter, which applies it on `pagesinit` and
+  // re-applies it on every resize. Seeded from the persisted zoom so the first
+  // layout is already at the right scale — no zoom-in after the first paint.
+  const [pdfScaleValue, setPdfScaleValue] = useState(
+    zoomLevel != null ? String(zoomLevel) : "auto",
+  );
   const [followAlongEnabled, setFollowAlongEnabled] = useState(true);
 
   // Page color from store (persisted)
@@ -104,12 +118,25 @@ const usePdfReader = ({
   );
   const currentVoice = usePdfSettingsStore((s) => s.voice);
 
+  // Restoring the page makes pdf.js fire `pagechanging` with the value we just
+  // read from the DB; tracking what's already stored keeps that from turning
+  // every document open into a redundant write.
+  const persistedPageRef = useRef(lastReadPage);
+
   const debouncedUpdateLastReadPage = useDebouncedCallback(
     (pageNumber: number) => {
-      onSaveLastReadPage?.(pageNumber);
+      if (pageNumber === persistedPageRef.current) return;
+      persistedPageRef.current = pageNumber;
+      onSaveReaderState?.({ lastReadPage: pageNumber });
     },
     2000,
   );
+
+  // The zoom slider fires continuously while dragging, so this coalesces a drag
+  // into one write.
+  const debouncedUpdateZoomLevel = useDebouncedCallback((zoom: number) => {
+    onSaveReaderState?.({ zoomLevel: zoom });
+  }, 2000);
 
   const scrollToHighlight = useCallback(() => {
     if (!followAlongEnabled || userScrolledRef.current) return;
@@ -188,19 +215,28 @@ const usePdfReader = ({
     pdfViewerRef.current = viewer;
     if (!viewer) return;
 
-    setPageNumberInView(viewer.currentPageNumber);
-    if (viewer.currentScale) setCurrentZoom(viewer.currentScale);
+    let hasRestored = false;
+
+    // Jump to the stored page before the document is first painted. `pagesinit`
+    // is the earliest moment the page views exist — pdf.js populates them right
+    // before dispatching it, and react-pdf-highlighter applies the scale on the
+    // same event — so page 1 is never rendered on the way to page N. (Waiting
+    // for `pagesloaded`, which only fires once every page has been fetched, is
+    // what used to make the reader open on page 1 and then jump.)
+    const restore = () => {
+      if (hasRestored) return;
+      hasRestored = true;
+
+      if (lastReadPage > 0 && lastReadPage <= viewer.pagesCount) {
+        viewer.currentPageNumber = lastReadPage;
+      }
+      setPageNumberInView(viewer.currentPageNumber);
+      if (viewer.currentScale) setCurrentZoom(viewer.currentScale);
+    };
 
     const handlePageChanging = ({ pageNumber }: { pageNumber: number }) => {
       setPageNumberInView(pageNumber);
       debouncedUpdateLastReadPage(pageNumber);
-    };
-
-    const handlePagesLoaded = () => {
-      if (lastReadPage && viewer.currentPageNumber !== lastReadPage) {
-        viewer.currentPageNumber = lastReadPage;
-      }
-      if (viewer.currentScale) setCurrentZoom(viewer.currentScale);
     };
 
     const handleScaleChanging = ({ scale }: { scale: number }) => {
@@ -216,13 +252,18 @@ const usePdfReader = ({
     };
 
     viewer.eventBus.on("pagechanging", handlePageChanging);
-    viewer.eventBus.on("pagesloaded", handlePagesLoaded);
+    viewer.eventBus.on("pagesinit", restore);
     viewer.eventBus.on("scalechanging", handleScaleChanging);
     viewer.eventBus.on("textlayerrendered", handleTextLayerRendered);
 
+    // The viewer reaches us through a React state update, so `pagesinit` can
+    // already have fired by the time we subscribe. pdf.js fills `_pages` just
+    // before dispatching it, so a non-zero page count means we missed it.
+    if (viewer.pagesCount > 0) restore();
+
     return () => {
       viewer.eventBus.off("pagechanging", handlePageChanging);
-      viewer.eventBus.off("pagesloaded", handlePagesLoaded);
+      viewer.eventBus.off("pagesinit", restore);
       viewer.eventBus.off("scalechanging", handleScaleChanging);
       viewer.eventBus.off("textlayerrendered", handleTextLayerRendered);
       pdfViewerRef.current = null;
@@ -232,9 +273,17 @@ const usePdfReader = ({
   // Apply the user's zoom to the viewer. react-pdf-highlighter re-applies
   // pdfScaleValue on resize but never on prop change, so we set it here (in a
   // post-commit effect so it wins over the library's own scale handling).
+  //
+  // Gated on the page views existing: before `pagesinit` pdf.js has nothing to
+  // scale, but it still records the value as the current scale — so the
+  // library's own apply on `pagesinit` would then see "same scale" and skip it,
+  // leaving the pages rendered at the default size while the viewer reports the
+  // stored one. Until then the library applies our pdfScaleValue itself, which
+  // is exactly what the first layout should use.
   useEffect(() => {
-    if (pdfViewerRef.current) {
-      pdfViewerRef.current.currentScaleValue = pdfScaleValue;
+    const currentViewer = pdfViewerRef.current;
+    if (currentViewer && currentViewer.pagesCount > 0) {
+      currentViewer.currentScaleValue = pdfScaleValue;
     }
   }, [pdfScaleValue, viewer]);
 
@@ -552,10 +601,14 @@ const usePdfReader = ({
     setFollowAlongEnabled((prev) => !prev);
   }, []);
 
-  const handleZoomChange = useCallback((zoom: number) => {
-    setCurrentZoom(zoom);
-    setPdfScaleValue(String(zoom));
-  }, []);
+  const handleZoomChange = useCallback(
+    (zoom: number) => {
+      setCurrentZoom(zoom);
+      setPdfScaleValue(String(zoom));
+      debouncedUpdateZoomLevel(zoom);
+    },
+    [debouncedUpdateZoomLevel],
+  );
 
   const handlePageChange = useCallback((pageNumber: number) => {
     if (pdfViewerRef.current) {
