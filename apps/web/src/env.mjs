@@ -22,6 +22,11 @@ export const env = createEnv({
     HUGGINGFACE_API_KEY: z.string(),
     SUPABASE_SERVICE_KEY: z.string(),
     PUBLIC_SUPABASE_URL: z.string().min(1),
+    // Set to 1 to stub AI responses locally
+    MOCK_AI: z
+      .string()
+      .optional()
+      .transform((v) => v === "1" || v === "true"),
   },
 
   client: {
@@ -46,6 +51,7 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY,
     PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL,
     SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY,
+    MOCK_AI: process.env.MOCK_AI,
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

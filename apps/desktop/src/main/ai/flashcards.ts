@@ -17,16 +17,17 @@ import { extractPdfText } from "../pdf-text";
 import { getSettings } from "../settings";
 import { llmModel } from "./provider";
 
-const MAX_CHUNKS = 30;
-
 export async function generateFlashcardsForDoc(docId: string): Promise<number> {
   const { llm } = getSettings();
   if (!llm.baseUrl || !llm.model) {
-    throw new Error("LLM not configured — set a base URL and model in Settings.");
+    throw new Error(
+      "LLM not configured — set a base URL and model in Settings.",
+    );
   }
 
   const text = await extractPdfText(docId);
-  const chunks = (await chunkTextForFlashcards(text)).slice(0, MAX_CHUNKS);
+  // No chunk cap: inference is local and user-owned.
+  const chunks = await chunkTextForFlashcards(text);
   const model = llmModel(llm);
 
   const cards: { question: string; answer: string }[] = [];

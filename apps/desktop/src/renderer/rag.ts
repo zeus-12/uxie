@@ -1,15 +1,15 @@
 import { chunkText } from "@uxie/shared/lib/embeddings";
 import { embedBatchInWorker, embedTextInWorker } from "./embed-client";
 
-const MAX_CHUNKS = 300;
-
-/** Embed a document's chunks (off the main thread) and store the vectors. */
+/**
+ * Embed a document's chunks (off the main thread) and store the vectors.
+ */
 export async function vectorise(
   docId: string,
   onProgress?: (done: number, total: number) => void,
 ): Promise<void> {
   const text = await window.uxieAPI.getDocumentText(docId);
-  const chunks = (await chunkText(text)).slice(0, MAX_CHUNKS);
+  const chunks = await chunkText(text);
   if (chunks.length === 0) return;
   const embeddings = await embedBatchInWorker(chunks, onProgress);
   await window.uxieAPI.storeEmbeddings(

@@ -55,7 +55,7 @@ export async function POST(req: Request, res: Response) {
   </CORRECT ANSWER>`;
 
   const result = streamObject({
-    model: google("gemini-1.5-pro"),
+    model: google("gemini-2.5-flash"),
     schema: flashcardFeedbackSchema,
     prompt: reqPrompt,
     onFinish: async ({ object: feedback }) => {
