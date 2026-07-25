@@ -91,8 +91,9 @@ Delete that folder to reset the app completely.
   is indexed and every chunk can produce flashcards. Inference is yours, so a long book
   just takes longer.
 - **Vectors are derived data.** `initVectorStore` reads the existing table's dimension and
-  rebuilds it if the embedding model changed, rather than failing on every insert.
-  Documents are re-vectorised on next use.
+  rebuilds it if the embedding model changed, rather than failing on every insert. A rebuild
+  also clears every document's `isVectorised` flag — the vectors are gone, so the flag would
+  otherwise claim an index that isn't there — and each document offers to index again.
 - **The embedding dtype is pinned to `q8`** in `shared/lib/embeddings.ts`. Don't remove it:
   transformers.js picks a default from the detected device, and on a `cpu` device that's
   `fp32` — a 436MB download that runs 2.6× slower than the 110MB `q8` build. Measured on

@@ -1,19 +1,48 @@
 import type Database from "better-sqlite3";
 import * as sqliteVec from "sqlite-vec";
+import { DESKTOP_EMBEDDING } from "@uxie/shared/lib/embedding-models";
 
-// all-MiniLM-L6-v2 embedding dimension. If the embedding model changes, this
-// (and the stored vectors) must change — a mismatch is rejected by sqlite-vec.
-export const EMBEDDING_DIM = 384;
+// Sized for whichever model the desktop embeds with — changing the model there
+// changes this, so the two can no longer drift apart silently.
+export const EMBEDDING_DIM = DESKTOP_EMBEDDING.dim;
 
-export function initVectorStore(sqlite: Database.Database): void {
-  sqliteVec.load(sqlite);
-  sqlite.exec(
-    `CREATE VIRTUAL TABLE IF NOT EXISTS doc_vectors USING vec0(
+const CREATE_VECTOR_TABLE = `CREATE VIRTUAL TABLE doc_vectors USING vec0(
        doc_id TEXT partition key,
        embedding FLOAT[${EMBEDDING_DIM}],
        +chunk TEXT
-     )`,
-  );
+     )`;
+
+/** The dimension an existing doc_vectors table was created with, if it exists. */
+function existingDim(sqlite: Database.Database): number | null {
+  const row = sqlite
+    .prepare("SELECT sql FROM sqlite_master WHERE name = 'doc_vectors'")
+    .get() as { sql: string } | undefined;
+  if (!row) return null;
+  const match = row.sql.match(/FLOAT\[(\d+)\]/i);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * Load sqlite-vec and make sure doc_vectors is sized for the current model.
+ * Returns true when the table was rebuilt, meaning every stored vector is gone
+ * and the callers' `isVectorised` flags are now lies.
+ */
+export function initVectorStore(sqlite: Database.Database): boolean {
+  sqliteVec.load(sqlite);
+
+  // Vectors are derived data — if the embedding model changed, the old table is
+  // the wrong width and every insert would fail at runtime. Drop and rebuild.
+  const dim = existingDim(sqlite);
+  if (dim === EMBEDDING_DIM) return false;
+
+  if (dim !== null) {
+    console.warn(
+      `[uxie] embedding dimension changed ${dim} → ${EMBEDDING_DIM}; rebuilding vector store`,
+    );
+    sqlite.exec("DROP TABLE doc_vectors");
+  }
+  sqlite.exec(CREATE_VECTOR_TABLE);
+  return dim !== null;
 }
 
 export interface EmbeddedChunk {

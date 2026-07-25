@@ -58,6 +58,31 @@ describe("sqlite-vec vector store", () => {
     expect(queryVectors(sqlite, "doc1", vec(7), 5)).toEqual(["new"]);
   });
 
+  it("reports no rebuild for a fresh or already-correct store", () => {
+    const sqlite = new Database(":memory:");
+    expect(initVectorStore(sqlite)).toBe(false);
+    expect(initVectorStore(sqlite)).toBe(false);
+  });
+
+  it("rebuilds and reports it when the stored dimension is stale", () => {
+    const sqlite = new Database(":memory:");
+    initVectorStore(sqlite);
+    upsertVectors(sqlite, "doc1", [{ chunk: "stale", embedding: vec(1) }]);
+
+    // Re-create the table at the old model's width to stand in for a DB written
+    // before the embedding model changed.
+    sqlite.exec("DROP TABLE doc_vectors");
+    sqlite.exec(
+      "CREATE VIRTUAL TABLE doc_vectors USING vec0(doc_id TEXT partition key, embedding FLOAT[384], +chunk TEXT)",
+    );
+
+    expect(initVectorStore(sqlite)).toBe(true);
+    expect(hasVectors(sqlite, "doc1")).toBe(false);
+    // The new table takes current-width vectors, which the stale one would reject.
+    upsertVectors(sqlite, "doc1", [{ chunk: "fresh", embedding: vec(1) }]);
+    expect(queryVectors(sqlite, "doc1", vec(1), 1)).toEqual(["fresh"]);
+  });
+
   it("deletes a doc's vectors", () => {
     const sqlite = freshStore();
     upsertVectors(sqlite, "doc1", [{ chunk: "x", embedding: vec(9) }]);
