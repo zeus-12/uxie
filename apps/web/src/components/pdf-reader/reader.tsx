@@ -7,6 +7,8 @@ import {
   type HighlightPositionType,
 } from "@/types/highlight";
 import { type ReaderDoc } from "@/types/reader";
+import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
+import { useCallback, useState } from "react";
 import { PdfLoader } from "react-pdf-highlighter";
 
 const PdfReader = ({
@@ -29,6 +31,17 @@ const PdfReader = ({
   ) => void;
 }) => {
   const { url: docUrl, pageCount, id: docId, lastReadPage } = doc;
+
+  // PdfHighlighter owns the pdf.js PDFViewer. Capture it here (stable callback
+  // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
+  // needs the live instance to track the page in view and apply zoom.
+  const [pdfViewer, setPdfViewer] = useState<PDFViewer | null>(null);
+  const handleHighlighterRef = useCallback(
+    (instance: { viewer: PDFViewer } | null) => {
+      setPdfViewer(instance?.viewer ?? null);
+    },
+    [],
+  );
 
   const {
     pageNumberInView,
@@ -53,6 +66,7 @@ const PdfReader = ({
     docId,
     lastReadPage,
     pageCount,
+    viewer: pdfViewer,
     onUpdateLastReadPage,
   });
 
@@ -61,6 +75,7 @@ const PdfReader = ({
       <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>
         {(pdfDocument) => (
           <PdfHighlighter
+            highlighterRef={handleHighlighterRef}
             pdfDocument={pdfDocument}
             doc={doc}
             addHighlight={addHighlight}

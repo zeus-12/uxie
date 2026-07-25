@@ -25,11 +25,16 @@ const usePdfReader = ({
   lastReadPage,
   docId,
   pageCount,
+  viewer,
   onSaveLastReadPage,
 }: {
   lastReadPage: number;
   docId: string;
   pageCount: number;
+  // The PDFViewer owned by the currently mounted PdfHighlighter, or null before
+  // it mounts. Passed in rather than read off a global so opening a second
+  // document binds to its viewer instead of the previous, discarded one.
+  viewer: PDFViewer | null;
   onSaveLastReadPage?: (page: number) => void;
 }) => {
   const [readingStatus, setReadingStatus] = useState<READING_STATUS>(
@@ -176,20 +181,19 @@ const usePdfReader = ({
     await playCurrentSentenceAudio();
   }, SKIP_DEBOUNCE_MS);
 
-  // Initialize PDF viewer
-  const initPdfViewer = useCallback(() => {
-    const viewer = window.PdfViewer?.viewer;
+  // Track the viewer for the rest of the hook, and mirror its page/scale into
+  // state. Keyed on viewer identity, so switching documents unbinds from the
+  // old viewer and binds to the new one.
+  useEffect(() => {
+    pdfViewerRef.current = viewer;
     if (!viewer) return;
 
-    pdfViewerRef.current = viewer;
     setPageNumberInView(viewer.currentPageNumber);
     if (viewer.currentScale) setCurrentZoom(viewer.currentScale);
 
-    const handlePageChanging = (e: { pageNumber: number }) => {
-      if (e.pageNumber !== pageNumberInView) {
-        setPageNumberInView(e.pageNumber);
-        debouncedUpdateLastReadPage(e.pageNumber);
-      }
+    const handlePageChanging = ({ pageNumber }: { pageNumber: number }) => {
+      setPageNumberInView(pageNumber);
+      debouncedUpdateLastReadPage(pageNumber);
     };
 
     const handlePagesLoaded = () => {
@@ -199,14 +203,14 @@ const usePdfReader = ({
       if (viewer.currentScale) setCurrentZoom(viewer.currentScale);
     };
 
-    const handleScaleChanging = (e: { scale: number }) => {
-      if (e.scale) setCurrentZoom(e.scale);
+    const handleScaleChanging = ({ scale }: { scale: number }) => {
+      if (scale) setCurrentZoom(scale);
     };
 
-    const handleTextLayerRendered = (e: { pageNumber: number }) => {
+    const handleTextLayerRendered = ({ pageNumber }: { pageNumber: number }) => {
       document.dispatchEvent(
         new CustomEvent("pdf:textlayerrendered", {
-          detail: { pageNumber: e.pageNumber },
+          detail: { pageNumber },
         }),
       );
     };
@@ -215,25 +219,15 @@ const usePdfReader = ({
     viewer.eventBus.on("pagesloaded", handlePagesLoaded);
     viewer.eventBus.on("scalechanging", handleScaleChanging);
     viewer.eventBus.on("textlayerrendered", handleTextLayerRendered);
-  }, [debouncedUpdateLastReadPage, lastReadPage, pageNumberInView]);
-
-  useEffect(() => {
-    initPdfViewer();
-    const intervalId = setInterval(() => {
-      if (window.PdfViewer?.viewer) {
-        initPdfViewer();
-        clearInterval(intervalId);
-      }
-    }, 100);
 
     return () => {
-      clearInterval(intervalId);
-      window.PdfViewer?.viewer?.eventBus.off("pagechanging", () => {});
-      window.PdfViewer?.viewer?.eventBus.off("pagesloaded", () => {});
-      window.PdfViewer?.viewer?.eventBus.off("scalechanging", () => {});
-      window.PdfViewer?.viewer?.eventBus.off("textlayerrendered", () => {});
+      viewer.eventBus.off("pagechanging", handlePageChanging);
+      viewer.eventBus.off("pagesloaded", handlePagesLoaded);
+      viewer.eventBus.off("scalechanging", handleScaleChanging);
+      viewer.eventBus.off("textlayerrendered", handleTextLayerRendered);
+      pdfViewerRef.current = null;
     };
-  }, [initPdfViewer]);
+  }, [viewer, debouncedUpdateLastReadPage, lastReadPage]);
 
   // Apply the user's zoom to the viewer. react-pdf-highlighter re-applies
   // pdfScaleValue on resize but never on prop change, so we set it here (in a
@@ -242,7 +236,7 @@ const usePdfReader = ({
     if (pdfViewerRef.current) {
       pdfViewerRef.current.currentScaleValue = pdfScaleValue;
     }
-  }, [pdfScaleValue]);
+  }, [pdfScaleValue, viewer]);
 
   // User scroll tracking
   useEffect(() => {
