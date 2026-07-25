@@ -1,6 +1,7 @@
 import { AlbumIcon, Layers, MessagesSquareIcon } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { DEFAULT_SIDEBAR_TAB, useSidebarTabStore, type SidebarTab } from "../../lib/store";
+import { cn } from "../../lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { CustomTooltip } from "../ui/tooltip";
 
@@ -44,6 +45,25 @@ export function SidebarTabs({ className }: { className?: string }) {
         ))}
       </TabsList>
     </Tabs>
+  );
+}
+
+// The tab strip plus whatever actions the app puts on the right. The fixed
+// height is what gives the panel below it some breathing room.
+export function SidebarHeader({
+  className,
+  tabsClassName,
+  children,
+}: {
+  className?: string;
+  tabsClassName?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={cn("flex h-12 shrink-0 items-center px-2", className)}>
+      <SidebarTabs className={tabsClassName} />
+      {children}
+    </div>
   );
 }
 

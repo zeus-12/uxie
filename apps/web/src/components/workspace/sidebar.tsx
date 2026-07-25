@@ -1,17 +1,22 @@
 import Chat from "@/components/chat";
 import BlockNoteEditor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
-import { Button } from "@/components/ui/button";
-import { CustomTooltip } from "@/components/ui/tooltip";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@uxie/shared/components/ui/dropdown-menu";
+import {
   Sidebar as SharedSidebar,
-  SidebarTabs,
+  SidebarHeader,
 } from "@uxie/shared/components/workspace/sidebar";
 import { saveAs } from "file-saver";
-import { BugIcon, Download } from "lucide-react";
+import { BugIcon, Download, SettingsIcon, UserPlus } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import InviteCollab from "./invite-collab-modal";
 
 const Sidebar = ({
@@ -26,6 +31,7 @@ const Sidebar = ({
   note: string | null;
 }) => {
   const { editor } = useBlocknoteEditorStore();
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
   useSidebarTabUrlSync();
 
   const handleDownloadMarkdownAsFile = async () => {
@@ -38,39 +44,50 @@ const Sidebar = ({
 
   return (
     <div className="flex h-full flex-col bg-gray-50">
-      <div className="flex items-center justify-between px-2 md:pl-0 md:pr-1">
-        <SidebarTabs />
-        <div className="flex items-center gap-1">
-          {isOwner && (
-            <CustomTooltip content="Invite collaborators">
-              <InviteCollab />
-            </CustomTooltip>
-          )}
-
-          <CustomTooltip content="Download notes as markdown">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border"
-              onClick={handleDownloadMarkdownAsFile}
-            >
-              <Download size={20} />
-            </Button>
-          </CustomTooltip>
-
-          <CustomTooltip content="Report bug">
-            <Link href="/feedback">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border"
+      <SidebarHeader className="md:pl-0 md:pr-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label="Document options"
+            className="ml-auto rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-90"
+          >
+            <SettingsIcon
+              size={18}
+              className="transition-transform duration-300 hover:rotate-45"
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            {isOwner && (
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onSelect={() => setIsInviteOpen(true)}
               >
-                <BugIcon size={20} />
-              </Button>
-            </Link>
-          </CustomTooltip>
-        </div>
-      </div>
+                <UserPlus size={16} />
+                Invite collaborators
+              </DropdownMenuItem>
+            )}
+
+            <DropdownMenuItem
+              className="cursor-pointer gap-2"
+              disabled={!editor}
+              onSelect={handleDownloadMarkdownAsFile}
+            >
+              <Download size={16} />
+              Download notes
+            </DropdownMenuItem>
+
+            <DropdownMenuItem className="cursor-pointer gap-2" asChild>
+              <Link href="/feedback">
+                <BugIcon size={16} />
+                Report a bug
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarHeader>
+
+      {isOwner && (
+        <InviteCollab open={isInviteOpen} onOpenChange={setIsInviteOpen} />
+      )}
 
       <div className="min-h-0 flex-1">
         <SharedSidebar

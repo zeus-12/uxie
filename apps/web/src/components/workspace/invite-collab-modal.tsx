@@ -1,33 +1,38 @@
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@uxie/shared/components/ui/badge";
+import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
 import {
   Dialog,
   DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+} from "@uxie/shared/components/ui/dialog";
+import { Input } from "@uxie/shared/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@uxie/shared/components/ui/select";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { createId } from "@paralleldrive/cuid2";
 import { CollaboratorRole } from "@prisma/client";
-import { TrashIcon, UserPlus, XIcon } from "lucide-react";
+import { TrashIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import { toast } from "sonner";
 
 type CollaboratorRoleValuesUnion = keyof typeof CollaboratorRole;
 
-const InviteCollab = () => {
+const InviteCollab = ({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
   const { query } = useRouter();
   const documentId = query?.docId as string;
 
@@ -136,17 +141,7 @@ const InviteCollab = () => {
   };
 
   return (
-    <Dialog>
-      <DialogTrigger>
-        <div
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "ml-auto cursor-pointer border-stone-200 bg-white px-2 text-xs shadow-sm sm:border",
-          )}
-        >
-          <UserPlus size={20} />
-        </div>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent hideClose={true}>
         <DialogHeader>
           <div className="mb-2 flex items-center justify-between ">
