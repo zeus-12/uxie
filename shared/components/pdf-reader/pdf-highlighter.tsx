@@ -1,20 +1,17 @@
-import { READING_MODE } from "@/components/pdf-reader/constants";
 import {
   HighlightedTextPopover,
   TextSelectionPopover,
-} from "@/components/pdf-reader/highlight-popover";
-import { api } from "@/lib/api";
-import { usePdfSettingsStore } from "@/lib/store";
-import { getHighlightPageNumber } from "@uxie/shared/lib/highlights";
-import { useChatStore, useHighlightJumpStore } from "@uxie/shared/lib/store";
+  type ReadSelectedText,
+  type SelectionInfo,
+} from "./highlight-popover";
+import { getHighlightPageNumber } from "../../lib/highlights";
 import {
-  type AddHighlightType,
-  type HighlightPositionType,
-} from "@/types/highlight";
-import { type ReaderDoc } from "@/types/reader";
-import { HighlightTypeEnum } from "@prisma/client";
+  useChatStore,
+  useHighlightJumpStore,
+  usePdfSettingsStore,
+} from "../../lib/store";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -24,53 +21,69 @@ import {
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
 
+type Rect = {
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+  width?: number;
+  height?: number;
+  pageNumber?: number | null;
+};
+
+/**
+ * The geometry is treated opaquely — it goes straight to react-pdf-highlighter
+ * — so this is loose enough for both web's DB-shaped highlights and desktop's
+ * already-mapped ones.
+ */
+export type ReaderHighlight = {
+  id: string;
+  position: {
+    boundingRect: Rect;
+    rects: Rect[];
+    pageNumber?: number | null;
+  };
+};
+
+export type HighlighterInstance = InstanceType<typeof PdfHighlighterComponent>;
+
 const PdfHighlighter = ({
   pdfDocument,
-  doc,
-  addHighlight,
-  deleteHighlight,
-  readSelectedText,
-  onUpdateAreaHighlight,
+  highlights,
   pdfScaleValue,
   highlighterRef,
+  addHighlight,
+  deleteHighlight,
+  updateAreaHighlight,
+  readSelectedText,
+  showAiFeatures,
 }: {
   pdfDocument: PDFDocumentProxy;
-  doc: ReaderDoc;
+  highlights: ReaderHighlight[];
   pdfScaleValue: string;
   // Hands the mounted PdfHighlighter instance (and so its pdf.js PDFViewer) to
   // the caller, which needs it to track the page in view and apply zoom.
-  highlighterRef?: (
-    instance: InstanceType<typeof PdfHighlighterComponent> | null,
-  ) => void;
-  addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
+  highlighterRef?: (instance: HighlighterInstance | null) => void;
+  // Persistence is the caller's business: web writes through tRPC, desktop
+  // through IPC, the demo into local state.
+  addHighlight: (args: {
+    content: { text?: string; image?: string };
+    position: IHighlight["position"];
+  }) => void;
   deleteHighlight: (id: string) => void;
-  // When provided (e.g. the local demo), area-highlight resizes persist through
-  // this callback instead of the tRPC mutation.
-  onUpdateAreaHighlight?: (
+  updateAreaHighlight: (
     id: string,
-    boundingRect: HighlightPositionType["boundingRect"],
+    boundingRect: Rect,
     pageNumber?: number,
   ) => void;
-  readSelectedText: (args: {
-    text?: string | null;
-    readingSpeed?: number;
-    continueReadingFromLastPosition?: boolean;
-    readingMode: READING_MODE;
-    selectionBlockIndex?: number;
-    selectionOffsetInBlock?: number;
-    selectionPageNumber?: number;
-  }) => Promise<void>;
+  readSelectedText: ReadSelectedText;
+  // Whether the document is indexed — the AI actions are hidden until it is.
+  showAiFeatures: boolean;
 }) => {
-  const highlights = useMemo(() => doc.highlights ?? [], [doc.highlights]);
-  const utils = api.useContext();
-  const { sendMessage } = useChatStore();
+  const sendMessage = useChatStore((state) => state.sendMessage);
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
 
-  const selectionInfoRef = useRef<{
-    blockIndex: number;
-    offsetInBlock: number;
-    pageNumber: number;
-  } | null>(null);
+  const selectionInfoRef = useRef<SelectionInfo | null>(null);
 
   // Handed to us by the viewer once the document is ready.
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
@@ -82,11 +95,9 @@ const PdfHighlighter = ({
 
   // Keep the mounted instance locally (for the jump fallback below) as well as
   // handing it to the caller.
-  const highlighterInstanceRef = useRef<InstanceType<
-    typeof PdfHighlighterComponent
-  > | null>(null);
+  const highlighterInstanceRef = useRef<HighlighterInstance | null>(null);
   const setHighlighterRef = useCallback(
-    (instance: InstanceType<typeof PdfHighlighterComponent> | null) => {
+    (instance: HighlighterInstance | null) => {
       highlighterInstanceRef.current = instance;
       highlighterRef?.(instance);
     },
@@ -132,6 +143,8 @@ const PdfHighlighter = ({
     return () => setJumpToHighlight(null);
   }, [highlights, setJumpToHighlight]);
 
+  // Remember where in the text layer the selection started, so "Read the text"
+  // can begin at that word rather than at the top of the selection.
   useEffect(() => {
     const handleMouseUp = () => {
       const sel = window.getSelection();
@@ -140,9 +153,7 @@ const PdfHighlighter = ({
       const range = sel.getRangeAt(0);
       const startNode = range.startContainer;
       let el: Element | null =
-        startNode instanceof Element
-          ? startNode
-          : startNode.parentElement;
+        startNode instanceof Element ? startNode : startNode.parentElement;
 
       while (el && !el.matches?.('span[role="presentation"]')) {
         el = el.parentElement;
@@ -152,15 +163,10 @@ const PdfHighlighter = ({
       const pageEl = el.closest(".page[data-page-number]");
       if (!pageEl) return;
 
-      const pn = parseInt(
-        pageEl.getAttribute("data-page-number") ?? "",
-        10,
-      );
+      const pn = parseInt(pageEl.getAttribute("data-page-number") ?? "", 10);
       if (isNaN(pn)) return;
 
-      const allBlocks = pageEl.querySelectorAll(
-        "span[role='presentation']",
-      );
+      const allBlocks = pageEl.querySelectorAll("span[role='presentation']");
       const blockIdx = Array.from(allBlocks).indexOf(el);
       if (blockIdx === -1) return;
 
@@ -181,18 +187,20 @@ const PdfHighlighter = ({
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
+  // Backs the "disable links" toggle in the settings menu: pdf.js renders real
+  // anchors in its annotation layer, so suppressing them means swallowing the
+  // click before it navigates.
   useEffect(() => {
     const handleLinkClick = (event: MouseEvent) => {
-      if (linksDisabled) {
-        const target = event.target;
+      if (!linksDisabled) return;
 
-        if (!(target instanceof HTMLElement)) return;
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
 
-        const linkElement = target.closest(".annotationLayer a[href]");
-        if (linkElement) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
+      const linkElement = target.closest(".annotationLayer a[href]");
+      if (linkElement) {
+        event.preventDefault();
+        event.stopPropagation();
       }
     };
 
@@ -201,49 +209,6 @@ const PdfHighlighter = ({
       document.removeEventListener("click", handleLinkClick, true);
     };
   }, [linksDisabled]);
-
-  const { mutate: updateAreaHighlight } =
-    api.highlight.updateAreaHighlight.useMutation({
-      async onMutate(newHighlight) {
-        await utils.document.getDocData.cancel();
-        const prevData = utils.document.getDocData.getData();
-
-        utils.document.getDocData.setData({ docId: doc.id }, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            highlights: old.highlights.map((h) =>
-              h.id === newHighlight.id
-                ? {
-                    ...h,
-                    position: {
-                      ...h.position,
-                      boundingRect: {
-                        ...h.position.boundingRect,
-                        ...newHighlight.boundingRect,
-                      },
-                      pageNumber: newHighlight.pageNumber ?? null,
-                      rects: [],
-                    },
-                  }
-                : h,
-            ),
-          };
-        });
-
-        return { prevData };
-      },
-      onError(err, newPost, ctx) {
-        toast.error("Something went wrong", {
-          duration: 3000,
-        });
-
-        utils.document.getDocData.setData({ docId: doc.id }, ctx?.prevData);
-      },
-      onSettled() {
-        utils.document.getDocData.invalidate();
-      },
-    });
 
   return (
     <PdfHighlighterComponent
@@ -260,38 +225,35 @@ const PdfHighlighter = ({
         content,
         hideTipAndSelection,
         transformSelection,
-      ) => {
-        return (
-          <TextSelectionPopover
-            showAiFeatures={doc.isVectorised}
-            sendMessage={sendMessage}
-            content={content}
-            hideTipAndSelection={hideTipAndSelection}
-            position={position}
-            addHighlight={() => addHighlight({ content, position })}
-            readSelectedText={readSelectedText}
-            selectionInfoRef={selectionInfoRef}
-            transformSelection={transformSelection}
-          />
-        );
-      }}
+      ) => (
+        <TextSelectionPopover
+          showAiFeatures={showAiFeatures}
+          sendMessage={sendMessage}
+          content={content}
+          hideTipAndSelection={hideTipAndSelection}
+          addHighlight={() => addHighlight({ content, position })}
+          readSelectedText={readSelectedText}
+          selectionInfoRef={selectionInfoRef}
+          transformSelection={transformSelection}
+        />
+      )}
       highlightTransform={(
         highlight,
         index,
         setTip,
         hideTip,
         viewportToScaled,
-        screenshot,
+        _screenshot,
         isScrolledTo,
       ) => {
         const isTextHighlight = highlight.position.rects?.length !== 0;
 
         const component = isTextHighlight ? (
           <div id={highlight.id}>
-            {/* @ts-ignore */}
             <Highlight
               isScrolledTo={isScrolledTo}
               position={highlight.position}
+              comment={highlight.comment}
             />
           </div>
         ) : (
@@ -299,25 +261,13 @@ const PdfHighlighter = ({
             <AreaHighlight
               isScrolledTo={isScrolledTo}
               highlight={highlight}
-              onChange={(boundingRect) => {
-                if (onUpdateAreaHighlight) {
-                  onUpdateAreaHighlight(
-                    highlight.id,
-                    viewportToScaled(boundingRect),
-                    boundingRect.pageNumber,
-                  );
-                  return;
-                }
-                updateAreaHighlight({
-                  id: highlight.id,
-                  boundingRect: viewportToScaled(boundingRect),
-                  type: HighlightTypeEnum.IMAGE,
-                  documentId: doc.id,
-                  ...(boundingRect.pageNumber
-                    ? { pageNumber: boundingRect.pageNumber }
-                    : {}),
-                });
-              }}
+              onChange={(boundingRect) =>
+                updateAreaHighlight(
+                  highlight.id,
+                  viewportToScaled(boundingRect),
+                  boundingRect.pageNumber,
+                )
+              }
             />
           </div>
         );
@@ -331,9 +281,7 @@ const PdfHighlighter = ({
                 hideTip={hideTip}
               />
             }
-            onMouseOver={(popupContent) =>
-              setTip(highlight, (highlight) => popupContent)
-            }
+            onMouseOver={(popupContent) => setTip(highlight, () => popupContent)}
             onMouseOut={hideTip}
             key={index}
           >
@@ -341,8 +289,7 @@ const PdfHighlighter = ({
           </Popup>
         );
       }}
-      // @ts-ignore
-      highlights={highlights}
+      highlights={highlights as unknown as IHighlight[]}
     />
   );
 };

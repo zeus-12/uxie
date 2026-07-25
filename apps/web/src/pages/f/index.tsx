@@ -1,5 +1,5 @@
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@uxie/shared/components/ui/input";
+import { Skeleton } from "@uxie/shared/components/ui/skeleton";
 import DocCard from "@/components/workspace/doc-card";
 import UploadFileModal from "@/components/workspace/upload-file-modal";
 import { api } from "@/lib/api";

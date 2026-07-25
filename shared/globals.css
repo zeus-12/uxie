@@ -152,31 +152,69 @@
   animation-delay: 0.4s;
 }
 
-/* Blend annotation highlights with reading (TTS/RSVP) highlights. */
+/* The highlight layer (z-index 3) sits above text spans (z-index auto)
+   within .textLayer. Without this, opaque annotation rects fully hide
+   reading-highlight backgrounds on the text spans beneath. Applying
+   multiply to the layer itself makes it blend with its backdrop (the
+   text spans), so both annotation and reading colours are visible. */
 .PdfHighlighter__highlight-layer {
   mix-blend-mode: multiply;
 }
 
-.current-sentence {
-  background-color: #e3ffdd !important;
-  border-radius: 4px;
+/* Reading highlights are overlay <div>s painted at the true (transform-aware)
+   on-screen rects of the current sentence/word — see use-sentence-reader.
+   `mix-blend-mode: multiply` blends the solid colour with the glyphs on the
+   page canvas below, so the text stays crisp and black on a solid green fill
+   (like the original). CRITICAL: the layer must NOT create a stacking context
+   (no z-index / opacity / transform), or the blend can't reach the canvas. */
+.tts-hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.current-word {
-  background-color: #74f273 !important;
-  display: inline !important;
-  border-radius: 4px;
+.tts-hl-sentence,
+.tts-hl-rsvp-sentence,
+.tts-hl-word,
+.tts-hl-rsvp-word {
+  position: absolute;
+  border-radius: 2px;
+  mix-blend-mode: multiply;
+  pointer-events: none;
 }
 
-.rsvp-sentence {
-  background-color: #fff3e0 !important;
-  transition: background-color 20s ease-out;
+.tts-hl-sentence {
+  background-color: #d6f7cd;
 }
 
-.rsvp-word {
-  background-color: #ffb74d !important;
-  display: inline !important;
-  border-radius: 4px;
+.tts-hl-rsvp-sentence {
+  background-color: #ffe6c2;
+}
+
+.tts-hl-rsvp-word {
+  background-color: #ffb74d;
+}
+
+/* The word overlay is a single reused element, so it glides to the next word
+   within a line. Line-to-line jumps snap instead (handled in JS by disabling
+   the transition), so the highlight never streaks across the page. */
+.tts-hl-word {
+  background-color: #74f273;
+  transition:
+    left 0.11s cubic-bezier(0.4, 0, 0.2, 1),
+    top 0.11s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.11s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.11s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tts-hl-word.tts-hl-word-extra {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tts-hl-word {
+    transition: none;
+  }
 }
 
 @layer utilities {

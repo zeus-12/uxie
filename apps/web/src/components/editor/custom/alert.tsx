@@ -5,7 +5,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@uxie/shared/components/ui/select";
 import { type BlockNoteEditorType } from "@/types/editor";
 import { defaultProps, insertOrUpdateBlock } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";

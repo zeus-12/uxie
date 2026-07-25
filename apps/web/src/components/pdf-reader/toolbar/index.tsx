@@ -1,7 +1,7 @@
 import { READING_STATUS } from "@/components/pdf-reader/constants";
-import { RsvpReader } from "@/components/pdf-reader/rsvp-reader";
+import { RsvpReader } from "@uxie/shared/components/pdf-reader/rsvp-reader";
 import { SpeakAlong } from "@/components/pdf-reader/speak-along";
-import { ExpandableTabs, type Tab } from "@/components/ui/expandable-tabs";
+import { ExpandableTabs, type Tab } from "@uxie/shared/components/ui/expandable-tabs";
 import SidebarDrawer from "@/components/workspace/sidebar-drawer";
 import { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -9,12 +9,12 @@ import { useMediaQuery } from "usehooks-ts";
 import {
   BackgroundControlsContent,
   BackgroundControlsIcon,
-} from "./background-controls";
-import { PageControlsContent, PageControlsIcon } from "./page-controls";
-import { PanelToggle } from "./panel-toggle";
-import { SettingsControls } from "./settings-controls";
-import { TTSControlsContent, TTSControlsIcon } from "./tts-controls";
-import { ZoomControlsContent, ZoomControlsIcon } from "./zoom-controls";
+} from "@uxie/shared/components/pdf-reader/toolbar/background-controls";
+import { PageControlsContent, PageControlsIcon } from "@uxie/shared/components/pdf-reader/toolbar/page-controls";
+import { PanelToggle } from "@uxie/shared/components/pdf-reader/toolbar/panel-toggle";
+import { SettingsControls } from "@uxie/shared/components/pdf-reader/toolbar/settings-controls";
+import { TTSControlsContent, TTSControlsIcon } from "@uxie/shared/components/pdf-reader/toolbar/tts-controls";
+import { ZoomControlsContent, ZoomControlsIcon } from "@uxie/shared/components/pdf-reader/toolbar/zoom-controls";
 
 const BottomToolbar = ({
   pageNumberInView,

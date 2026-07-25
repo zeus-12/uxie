@@ -1,115 +1,29 @@
-import { PDF_BACKGROUND_COLOURS } from "@/lib/constants";
-import { type BlockNoteEditorType } from "@/types/editor";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { getEngineFromVoice, type TTSEngineType, type TTSVoiceId } from "./tts";
-import { BROWSER_VOICES } from "./tts/providers/browser-provider";
+
+// Every store shared with desktop lives in @uxie/shared/lib/store. Re-exported
+// here so the existing "@/lib/store" call sites keep working — and, crucially,
+// so web and the shared components it renders touch the *same* store instance
+// (two `create()` calls persisting to one key would silently fight).
+export {
+  DEFAULT_SIDEBAR_TAB,
+  SIDEBAR_TABS,
+  useBlocknoteEditorStore,
+  useChatStore,
+  useCitationHighlightStore,
+  useHighlightJumpStore,
+  useMobileSidebarStore,
+  usePdfSettingsStore,
+  useSidebarTabStore,
+  type SidebarTab,
+} from "@uxie/shared/lib/store";
 
 type FeaturesStore = {
   inViewFeature: number | null;
   setInViewFeature: (feature: number | null) => void;
 };
 
-// for homescreen
+// for homescreen — web only
 export const useFeatureStore = create<FeaturesStore>((set) => ({
   inViewFeature: null,
   setInViewFeature: (feature: number | null) => set({ inViewFeature: feature }),
-}));
-
-type EditorStore = {
-  editor: BlockNoteEditorType | null;
-  setEditor: (editor: BlockNoteEditorType) => void;
-};
-
-export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
-  editor: null,
-  setEditor: (editor) => set({ editor }),
-}));
-
-// Chat sender + input focus now live in @uxie/shared/lib/store so the shared
-// chat/sidebar components and the highlight popover all coordinate through one
-// store instance.
-
-interface PdfSettingsStore {
-  linksDisabled: boolean;
-  toggleLinksDisabled: () => void;
-  setLinksDisabled: (disabled: boolean) => void;
-
-  bionicReadingEnabled: boolean;
-  toggleBionicReading: () => void;
-
-  sidebarHidden: boolean;
-  toggleSidebar: () => void;
-
-  speakAlongEnabled: boolean;
-  setSpeakAlongEnabled: (enabled: boolean) => void;
-
-  voice: TTSVoiceId;
-  setVoice: (voice: TTSVoiceId) => void;
-  getTtsEngine: () => TTSEngineType;
-
-  rsvpOpen: boolean;
-  setRsvpOpen: (open: boolean) => void;
-  rsvpWpm: number;
-  setRsvpWpm: (wpm: number) => void;
-
-  pageColour: string;
-  setPageColour: (colour: string) => void;
-}
-
-export const usePdfSettingsStore = create<PdfSettingsStore>()(
-  persist(
-    (set, get) => ({
-      linksDisabled: false,
-      toggleLinksDisabled: () =>
-        set((state) => ({ linksDisabled: !state.linksDisabled })),
-      setLinksDisabled: (disabled) => set({ linksDisabled: disabled }),
-
-      bionicReadingEnabled: false,
-      toggleBionicReading: () =>
-        set((state) => ({ bionicReadingEnabled: !state.bionicReadingEnabled })),
-
-      sidebarHidden: false,
-      toggleSidebar: () =>
-        set((state) => ({ sidebarHidden: !state.sidebarHidden })),
-
-      speakAlongEnabled: false,
-      setSpeakAlongEnabled: (enabled) => set({ speakAlongEnabled: enabled }),
-
-      voice: BROWSER_VOICES[0]?.id,
-      setVoice: (voice) => set({ voice }),
-      getTtsEngine: () => getEngineFromVoice(get().voice),
-
-      rsvpOpen: false,
-      setRsvpOpen: (open) => set({ rsvpOpen: open }),
-      rsvpWpm: 300,
-      setRsvpWpm: (wpm) => set({ rsvpWpm: wpm }),
-
-      pageColour: PDF_BACKGROUND_COLOURS[0],
-      setPageColour: (colour) => set({ pageColour: colour }),
-    }),
-    { name: "pdf-settings" },
-  ),
-);
-
-interface CitationHighlightStore {
-  highlightSource: ((pageNumber: number, text: string) => void) | null;
-  setHighlightSource: (fn: (pageNumber: number, text: string) => void) => void;
-}
-
-export const useCitationHighlightStore = create<CitationHighlightStore>(
-  (set) => ({
-    highlightSource: null,
-    setHighlightSource: (fn) => set({ highlightSource: fn }),
-  }),
-);
-
-interface MobileSidebarStore {
-  isDrawerOpen: boolean;
-  setDrawerOpen: (open: boolean) => void;
-}
-
-export const useMobileSidebarStore = create<MobileSidebarStore>((set) => ({
-  isDrawerOpen: false,
-  setDrawerOpen: (open) => set({ isDrawerOpen: open }),
 }));

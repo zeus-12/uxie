@@ -3,15 +3,15 @@ import {
   FloatingPanelBody,
   FloatingPanelFooter,
   FloatingPanelIconButton,
-} from "@/components/pdf-reader/floating-panel";
-import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/ui/kbd";
+} from "@uxie/shared/components/pdf-reader/floating-panel";
+import { Button } from "@uxie/shared/components/ui/button";
+import { Kbd } from "@uxie/shared/components/ui/kbd";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@uxie/shared/components/ui/tooltip";
 import { useSpeakAlong } from "@/hooks/use-speak-along";
 import { usePdfSettingsStore } from "@/lib/store";
 import { AnimatePresence, motion } from "framer-motion";

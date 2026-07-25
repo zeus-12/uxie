@@ -1,11 +1,9 @@
 import { env } from "@/env.mjs";
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { z } from "zod";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+// Shared with desktop — defined once in @uxie/shared/lib/utils. Everything
+// below this line is web-only.
+export { cn, copyTextToClipboard } from "@uxie/shared/lib/utils";
 
 export function getRandomLightColor() {
   const getRandomLightValue = () => Math.floor(Math.random() * 128) + 128;
@@ -36,16 +34,6 @@ export const FEEDBACK_FORM_DEFAULT_VALUES = {
   email: "",
   message: "",
   type: FEEDBACK_TYPES[0],
-};
-
-export const copyTextToClipboard = (
-  text: string | undefined,
-  callback: () => void,
-) => {
-  if (text) {
-    navigator.clipboard.writeText(text);
-  }
-  callback();
 };
 
 export const isDev = env.NEXT_PUBLIC_ENV === "development";
@@ -98,16 +86,4 @@ export const log = (...args: any[]) => {
   }
 };
 
-export const stripTextFromEnd = (
-  text: string | undefined | null,
-  end: string,
-) => {
-  if (!text) {
-    return "";
-  }
-
-  if (text.endsWith(end)) {
-    return text.slice(0, -end.length);
-  }
-  return text;
-};
+export { stripTextFromEnd } from "@uxie/shared/lib/utils";

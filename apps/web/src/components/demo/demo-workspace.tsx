@@ -5,7 +5,7 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
+} from "@uxie/shared/components/ui/resizable";
 import { SidebarDrawerContent } from "@/components/workspace/sidebar-drawer";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { type ReaderDoc } from "@/types/reader";

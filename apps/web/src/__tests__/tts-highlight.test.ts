@@ -5,12 +5,12 @@ import { createRoot } from "react-dom/client";
 import {
   useSentenceReader,
   type SentencePosition,
-} from "@/hooks/use-sentence-reader";
+} from "@uxie/shared/hooks/use-sentence-reader";
 import {
   computeChunkWordTimings,
   findChunkPosition,
   normalizeWord,
-} from "@/lib/tts/utils";
+} from "@uxie/shared/lib/tts/utils";
 import { TextSplitterStream } from "kokoro-js";
 import textlayer from "./fixtures/textlayer.json";
 

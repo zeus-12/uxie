@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { READING_MODE } from "./constants";
 import { CustomTooltip } from "../ui/tooltip";
 import { copyTextToClipboard } from "../../lib/utils";
@@ -10,10 +9,27 @@ import {
   Sparkles,
   TrashIcon,
 } from "lucide-react";
+import { useSidebarTabStore } from "../../lib/store";
+import { useState, type RefObject } from "react";
 
-type ReadSelectedText = (args: {
+/**
+ * Where in the text layer a selection started — lets "Read the text" resume
+ * from the exact word rather than the top of the selection.
+ */
+export type SelectionInfo = {
+  blockIndex: number;
+  offsetInBlock: number;
+  pageNumber: number;
+};
+
+export type ReadSelectedText = (args: {
   text?: string;
+  readingSpeed?: number;
+  continueReadingFromLastPosition?: boolean;
   readingMode: READING_MODE;
+  selectionBlockIndex?: number;
+  selectionOffsetInBlock?: number;
+  selectionPageNumber?: number;
 }) => Promise<void>;
 
 export const TextSelectionPopover = ({
@@ -23,20 +39,28 @@ export const TextSelectionPopover = ({
   sendMessage,
   showAiFeatures,
   readSelectedText,
+  selectionInfoRef,
   transformSelection,
 }: {
-  content: { text?: string; image?: string };
-  hideTipAndSelection: () => void;
-  addHighlight: () => void;
-  sendMessage?: ((message: string) => void) | null;
-  showAiFeatures?: boolean;
-  readSelectedText?: ReadSelectedText;
   // Paints a persistent ghost highlight so the selection stays visible once the
   // AI input steals focus and collapses the native selection.
-  transformSelection?: () => void;
+  transformSelection: () => void;
+  addHighlight: () => void;
+  content: {
+    text?: string | undefined;
+    image?: string | undefined;
+  };
+  hideTipAndSelection: () => void;
+  sendMessage: ((message: string) => void) | null;
+  showAiFeatures: boolean;
+  readSelectedText: ReadSelectedText;
+  selectionInfoRef: RefObject<SelectionInfo | null>;
 }) => {
+  const setSidebarTab = useSidebarTabStore((s) => s.setTab);
   const isTextHighlight = content.text !== undefined;
   const [mode, setMode] = useState<"actions" | "ai">("actions");
+
+  const switchSidebarTabToChat = () => setSidebarTab("chat");
 
   if (mode === "ai" && sendMessage) {
     return (
@@ -44,6 +68,7 @@ export const TextSelectionPopover = ({
         selection={content.text ?? ""}
         onSubmit={(prompt) => {
           sendMessage(prompt);
+          switchSidebarTabToChat();
           hideTipAndSelection();
         }}
         onClose={() => setMode("actions")}
@@ -60,18 +85,22 @@ export const TextSelectionPopover = ({
       icon: ClipboardCopy,
       tooltip: "Copy the text",
     },
-    isTextHighlight &&
-      readSelectedText && {
-        onClick: () => {
-          void readSelectedText({
-            text: content.text,
-            readingMode: READING_MODE.TEXT,
-          });
-          hideTipAndSelection();
-        },
-        icon: AudioLines,
-        tooltip: "Read the text",
+    isTextHighlight && {
+      onClick: () => {
+        const info = selectionInfoRef.current;
+
+        void readSelectedText({
+          text: content.text,
+          readingMode: READING_MODE.TEXT,
+          selectionBlockIndex: info?.blockIndex,
+          selectionOffsetInBlock: info?.offsetInBlock,
+          selectionPageNumber: info?.pageNumber,
+        });
+        hideTipAndSelection();
       },
+      icon: AudioLines,
+      tooltip: "Read the text",
+    },
     {
       onClick: () => {
         addHighlight();
@@ -83,7 +112,7 @@ export const TextSelectionPopover = ({
     showAiFeatures &&
       sendMessage && {
         onClick: () => {
-          transformSelection?.();
+          transformSelection();
           setMode("ai");
         },
         icon: Sparkles,

@@ -557,6 +557,9 @@ importers:
       react-hotkeys-hook:
         specifier: ^5.2.3
         version: 5.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-pdf-highlighter:
+        specifier: ^6.1.0
+        version: 6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-resizable-panels:
         specifier: ^2.0.10
         version: 2.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

@@ -3,8 +3,8 @@ import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import { SpinnerPage } from "@/components/ui/spinner";
+} from "@uxie/shared/components/ui/resizable";
+import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import Sidebar from "@/components/workspace/sidebar";
 import { SidebarDrawerContent } from "@/components/workspace/sidebar-drawer";
 import { api } from "@/lib/api";

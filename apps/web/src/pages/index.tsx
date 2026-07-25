@@ -1,7 +1,7 @@
 import BentoGrid from "@/components/other/bento-grid";
 import SlideUpWhenVisible from "@/components/other/slide-up-when-visible";
 import YoutubeEmbed from "@/components/other/youtube-embed";
-import { Button } from "@/components/ui/button";
+import { Button } from "@uxie/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ArrowRightIcon,

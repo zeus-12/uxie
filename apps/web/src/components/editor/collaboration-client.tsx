@@ -1,5 +1,5 @@
 // import Editor from "@/components/editor";
-// import { SpinnerPage } from "@/components/ui/spinner";
+// import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
 // import { ClientSideSuspense } from "@liveblocks/react";
 // import { useSession } from "next-auth/react";
 // import { useRouter } from "next/router";

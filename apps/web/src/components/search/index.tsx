@@ -1,4 +1,4 @@
-// import FeatureCard from "@/components/other/feature-card";
+// import FeatureCard from "@uxie/shared/components/other/feature-card";
 // import { api } from "@/lib/api";
 // import { useCitationHighlightStore } from "@/lib/store";
 // import { cn } from "@/lib/utils";

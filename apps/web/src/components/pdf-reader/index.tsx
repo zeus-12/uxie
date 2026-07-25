@@ -1,5 +1,5 @@
 import PdfReader from "@/components/pdf-reader/reader";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { api } from "@/lib/api";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn, stripTextFromEnd } from "@/lib/utils";

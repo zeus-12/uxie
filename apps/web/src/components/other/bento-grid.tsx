@@ -14,7 +14,7 @@ import {
 import { type FC, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { getOrpIndex } from "../pdf-reader/rsvp-reader";
+import { getOrpIndex } from "@uxie/shared/components/pdf-reader/rsvp-reader";
 
 // ---------------------------------------------------------------------------
 // Constants

@@ -1,15 +1,18 @@
-import PdfHighlighter from "@/components/pdf-reader/pdf-highlighter";
 import BottomToolbar from "@/components/pdf-reader/toolbar";
-import { SpinnerPage } from "@/components/ui/spinner";
-import usePdfReader from "@/hooks/use-pdf-reader";
+import PdfHighlighter from "@uxie/shared/components/pdf-reader/pdf-highlighter";
+import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
+import { api } from "@/lib/api";
+import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import {
   type AddHighlightType,
   type HighlightPositionType,
 } from "@/types/highlight";
 import { type ReaderDoc } from "@/types/reader";
+import { HighlightTypeEnum } from "@prisma/client";
 import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { PdfLoader } from "react-pdf-highlighter";
+import { toast } from "sonner";
 
 const PdfReader = ({
   addHighlight,
@@ -43,6 +46,54 @@ const PdfReader = ({
     [],
   );
 
+  // Persistence lives here, not in the shared components: they only report what
+  // happened. The demo injects its own local writers instead.
+  const utils = api.useContext();
+  const { mutateAsync: saveLastReadPage } =
+    api.document.updateLastReadPage.useMutation();
+
+  const { mutate: persistAreaHighlight } =
+    api.highlight.updateAreaHighlight.useMutation({
+      async onMutate(newHighlight) {
+        await utils.document.getDocData.cancel();
+        const prevData = utils.document.getDocData.getData();
+
+        utils.document.getDocData.setData({ docId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            highlights: old.highlights.map((h) =>
+              h.id === newHighlight.id
+                ? {
+                    ...h,
+                    position: {
+                      ...h.position,
+                      boundingRect: {
+                        ...h.position.boundingRect,
+                        ...newHighlight.boundingRect,
+                      },
+                      pageNumber: newHighlight.pageNumber ?? null,
+                      rects: [],
+                    },
+                  }
+                : h,
+            ),
+          };
+        });
+
+        return { prevData };
+      },
+      onError(err, newPost, ctx) {
+        toast.error("Something went wrong", { duration: 3000 });
+        utils.document.getDocData.setData({ docId }, ctx?.prevData);
+      },
+      onSettled() {
+        void utils.document.getDocData.invalidate();
+      },
+    });
+
+  const highlights = useMemo(() => doc.highlights ?? [], [doc.highlights]);
+
   const {
     pageNumberInView,
     currentReadingSpeed,
@@ -67,7 +118,13 @@ const PdfReader = ({
     lastReadPage,
     pageCount,
     viewer: pdfViewer,
-    onUpdateLastReadPage,
+    onSaveLastReadPage: (pageNumber) => {
+      if (onUpdateLastReadPage) {
+        onUpdateLastReadPage(docId, pageNumber);
+        return;
+      }
+      void saveLastReadPage({ docId, lastReadPage: pageNumber });
+    },
   });
 
   return (
@@ -77,11 +134,33 @@ const PdfReader = ({
           <PdfHighlighter
             highlighterRef={handleHighlighterRef}
             pdfDocument={pdfDocument}
-            doc={doc}
-            addHighlight={addHighlight}
+            highlights={highlights}
+            showAiFeatures={doc.isVectorised}
+            addHighlight={({ content, position }) =>
+              void addHighlight({
+                content,
+                position: position as AddHighlightType["position"],
+              })
+            }
             deleteHighlight={deleteHighlight}
+            updateAreaHighlight={(id, boundingRect, pageNumber) => {
+              if (onUpdateAreaHighlight) {
+                onUpdateAreaHighlight(
+                  id,
+                  boundingRect as HighlightPositionType["boundingRect"],
+                  pageNumber,
+                );
+                return;
+              }
+              persistAreaHighlight({
+                id,
+                boundingRect: boundingRect as HighlightPositionType["boundingRect"],
+                type: HighlightTypeEnum.IMAGE,
+                documentId: docId,
+                ...(pageNumber ? { pageNumber } : {}),
+              });
+            }}
             readSelectedText={readSelectedText}
-            onUpdateAreaHighlight={onUpdateAreaHighlight}
             pdfScaleValue={pdfScaleValue}
           />
         )}

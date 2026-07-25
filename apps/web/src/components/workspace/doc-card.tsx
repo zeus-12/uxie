@@ -1,5 +1,5 @@
-import { Badge } from "@/components/ui/badge";
-import { CustomTooltip } from "@/components/ui/tooltip";
+import { Badge } from "@uxie/shared/components/ui/badge";
+import { CustomTooltip } from "@uxie/shared/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { FileText, Sparkle } from "lucide-react";
 import Image from "next/image";

@@ -1,18 +1,18 @@
 import { SPEAK_ALONG_STATUS } from "@/components/pdf-reader/speak-along";
-import { useLocalTts } from "@/hooks/use-local-tts";
+import { useLocalTts } from "@uxie/shared/hooks/use-local-tts";
 import {
   cleanSentenceForTts,
   useSentenceReader,
-} from "@/hooks/use-sentence-reader";
+} from "@uxie/shared/hooks/use-sentence-reader";
 import { usePdfSettingsStore } from "@/lib/store";
-import { getEngineFromVoice } from "@/lib/tts";
-import { SUPERTONIC_VOICES } from "@/lib/tts/providers/supertonic-provider";
+import { getEngineFromVoice } from "@uxie/shared/lib/tts";
+import { SUPERTONIC_VOICES } from "@uxie/shared/lib/tts/providers/supertonic-provider";
 import {
   extractWordsWithPositions,
   isRealWord,
   normalizeWord,
   type WordWithPosition,
-} from "@/lib/tts/utils";
+} from "@uxie/shared/lib/tts/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";

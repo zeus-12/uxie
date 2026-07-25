@@ -233,9 +233,17 @@ export abstract class BaseAudioProvider<T extends string>
     const loop = () => {
       if (this._status !== "speaking" || !this.audioContext) return;
 
+      // outputLatency/baseLatency is the delay between the context timeline
+      // and sound reaching the speakers; without subtracting it the highlight
+      // runs ahead of the audio and short first words are never shown.
+      const latencyMs =
+        (this.audioContext.outputLatency || this.audioContext.baseLatency || 0) *
+        1000;
+
       const elapsedMs =
         (this.audioContext.currentTime - this.playbackStartTime) * 1000 +
-        this.playbackOffset;
+        this.playbackOffset -
+        latencyMs;
 
       const wordIndex = findCurrentWordIndex(this.wordTimings, elapsedMs);
 

@@ -10,6 +10,7 @@ import {
 } from "@uxie/shared/components/ui/dialog";
 import { Input } from "@uxie/shared/components/ui/input";
 import { Label } from "@uxie/shared/components/ui/label";
+import { Spinner } from "@uxie/shared/components/ui/spinner";
 import type { Settings } from "../ipc-contract";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -67,7 +68,9 @@ export function SettingsDialog({
         </DialogHeader>
 
         {settings === null ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <div className="flex justify-center py-6">
+            <Spinner />
+          </div>
         ) : (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">

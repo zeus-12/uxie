@@ -1,4 +1,10 @@
-import { FREE_PLAN, PLANS } from "@/lib/constants";
+import {
+  FREE_PLAN,
+  MAX_FILE_SIZE_MB_ANY_PLAN,
+  PLANS,
+  fileSizeBytes,
+  fileSizeLabel,
+} from "@/lib/constants";
 import { generateAndUploadCover } from "@/lib/pdf-cover";
 import { stripTextFromEnd } from "@/lib/utils";
 import { getServerAuthSession } from "@/server/auth";
@@ -9,9 +15,15 @@ import { createUploadthing, type FileRouter } from "uploadthing/next-legacy";
 const f = createUploadthing();
 
 export const docUploader = {
-  // TODO allow for diff file size based on plan
-  docUploader: f({ pdf: { maxFileSize: "8MB", maxFileCount: 1 } })
-    .middleware(async ({ req, res }) => {
+  // The route's limit is the ceiling across all plans; the per-plan limit is
+  // enforced in the middleware, which is the only place the user's plan is known.
+  docUploader: f({
+    pdf: {
+      maxFileSize: fileSizeLabel(MAX_FILE_SIZE_MB_ANY_PLAN),
+      maxFileCount: 1,
+    },
+  })
+    .middleware(async ({ req, res, files }) => {
       const session = await getServerAuthSession({ req, res });
       if (!session?.user) throw new Error("Unauthorized");
 
@@ -24,11 +36,18 @@ export const docUploader = {
       });
 
       const userPlan = session?.user.plan ?? FREE_PLAN;
-      const allowedDocsCount = PLANS[userPlan].maxDocs;
+      const { maxDocs, maxFileSizeMbPerDoc } = PLANS[userPlan];
 
-      if (userFilesCount >= allowedDocsCount) {
+      if (userFilesCount >= maxDocs) {
         throw new Error(
           "You have reached the maximum number of documents allowed for your plan",
+        );
+      }
+
+      const maxBytes = fileSizeBytes(maxFileSizeMbPerDoc);
+      if (files.some((file) => file.size > maxBytes)) {
+        throw new Error(
+          `Your plan allows PDFs up to ${fileSizeLabel(maxFileSizeMbPerDoc)}`,
         );
       }
 

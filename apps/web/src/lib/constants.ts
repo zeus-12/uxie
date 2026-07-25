@@ -1,12 +1,14 @@
 import { Plan } from "@prisma/client";
 
+// Uploadthing's `FileSize` only accepts powers of two
+type FileSizeMb = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024;
+
 interface PlanData {
   title: string;
   price: number;
   maxDocs: number;
   maxPagesPerDoc: number;
-  maxFileSizePerDoc: string;
-  maxCollaboratorsPerDoc: number;
+  maxFileSizeMbPerDoc: FileSizeMb;
 }
 
 export const PLANS: Record<Plan, PlanData> = {
@@ -15,8 +17,7 @@ export const PLANS: Record<Plan, PlanData> = {
     price: 0,
     maxDocs: 3,
     maxPagesPerDoc: 10,
-    maxFileSizePerDoc: "8MB",
-    maxCollaboratorsPerDoc: 0,
+    maxFileSizeMbPerDoc: 8,
   },
 
   FREE_PLUS: {
@@ -24,26 +25,25 @@ export const PLANS: Record<Plan, PlanData> = {
     price: 0,
     maxDocs: 25,
     maxPagesPerDoc: 15,
-    maxFileSizePerDoc: "8MB",
-    maxCollaboratorsPerDoc: 0,
+    maxFileSizeMbPerDoc: 8,
   },
   PRO: {
     title: "Pro",
     price: 9.99,
     maxDocs: 100,
     maxPagesPerDoc: 40,
-    maxFileSizePerDoc: "64MB",
-    maxCollaboratorsPerDoc: 5,
+    maxFileSizeMbPerDoc: 64,
   },
 };
 
 export const FREE_PLAN = "FREE";
 
-export const PDF_BACKGROUND_COLOURS = [
-  "#FFF", // default colour -> dont change this order
-  "#DBEAFE",
-  "#CFFAFE",
-  "#D1FAE5",
-  "#FEF9C3",
-  "#FFEDD5",
-] as const;
+/** The uploadthing route is defined once, so it must allow the most generous plan. */
+export const MAX_FILE_SIZE_MB_ANY_PLAN = Math.max(
+  ...Object.values(PLANS).map((p) => p.maxFileSizeMbPerDoc),
+) as FileSizeMb;
+
+export const fileSizeLabel = (mb: FileSizeMb) => `${mb}MB` as const;
+export const fileSizeBytes = (mb: FileSizeMb) => mb * 1024 * 1024;
+
+export { PDF_BACKGROUND_COLOURS } from "@uxie/shared/lib/constants";

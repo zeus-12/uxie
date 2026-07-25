@@ -40,7 +40,7 @@ import { toast } from "sonner";
 import AiPopover, {
   type AiPopoverPropsRect,
 } from "@/components/editor/custom/ai/popover";
-import { SpinnerCentered } from "@/components/ui/spinner";
+import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
 import { api } from "@/lib/api";
 import { useRouter } from "next/router";
 import { useDebouncedCallback } from "use-debounce";

@@ -1,9 +1,9 @@
 import DemoChat from "@/components/demo/demo-chat";
 import DemoFlashcards from "@/components/demo/demo-flashcards";
 import BlockNoteEditor from "@/components/editor";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CustomTooltip } from "@/components/ui/tooltip";
+import { Button } from "@uxie/shared/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@uxie/shared/components/ui/tabs";
+import { CustomTooltip } from "@uxie/shared/components/ui/tooltip";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { saveAs } from "file-saver";

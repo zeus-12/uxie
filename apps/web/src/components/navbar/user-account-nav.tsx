@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@uxie/shared/components/ui/dropdown-menu";
 import { type User } from "next-auth";
 import { signOut } from "next-auth/react";
 

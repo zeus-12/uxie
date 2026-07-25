@@ -1,12 +1,8 @@
-export enum READING_STATUS {
-  IDLE = "IDLE",
-  READING = "READING",
-  PAUSED = "PAUSED",
-}
-
-export const READING_SPEEDS = [1, 1.2, 1.4, 1.6, 1.8, 2];
-
-export enum READING_MODE {
-  PAGE,
-  TEXT,
-}
+// Single definition lives in shared — two copies of an enum are two distinct
+// types, and the reader hook (shared) hands its status straight to this app's
+// toolbar.
+export {
+  READING_MODE,
+  READING_SPEEDS,
+  READING_STATUS,
+} from "@uxie/shared/components/pdf-reader/constants";

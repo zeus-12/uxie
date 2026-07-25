@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@uxie/shared/components/ui/button";
 import {
   Form,
   FormControl,
@@ -6,16 +6,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@uxie/shared/components/ui/form";
+import { Input } from "@uxie/shared/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@uxie/shared/components/ui/select";
+import { Textarea } from "@uxie/shared/components/ui/textarea";
 import { api } from "@/lib/api";
 import {
   FEEDBACK_FORM_DEFAULT_VALUES,

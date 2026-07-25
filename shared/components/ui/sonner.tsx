@@ -23,4 +23,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
+// `toast` is re-exported so consumers get the toaster and the emitter from one
+// module (desktop imports it from here).
 export { Toaster, toast };

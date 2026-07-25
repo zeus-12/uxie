@@ -11,6 +11,7 @@ import {
   combineSamples,
   computeChunkWordTimings,
   findChunkPosition,
+  findVoicedRangeMs,
 } from "../utils";
 
 export type KokoroVoiceId = NonNullable<GenerateOptions["voice"]>;
@@ -109,12 +110,15 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
         const chunkStart = findChunkPosition(text, chunkText, searchStartIndex);
 
         if (chunkStart !== -1) {
+          // Kokoro pads chunks with silence; distribute word timings over the
+          // measured voiced region so highlights track actual speech.
+          const voiced = findVoicedRangeMs(samples, SAMPLE_RATE);
           wordTimings.push(
             ...computeChunkWordTimings(
               chunkText,
               chunkStart,
-              currentTimeMs,
-              chunkDurationMs,
+              currentTimeMs + voiced.startMs,
+              voiced.endMs - voiced.startMs,
             ),
           );
           searchStartIndex = chunkStart + chunkText.length;

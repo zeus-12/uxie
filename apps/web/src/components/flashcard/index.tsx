@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { flashcardFeedbackSchema } from "@/schema/flashcard";
+import { flashcardFeedbackSchema } from "@uxie/shared/schema/flashcard";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import Flashcards, {
   type FlashcardEvaluation,

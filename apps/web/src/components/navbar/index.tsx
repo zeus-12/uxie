@@ -1,6 +1,6 @@
 import { UserAccountNav } from "@/components/navbar/user-account-nav";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@uxie/shared/components/ui/button";
+import { Skeleton } from "@uxie/shared/components/ui/skeleton";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";

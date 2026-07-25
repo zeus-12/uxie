@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@uxie/shared/components/ui/button";
 import { useMobileSidebarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { PanelBottomOpen } from "lucide-react";

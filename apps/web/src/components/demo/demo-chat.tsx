@@ -1,4 +1,4 @@
-import FeatureCard from "@/components/other/feature-card";
+import FeatureCard from "@uxie/shared/components/other/feature-card";
 import { DEMO_CHAT_REPLIES, DEMO_CHAT_WELCOME } from "@/lib/demo/seed";
 import { useDemoDocStore } from "@/lib/demo/store";
 import {

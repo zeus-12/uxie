@@ -1,4 +1,4 @@
-import { flashcardFeedbackSchema } from "@/schema/flashcard";
+import { flashcardFeedbackSchema } from "@uxie/shared/schema/flashcard";
 import { flashcardEvaluateRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";

@@ -1,6 +1,6 @@
 import { addHighlightToNotes } from "@/components/pdf-reader";
 import PdfReader from "@/components/pdf-reader/reader";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn, stripTextFromEnd } from "@/lib/utils";

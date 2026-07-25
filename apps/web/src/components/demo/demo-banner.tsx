@@ -1,4 +1,4 @@
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { resetDemo } from "@/lib/demo/store";
 import { cn } from "@/lib/utils";
 import { RotateCcw } from "lucide-react";

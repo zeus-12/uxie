@@ -1,16 +1,16 @@
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
+import { Checkbox } from "@uxie/shared/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Spinner } from "@/components/ui/spinner";
+} from "@uxie/shared/components/ui/dialog";
+import { Input } from "@uxie/shared/components/ui/input";
+import { Spinner } from "@uxie/shared/components/ui/spinner";
 import { api } from "@/lib/api";
-import { PLANS } from "@/lib/constants";
+import { PLANS, fileSizeBytes, fileSizeLabel } from "@/lib/constants";
 import { useUploadThing } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "@uploadthing/react";
@@ -26,8 +26,6 @@ import { z } from "zod";
 // @ts-ignore
 import scribe from "scribe.js-ocr";
 
-const MAX_FILE_SIZE_ALLOWED = 8 * 1024 * 1024;
-const MAX_FILE_SIZE_ALLOWED_IN_TEXT = "8MB";
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -38,9 +36,10 @@ const UploadFileModal = ({
 }) => {
   const session = useSession();
 
-  const userPlan = (
-    session.data?.user?.plan ? PLANS[session.data?.user?.plan] : PLANS.FREE
-  ).maxPagesPerDoc;
+  const plan = session.data?.user?.plan
+    ? PLANS[session.data.user.plan]
+    : PLANS.FREE;
+  const userPlan = plan.maxPagesPerDoc;
 
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File>();
@@ -218,6 +217,7 @@ const UploadFileModal = ({
             setUrl={setUrl}
             setFile={setFile}
             file={file}
+            maxFileSizeMb={plan.maxFileSizeMbPerDoc}
           />
 
           <div className="relative flex items-center py-5">
@@ -301,17 +301,21 @@ const Uploader = ({
   setFile,
   file,
   routeConfig,
+  maxFileSizeMb,
 }: {
   setUrl: (url: string) => void;
   setFile: (file?: File) => void;
   file?: File;
   routeConfig: any;
+  maxFileSizeMb: (typeof PLANS)[keyof typeof PLANS]["maxFileSizeMbPerDoc"];
 }) => {
+  const maxSizeLabel = fileSizeLabel(maxFileSizeMb);
+
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (!acceptedFiles || acceptedFiles.length !== 1 || !acceptedFiles[0]) {
         toast.error(
-          `Please upload a single PDF with a maximum file size of ${MAX_FILE_SIZE_ALLOWED_IN_TEXT}.`,
+          `Please upload a single PDF with a maximum file size of ${maxSizeLabel}.`,
           {
             duration: 3000,
           },
@@ -323,14 +327,14 @@ const Uploader = ({
       setUrl("");
       setFile(acceptedFiles[0]);
     },
-    [setFile, setUrl],
+    [setFile, setUrl, maxSizeLabel],
   );
 
   const { getRootProps, getInputProps } = useDropzone({
     disabled: !!file,
     onDrop,
     maxFiles: 1,
-    maxSize: MAX_FILE_SIZE_ALLOWED,
+    maxSize: fileSizeBytes(maxFileSizeMb),
     multiple: false,
     accept: generateClientDropzoneAccept(
       generatePermittedFileTypes(routeConfig).fileTypes,
@@ -355,7 +359,9 @@ const Uploader = ({
       ) : (
         <>
           <p>Upload the pdf</p>
-          <p className="text-sm text-gray-500">Single PDF upto 8MB</p>
+          <p className="text-sm text-gray-500">
+            Single PDF upto {maxSizeLabel}
+          </p>
         </>
       )}
     </div>

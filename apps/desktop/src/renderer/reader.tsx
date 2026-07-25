@@ -4,11 +4,7 @@ import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
-  AreaHighlight,
-  Highlight,
-  PdfHighlighter,
   PdfLoader,
-  Popup,
   type IHighlight,
   type ScaledPosition,
 } from "react-pdf-highlighter";
@@ -19,21 +15,18 @@ import {
 } from "@uxie/shared/components/ui/resizable";
 import {
   Sidebar,
-  SidebarTabs,
+  SidebarHeader,
 } from "@uxie/shared/components/workspace/sidebar";
 import {
   useBlocknoteEditorStore,
   useChatStore,
-  useHighlightJumpStore,
   useSidebarTabStore,
 } from "@uxie/shared/lib/store";
-import { getHighlightPageNumber } from "@uxie/shared/lib/highlights";
-import { toast } from "@uxie/shared/components/ui/sonner";
+import { Spinner, SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import BottomToolbar from "@uxie/shared/components/pdf-reader/toolbar";
-import {
-  HighlightedTextPopover,
-  TextSelectionPopover,
-} from "@uxie/shared/components/pdf-reader/highlight-popover";
+import PdfHighlighter, {
+  type HighlighterInstance,
+} from "@uxie/shared/components/pdf-reader/pdf-highlighter";
 import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import type {
   Cordinate,
@@ -45,8 +38,7 @@ import { Chat } from "./chat";
 import { Notes } from "./notes";
 import { FlashcardsPanel } from "./flashcards";
 
-type PdfHighlighterInstance = InstanceType<typeof PdfHighlighter<IHighlight>>;
-type PdfViewerInstance = PdfHighlighterInstance["viewer"];
+type PdfViewerInstance = HighlighterInstance["viewer"];
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -167,7 +159,9 @@ export function Reader({
       {error ? (
         <p className="p-6 text-sm text-destructive">{error}</p>
       ) : doc === undefined ? (
-        <p className="p-6 text-sm text-muted-foreground">Loading…</p>
+        <div className="flex flex-1 items-center justify-center">
+          <Spinner />
+        </div>
       ) : (
         <p className="p-6 text-sm text-muted-foreground">Document not found.</p>
       )}
@@ -198,71 +192,14 @@ function ReaderContent({
   // needs the live instance to track the page in view and apply zoom. The ref
   // mirrors it for callbacks that shouldn't re-subscribe when it arrives.
   const [pdfViewer, setPdfViewer] = useState<PdfViewerInstance | null>(null);
-  const pdfViewerRef = useRef<PdfViewerInstance | null>(null);
   const handleHighlighterRef = useCallback(
-    (instance: PdfHighlighterInstance | null) => {
-      pdfViewerRef.current = instance?.viewer ?? null;
+    (instance: HighlighterInstance | null) => {
       setPdfViewer(instance?.viewer ?? null);
     },
     [],
   );
 
-  // Handed to us by the viewer once the document is ready.
-  const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
-    null,
-  );
-  const setJumpToHighlight = useHighlightJumpStore((s) => s.setJumpToHighlight);
-
-  // The highlight blocks in the notes editor jump through here. It goes by page
-  // number rather than by element id: pdf.js only keeps nearby pages rendered,
-  // so a highlight's DOM node doesn't exist until its page is scrolled into view.
-  useEffect(() => {
-    setJumpToHighlight((highlightId, fallbackPageNumber) => {
-      const highlight = highlights.find((h) => h.id === highlightId);
-      const pageNumber = highlight
-        ? getHighlightPageNumber(highlight.position)
-        : fallbackPageNumber;
-
-      if (!pageNumber) {
-        toast.error("Couldn't find this highlight in the document", {
-          duration: 3000,
-        });
-        return;
-      }
-
-      const scrollToHighlight = scrollToHighlightRef.current;
-      if (highlight && scrollToHighlight) {
-        scrollToHighlight({
-          ...highlight,
-          position: { ...highlight.position, pageNumber },
-        });
-        return;
-      }
-
-      // Either the highlight is gone (the note outlived it) or the viewer isn't
-      // ready yet — the page is the most we can honestly do.
-      const viewer = pdfViewerRef.current;
-      if (!viewer) {
-        toast.error("The document is still loading", { duration: 3000 });
-        return;
-      }
-      viewer.scrollPageIntoView({ pageNumber });
-    });
-
-    return () => setJumpToHighlight(null);
-  }, [highlights, setJumpToHighlight]);
-
-  const chatSendMessage = useChatStore((s) => s.sendMessage);
   const setSidebarTab = useSidebarTabStore((s) => s.setTab);
-  // Switch to the chat tab and hand the selection to it. Only offered once the
-  // document is indexed (the chat registers a sender then).
-  const sendToChat =
-    doc.isVectorised && chatSendMessage
-      ? (text: string) => {
-          setSidebarTab("chat");
-          chatSendMessage(text);
-        }
-      : null;
 
   // ⌘1/2/3 switch tabs; ⌘L jumps to chat and focuses its input. Kept out of the
   // UI — just shortcuts.
@@ -407,81 +344,26 @@ function ReaderContent({
           <PdfLoader
             url={doc.url}
             workerSrc={workerSrc}
-            beforeLoad={
-              <p className="p-6 text-sm text-muted-foreground">Loading PDF…</p>
-            }
+            beforeLoad={<SpinnerPage />}
           >
             {(pdfDocument: PDFDocumentProxy) => (
               <PdfHighlighter
-                ref={handleHighlighterRef}
+                highlighterRef={handleHighlighterRef}
                 pdfDocument={pdfDocument}
                 pdfScaleValue={pdfScaleValue}
-                enableAreaSelection={(e) => e.altKey}
-                onScrollChange={() => {}}
-                scrollRef={(scrollTo) => {
-                  scrollToHighlightRef.current = scrollTo;
-                }}
-                onSelectionFinished={(
-                  position,
-                  content,
-                  hideTipAndSelection,
-                  transformSelection,
-                ) => (
-                  <TextSelectionPopover
-                    content={content}
-                    hideTipAndSelection={hideTipAndSelection}
-                    addHighlight={() => void addHighlight(position, content)}
-                    readSelectedText={readSelectedText}
-                    sendMessage={sendToChat}
-                    showAiFeatures={!!sendToChat}
-                    transformSelection={transformSelection}
-                  />
-                )}
-                highlightTransform={(
-                  highlight,
-                  index,
-                  setTip,
-                  hideTip,
-                  viewportToScaled,
-                  _screenshot,
-                  isScrolledTo,
-                ) => {
-                  const isText = highlight.position.rects?.length !== 0;
-                  const component = isText ? (
-                    <Highlight
-                      isScrolledTo={isScrolledTo}
-                      position={highlight.position}
-                      comment={highlight.comment}
-                    />
-                  ) : (
-                    <AreaHighlight
-                      isScrolledTo={isScrolledTo}
-                      highlight={highlight}
-                      onChange={(rect) =>
-                        void updateArea(highlight.id, viewportToScaled(rect))
-                      }
-                    />
-                  );
-                  return (
-                    <Popup
-                      key={index}
-                      onMouseOver={(popupContent) =>
-                        setTip(highlight, () => popupContent)
-                      }
-                      onMouseOut={hideTip}
-                      popupContent={
-                        <HighlightedTextPopover
-                          id={highlight.id}
-                          deleteHighlight={(hid) => void deleteHighlight(hid)}
-                          hideTip={hideTip}
-                        />
-                      }
-                    >
-                      {component}
-                    </Popup>
-                  );
-                }}
                 highlights={highlights}
+                showAiFeatures={doc.isVectorised}
+                addHighlight={({ content, position }) =>
+                  void addHighlight(position as ScaledPosition, content)
+                }
+                deleteHighlight={(hid) => void deleteHighlight(hid)}
+                updateAreaHighlight={(hid, boundingRect) =>
+                  void updateArea(
+                    hid,
+                    boundingRect as ScaledPosition["boundingRect"],
+                  )
+                }
+                readSelectedText={readSelectedText}
               />
             )}
           </PdfLoader>
@@ -511,8 +393,7 @@ function ReaderContent({
       <ResizableHandle className="relative w-2 border-0 bg-gray-50 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-neutral-400 after:transition-colors hover:after:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
         <div className="flex h-full flex-col">
-          <div className="app-drag flex h-12 shrink-0 items-center px-2">
-            <SidebarTabs className="app-no-drag" />
+          <SidebarHeader className="app-drag" tabsClassName="app-no-drag">
             <button
               onClick={onSettings}
               aria-label="Settings"
@@ -523,7 +404,7 @@ function ReaderContent({
                 className="transition-transform duration-300 hover:rotate-45"
               />
             </button>
-          </div>
+          </SidebarHeader>
           <div className="min-h-0 flex-1">
             <Sidebar
               notes={<Notes docId={docId} note={doc.note} />}

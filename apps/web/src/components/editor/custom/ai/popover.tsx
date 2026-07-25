@@ -1,13 +1,13 @@
-import BouncingLoader from "@/components/ui/bouncing-loader";
-import { Button } from "@/components/ui/button";
+import BouncingLoader from "@uxie/shared/components/ui/bouncing-loader";
+import { Button } from "@uxie/shared/components/ui/button";
 import {
   Command,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent } from "@/components/ui/popover";
+} from "@uxie/shared/components/ui/command";
+import { Popover, PopoverContent } from "@uxie/shared/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useCompletion } from "@ai-sdk/react";
 import { useBlockNoteEditor } from "@blocknote/react";
