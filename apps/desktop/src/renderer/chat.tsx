@@ -35,9 +35,10 @@ function IndexGate({
   docId: string;
   onIndexed: () => void;
 }) {
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(
-    null,
-  );
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function index() {
@@ -65,7 +66,11 @@ function IndexGate({
             <div
               className="h-full rounded-full bg-primary transition-all duration-300"
               style={{
-                width: `${progress.total ? Math.round((progress.done / progress.total) * 100) : 5}%`,
+                width: `${
+                  progress.total
+                    ? Math.round((progress.done / progress.total) * 100)
+                    : 5
+                }%`,
               }}
             />
           </div>
@@ -79,7 +84,7 @@ function IndexGate({
       <EmptyStatePrompt
         icon={<SparklesIcon className="h-6 w-6" />}
         title="Chat with this document"
-        subtext="Ask anything and get instant answers straight from your PDF — perfect for summarizing, studying, and turning it into flashcards."
+        subtext="Ask anything and get instant answers straight from your PDF."
         buttonText="Start chatting"
         loadingText="Getting ready…"
         onClick={index}
@@ -147,7 +152,9 @@ function ChatView({ docId }: { docId: string }) {
       if (sid !== streamIdRef.current) return;
       if (full) {
         setMessages((m) => [...m, { role: "assistant", content: full }]);
-        void window.uxieAPI.createMessage(docId, "assistant", full).catch(() => {});
+        void window.uxieAPI
+          .createMessage(docId, "assistant", full)
+          .catch(() => {});
       }
       finalize();
     });
@@ -157,12 +164,14 @@ function ChatView({ docId }: { docId: string }) {
       finalize();
     });
     // Main asks us to retrieve (embed in the worker + query the vector store).
-    const offRetrieve = window.uxieAPI.onChatRetrieve((reqId, dId, question) => {
-      import("./rag")
-        .then(({ retrieve }) => retrieve(dId, question))
-        .then((chunks) => window.uxieAPI.chatRetrieveReply(reqId, chunks))
-        .catch(() => window.uxieAPI.chatRetrieveReply(reqId, null));
-    });
+    const offRetrieve = window.uxieAPI.onChatRetrieve(
+      (reqId, dId, question) => {
+        import("./rag")
+          .then(({ retrieve }) => retrieve(dId, question))
+          .then((chunks) => window.uxieAPI.chatRetrieveReply(reqId, chunks))
+          .catch(() => window.uxieAPI.chatRetrieveReply(reqId, null));
+      },
+    );
 
     return () => {
       offDelta();
@@ -208,7 +217,10 @@ function ChatView({ docId }: { docId: string }) {
   function send(override?: string) {
     const text = (override ?? input).trim();
     if (!text || streaming) return;
-    const history: ChatMessage[] = [...messages, { role: "user", content: text }];
+    const history: ChatMessage[] = [
+      ...messages,
+      { role: "user", content: text },
+    ];
     setMessages(history);
     setInput("");
     setError(null);

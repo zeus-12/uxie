@@ -40,7 +40,7 @@ function VectoriseGate({ docId }: { docId: string }) {
     <EmptyStatePrompt
       icon={<SparklesIcon className="h-6 w-6" />}
       title="Chat with this document"
-      subtext="Ask anything and get instant answers straight from your PDF — perfect for summarizing, studying, and turning it into flashcards."
+      subtext="Ask anything and get instant answers straight from your PDF."
       buttonText="Start chatting"
       loadingText="Getting ready…"
       loading={isVectorising}
@@ -157,11 +157,15 @@ function ChatView({ docId }: { docId: string }) {
       !!last &&
       last.role !== "user" &&
       messageToRows(last.role, partsOf(last)).length > 0;
-    if (!lastHasAssistantContent) rows.push({ kind: "thinking", label: "Thinking…" });
+    if (!lastHasAssistantContent)
+      rows.push({ kind: "thinking", label: "Thinking…" });
   }
 
   if (status === "error") {
-    rows.push({ kind: "error", content: "Something went wrong. Please try again." });
+    rows.push({
+      kind: "error",
+      content: "Something went wrong. Please try again.",
+    });
   }
 
   return (
