@@ -1,166 +1,100 @@
-# [Uxie](https://uxie.vercel.app)
+# @uxie/web
 
-[![thumbnail](./public/thumbnail.png)](https://www.youtube.com/watch?v=m97zcPWSceU)
+The hosted Uxie web app. For what Uxie is and how the monorepo fits together, see the
+[root README](../../README.md).
 
-PDF reader app designed to revolutionise your learning experience!
+## Stack
 
-🚀 Developed with features like:
-
-- 📝 Annotation, note-taking, and collaboration tools
-- 📚 Integrates with LLM for enhanced learning
-- 💡 Generates flashcards with LLM feedback
-
-Originally started as a hackathon project which I ended up winning 🥇!
-
-Uxie has since evolved with even more exciting features.
-
-I'd love for you to give Uxie a try and share your valuable [feedback](https://uxie.vercel.app/feedback).
-
-### Built using
-
-- **Nextjs** Frontend and Serverless api routes
-- **tRPC** For typesafe apis
-- **Zod** For validation
-- **Typescript** For type safety
-- **Tailwind CSS** For CSS
-- **React Query** for data fetching, optimistic updates
-- **React Hook Form** for form handling
-- **Shadcn UI + Radix UI** For UI components
-- **Supabase** As the database
-- **Prisma** As the ORM
-- **Blocknote** for note taking
-- **Uploadthing** for storing pdfs
-- **Next Auth** for authentication
-- **React-pdf-highlighter** for pdf rendering,highlighting
-- **Vercel AI SDK, Langchain** for AI responses and streaming, generating flashcards + evaluating them
-- **Pinecone DB** for storing embeddings of pdfs
-- **Fireworks AI** for LLM
-- **Huggingface Model** for generating Embeddings
+- **Next.js** (Pages Router, plus App Router handlers under `src/app/api`) + **tRPC** + **Zod**
+- **Supabase** Postgres via **Prisma**
+- **NextAuth** (Google provider)
+- **Uploadthing** for PDF storage
+- **Pinecone** for embeddings, **Hugging Face** (`BAAI/bge-base-en-v1.5`) to generate them
+- **Google Gemini** via the Vercel AI SDK + **Langchain** for chat, flashcards and summaries
+- **Blocknote** for notes, **react-pdf-highlighter** for the reader
 - **Liveblocks** for realtime collaboration
-- **Nuqs** for type-safe search params
+- **Tailwind** + **shadcn/Radix**, **React Query**, **React Hook Form**, **nuqs**
 
-## Features:
+## Setup
 
-- Note taking, later download the note as markdown
-- Summarise, ask questions about the PDFs
-- Chat and collab with other (collaboration disabled for now-hit free tier limits :'(
-- Custom blocks in editor
-- Highlights block which on click takes you to that highlight on the doc.
-- AI-powered text autocompletion, and text enhancement
-- PDF text-to-speech (local ai models & browser inbuilt) with sentence-by-sentence highlighting. (spent insane amt of hours on this, and super happy with how it turned out :)
-- PDF OCR support (English only)
-- Craft simple flashcards to test your knowledge, answer questions, and receive instant feedback through AI evaluation.
-- Bionic reading mode, RSVP reading mode disable hyperlinks, read-along mode (helping people read), full-screen pdf view.
-- SOON => Semantic search, improved RAG (with better results & listing sources -> w intuitive ui), pdf summary, & more :)
+From the repo root, after `pnpm install`:
 
-### Bugs
+```bash
+cp apps/web/.env.example apps/web/.env
+```
 
-- [ ] add proper prompts for each item in custom/ai/popover.tsx
-- [ ] build a category/tags system for documents => doesn't matter if ui is bad, just build it
-- [ ] implement ratelimit (esp for everything ai related) using redis kv => checkout upstash
-- [ ] better error,loading pages
-- [ ] fix `.tippy-arrow` appearing on screen at all times => added a temp fix. still appears when hovered over the pdf reader
+> **The `.env` must live in `apps/web/`, not the repo root.** Next only reads env files
+> from the app root, and `src/env.mjs` validates them at boot — a missing var fails
+> `pnpm dev:web` immediately with a list of what's absent.
 
-## New ideas
+Fill in the values (`.env.example` documents each one). You'll need:
 
-- [ ] use background runner with long-polling for vectorisation / flashcard gen
-- [ ] For area-highlight
-      -store it as base64 to the notes, then in the same addHighlightToNote function upload it to uploadthing, and then update the url of the block in the notes. => would prob need to create a custom block for this, else there'd be a noticable lag.
-      -add the yellow leftborder which takes to the image highlight on click
-- [ ] send page number whenever tool-calling is used, then display it under the text. (which takes to that page on click)
-- [ ] store the content of text-highlight and make it available for search (from a cmd+k window, along w separate tab, and maybe also from /f) => prob not useful for image-highlights (or maybe run ocr on image highlights (using tesseract, (scribe is overkill here)) and store that) => prob not useful, since everything gets added to notes already, then searching that is a simple cmd+f.
-      or a simple cmd+k inside a document searches through all the text in the notes and on clicking it focuses that. for images itd have prev stored the ocr-ed text there.
-- [ ] store highlighted images in uploadthing.
+| Service                  | Vars                                                    |
+| ------------------------ | ------------------------------------------------------- |
+| Supabase Postgres        | `DATABASE_URL`                                          |
+| NextAuth                 | `NEXTAUTH_SECRET` (`openssl rand -base64 32`), `NEXTAUTH_URL` |
+| Google OAuth             | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`              |
+| Google Gemini            | `GOOGLE_GENERATIVE_AI_API_KEY`                          |
+| Uploadthing              | `UPLOADTHING_TOKEN`                                     |
+| Pinecone                 | `PINECONE_API_KEY`, `PINECONE_ENVIRONMENT`              |
+| Hugging Face             | `HUGGINGFACE_API_KEY`                                   |
+| Supabase client (scripts)| `PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_KEY`           |
+| Liveblocks               | `NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY`                 |
 
-## 🚀 Getting Started
+Set up the services:
 
-Once you have the application running, you can start using it by following these steps:
+- **Supabase** — create a project, copy the connection string, then `pnpm --filter @uxie/web exec prisma db push`.
+- **Pinecone** — create an index with **768 dimensions** and the **cosine** metric
+  (matching `BAAI/bge-base-en-v1.5`; see `shared/lib/embedding-models.ts`).
+- **Google OAuth** — authorised redirect URI is `$NEXTAUTH_URL/api/auth/callback/google`.
 
-1.  **Sign up or log in:** Create a new account or log in with your existing credentials.
-2.  **Upload a PDF:** Click the "Upload" button to upload a PDF file from your computer.
-3.  **Start learning:** Once the PDF is uploaded, you can start reading, annotating, and using the AI-powered features to enhance your learning experience.
+Then:
 
-### Prerequisites
+```bash
+pnpm dev:web    # http://localhost:3000
+```
 
-- [Node.js](https://nodejs.org/en/) (v18 or later)
-- [pnpm](https://pnpm.io/installation)
-- A [Supabase](https://supabase.com/) account
-- A [Pinecone](https://www.pinecone.io/) account
-- An [Uploadthing](https://uploadthing.com/) account
+Google sign-in requires real OAuth credentials. To poke at the reader without any backend,
+open [`/demo`](http://localhost:3000/demo) — it's fully client-side.
 
-### Installation
+## Scripts
 
-1.  **Clone the repository:**
+Run via `pnpm --filter @uxie/web <script>`:
 
-    ```bash
-    git clone https://github.com/zeus-12/uxie.git
-    cd uxie
-    ```
+| Script            | What it does                                  |
+| ----------------- | --------------------------------------------- |
+| `dev` / `build` / `start` | Standard Next commands                |
+| `typecheck`       | `tsc --noEmit` — use this, not a full build    |
+| `lint`            | `next lint`                                   |
+| `test`            | Vitest                                        |
+| `scripts:db-dump` | Dump the DB to the Supabase `database-backups` bucket |
 
-2.  **Install dependencies:**
+## Things worth knowing
 
-    ```bash
-    pnpm install
-    ```
+- **Plan limits** live in `src/lib/constants.ts` (`PLANS`). Document count, page count and
+  file size all derive from there — the uploadthing route allows the most generous plan's
+  size and the middleware enforces the user's actual plan, since that's the only place the
+  plan is known. Don't hardcode a size anywhere else.
+- **`MOCK_AI=1`** stubs the `/api/completion` response so you can iterate on the notes
+  editor without burning Gemini quota. It's off by default, so autocomplete works normally
+  in dev.
+- **Collaboration is currently disabled** (`src/components/editor/collaboration-client.tsx`
+  is commented out) after hitting Liveblocks free-tier limits. Note the Liveblocks client
+  runs on a public key with no auth endpoint (`liveblocks.config.ts`) — any client could
+  join any room, so wire up `authEndpoint` before re-enabling.
+- **The demo page** (`src/components/demo`, `src/lib/demo`) has no backend. When you add a
+  reader feature, wire it into the demo too if it doesn't need server/AI/DB/auth.
+- `next.config.mjs` has webpack workarounds for `scribe.js-ocr` and `kokoro-js` that are
+  marked DO NOT REMOVE — both break without them.
 
-3.  **Set up environment variables:**
+## Roadmap / known issues
 
-    Copy the `.env.example` file to a new file named `.env` and fill in the required values.
-
-    ```bash
-    cp .env.example .env
-    ```
-
-    You will need to provide API keys and other configuration details for the following services:
-
-    - `DATABASE_URL`: Your Supabase database connection string.
-    - `NEXTAUTH_SECRET`: A secret key for NextAuth.js. You can generate one using `openssl rand -base64 32`.
-    - `NEXTAUTH_URL`: The URL of your application (e.g., `http://localhost:3000`).
-    - `GOOGLE_CLIENT_ID`: Your Google OAuth client ID.
-    - `GOOGLE_CLIENT_SECRET`: Your Google OAuth client secret.
-    - `UPLOADTHING_SECRET`: Your Uploadthing API key.
-    - `UPLOADTHING_APP_ID`: Your Uploadthing app ID.
-    - `PINECONE_API_KEY`: Your Pinecone API key.
-    - `PINECONE_ENVIRONMENT`: Your Pinecone environment.
-    - `PINECONE_INDEX_NAME`: The name of your Pinecone index.
-    - `FIREWORKS_API_KEY`: Your Fireworks AI API key.
-
-4.  **Set up the database:**
-
-    - Go to your [Supabase dashboard](https://app.supabase.io/) and create a new project.
-    - Get the database connection string from the project settings and add it to your `.env` file.
-    - Run the following command to apply the database migrations:
-
-      ```bash
-      pnpm prisma db push
-      ```
-
-5.  **Set up Pinecone:**
-
-    - Go to your [Pinecone dashboard](https://app.pinecone.io/) and create a new index.
-    - Set the dimensions to `768` and the metric to `cosine`.
-    - Get your API key and environment from the project settings and add them to your `.env` file.
-
-6.  **Start the development server:**
-
-    ```bash
-    pnpm dev
-    ```
-
-    The application should now be running at [http://localhost:3000](http://localhost:3000).
-
-## 🤝 Contributing
-
-Contributions are welcome! We appreciate your help in making Uxie even better.
-
-If you have any ideas, suggestions, or bug reports, please open an issue on the [GitHub repository](https://github.com/zeus-12/uxie/issues).
-
-If you want to contribute code, please follow these steps:
-
-1.  Fork the repository.
-2.  Create a new branch for your feature or bug fix.
-3.  Make your changes and commit them with a clear and descriptive message.
-4.  Push your changes to your forked repository.
-5.  Open a pull request to the `main` branch of the original repository.
-
-We will review your pull request as soon as possible and provide feedback.
+- [ ] Add proper prompts for each item in `custom/ai/popover.tsx`
+- [ ] Category/tags system for documents
+- [ ] Rate limiting (especially AI routes) — Upstash Redis
+- [ ] Better error and loading pages
+- [ ] `.tippy-arrow` still appears when hovering the PDF reader (temp fix in place)
+- [ ] Background runner with long-polling for vectorisation / flashcard generation
+- [ ] Store area-highlights in Uploadthing rather than base64 in notes
+- [ ] Send page number when tool-calling, and link it back to the page
+- [ ] Semantic search, improved RAG with cited sources, PDF summaries
