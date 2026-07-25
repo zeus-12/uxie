@@ -12,6 +12,12 @@ export function Notes({ docId, note }: { docId: string; note: string | null }) {
       canEdit
       note={note}
       ai={ai}
+      // Images pasted into the notes land in this document's folder — local,
+      // offline, and removed when the document is deleted.
+      uploadFile={async (file) => {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        return window.uxieAPI.storeDocumentImage(docId, bytes);
+      }}
       onSaveNotes={(n) => void window.uxieAPI.updateDocumentNotes(docId, n)}
     />
   );

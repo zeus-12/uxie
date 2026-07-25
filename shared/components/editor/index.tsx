@@ -36,22 +36,35 @@ export type EditorAiCompletion = {
   stop: () => void;
 };
 
+/** Where an image dropped or pasted into the notes is persisted. */
+export type EditorUploadFile = (file: File) => Promise<string>;
+
 export default function Editor({
   canEdit,
   note,
   onSaveNotes,
   ai,
+  uploadFile,
 }: {
   canEdit: boolean;
   note: string | null;
   onSaveNotes: (note: string) => void;
   ai?: EditorAiCompletion | null;
+  // Injected per app: desktop writes into the document's folder, web uploads.
+  // Without it BlockNote falls back to its dev helper, which posts the file to
+  // the public tmpfiles.org — fine for a scratch demo, not for real notes.
+  uploadFile?: EditorUploadFile;
 }) {
   const debounced = useDebouncedCallback((value: string) => {
     onSaveNotes(value);
   }, 2000);
 
   const { setEditor } = useBlocknoteEditorStore();
+
+  // Read through a ref so an inline `uploadFile` prop doesn't rebuild the
+  // editor (and drop its content) on every render.
+  const uploadFileRef = useRef(uploadFile);
+  uploadFileRef.current = uploadFile;
 
   const editor = useMemo(() => {
     try {
@@ -60,7 +73,10 @@ export default function Editor({
       return BlockNoteEditor.create({
         initialContent: initialContent,
         schema,
-        uploadFile: uploadToTmpFilesDotOrg_DEV_ONLY as (
+        uploadFile: ((file: File) =>
+          uploadFileRef.current
+            ? uploadFileRef.current(file)
+            : uploadToTmpFilesDotOrg_DEV_ONLY(file)) as (
           file: File,
           blockId?: string,
         ) => Promise<string>,

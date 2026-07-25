@@ -77,34 +77,45 @@ const toRectInput = (s: { pageNumber?: number } & RectInput): RectInput => ({
   pageNumber: s.pageNumber ?? null,
 });
 
-// Mirror the web: a text highlight also drops a linked "highlight" block into
-// the notes editor (no-op if the notes tab hasn't mounted the editor yet).
-function addHighlightToNotes(
+type NotesEditor = {
+  insertBlocks: (blocks: unknown[], ref: unknown) => void;
+  document: unknown[];
+};
+
+// Mirror the web: a highlight also drops a block into the notes editor — a
+// linked quote for text, the screenshot for an area selection. No-op if the
+// notes tab hasn't mounted the editor yet.
+function appendNoteBlock(block: unknown) {
+  const editor = useBlocknoteEditorStore.getState().editor as NotesEditor | null;
+  if (!editor) return;
+  try {
+    editor.insertBlocks([block], editor.document[editor.document.length - 1]);
+  } catch {
+    // block schema/insert edge cases shouldn't break highlighting
+  }
+}
+
+function addTextHighlightToNotes(
   highlightId: string,
   text: string,
   pageNumber?: number,
 ) {
-  const editor = useBlocknoteEditorStore.getState().editor as
-    | {
-        insertBlocks: (blocks: unknown[], ref: unknown) => void;
-        document: unknown[];
-      }
-    | null;
-  if (!editor) return;
-  try {
-    editor.insertBlocks(
-      [
-        {
-          type: "highlight",
-          content: text,
-          props: { highlightId, ...(pageNumber ? { pageNumber } : {}) },
-        },
-      ],
-      editor.document[editor.document.length - 1],
-    );
-  } catch {
-    // block schema/insert edge cases shouldn't break highlighting
-  }
+  appendNoteBlock({
+    type: "highlight",
+    content: text,
+    props: { highlightId, ...(pageNumber ? { pageNumber } : {}) },
+  });
+}
+
+function addImageHighlightToNotes(url: string) {
+  appendNoteBlock({ type: "image", props: { url } });
+}
+
+/** react-pdf-highlighter hands area selections back as a png data url. */
+function dataUrlToBytes(dataUrl: string): Uint8Array | null {
+  const base64 = dataUrl.split(",")[1];
+  if (!base64) return null;
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
 
 export function Reader({
@@ -266,8 +277,27 @@ function ReaderContent({
       ...prev,
       { id: hlId, position, content, comment: { text: "", emoji: "" } },
     ]);
-    if (isText && content.text)
-      addHighlightToNotes(hlId, content.text, position.pageNumber);
+
+    // An area selection is a screenshot: write it into the document's folder
+    // first, so the note holds a url rather than half a megabyte of base64 that
+    // would be re-serialised on every autosave.
+    let imageUrl: string | null = null;
+    if (!isText && content.image) {
+      const bytes = dataUrlToBytes(content.image);
+      if (!bytes) {
+        setHighlights((prev) => prev.filter((h) => h.id !== hlId));
+        setError("Couldn't read the selected area");
+        return;
+      }
+      try {
+        imageUrl = await window.uxieAPI.storeDocumentImage(docId, bytes);
+      } catch (e) {
+        setHighlights((prev) => prev.filter((h) => h.id !== hlId));
+        setError(message(e));
+        return;
+      }
+    }
+
     try {
       await window.uxieAPI.addHighlight({
         id: hlId,
@@ -276,10 +306,20 @@ function ReaderContent({
         pageNumber: position.pageNumber,
         boundingRect: toRectInput(position.boundingRect),
         rects: position.rects.map(toRectInput),
+        imageUrl,
       });
     } catch (e) {
       setHighlights((prev) => prev.filter((h) => h.id !== hlId));
       setError(message(e));
+      return;
+    }
+
+    // Only once it's actually stored — a note pointing at a highlight that
+    // failed to save would be a lie.
+    if (isText && content.text) {
+      addTextHighlightToNotes(hlId, content.text, position.pageNumber);
+    } else if (imageUrl) {
+      addImageHighlightToNotes(imageUrl);
     }
   }
 

@@ -17,9 +17,11 @@ import {
 import {
   deleteDocumentWithFile,
   importPdf,
+  migrateDocumentStorage,
   PDF_PRIVILEGE,
   registerPdfProtocol,
   setDocumentCover,
+  storeDocumentImage,
 } from "./pdf";
 import { getSettings, setSettings } from "./settings";
 import { cancelCompletion, streamCompletion } from "./ai/completion";
@@ -63,8 +65,13 @@ const invokeHandlers: {
     updateDocumentTitle(getDb(), id, title),
   "documents:setCover": (id, png) => setDocumentCover(id, png),
   "documents:delete": (id) => deleteDocumentWithFile(id),
+  "documents:storeImage": (docId, png) => storeDocumentImage(docId, png),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
+  // Deliberately leaves the screenshot on disk: the same image is embedded in
+  // the user's notes, and deleting the annotation shouldn't blank out something
+  // they wrote around. Files are still bounded — the document's folder takes
+  // them all when it goes.
   "highlights:delete": (id) => deleteHighlight(getDb(), id),
   "highlights:updateArea": (id, boundingRect) =>
     updateAreaHighlight(getDb(), id, boundingRect),
@@ -147,8 +154,11 @@ function createMainWindow(): BrowserWindow {
   return win;
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   initDatabase();
+  // Before anything can serve a file: older installs keep the pdf and cover in
+  // a flat layout, and every path helper now assumes per-document folders.
+  await migrateDocumentStorage();
   registerPdfProtocol();
   registerIpc();
   mainWindow = createMainWindow();

@@ -28,6 +28,7 @@ export async function addHighlight(
         type: input.type,
         documentId: input.documentId,
         pageNumber,
+        imageUrl: input.imageUrl ?? null,
       })
       .run();
 

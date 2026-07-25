@@ -123,6 +123,9 @@ export const highlight = sqliteTable("Highlight", {
     .references(() => document.id, { onDelete: "cascade" }),
   createdAt: createdAt(),
   pageNumber: integer("pageNumber"),
+  // IMAGE highlights are a screenshot of a region; this is where those bytes
+  // live, so deleting the highlight can delete the file with it. Null for TEXT.
+  imageUrl: text("imageUrl"),
 });
 
 export const cordinate = sqliteTable(
@@ -215,6 +218,8 @@ export interface AddHighlightInput {
   pageNumber?: number | null;
   boundingRect: RectInput;
   rects: RectInput[];
+  /** IMAGE highlights only — the stored screenshot. */
+  imageUrl?: string | null;
 }
 
 export interface CreateDocumentInput {

@@ -14,19 +14,24 @@ import { deleteVectors } from "./db/vectors";
 import {
   coverPath,
   countPdfPages,
-  deleteCover,
-  deletePdf,
+  deleteDocDir,
+  imagePath,
+  migrateToDocDirs,
   pdfPath,
   storeCover,
+  storeImage,
   storePdf,
 } from "./pdf-store";
 
 export const PDF_SCHEME = "uxie-pdf";
 
 export const documentsDir = () => join(app.getPath("userData"), "documents");
-export const coversDir = () => join(app.getPath("userData"), "covers");
+/** Pre-per-document-directory installs kept covers here. */
+const legacyCoversDir = () => join(app.getPath("userData"), "covers");
 const pdfUrl = (id: string) => `${PDF_SCHEME}://doc/${id}`;
 const coverUrl = (id: string) => `${PDF_SCHEME}://cover/${id}`;
+const imageUrl = (docId: string, imageId: string) =>
+  `${PDF_SCHEME}://image/${docId}/${imageId}`;
 
 export const PDF_PRIVILEGE = {
   scheme: PDF_SCHEME,
@@ -43,29 +48,57 @@ export const PDF_PRIVILEGE = {
 // the response needs an Access-Control-Allow-Origin header or it's CORS-blocked.
 const CORS = { "access-control-allow-origin": "*" };
 
+// Ids are cuid2s. Everything the protocol turns into a path is checked against
+// this first, so a crafted url can't walk out of the document's directory.
+const ID = /^[a-z0-9]+$/i;
+
 export function registerPdfProtocol(): void {
   protocol.handle(PDF_SCHEME, async (request) => {
     const { host, pathname } = new URL(request.url);
-    const id = pathname.replace(/^\//, "");
-    if (!/^[a-z0-9]+$/i.test(id)) {
+    const segments = pathname.replace(/^\//, "").split("/");
+    if (!segments.every((segment) => ID.test(segment))) {
       return new Response("bad id", { status: 400, headers: CORS });
     }
-    const isCover = host === "cover";
-    const filePath = isCover
-      ? coverPath(coversDir(), id)
-      : pdfPath(documentsDir(), id);
+
+    const [docId, imageId] = segments;
+    if (!docId) return new Response("bad id", { status: 400, headers: CORS });
+
+    let filePath: string;
+    let contentType: string;
+    if (host === "cover") {
+      filePath = coverPath(documentsDir(), docId);
+      contentType = "image/png";
+    } else if (host === "image") {
+      if (!imageId) {
+        return new Response("bad id", { status: 400, headers: CORS });
+      }
+      filePath = imagePath(documentsDir(), docId, imageId);
+      contentType = "image/png";
+    } else {
+      filePath = pdfPath(documentsDir(), docId);
+      contentType = "application/pdf";
+    }
+
     try {
       const data = await readFile(filePath);
       return new Response(data, {
-        headers: {
-          "content-type": isCover ? "image/png" : "application/pdf",
-          ...CORS,
-        },
+        headers: { "content-type": contentType, ...CORS },
       });
     } catch {
       return new Response("not found", { status: 404, headers: CORS });
     }
   });
+}
+
+/**
+ * Moves an older install's files into the per-document directories. Safe to
+ * call on every boot: with nothing left in the old layout it does nothing.
+ */
+export async function migrateDocumentStorage(): Promise<void> {
+  const count = await migrateToDocDirs(documentsDir(), legacyCoversDir());
+  if (count > 0) {
+    console.log(`[uxie] moved ${count} document(s) into per-document folders`);
+  }
 }
 
 export async function importPdf(): Promise<Document | null> {
@@ -104,15 +137,28 @@ export async function setDocumentCover(
   id: string,
   png: Uint8Array,
 ): Promise<string> {
-  await storeCover(coversDir(), id, png);
+  await storeCover(documentsDir(), id, png);
   const url = coverUrl(id);
   await updateDocumentCover(getDb(), id, url);
   return url;
 }
 
+/**
+ * Writes an image belonging to a document — an area-highlight screenshot, or an
+ * image pasted into its notes — and returns the url the renderer should embed.
+ */
+export async function storeDocumentImage(
+  docId: string,
+  png: Uint8Array,
+): Promise<string> {
+  const imageId = createId();
+  await storeImage(documentsDir(), docId, imageId, png);
+  return imageUrl(docId, imageId);
+}
+
 export async function deleteDocumentWithFile(id: string): Promise<void> {
   deleteVectors(getSqlite(), id);
   await deleteDocument(getDb(), id);
-  await deletePdf(documentsDir(), id);
-  await deleteCover(coversDir(), id);
+  // One remove takes the pdf, the cover and every image with it.
+  await deleteDocDir(documentsDir(), id);
 }

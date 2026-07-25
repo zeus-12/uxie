@@ -91,6 +91,11 @@ export interface IpcInvokeContract {
     result: string;
   };
   "documents:delete": { args: [id: string]; result: void };
+  /** Stores a png under the document and returns its `uxie-pdf://image/...` url. */
+  "documents:storeImage": {
+    args: [docId: string, png: Uint8Array];
+    result: string;
+  };
 
   // Highlights
   "highlights:add": { args: [input: AddHighlightInput]; result: void };
@@ -181,6 +186,7 @@ export const API_INVOKE = {
   updateDocumentTitle: "documents:updateTitle",
   setDocumentCover: "documents:setCover",
   deleteDocument: "documents:delete",
+  storeDocumentImage: "documents:storeImage",
 
   addHighlight: "highlights:add",
   deleteHighlight: "highlights:delete",

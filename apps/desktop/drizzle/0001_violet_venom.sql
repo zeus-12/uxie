@@ -1,0 +1,1 @@
+ALTER TABLE `Highlight` ADD `imageUrl` text;
