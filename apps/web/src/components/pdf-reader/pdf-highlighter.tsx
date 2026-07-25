@@ -5,7 +5,8 @@ import {
 } from "@/components/pdf-reader/highlight-popover";
 import { api } from "@/lib/api";
 import { usePdfSettingsStore } from "@/lib/store";
-import { useChatStore } from "@uxie/shared/lib/store";
+import { getHighlightPageNumber } from "@uxie/shared/lib/highlights";
+import { useChatStore, useHighlightJumpStore } from "@uxie/shared/lib/store";
 import {
   type AddHighlightType,
   type HighlightPositionType,
@@ -13,34 +14,15 @@ import {
 import { type ReaderDoc } from "@/types/reader";
 import { HighlightTypeEnum } from "@prisma/client";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   AreaHighlight,
   Highlight,
+  type IHighlight,
   PdfHighlighter as PdfHighlighterComponent,
   Popup,
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
-
-const parseIdFromHash = () => document.location.hash.slice(1);
-
-const resetHash = () => {
-  document.location.hash = "";
-};
-
-const getHighlightById = (id: string, doc: ReaderDoc) => {
-  return doc?.highlights?.find((highlight) => highlight.id === id);
-};
-
-let scrollViewerTo = (highlight: any) => {};
-
-const scrollToHighlightFromHash = (doc: ReaderDoc) => {
-  const highlight = getHighlightById(parseIdFromHash(), doc);
-
-  if (highlight) {
-    scrollViewerTo(highlight);
-  }
-};
 
 const PdfHighlighter = ({
   pdfDocument,
@@ -50,10 +32,16 @@ const PdfHighlighter = ({
   readSelectedText,
   onUpdateAreaHighlight,
   pdfScaleValue,
+  highlighterRef,
 }: {
   pdfDocument: PDFDocumentProxy;
   doc: ReaderDoc;
   pdfScaleValue: string;
+  // Hands the mounted PdfHighlighter instance (and so its pdf.js PDFViewer) to
+  // the caller, which needs it to track the page in view and apply zoom.
+  highlighterRef?: (
+    instance: InstanceType<typeof PdfHighlighterComponent> | null,
+  ) => void;
   addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
   deleteHighlight: (id: string) => void;
   // When provided (e.g. the local demo), area-highlight resizes persist through
@@ -73,7 +61,7 @@ const PdfHighlighter = ({
     selectionPageNumber?: number;
   }) => Promise<void>;
 }) => {
-  const highlights = doc.highlights ?? [];
+  const highlights = useMemo(() => doc.highlights ?? [], [doc.highlights]);
   const utils = api.useContext();
   const { sendMessage } = useChatStore();
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
@@ -83,6 +71,66 @@ const PdfHighlighter = ({
     offsetInBlock: number;
     pageNumber: number;
   } | null>(null);
+
+  // Handed to us by the viewer once the document is ready.
+  const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
+    null,
+  );
+  const setJumpToHighlight = useHighlightJumpStore(
+    (state) => state.setJumpToHighlight,
+  );
+
+  // Keep the mounted instance locally (for the jump fallback below) as well as
+  // handing it to the caller.
+  const highlighterInstanceRef = useRef<InstanceType<
+    typeof PdfHighlighterComponent
+  > | null>(null);
+  const setHighlighterRef = useCallback(
+    (instance: InstanceType<typeof PdfHighlighterComponent> | null) => {
+      highlighterInstanceRef.current = instance;
+      highlighterRef?.(instance);
+    },
+    [highlighterRef],
+  );
+
+  // The highlight blocks in the notes editor jump through here. It goes by page
+  // number rather than by element id: pdf.js only keeps nearby pages rendered,
+  // so a highlight's DOM node doesn't exist until its page is scrolled into view.
+  useEffect(() => {
+    setJumpToHighlight((highlightId, fallbackPageNumber) => {
+      const highlight = highlights.find((h) => h.id === highlightId);
+      const pageNumber = highlight
+        ? getHighlightPageNumber(highlight.position)
+        : fallbackPageNumber;
+
+      if (!pageNumber) {
+        toast.error("Couldn't find this highlight in the document", {
+          duration: 3000,
+        });
+        return;
+      }
+
+      const scrollToHighlight = scrollToHighlightRef.current;
+      if (highlight && scrollToHighlight) {
+        scrollToHighlight({
+          ...highlight,
+          position: { ...highlight.position, pageNumber },
+        } as unknown as IHighlight);
+        return;
+      }
+
+      // Either the highlight is gone (the note outlived it) or the viewer isn't
+      // ready yet — the page is the most we can honestly do.
+      const viewer = highlighterInstanceRef.current?.viewer;
+      if (!viewer) {
+        toast.error("The document is still loading", { duration: 3000 });
+        return;
+      }
+      viewer.scrollPageIntoView({ pageNumber });
+    });
+
+    return () => setJumpToHighlight(null);
+  }, [highlights, setJumpToHighlight]);
 
   useEffect(() => {
     const handleMouseUp = () => {
@@ -199,13 +247,13 @@ const PdfHighlighter = ({
 
   return (
     <PdfHighlighterComponent
+      ref={setHighlighterRef}
       pdfDocument={pdfDocument}
       pdfScaleValue={pdfScaleValue}
       enableAreaSelection={(event) => event.altKey}
-      onScrollChange={resetHash}
+      onScrollChange={() => {}}
       scrollRef={(scrollTo) => {
-        scrollViewerTo = scrollTo;
-        scrollToHighlightFromHash(doc);
+        scrollToHighlightRef.current = scrollTo;
       }}
       onSelectionFinished={(
         position,

@@ -32,7 +32,14 @@ const DemoDocViewer = ({ doc }: { doc: ReaderDoc }) => {
 
     const editor = useBlocknoteEditorStore.getState().editor;
     if (text) {
-      addHighlightToNotes(text, highlightId, HighlightContentType.TEXT, editor, true);
+      addHighlightToNotes(
+        text,
+        highlightId,
+        HighlightContentType.TEXT,
+        editor,
+        true,
+        position.pageNumber,
+      );
     } else if (image) {
       addHighlightToNotes(image, highlightId, HighlightContentType.IMAGE, editor, true);
     }

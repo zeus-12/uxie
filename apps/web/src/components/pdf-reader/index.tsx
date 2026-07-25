@@ -21,6 +21,7 @@ export const addHighlightToNotes = async (
   type: HighlightContentType,
   editor: BlockNoteEditorType | null,
   canEdit: boolean,
+  pageNumber?: number,
 ) => {
   if (!editor) {
     toast.error("Couldn't add highlight to text, try reloading the page.", {
@@ -50,6 +51,7 @@ export const addHighlightToNotes = async (
             content,
             props: {
               highlightId,
+              ...(pageNumber ? { pageNumber } : {}),
             },
           },
         ],
@@ -179,16 +181,6 @@ const DocViewer = ({
     },
   });
 
-  useEffect(() => {
-    const scrollToHighlightFromHash = () => {};
-
-    window.addEventListener("hashchange", scrollToHighlightFromHash, false);
-
-    return () => {
-      window.removeEventListener("hashchange", scrollToHighlightFromHash);
-    };
-  }, []);
-
   async function addHighlight({ content, position }: AddHighlightType) {
     const highlightId = createId();
 
@@ -218,6 +210,7 @@ const DocViewer = ({
         HighlightContentType.TEXT,
         editor,
         canEdit,
+        position.pageNumber,
       );
     } else {
       if (!content.image) return;

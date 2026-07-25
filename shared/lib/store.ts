@@ -92,6 +92,24 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
   ),
 );
 
+type JumpToHighlight = (
+  highlightId: string,
+  /** From the note block, used when the highlight itself no longer exists. */
+  fallbackPageNumber?: number,
+) => void;
+
+interface HighlightJumpStore {
+  // The reader registers this once its PDF viewer is ready; the highlight
+  // blocks in the notes editor call it to jump to their highlight.
+  jumpToHighlight: JumpToHighlight | null;
+  setJumpToHighlight: (fn: JumpToHighlight | null) => void;
+}
+
+export const useHighlightJumpStore = create<HighlightJumpStore>((set) => ({
+  jumpToHighlight: null,
+  setJumpToHighlight: (jumpToHighlight) => set({ jumpToHighlight }),
+}));
+
 interface CitationHighlightStore {
   highlightSource: ((pageNumber: number, text: string) => void) | null;
   setHighlightSource: (fn: (pageNumber: number, text: string) => void) => void;

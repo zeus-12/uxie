@@ -1,5 +1,6 @@
 import { defaultProps, type PropSchema } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
+import { useHighlightJumpStore } from "@uxie/shared/lib/store";
 
 export const highlightPropSchema = {
   textAlignment: defaultProps.textAlignment,
@@ -7,18 +8,17 @@ export const highlightPropSchema = {
   highlightId: {
     default: "",
   },
+  // Kept alongside the id so an orphaned block (its highlight was deleted) can
+  // still take you to the right page.
+  pageNumber: {
+    default: 0,
+  },
 } satisfies PropSchema;
 
 export const HighlighBlock = createReactBlockSpec(
   {
     type: "highlight",
-    propSchema: {
-      textAlignment: defaultProps.textAlignment,
-      textColor: defaultProps.textColor,
-      highlightId: {
-        default: "",
-      },
-    },
+    propSchema: highlightPropSchema,
     content: "inline",
   },
   {
@@ -26,8 +26,11 @@ export const HighlighBlock = createReactBlockSpec(
       <div className="flex h-full w-full items-stretch gap-2 rounded-sm p-1">
         <div
           onClick={() => {
-            if (!props?.block?.props?.highlightId) return;
-            document.location.hash = props.block.props.highlightId;
+            const { highlightId, pageNumber } = props.block.props;
+            if (!highlightId) return;
+            useHighlightJumpStore
+              .getState()
+              .jumpToHighlight?.(highlightId, pageNumber || undefined);
           }}
           className="w-2 rounded-full bg-yellow-400 hover:cursor-pointer"
         />

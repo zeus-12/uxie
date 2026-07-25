@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
 import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
@@ -24,8 +24,11 @@ import {
 import {
   useBlocknoteEditorStore,
   useChatStore,
+  useHighlightJumpStore,
   useSidebarTabStore,
 } from "@uxie/shared/lib/store";
+import { getHighlightPageNumber } from "@uxie/shared/lib/highlights";
+import { toast } from "@uxie/shared/components/ui/sonner";
 import BottomToolbar from "@uxie/shared/components/pdf-reader/toolbar";
 import {
   HighlightedTextPopover,
@@ -41,6 +44,9 @@ import type {
 import { Chat } from "./chat";
 import { Notes } from "./notes";
 import { FlashcardsPanel } from "./flashcards";
+
+type PdfHighlighterInstance = InstanceType<typeof PdfHighlighter<IHighlight>>;
+type PdfViewerInstance = PdfHighlighterInstance["viewer"];
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -81,7 +87,11 @@ const toRectInput = (s: { pageNumber?: number } & RectInput): RectInput => ({
 
 // Mirror the web: a text highlight also drops a linked "highlight" block into
 // the notes editor (no-op if the notes tab hasn't mounted the editor yet).
-function addHighlightToNotes(highlightId: string, text: string) {
+function addHighlightToNotes(
+  highlightId: string,
+  text: string,
+  pageNumber?: number,
+) {
   const editor = useBlocknoteEditorStore.getState().editor as
     | {
         insertBlocks: (blocks: unknown[], ref: unknown) => void;
@@ -91,7 +101,13 @@ function addHighlightToNotes(highlightId: string, text: string) {
   if (!editor) return;
   try {
     editor.insertBlocks(
-      [{ type: "highlight", content: text, props: { highlightId } }],
+      [
+        {
+          type: "highlight",
+          content: text,
+          props: { highlightId, ...(pageNumber ? { pageNumber } : {}) },
+        },
+      ],
       editor.document[editor.document.length - 1],
     );
   } catch {
@@ -177,6 +193,65 @@ function ReaderContent({
   );
   const [error, setError] = useState<string | null>(null);
 
+  // PdfHighlighter owns the pdf.js PDFViewer. Capture it here (stable callback
+  // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
+  // needs the live instance to track the page in view and apply zoom. The ref
+  // mirrors it for callbacks that shouldn't re-subscribe when it arrives.
+  const [pdfViewer, setPdfViewer] = useState<PdfViewerInstance | null>(null);
+  const pdfViewerRef = useRef<PdfViewerInstance | null>(null);
+  const handleHighlighterRef = useCallback(
+    (instance: PdfHighlighterInstance | null) => {
+      pdfViewerRef.current = instance?.viewer ?? null;
+      setPdfViewer(instance?.viewer ?? null);
+    },
+    [],
+  );
+
+  // Handed to us by the viewer once the document is ready.
+  const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
+    null,
+  );
+  const setJumpToHighlight = useHighlightJumpStore((s) => s.setJumpToHighlight);
+
+  // The highlight blocks in the notes editor jump through here. It goes by page
+  // number rather than by element id: pdf.js only keeps nearby pages rendered,
+  // so a highlight's DOM node doesn't exist until its page is scrolled into view.
+  useEffect(() => {
+    setJumpToHighlight((highlightId, fallbackPageNumber) => {
+      const highlight = highlights.find((h) => h.id === highlightId);
+      const pageNumber = highlight
+        ? getHighlightPageNumber(highlight.position)
+        : fallbackPageNumber;
+
+      if (!pageNumber) {
+        toast.error("Couldn't find this highlight in the document", {
+          duration: 3000,
+        });
+        return;
+      }
+
+      const scrollToHighlight = scrollToHighlightRef.current;
+      if (highlight && scrollToHighlight) {
+        scrollToHighlight({
+          ...highlight,
+          position: { ...highlight.position, pageNumber },
+        });
+        return;
+      }
+
+      // Either the highlight is gone (the note outlived it) or the viewer isn't
+      // ready yet — the page is the most we can honestly do.
+      const viewer = pdfViewerRef.current;
+      if (!viewer) {
+        toast.error("The document is still loading", { duration: 3000 });
+        return;
+      }
+      viewer.scrollPageIntoView({ pageNumber });
+    });
+
+    return () => setJumpToHighlight(null);
+  }, [highlights, setJumpToHighlight]);
+
   const chatSendMessage = useChatStore((s) => s.sendMessage);
   const setSidebarTab = useSidebarTabStore((s) => s.setTab);
   // Switch to the chat tab and hand the selection to it. Only offered once the
@@ -238,6 +313,7 @@ function ReaderContent({
     docId,
     lastReadPage: doc.lastReadPage,
     pageCount: doc.pageCount,
+    viewer: pdfViewer,
     onSaveLastReadPage: (page) => {
       void window.uxieAPI.updateLastReadPage(docId, page);
     },
@@ -253,7 +329,8 @@ function ReaderContent({
       ...prev,
       { id: hlId, position, content, comment: { text: "", emoji: "" } },
     ]);
-    if (isText && content.text) addHighlightToNotes(hlId, content.text);
+    if (isText && content.text)
+      addHighlightToNotes(hlId, content.text, position.pageNumber);
     try {
       await window.uxieAPI.addHighlight({
         id: hlId,
@@ -336,11 +413,14 @@ function ReaderContent({
           >
             {(pdfDocument: PDFDocumentProxy) => (
               <PdfHighlighter
+                ref={handleHighlighterRef}
                 pdfDocument={pdfDocument}
                 pdfScaleValue={pdfScaleValue}
                 enableAreaSelection={(e) => e.altKey}
                 onScrollChange={() => {}}
-                scrollRef={() => {}}
+                scrollRef={(scrollTo) => {
+                  scrollToHighlightRef.current = scrollTo;
+                }}
                 onSelectionFinished={(
                   position,
                   content,
