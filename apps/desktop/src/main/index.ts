@@ -12,7 +12,7 @@ import {
   updateAreaHighlight,
   updateDocumentNotes,
   updateDocumentTitle,
-  updateLastReadPage,
+  updateReaderState,
 } from "./db";
 import {
   deleteDocumentWithFile,
@@ -31,6 +31,13 @@ import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 import { extractPdfText } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
 import { createMessage, getMessagesByDocId } from "./db/messages";
+
+// Without this, app.getName() falls back to package.json's "name" — the
+// workspace's "@uxie/desktop" — and userData lands in a nested "@uxie/desktop"
+// folder. Packaged builds already resolve to "Uxie" via electron-builder's
+// productName, so setting it here is what makes dev and packaged agree on one
+// directory. Must run before anything resolves app.getPath("userData").
+app.setName("Uxie");
 
 protocol.registerSchemesAsPrivileged([PDF_PRIVILEGE]);
 
@@ -59,8 +66,8 @@ const invokeHandlers: {
   "documents:create": (input) => createDocument(getDb(), input),
   "documents:updateNotes": (id, note) =>
     updateDocumentNotes(getDb(), id, note),
-  "documents:updateLastReadPage": (id, page) =>
-    updateLastReadPage(getDb(), id, page),
+  "documents:updateReaderState": (id, state) =>
+    updateReaderState(getDb(), id, state),
   "documents:updateTitle": (id, title) =>
     updateDocumentTitle(getDb(), id, title),
   "documents:setCover": (id, png) => setDocumentCover(id, png),
