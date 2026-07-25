@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
-import { ArrowLeftIcon, SettingsIcon } from "lucide-react";
+import { ChevronLeftIcon, SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
@@ -17,6 +17,9 @@ import {
   Sidebar,
   SidebarHeader,
 } from "@uxie/shared/components/workspace/sidebar";
+import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
+import { buttonVariants } from "@uxie/shared/components/ui/button";
+import { cn } from "@uxie/shared/lib/utils";
 import {
   useBlocknoteEditorStore,
   useChatStore,
@@ -118,6 +121,13 @@ function dataUrlToBytes(dataUrl: string): Uint8Array | null {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 }
 
+// Matches the web reader's back button; `app-no-drag` keeps it clickable inside
+// the draggable title bar.
+const backButtonClass = cn(
+  buttonVariants({ variant: "ghost", size: "sm" }),
+  "app-no-drag w-fit justify-start",
+);
+
 export function Reader({
   id,
   onBack,
@@ -151,6 +161,7 @@ export function Reader({
           doc={doc}
           onBack={onBack}
           onSettings={onSettings}
+          onTitleSaved={(title) => setDoc((d) => (d ? { ...d, title } : d))}
         />
       </div>
     );
@@ -158,13 +169,13 @@ export function Reader({
 
   return (
     <div className="flex h-full flex-col bg-gray-50">
-      <header className="app-drag flex h-12 items-center gap-3 pl-24 pr-4">
+      <header className="app-drag flex h-12 items-center pl-24 pr-4">
         <button
           onClick={onBack}
           aria-label="Back to library"
-          className="app-no-drag rounded-md p-1.5 text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+          className={backButtonClass}
         >
-          <ArrowLeftIcon size={18} />
+          <ChevronLeftIcon className="h-4 w-4" />
         </button>
       </header>
       {error ? (
@@ -185,11 +196,13 @@ function ReaderContent({
   doc,
   onBack,
   onSettings,
+  onTitleSaved,
 }: {
   docId: string;
   doc: DocumentWithHighlights;
   onBack: () => void;
   onSettings: () => void;
+  onTitleSaved: (title: string) => void;
 }) {
   const [highlights, setHighlights] = useState<IHighlight[]>(() =>
     doc.highlights
@@ -334,6 +347,17 @@ function ReaderContent({
     }
   }
 
+  // The header keeps showing the stored title until the write lands — no
+  // optimistic rename.
+  async function saveTitle(title: string) {
+    try {
+      await window.uxieAPI.updateDocumentTitle(docId, title);
+      onTitleSaved(title);
+    } catch (e) {
+      setError(message(e));
+    }
+  }
+
   async function updateArea(
     hlId: string,
     boundingRect: ScaledPosition["boundingRect"],
@@ -359,18 +383,22 @@ function ReaderContent({
       className="flex-1 overflow-hidden"
     >
       <ResizablePanel defaultSize={55} minSize={30}>
-        <div className="flex h-full flex-col border-r border-stone-200">
-          <div className="app-drag flex h-12 shrink-0 items-center gap-3 pl-24 pr-3">
+        <div className="flex h-full flex-col border-r border-stone-200 bg-white">
+          <div className="app-drag flex h-12 shrink-0 items-center pl-24 pr-3">
             <button
               onClick={onBack}
               aria-label="Back to library"
-              className="app-no-drag rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-95"
+              className={backButtonClass}
             >
-              <ArrowLeftIcon size={18} />
+              <ChevronLeftIcon className="h-4 w-4" />
             </button>
-            <span className="truncate text-sm font-medium text-muted-foreground">
-              {doc.title}
-            </span>
+            <div className="app-no-drag min-w-0 flex-1">
+              <DocumentTitle
+                title={doc.title}
+                canEdit
+                onSave={(title) => void saveTitle(title)}
+              />
+            </div>
           </div>
           <div
             className="relative flex-1 overflow-hidden shadow-sm"

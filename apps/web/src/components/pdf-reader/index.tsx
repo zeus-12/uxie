@@ -1,8 +1,9 @@
 import PdfReader from "@/components/pdf-reader/reader";
 import { buttonVariants } from "@uxie/shared/components/ui/button";
+import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
 import { api } from "@/lib/api";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { cn, stripTextFromEnd } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { type AppRouter } from "@/server/api/root";
 import { type BlockNoteEditorType } from "@/types/editor";
 import { type AddHighlightType, HighlightContentType } from "@/types/highlight";
@@ -12,7 +13,7 @@ import { type inferRouterOutputs } from "@trpc/server";
 import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+
 import { toast } from "sonner";
 
 export const addHighlightToNotes = async (
@@ -272,10 +273,6 @@ const Title = ({
   title: string | null;
   docId: string;
 }) => {
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const displayTitle = stripTextFromEnd(title, ".pdf");
-  const [titleValue, setTitleValue] = useState(displayTitle);
-  const titleInputRef = useRef<HTMLInputElement>(null);
   const utils = api.useContext();
 
   const { mutate: updateTitleMutation } = api.document.updateTitle.useMutation({
@@ -302,63 +299,12 @@ const Title = ({
     },
   });
 
-  const handleTitleSave = () => {
-    const trimmedTitle = titleValue.trim();
-    if (!trimmedTitle) {
-      setTitleValue(displayTitle);
-      setIsEditingTitle(false);
-      return;
-    }
-
-    if (trimmedTitle !== displayTitle) {
-      updateTitleMutation({ docId, title: trimmedTitle });
-    }
-    setIsEditingTitle(false);
-  };
-
-  useEffect(() => {
-    setTitleValue(displayTitle);
-  }, [displayTitle]);
-
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-  }, [isEditingTitle]);
-
   return (
-    <div className="flex-1 min-w-0">
-      {isEditingTitle ? (
-        <input
-          ref={titleInputRef}
-          type="text"
-          value={titleValue}
-          onChange={(e) => setTitleValue(e.target.value)}
-          onBlur={handleTitleSave}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleTitleSave();
-            } else if (e.key === "Escape") {
-              setTitleValue(displayTitle);
-              setIsEditingTitle(false);
-            }
-          }}
-          className="w-full font-semibold bg-transparent border-none outline-none focus:ring-0 px-1 -mx-1 leading-normal"
-        />
-      ) : (
-        <p
-          className={cn(
-            "line-clamp-1 font-semibold leading-normal px-1 -mx-1 rounded",
-            canEdit && "cursor-pointer hover:bg-muted/50",
-          )}
-          onClick={() => canEdit && setIsEditingTitle(true)}
-          title={canEdit ? "Click to edit" : undefined}
-        >
-          {displayTitle}
-        </p>
-      )}
-    </div>
+    <DocumentTitle
+      title={title}
+      canEdit={canEdit}
+      onSave={(newTitle) => updateTitleMutation({ docId, title: newTitle })}
+    />
   );
 };
 
