@@ -15,6 +15,8 @@ export interface FlashcardAttempt {
   correctResponse: string | null;
   incorrectResponse: string | null;
   moreInfo: string | null;
+  // Both stores have it; older rows in the UI may not carry it through.
+  createdAt?: Date | string | number | null;
 }
 
 export interface Flashcard {

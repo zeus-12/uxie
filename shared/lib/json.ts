@@ -17,7 +17,7 @@ export function parseJsonLoose(text: string): unknown {
 
 function stripCodeFence(text: string): string | null {
   const match = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return match ? match[1].trim() : null;
+  return match?.[1]?.trim() ?? null;
 }
 
 // Isolate the outermost bracketed value, preferring whichever of `[` / `{`

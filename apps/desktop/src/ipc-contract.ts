@@ -28,12 +28,14 @@ import type {
   ReaderStateInput,
   RectInput,
 } from "@uxie/shared/schema";
+import type { FlashcardVerdict } from "@uxie/shared/schema/flashcard";
 
 export type FlashcardWithAttempts = Flashcard & {
   flashcardAttempts: FlashcardAttempt[];
 };
 
 export interface FlashcardFeedback {
+  verdict: FlashcardVerdict;
   correctResponse: string;
   incorrectResponse: string;
   moreInfo: string;

@@ -1,4 +1,5 @@
 import { flashcardFeedbackSchema } from "@uxie/shared/schema/flashcard";
+import { FLASHCARD_FEEDBACK_INSTRUCTION } from "@uxie/shared/lib/flashcards";
 import { flashcardEvaluateRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
 import { prisma } from "@/server/db";
@@ -42,8 +43,8 @@ export async function POST(req: Request, res: Response) {
 
   if (!flashcard) return new Response("Flashcard not found", { status: 404 });
 
-  const reqPrompt = `Your task is to provide feedback for the user's response. Please format the information as follows:
-  - Mention the aspects the user accurately identified, highlight any mistakes or inaccuracies made by the user, ghen provide additional relevant information regarding the question and the correct answer.
+  const reqPrompt = `${FLASHCARD_FEEDBACK_INSTRUCTION}
+
   <USER RESPONSE>
   ${prompt} 
   </USER RESPONSE>

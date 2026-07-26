@@ -1,4 +1,10 @@
-import { BugIcon, InfoIcon, ThumbsUp } from "lucide-react";
+// Feedback as labelled prose rather than tinted alert boxes. Colour lives in
+// the label alone, and a field the model left empty renders nothing at all.
+const SECTIONS = [
+  { key: "correctResponse", label: "Got right", tone: "text-emerald-700" },
+  { key: "incorrectResponse", label: "Missed", tone: "text-red-700" },
+  { key: "moreInfo", label: "Context", tone: "text-muted-foreground" },
+] as const;
 
 const FlashcardFeedback = ({
   correctResponse,
@@ -9,35 +15,30 @@ const FlashcardFeedback = ({
   wrongResponse?: string | null;
   moreInfo?: string | null;
 }) => {
+  const values = {
+    correctResponse,
+    incorrectResponse: wrongResponse,
+    moreInfo,
+  };
+
   return (
     <div className="space-y-4">
-      {correctResponse && (
-        <div className="rounded-md bg-[#f0fff4] p-4">
-          <h4 className="mb-2 flex items-center text-sm font-semibold text-green-700">
-            <ThumbsUp size="18" className="mr-1" />
-            What you got right
-          </h4>
-          <p className="text-sm">{correctResponse}</p>
-        </div>
-      )}
-      {wrongResponse && (
-        <div className="rounded-md bg-[#fef2f2] p-4">
-          <h4 className="mb-2 flex items-center text-sm font-semibold text-red-700">
-            <BugIcon size="18" className="mr-1" />
-            What you got wrong
-          </h4>
-          <p className="text-sm">{wrongResponse}</p>
-        </div>
-      )}
-      {moreInfo && (
-        <div className="rounded-md bg-[#ebf4ff] p-4">
-          <h4 className="mb-2 flex items-center text-sm font-semibold text-blue-700">
-            <InfoIcon size="18" className="mr-1" />
-            More info
-          </h4>
-          <p className="text-sm">{moreInfo}</p>
-        </div>
-      )}
+      {SECTIONS.map(({ key, label, tone }) => {
+        const value = values[key]?.trim();
+        if (!value) return null;
+        return (
+          <div key={key}>
+            <span
+              className={`text-[11px] font-bold uppercase tracking-[0.1em] ${tone}`}
+            >
+              {label}
+            </span>
+            <p className="mt-1.5 break-words text-[13.5px] leading-relaxed">
+              {value}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { z } from "zod";
+import { flashcardFeedbackSchema } from "../schema/flashcard";
 import { parseJsonLoose } from "./json";
 
 // The same instruction the web app uses to generate flashcards.
@@ -14,11 +15,9 @@ export type GeneratedFlashcard = z.infer<typeof flashcardSchema>;
 
 export const flashcardArraySchema = z.array(flashcardSchema);
 
-export const flashcardFeedbackSchema = z.object({
-  correctResponse: z.string(),
-  incorrectResponse: z.string(),
-  moreInfo: z.string(),
-});
+// One definition, re-exported: web streams against it, desktop streams and
+// parses against it. Two copies would drift.
+export { flashcardFeedbackSchema };
 export type FlashcardFeedbackData = z.infer<typeof flashcardFeedbackSchema>;
 
 // Same splitter + config as the web app (langchain RecursiveCharacterTextSplitter
@@ -51,13 +50,26 @@ Text:
 ${chunk}`;
 }
 
+// Shared by both apps so the meaning of a verdict can't drift between them.
+export const FLASHCARD_FEEDBACK_INSTRUCTION = `Provide feedback for the user's response to a flashcard. Mention what they got right, highlight mistakes, then add relevant info about the correct answer.
+
+Also judge how close the response was, as "verdict":
+- "correct" — the response conveys the whole answer. Ignore spelling, casing, phrasing and extra detail.
+- "partial" — the response gets an essential part right but misses or contradicts another: some items of a list, one component of a name, the right idea with a wrong detail.
+- "incorrect" — nothing essential is right, the meaning is reversed, or the response is empty, off-topic, or an admission of not knowing.
+A response that reverses or inverts the answer is never "correct", however confident it sounds.
+Always include a verdict, and base it only on the user's response.
+
+Leave "correctResponse" or "incorrectResponse" as an empty string when there is nothing to say for it — never write filler like "Nothing" or "N/A".`;
+
 export function buildFlashcardFeedbackPrompt(input: {
   question: string;
   answer: string;
   userResponse: string;
 }): string {
-  return `Provide feedback for the user's response to a flashcard. Mention what they got right, highlight mistakes, then add relevant info about the correct answer.
-Respond with ONLY a JSON object — no prose, no markdown code fences — with exactly these string fields: "correctResponse", "incorrectResponse", "moreInfo".
+  return `${FLASHCARD_FEEDBACK_INSTRUCTION}
+
+Respond with ONLY a JSON object — no prose, no markdown code fences — with exactly these fields: "verdict" (one of "correct", "partial", "incorrect"), "correctResponse", "incorrectResponse", "moreInfo" (strings).
 
 <USER RESPONSE>${input.userResponse}</USER RESPONSE>
 <QUESTION>${input.question}</QUESTION>
