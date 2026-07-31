@@ -1,0 +1,52 @@
+/* Painted by shared/hooks/use-sentence-reader.ts. The layer must NOT create a
+   stacking context (no z-index / opacity / transform), or `multiply` can't
+   reach the page canvas underneath and the glyphs stop showing through. */
+
+.tts-hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tts-hl-sentence,
+.tts-hl-rsvp-sentence,
+.tts-hl-word,
+.tts-hl-rsvp-word {
+  position: absolute;
+  border-radius: 5px;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.tts-hl-sentence {
+  background-color: #d6f7cd;
+}
+
+.tts-hl-rsvp-sentence {
+  background-color: #ffe6c2;
+}
+
+.tts-hl-rsvp-word {
+  background-color: #ffb74d;
+}
+
+/* --tts-hl-glide is set per word from the measured speaking cadence. */
+.tts-hl-word {
+  background-color: #74f273;
+  --tts-hl-glide: 0.11s;
+  transition:
+    left var(--tts-hl-glide) cubic-bezier(0.4, 0, 0.2, 1),
+    top var(--tts-hl-glide) cubic-bezier(0.4, 0, 0.2, 1),
+    width var(--tts-hl-glide) cubic-bezier(0.4, 0, 0.2, 1),
+    height var(--tts-hl-glide) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tts-hl-word.tts-hl-word-extra {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tts-hl-word {
+    transition: none;
+  }
+}

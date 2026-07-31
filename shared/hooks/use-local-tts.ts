@@ -193,11 +193,11 @@ export function useLocalTts(
   );
 
   const pregenerate = useCallback(
-    async (text: string) => {
-      const provider = getProvider(engine);
-      provider.setVoice(voiceRef.current);
-      provider.setSpeed(speedRef.current);
-      await provider.pregenerate(text);
+    async (text: string, opts: { speed: number }) => {
+      await getProvider(engine).pregenerate(text, {
+        voice: voiceRef.current,
+        speed: opts.speed,
+      });
     },
     [engine],
   );

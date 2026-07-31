@@ -1,10 +1,4 @@
 export type TTSStatus = "idle" | "speaking" | "paused" | "loading";
-// export enum TTSStatusEnum {
-//   IDLE = "idle",
-//   SPEAKING = "speaking",
-//   PAUSED = "paused",
-//   LOADING = "loading",
-// }
 
 export interface TTSVoice<T extends string> {
   id: T;
@@ -68,9 +62,16 @@ export interface CachedAudio {
   wordTimings: WordTiming[];
 }
 
+// Passed explicitly rather than read off the provider, so a pre-generation
+// started before a voice/speed change can't be cached under the wrong key.
+export interface TTSGenerationParams {
+  voice: string;
+  speed: number;
+}
+
 export interface LocalTtsHook {
   speak: (text: string, opts: { speed: number }) => Promise<void>;
-  pregenerate: (text: string) => Promise<void>;
+  pregenerate: (text: string, opts: { speed: number }) => Promise<void>;
   pause: () => void;
   resume: () => Promise<void>;
   stop: () => void;

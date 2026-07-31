@@ -7,6 +7,8 @@ import { useBrowserTts } from "./use-browser-tts";
 import { useLocalTts } from "./use-local-tts";
 import {
   cleanSentenceForTts,
+  getReaderScrollContainer,
+  isProgrammaticScroll,
   removeAllHighlights,
   useSentenceReader,
 } from "./use-sentence-reader";
@@ -20,6 +22,8 @@ import { useDebouncedCallback } from "use-debounce";
 
 const SKIP_DEBOUNCE_MS = 300;
 const SPEED_CHANGE_DEBOUNCE_MS = 400;
+// The provider caches five clips, so this stays well inside it.
+const PREGENERATE_AHEAD = 2;
 
 const usePdfReader = ({
   lastReadPage,
@@ -30,14 +34,12 @@ const usePdfReader = ({
   onSaveReaderState,
 }: {
   lastReadPage: number;
-  // The persisted pdf.js scale, or null for "auto" (the viewer's own
-  // fit-to-width default) — what a document reads at until the user zooms.
+  // null means "auto" — the viewer's own fit-to-width default.
   zoomLevel: number | null;
   docId: string;
   pageCount: number;
-  // The PDFViewer owned by the currently mounted PdfHighlighter, or null before
-  // it mounts. Passed in rather than read off a global so opening a second
-  // document binds to its viewer instead of the previous, discarded one.
+  // Passed in rather than read off a global, so opening a second document binds
+  // to its viewer instead of the previous, discarded one.
   viewer: PDFViewer | null;
   onSaveReaderState?: (state: {
     lastReadPage?: number;
@@ -48,25 +50,18 @@ const usePdfReader = ({
     READING_STATUS.IDLE,
   );
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
-  // Both start unknown — 0 for the page (the toolbar's existing "not ready"
-  // sentinel), null for the zoom — rather than at 1 / 100%. The toolbar shows a
-  // placeholder until the viewer reports where it actually is, so it can never
-  // display a page or zoom the reader isn't on.
+  // Both start unknown so the toolbar can't show a page or zoom we aren't on.
   const [pageNumberInView, setPageNumberInView] = useState(0);
   const [currentZoom, setCurrentZoom] = useState<number | null>(zoomLevel);
-  // Passed to react-pdf-highlighter, which applies it on `pagesinit` and
-  // re-applies it on every resize. Seeded from the persisted zoom so the first
-  // layout is already at the right scale — no zoom-in after the first paint.
+  // Seeded from the persisted zoom so the first layout is already correct.
   const [pdfScaleValue, setPdfScaleValue] = useState(
     zoomLevel != null ? String(zoomLevel) : "auto",
   );
   const [followAlongEnabled, setFollowAlongEnabled] = useState(true);
 
-  // Page color from store (persisted)
   const pageColour = usePdfSettingsStore((s) => s.pageColour);
   const setPageColour = usePdfSettingsStore((s) => s.setPageColour);
 
-  // Refs
   const pdfViewerRef = useRef<PDFViewer | null>(null);
   const userScrolledRef = useRef(false);
   const isReadingRef = useRef(false);
@@ -79,6 +74,7 @@ const usePdfReader = ({
 
   const handleAudioEndRef = useRef<() => void>(() => {});
   const scrollToHighlightRef = useRef<() => void>(() => {});
+  const keepWordVisibleRef = useRef<() => void>(() => {});
 
   const sentenceReader = useSentenceReader({ pageCount });
 
@@ -89,7 +85,7 @@ const usePdfReader = ({
       spokenText: string,
     ) => {
       sentenceReader.highlightWord(charIndex, charLength, spokenText);
-      scrollToHighlightRef.current();
+      keepWordVisibleRef.current();
     },
     onEnd: () => handleAudioEndRef.current(),
   };
@@ -112,15 +108,13 @@ const usePdfReader = ({
   const resetWordTrackingRef = useRef<() => void>(() => {});
   resetWordTrackingRef.current = sentenceReader.resetWordTracking;
 
-  // Store selectors
   const bionicReadingEnabled = usePdfSettingsStore(
     (s) => s.bionicReadingEnabled,
   );
   const currentVoice = usePdfSettingsStore((s) => s.voice);
 
-  // Restoring the page makes pdf.js fire `pagechanging` with the value we just
-  // read from the DB; tracking what's already stored keeps that from turning
-  // every document open into a redundant write.
+  // Restoring fires `pagechanging` with the value we just read; tracking what's
+  // stored keeps every document open from becoming a redundant write.
   const persistedPageRef = useRef(lastReadPage);
 
   const debouncedUpdateLastReadPage = useDebouncedCallback(
@@ -132,8 +126,7 @@ const usePdfReader = ({
     2000,
   );
 
-  // The zoom slider fires continuously while dragging, so this coalesces a drag
-  // into one write.
+  // Coalesces a slider drag into one write.
   const debouncedUpdateZoomLevel = useDebouncedCallback((zoom: number) => {
     onSaveReaderState?.({ zoomLevel: zoom });
   }, 2000);
@@ -145,7 +138,13 @@ const usePdfReader = ({
 
   scrollToHighlightRef.current = scrollToHighlight;
 
-  // Cancel all pending operations
+  const keepWordVisible = useCallback(() => {
+    if (!followAlongEnabled || userScrolledRef.current) return;
+    sentenceReader.keepCurrentWordVisible();
+  }, [followAlongEnabled, sentenceReader]);
+
+  keepWordVisibleRef.current = keepWordVisible;
+
   const cancelAllOperations = useCallback(() => {
     currentOperationIdRef.current++;
     kokoroTts.stop();
@@ -174,14 +173,12 @@ const usePdfReader = ({
         tts.setVoice(voice);
         tts.reset();
 
-        const sentences = sentenceReader.getSentences();
-        const currentIdx = sentenceReader.getCurrentIndex();
-
-        for (let i = 1; i <= 2; i++) {
-          const nextSentence = sentences[currentIdx + i];
-          if (nextSentence) {
-            tts.pregenerate(cleanSentenceForTts(nextSentence));
-          }
+        for (const upcoming of sentenceReader.peekUpcomingSentences(
+          PREGENERATE_AHEAD,
+        )) {
+          tts.pregenerate(cleanSentenceForTts(upcoming), {
+            speed: currentReadingSpeed,
+          });
         }
 
         if (thisOperationId !== currentOperationIdRef.current) return;
@@ -201,28 +198,21 @@ const usePdfReader = ({
     [sentenceReader, getLocalTts, browserTts, currentReadingSpeed],
   );
 
-  // Debounced play for skip/speed change
   const debouncedPlayAfterSkip = useDebouncedCallback(async () => {
     isSkippingRef.current = false;
     if (shouldStopRef.current || !isReadingRef.current) return;
     await playCurrentSentenceAudio();
   }, SKIP_DEBOUNCE_MS);
 
-  // Track the viewer for the rest of the hook, and mirror its page/scale into
-  // state. Keyed on viewer identity, so switching documents unbinds from the
-  // old viewer and binds to the new one.
+  // Keyed on viewer identity so switching documents rebinds.
   useEffect(() => {
     pdfViewerRef.current = viewer;
     if (!viewer) return;
 
     let hasRestored = false;
 
-    // Jump to the stored page before the document is first painted. `pagesinit`
-    // is the earliest moment the page views exist — pdf.js populates them right
-    // before dispatching it, and react-pdf-highlighter applies the scale on the
-    // same event — so page 1 is never rendered on the way to page N. (Waiting
-    // for `pagesloaded`, which only fires once every page has been fetched, is
-    // what used to make the reader open on page 1 and then jump.)
+    // `pagesinit` is the earliest the page views exist; waiting for
+    // `pagesloaded` instead is what made the reader open on page 1 then jump.
     const restore = () => {
       if (hasRestored) return;
       hasRestored = true;
@@ -243,7 +233,11 @@ const usePdfReader = ({
       if (scale) setCurrentZoom(scale);
     };
 
-    const handleTextLayerRendered = ({ pageNumber }: { pageNumber: number }) => {
+    const handleTextLayerRendered = ({
+      pageNumber,
+    }: {
+      pageNumber: number;
+    }) => {
       document.dispatchEvent(
         new CustomEvent("pdf:textlayerrendered", {
           detail: { pageNumber },
@@ -256,9 +250,8 @@ const usePdfReader = ({
     viewer.eventBus.on("scalechanging", handleScaleChanging);
     viewer.eventBus.on("textlayerrendered", handleTextLayerRendered);
 
-    // The viewer reaches us through a React state update, so `pagesinit` can
-    // already have fired by the time we subscribe. pdf.js fills `_pages` just
-    // before dispatching it, so a non-zero page count means we missed it.
+    // The viewer arrives via state, so `pagesinit` may already have fired — a
+    // non-zero page count means we missed it.
     if (viewer.pagesCount > 0) restore();
 
     return () => {
@@ -270,16 +263,9 @@ const usePdfReader = ({
     };
   }, [viewer, debouncedUpdateLastReadPage, lastReadPage]);
 
-  // Apply the user's zoom to the viewer. react-pdf-highlighter re-applies
-  // pdfScaleValue on resize but never on prop change, so we set it here (in a
-  // post-commit effect so it wins over the library's own scale handling).
-  //
-  // Gated on the page views existing: before `pagesinit` pdf.js has nothing to
-  // scale, but it still records the value as the current scale — so the
-  // library's own apply on `pagesinit` would then see "same scale" and skip it,
-  // leaving the pages rendered at the default size while the viewer reports the
-  // stored one. Until then the library applies our pdfScaleValue itself, which
-  // is exactly what the first layout should use.
+  // The library re-applies pdfScaleValue on resize but never on prop change.
+  // Gated on page views existing: applying earlier makes pdf.js record the scale
+  // without using it, so its own `pagesinit` apply then skips as a no-op.
   useEffect(() => {
     const currentViewer = pdfViewerRef.current;
     if (currentViewer && currentViewer.pagesCount > 0) {
@@ -287,13 +273,16 @@ const usePdfReader = ({
     }
   }, [pdfScaleValue, viewer]);
 
-  // User scroll tracking
+  // Keyed on `viewer`: the scroll container mounts after this hook does.
   useEffect(() => {
-    const container = document.getElementById("viewerContainer");
+    const container = getReaderScrollContainer();
     if (!container) return;
 
     let timeout: NodeJS.Timeout;
     const handleScroll = () => {
+      // Without this the reader reads its own follow-along scroll as the user
+      // taking over and stops following.
+      if (isProgrammaticScroll()) return;
       userScrolledRef.current = true;
       clearTimeout(timeout);
       timeout = setTimeout(() => {
@@ -306,9 +295,8 @@ const usePdfReader = ({
       container.removeEventListener("scroll", handleScroll);
       clearTimeout(timeout);
     };
-  }, []);
+  }, [viewer]);
 
-  // Background color - apply on load and when changed
   useEffect(() => {
     const apply = () => {
       const target = document.querySelector(".pdfViewer.removePageBorders");
@@ -317,9 +305,7 @@ const usePdfReader = ({
       return true;
     };
 
-    // Try to apply immediately
     if (apply()) {
-      // Set up observer for dynamic page loads
       const observer = new MutationObserver(() =>
         applyBackgroundColour(pageColour),
       );
@@ -328,11 +314,9 @@ const usePdfReader = ({
       return () => observer.disconnect();
     }
 
-    // Retry until PDF viewer is ready
     const intervalId = setInterval(() => {
       if (apply()) {
         clearInterval(intervalId);
-        // Set up observer after successful apply
         const observer = new MutationObserver(() =>
           applyBackgroundColour(pageColour),
         );
@@ -345,7 +329,6 @@ const usePdfReader = ({
     return () => clearInterval(intervalId);
   }, [pageColour]);
 
-  // Bionic reading
   useEffect(() => {
     const apply = () => {
       const viewer = document.querySelector(".pdfViewer");
@@ -358,18 +341,14 @@ const usePdfReader = ({
     return () => clearInterval(id);
   }, [bionicReadingEnabled]);
 
-  // Voice change handler
   useEffect(() => {
     if (readingStatus !== READING_STATUS.READING) return;
 
-    // Cancel current audio and restart with new voice
     cancelAllOperations();
     const newOperationId = currentOperationIdRef.current;
 
-    // Reset blockIndex to start of current sentence before replaying
     sentenceReader.resetToCurrentSentenceStart();
 
-    // Small delay then restart from current sentence
     setTimeout(() => {
       if (
         isReadingRef.current &&
@@ -381,8 +360,6 @@ const usePdfReader = ({
     }, 100);
   }, [currentVoice]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // === Public API ===
-
   const startSentenceBySentenceHighlighting = useCallback(
     async (isContinueReading: boolean) => {
       try {
@@ -392,7 +369,6 @@ const usePdfReader = ({
         setReadingStatus(READING_STATUS.READING);
         currentReadingMode.current = READING_MODE.PAGE;
 
-        // Cancel any previous operations
         currentOperationIdRef.current++;
         const thisOperationId = currentOperationIdRef.current;
 
@@ -446,10 +422,8 @@ const usePdfReader = ({
 
     isSkippingRef.current = true;
 
-    // Set status to reading (in case we were paused)
     setReadingStatus(READING_STATUS.READING);
 
-    // Cancel current and increment operation ID
     cancelAllOperations();
     debouncedPlayAfterSkip.cancel();
 
@@ -533,7 +507,6 @@ const usePdfReader = ({
     isReadingRef.current = false;
     isSkippingRef.current = false;
 
-    // Cancel all operations
     currentOperationIdRef.current++;
     debouncedPlayAfterSkip.cancel();
     cancelAllOperations();
@@ -547,7 +520,6 @@ const usePdfReader = ({
     if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current)
       return;
 
-    // Continue to next sentence
     const next = sentenceReader.advanceToNextSentence();
     if (next) {
       scrollToHighlight();
@@ -564,7 +536,6 @@ const usePdfReader = ({
 
   handleAudioEndRef.current = handleAudioEnd;
 
-  // Debounced speed change handler
   const debouncedSpeedChange = useDebouncedCallback(
     async (newSpeed: number) => {
       const voice = usePdfSettingsStore.getState().voice;

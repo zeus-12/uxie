@@ -43,9 +43,7 @@ export function isRealWord(word: string): boolean {
   return /[a-zA-Z0-9]/.test(word);
 }
 
-// Hyphen characters that appear at the end of a line when a word is split
-// across lines: ASCII hyphen-minus, Unicode hyphen, non-breaking hyphen,
-// soft hyphen. (En/em dashes are punctuation, not word-break hyphens.)
+// Line-break hyphens only — en/em dashes are punctuation, not word breaks.
 const HYPHEN_CHARS = "\\u002d\\u2010\\u2011\\u00ad";
 export const LINE_BREAK_HYPHEN_END = new RegExp(`[${HYPHEN_CHARS}]$`);
 export const LINE_BREAK_HYPHEN_JOIN = new RegExp(
@@ -59,8 +57,7 @@ export type NormalizedText = {
   fromRaw: number[];
 };
 
-// Collapses every whitespace run (spaces, NBSP, newlines) to a single " " so
-// the result matches what sbd and the TTS engines operate on, while keeping
+// Collapses whitespace runs to match what sbd and the TTS engines see, keeping
 // an offset map back to the raw string for DOM positioning.
 export function normalizeWhitespace(raw: string): NormalizedText {
   let text = "";
@@ -113,9 +110,8 @@ export function buildWordMap(
   for (const cw of cleanWords) {
     const cwNorm = normalizeWord(cw.word);
     if (!cwNorm) {
-      // Symbol-only token ("<", "&", "—"): match it verbatim against
-      // adjacent symbol tokens in the original; stop at the next real word
-      // so it can't pair with a distant duplicate.
+      // Symbol-only token: match verbatim, stopping at the next real word so
+      // it can't pair with a distant duplicate.
       for (let i = origIdx; i < origWords.length; i++) {
         const ow = origWords[i]!;
         if (ow.word === cw.word) {
@@ -138,8 +134,7 @@ export function buildWordMap(
       const owNorm = normalizeWord(ow.word);
       if (!owNorm) continue;
 
-      // handle hyphenated word split across lines. PDFs use several hyphen
-      // characters at line breaks (ASCII "-", U+2010 "‐", U+2011, soft hyphen).
+      // Word split across lines by a hyphen.
       if (
         cwNorm.startsWith(owNorm) &&
         cwNorm !== owNorm &&
@@ -172,9 +167,8 @@ export function buildWordMap(
         owNorm.startsWith(cwNorm) ||
         cwNorm.startsWith(owNorm)
       ) {
-        // The original token may contain characters the cleaner stripped
-        // (footnote markers, superscripts). When the spoken word appears
-        // verbatim inside the token, highlight only that part.
+        // The token may still hold characters the cleaner stripped, so
+        // highlight only the part that was actually spoken.
         const exact = ow.word.indexOf(cw.word);
         map.push({
           cleanedOffset: cw.charOffset,
@@ -279,8 +273,6 @@ export function computeChunkWordTimings(
   return timings;
 }
 
-// Measures the leading/trailing silence in generated audio so word timings
-// can be distributed over the region where speech actually occurs.
 export function findVoicedRangeMs(
   samples: Float32Array,
   sampleRate: number,

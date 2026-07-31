@@ -3,6 +3,7 @@ import { getDevice, getDeviceType } from "..";
 import { BaseAudioProvider } from "../base-audio-provider";
 import type {
   CachedAudio,
+  TTSGenerationParams,
   TTSProviderInfo,
   TTSVoice,
   WordTiming,
@@ -87,7 +88,10 @@ export class SupertonicProvider extends BaseAudioProvider<SupertonicVoiceId> {
     }
   }
 
-  protected async generateAudio(text: string): Promise<CachedAudio | null> {
+  protected async generateAudio(
+    text: string,
+    params: TTSGenerationParams,
+  ): Promise<CachedAudio | null> {
     try {
       await this.init();
       if (!this.pipeline) return null;
@@ -100,7 +104,7 @@ export class SupertonicProvider extends BaseAudioProvider<SupertonicVoiceId> {
       let currentTimeMs = 0;
       let searchStartIndex = 0;
 
-      const speakerUrl = `${SPEAKER_EMBEDDINGS_BASE}/${this.currentVoice}.bin`;
+      const speakerUrl = `${SPEAKER_EMBEDDINGS_BASE}/${params.voice}.bin`;
       const silenceGap = new Float32Array(Math.floor(SAMPLE_RATE * 0.05));
 
       for (const chunk of chunks) {
@@ -109,7 +113,7 @@ export class SupertonicProvider extends BaseAudioProvider<SupertonicVoiceId> {
         const output = await this.pipeline(wrappedChunk, {
           speaker_embeddings: speakerUrl,
           num_inference_steps: 5,
-          speed: this.currentSpeed,
+          speed: params.speed,
         });
 
         const samples: Float32Array = output.audio;
@@ -119,8 +123,6 @@ export class SupertonicProvider extends BaseAudioProvider<SupertonicVoiceId> {
         const chunkStart = findChunkPosition(text, chunk, searchStartIndex);
 
         if (chunkStart !== -1) {
-          // Distribute word timings over the measured voiced region so
-          // highlights track actual speech rather than padding silence.
           const voiced = findVoicedRangeMs(samples, SAMPLE_RATE);
           wordTimings.push(
             ...computeChunkWordTimings(

@@ -1,5 +1,6 @@
 import type {
   CachedAudio,
+  TTSGenerationParams,
   TTSPlaybackState,
   TTSProgress,
   TTSProvider,
@@ -46,7 +47,10 @@ export abstract class BaseAudioProvider<T extends string>
 
   protected abstract loadModel(): Promise<void>;
   protected abstract isModelCached(): Promise<boolean>;
-  protected abstract generateAudio(text: string): Promise<CachedAudio | null>;
+  protected abstract generateAudio(
+    text: string,
+    params: TTSGenerationParams,
+  ): Promise<CachedAudio | null>;
 
   constructor(defaultVoice: string) {
     this.currentVoice = defaultVoice;
@@ -73,8 +77,12 @@ export abstract class BaseAudioProvider<T extends string>
     return this.audioContext;
   }
 
-  private getCacheKey(text: string): string {
-    return `${text}::${this.currentVoice}::${this.currentSpeed}`;
+  private getCacheKey(text: string, params: TTSGenerationParams): string {
+    return `${text}::${params.voice}::${params.speed}`;
+  }
+
+  private currentParams(): TTSGenerationParams {
+    return { voice: this.currentVoice, speed: this.currentSpeed };
   }
 
   private pruneCache(): void {
@@ -85,11 +93,11 @@ export abstract class BaseAudioProvider<T extends string>
     }
   }
 
-  async pregenerate(text: string): Promise<void> {
-    const key = this.getCacheKey(text);
+  async pregenerate(text: string, params: TTSGenerationParams): Promise<void> {
+    const key = this.getCacheKey(text, params);
     if (this.cache.has(key) || this.pendingGenerations.has(key)) return;
 
-    const promise = this.generateAudio(text);
+    const promise = this.generateAudio(text, params);
     this.pendingGenerations.set(key, promise);
 
     try {
@@ -116,7 +124,8 @@ export abstract class BaseAudioProvider<T extends string>
     this.currentCharIndex = options.startCharIndex ?? 0;
     this.setStatus("loading");
 
-    const key = this.getCacheKey(text);
+    const params = this.currentParams();
+    const key = this.getCacheKey(text, params);
 
     try {
       await this.init();
@@ -142,7 +151,7 @@ export abstract class BaseAudioProvider<T extends string>
       }
 
       this.onGenerating?.(true);
-      const result = await this.generateAudio(text);
+      const result = await this.generateAudio(text, params);
       this.onGenerating?.(false);
 
       if (result) {
@@ -233,12 +242,12 @@ export abstract class BaseAudioProvider<T extends string>
     const loop = () => {
       if (this._status !== "speaking" || !this.audioContext) return;
 
-      // outputLatency/baseLatency is the delay between the context timeline
-      // and sound reaching the speakers; without subtracting it the highlight
-      // runs ahead of the audio and short first words are never shown.
+      // Delay between the context timeline and sound reaching the speakers;
+      // without it the highlight runs ahead of the audio.
       const latencyMs =
-        (this.audioContext.outputLatency || this.audioContext.baseLatency || 0) *
-        1000;
+        (this.audioContext.outputLatency ||
+          this.audioContext.baseLatency ||
+          0) * 1000;
 
       const elapsedMs =
         (this.audioContext.currentTime - this.playbackStartTime) * 1000 +

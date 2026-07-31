@@ -1,7 +1,3 @@
-import { describe, expect, it } from "vitest";
-import React from "react";
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
 import {
   useSentenceReader,
   type SentencePosition,
@@ -12,22 +8,24 @@ import {
   normalizeWord,
 } from "@uxie/shared/lib/tts/utils";
 import { TextSplitterStream } from "kokoro-js";
+import React from "react";
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import textlayer from "./fixtures/textlayer.json";
 
-// Real pdf.js text-layer spans captured from public/demo.pdf (the app's demo
-// document), one entry per span with its on-screen geometry. Re-capture by
-// rendering demo.pdf with pdf.js renderTextLayer and dumping each span's
-// textContent + getBoundingClientRect (see scratchpad/render-demo.js).
+// Real pdf.js spans captured from public/demo.pdf. Re-capture by rendering it
+// with renderTextLayer and dumping each span's text + getBoundingClientRect.
 type FixtureSpan = { text: string; top: number; left: number; width: number };
 const FIXTURE = textlayer as Record<string, FixtureSpan[]>;
-const ALL_PAGES = Object.keys(FIXTURE).map(Number).sort((a, b) => a - b);
+const ALL_PAGES = Object.keys(FIXTURE)
+  .map(Number)
+  .sort((a, b) => a - b);
 
 type ReaderApi = ReturnType<typeof useSentenceReader>;
 
-// happy-dom has no layout. Give every Range a single fake client rect so the
-// overlay painters run; we assert only on the range's TEXT (stamped as
-// data-hl-text), which is layout-independent. Visual alignment is verified
-// against the live app, not here.
+// happy-dom has no layout, so every Range gets one fake rect and the assertions
+// only use data-hl-text. Visual alignment is checked against the live app.
 const FAKE_RECT = {
   left: 0,
   top: 0,
@@ -40,15 +38,17 @@ const FAKE_RECT = {
   toJSON() {},
 };
 Range.prototype.getClientRects = () =>
-  ({ length: 1, 0: FAKE_RECT, item: () => FAKE_RECT }) as unknown as DOMRectList;
+  ({
+    length: 1,
+    0: FAKE_RECT,
+    item: () => FAKE_RECT,
+  }) as unknown as DOMRectList;
 
-/** Build a single `.page` (as page 1) from a list of spans, each reporting its
- *  captured/synthetic geometry. Sentence detection is per-page. */
-function buildPageFromSpans(spans: FixtureSpan[]) {
-  document.body.innerHTML = "";
+function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
+  if (pageNumber === 1) document.body.innerHTML = "";
   const page = document.createElement("div");
   page.className = "page";
-  page.setAttribute("data-page-number", "1");
+  page.setAttribute("data-page-number", String(pageNumber));
   for (const s of spans) {
     const el = document.createElement("span");
     el.setAttribute("role", "presentation");
@@ -73,10 +73,10 @@ function buildPageFromSpans(spans: FixtureSpan[]) {
 const buildPage = (pageNumber: number) =>
   buildPageFromSpans(FIXTURE[String(pageNumber)] ?? []);
 
-function mountReader(): ReaderApi {
+function mountReader(pageCount = 1): ReaderApi {
   const ref: { current: ReaderApi | null } = { current: null };
   const Host = () => {
-    ref.current = useSentenceReader({ pageCount: 1 });
+    ref.current = useSentenceReader({ pageCount });
     return null;
   };
   const container = document.createElement("div");
@@ -86,10 +86,8 @@ function mountReader(): ReaderApi {
   return ref.current;
 }
 
-/** Simulate the TTS engine reading one sentence word-by-word — the char
- *  indices are exactly what onWordBoundary receives (kokoro's TextSplitterStream
- *  chunking) — and return the text each word's highlight overlay covers
- *  (data-hl-text = the Range's text). */
+/** Feeds a sentence through the same char indices onWordBoundary would receive,
+ *  returning the text each word's overlay ended up covering. */
 function readSentence(api: ReaderApi, pos: SentencePosition) {
   api.resetWordTracking();
   const spoken = pos.sentenceForTts;
@@ -103,7 +101,12 @@ function readSentence(api: ReaderApi, pos: SentencePosition) {
     const chunkStart = findChunkPosition(spoken, chunk, searchStart);
     if (chunkStart !== -1) {
       timings.push(
-        ...computeChunkWordTimings(chunk, chunkStart, timeMs, chunk.length * 50),
+        ...computeChunkWordTimings(
+          chunk,
+          chunkStart,
+          timeMs,
+          chunk.length * 50,
+        ),
       );
       searchStart = chunkStart + chunk.length;
     }
@@ -119,6 +122,8 @@ function readSentence(api: ReaderApi, pos: SentencePosition) {
 }
 
 const isComplete = (sentence: string) => /[.!?”"]\s*$/.test(sentence.trim());
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () => {
   it("highlights every spoken word of every complete sentence — no skips, no whitespace, correct text", () => {
@@ -146,7 +151,9 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
             ).toBe(false);
             expect(
               normalizeWord(joined),
-              `${where}: highlight ${JSON.stringify(step.highlighted)} != spoken`,
+              `${where}: highlight ${JSON.stringify(
+                step.highlighted,
+              )} != spoken`,
             ).toBe(normalizeWord(step.spoken));
           }
         }
@@ -158,12 +165,10 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
     expect(wordsChecked).toBeGreaterThan(150);
   });
 
-  // demo.pdf is left-aligned (one span per line), so the edge cases below —
-  // which come from justified PDFs — are exercised with synthetic pages whose
-  // spans reproduce the exact structure that broke highlighting.
+  // demo.pdf is left-aligned, so the justified-PDF edge cases below use
+  // synthetic pages reproducing the span structure that broke highlighting.
 
   it("joins a word split across lines by a U+2010 hyphen and highlights both halves", () => {
-    // "under‐" ends line 1 (Unicode hyphen U+2010); "stand" begins line 2.
     buildPageFromSpans([
       { text: "A careful reader can under‐", top: 0, left: 40, width: 300 },
       { text: "stand a dense passage fully.", top: 20, left: 40, width: 300 },
@@ -178,14 +183,129 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
     const steps = readSentence(api, pos!);
     const word = steps.find((s) => normalizeWord(s.spoken) === "understand");
     expect(word, "'understand' not spoken").toBeDefined();
-    // both halves highlighted at once, concatenating back to the word
     expect(word!.highlighted.length).toBe(2);
     expect(word!.highlighted.join("")).toContain("‐");
     expect(normalizeWord(word!.highlighted.join(""))).toBe("understand");
   });
 
+  it("reads ahead past the end of the page so a page turn has audio ready", () => {
+    buildPageFromSpans(
+      [{ text: "One fish. Two fish.", top: 0, left: 40, width: 200 }],
+      1,
+    );
+    buildPageFromSpans(
+      [{ text: "Red fish. Blue fish.", top: 0, left: 40, width: 200 }],
+      2,
+    );
+
+    const api = mountReader(2);
+    const first = api.startFromPage(1);
+    expect(first?.sentence).toContain("One fish.");
+
+    api.advanceToNextSentence();
+    expect(api.getCurrentPage()).toBe(1);
+    expect(api.peekUpcomingSentences(2)).toEqual(["Red fish.", "Blue fish."]);
+
+    api.startFromPage(1);
+    expect(api.peekUpcomingSentences(2)).toEqual(["Two fish.", "Red fish."]);
+  });
+
+  it("does not read ahead into pages pdf.js has not rendered", () => {
+    buildPageFromSpans(
+      [{ text: "One fish. Two fish.", top: 0, left: 40, width: 200 }],
+      1,
+    );
+
+    const api = mountReader(3);
+    api.startFromPage(1);
+    api.advanceToNextSentence();
+    expect(api.peekUpcomingSentences(2)).toEqual([]);
+  });
+
+  it("keeps the sentence and word highlights painted while text is selected", () => {
+    buildPageFromSpans([
+      { text: "One fish. Two fish.", top: 0, left: 40, width: 200 },
+    ]);
+    const api = mountReader();
+    const pos = api.startFromPage(1);
+    expect(pos).not.toBeNull();
+    api.highlightWord(0, 3, pos!.sentenceForTts);
+
+    const before = {
+      sentence: document.querySelectorAll(".tts-hl-sentence").length,
+      word: document.querySelectorAll(".tts-hl-word").length,
+    };
+    expect(before.sentence).toBeGreaterThan(0);
+    expect(before.word).toBeGreaterThan(0);
+
+    const span = document.querySelector("span[role='presentation']")!;
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const selection = document.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+
+    expect(document.querySelectorAll(".tts-hl-sentence").length).toBe(
+      before.sentence,
+    );
+    expect(document.querySelectorAll(".tts-hl-word").length).toBe(before.word);
+    for (const layer of document.querySelectorAll<HTMLElement>(
+      ".tts-hl-layer",
+    )) {
+      expect(layer.style.visibility).not.toBe("hidden");
+    }
+  });
+
+  it("paints overlays slightly larger than the glyph rect so the corners can round", () => {
+    buildPageFromSpans([
+      { text: "One fish. Two fish.", top: 0, left: 40, width: 200 },
+    ]);
+    const api = mountReader();
+    const pos = api.startFromPage(1);
+    api.highlightWord(0, 3, pos!.sentenceForTts);
+
+    // FAKE_RECT is 8x8 at (0,0).
+    const sentence = document.querySelector<HTMLElement>(".tts-hl-sentence")!;
+    expect([sentence.style.left, sentence.style.top]).toEqual(["-2px", "0px"]);
+    expect([sentence.style.width, sentence.style.height]).toEqual([
+      "12px",
+      "8px",
+    ]);
+
+    const word = document.querySelector<HTMLElement>(".tts-hl-word")!;
+    expect([word.style.left, word.style.top]).toEqual(["-2px", "-1px"]);
+    expect([word.style.width, word.style.height]).toEqual(["12px", "10px"]);
+  });
+
+  it("shortens the word-highlight glide when words arrive faster", () => {
+    buildPageFromSpans([
+      { text: "One fish and two fish.", top: 0, left: 40, width: 200 },
+    ]);
+    const api = mountReader();
+    const pos = api.startFromPage(1);
+    const spoken = pos!.sentenceForTts;
+    const glide = () =>
+      document
+        .querySelector<HTMLElement>(".tts-hl-word")!
+        .style.getPropertyValue("--tts-hl-glide");
+
+    let now = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    api.resetWordTracking();
+
+    api.highlightWord(0, 3, spoken);
+    now += 400;
+    api.highlightWord(4, 4, spoken);
+    expect(glide()).toBe("110ms"); // 400 * 0.45 clamps to the ceiling
+
+    now += 100;
+    api.highlightWord(9, 3, spoken);
+    expect(glide()).toBe("45ms");
+  });
+
   it("covers the whole sentence continuously across standalone inter-word space spans", () => {
-    // pdf.js emits inter-word spaces as their own " " spans on justified lines.
+    // Justified lines emit inter-word spaces as their own " " spans.
     buildPageFromSpans([
       { text: "Reading slowly", top: 0, left: 40, width: 120 },
       { text: " ", top: 0, left: 160, width: 6 },
@@ -197,14 +317,11 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
     const pos = api.startFromPage(1);
     expect(pos).not.toBeNull();
 
-    // The sentence range must cover every character — including the standalone
-    // " " spans — or words would be dropped from the highlight.
     const covered = Array.from(document.querySelectorAll(".tts-hl-sentence"))
       .map((el) => el.getAttribute("data-hl-text") ?? "")
       .join("");
     expect(normalizeWord(covered)).toBe(normalizeWord(pos!.sentence));
 
-    // And each word still highlights correctly with the space spans present.
     for (const step of readSentence(api, pos!)) {
       if (!normalizeWord(step.spoken)) continue;
       expect(normalizeWord(step.highlighted.join(""))).toBe(

@@ -3,6 +3,7 @@ import { getDevice, getDeviceType } from "..";
 import { BaseAudioProvider } from "../base-audio-provider";
 import type {
   CachedAudio,
+  TTSGenerationParams,
   TTSProviderInfo,
   TTSVoice,
   WordTiming,
@@ -81,15 +82,18 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
     }
   }
 
-  protected async generateAudio(text: string): Promise<CachedAudio | null> {
+  protected async generateAudio(
+    text: string,
+    params: TTSGenerationParams,
+  ): Promise<CachedAudio | null> {
     try {
       await this.init();
       if (!this.tts) return null;
 
       const splitter = new TextSplitterStream();
       const stream = this.tts.stream(splitter, {
-        voice: this.currentVoice as KokoroVoiceId,
-        speed: this.currentSpeed,
+        voice: params.voice as KokoroVoiceId,
+        speed: params.speed,
       });
 
       splitter.push(text);
@@ -110,8 +114,7 @@ export class KokoroProvider extends BaseAudioProvider<KokoroVoiceId> {
         const chunkStart = findChunkPosition(text, chunkText, searchStartIndex);
 
         if (chunkStart !== -1) {
-          // Kokoro pads chunks with silence; distribute word timings over the
-          // measured voiced region so highlights track actual speech.
+          // Kokoro pads chunks with silence.
           const voiced = findVoicedRangeMs(samples, SAMPLE_RATE);
           wordTimings.push(
             ...computeChunkWordTimings(
