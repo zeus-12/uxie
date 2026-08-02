@@ -26,6 +26,7 @@ import {
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { SpinnerCentered } from "../ui/spinner";
+import { useSideMenuGate } from "./use-side-menu-gate";
 import { useDebouncedCallback } from "use-debounce";
 
 /** Minimal streaming-completion contract (matches the AI SDK's useCompletion). */
@@ -93,6 +94,9 @@ export default function Editor({
     }
   }, [note]);
 
+  const { containerRef, onDragHandleMenuOpen, onDragHandleMenuClose } =
+    useSideMenuGate(editor);
+
   useLayoutEffect(() => {
     if (!editor) return;
 
@@ -150,7 +154,7 @@ export default function Editor({
   }
 
   return (
-    <div>
+    <div ref={containerRef}>
       <BlockNoteView
         sideMenu={false}
         onChange={async () => {
@@ -234,6 +238,14 @@ export default function Editor({
           sideMenu={(props) => (
             <SideMenu
               {...props}
+              freezeMenu={() => {
+                onDragHandleMenuOpen();
+                return props.freezeMenu();
+              }}
+              unfreezeMenu={() => {
+                onDragHandleMenuClose();
+                return props.unfreezeMenu();
+              }}
               dragHandleMenu={(props) => (
                 <DragHandleMenu {...props}>
                   <RemoveBlockItem {...props}>Delete</RemoveBlockItem>

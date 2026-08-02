@@ -40,8 +40,9 @@ import { toast } from "sonner";
 import AiPopover, {
   type AiPopoverPropsRect,
 } from "@/components/editor/custom/ai/popover";
-import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
 import { api } from "@/lib/api";
+import { useSideMenuGate } from "@uxie/shared/components/editor/use-side-menu-gate";
+import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
 import { useRouter } from "next/router";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -152,6 +153,9 @@ export default function Editor({
     }
   }, [note]);
 
+  const { containerRef, onDragHandleMenuOpen, onDragHandleMenuClose } =
+    useSideMenuGate(editor);
+
   useLayoutEffect(() => {
     if (!editor) return;
 
@@ -177,7 +181,7 @@ export default function Editor({
     };
 
     streamCompletion();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, completion]);
 
   useEffect(() => {
@@ -222,7 +226,7 @@ export default function Editor({
   }
 
   return (
-    <div>
+    <div ref={containerRef}>
       <BlockNoteView
         sideMenu={false}
         onChange={async () => {
@@ -315,6 +319,14 @@ export default function Editor({
           sideMenu={(props) => (
             <SideMenu
               {...props}
+              freezeMenu={() => {
+                onDragHandleMenuOpen();
+                return props.freezeMenu();
+              }}
+              unfreezeMenu={() => {
+                onDragHandleMenuClose();
+                return props.unfreezeMenu();
+              }}
               dragHandleMenu={(props) => (
                 <DragHandleMenu {...props}>
                   <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
