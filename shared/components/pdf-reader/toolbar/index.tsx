@@ -23,6 +23,7 @@ const BottomToolbar = ({
   stopReading,
   pauseReading,
   skipSentence,
+  skipToPreviousSentence,
   totalPages,
   onZoomChange,
   onPageChange,
@@ -40,6 +41,7 @@ const BottomToolbar = ({
   stopReading: () => void;
   pauseReading: () => void;
   skipSentence: () => void;
+  skipToPreviousSentence: () => void;
   startWordByWordHighlighting: (isContinueReading: boolean) => Promise<void>;
   totalPages: number;
   onZoomChange: (zoom: number) => void;
@@ -101,6 +103,7 @@ const BottomToolbar = ({
             stopReading={stopReading}
             pauseReading={pauseReading}
             skipSentence={skipSentence}
+            skipToPreviousSentence={skipToPreviousSentence}
             followAlongEnabled={followAlongEnabled}
             toggleFollowAlong={toggleFollowAlong}
           />
@@ -146,6 +149,7 @@ const BottomToolbar = ({
     stopReading,
     pauseReading,
     skipSentence,
+    skipToPreviousSentence,
     toggleFollowAlong,
     pageColourChangeHandler,
   ]);

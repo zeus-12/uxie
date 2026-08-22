@@ -107,6 +107,7 @@ const PdfReader = ({
     stopReading,
     pauseReading,
     skipSentence,
+    skipToPreviousSentence,
     handleZoomChange,
     handlePageChange,
     readSelectedText,
@@ -179,6 +180,7 @@ const PdfReader = ({
         stopReading={stopReading}
         pauseReading={pauseReading}
         skipSentence={skipSentence}
+        skipToPreviousSentence={skipToPreviousSentence}
         totalPages={pageCount}
         onZoomChange={handleZoomChange}
         onPageChange={handlePageChange}

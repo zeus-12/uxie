@@ -1,6 +1,6 @@
 import { READING_STATUS } from "../constants";
 import { Button } from "../../ui/button";
-import { AudioLinesIcon, BanIcon, EyeIcon, PauseIcon, PlayIcon, SkipForwardIcon } from "lucide-react";
+import { AudioLinesIcon, BanIcon, EyeIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
 
 export const TTSControlsContent = ({
   readingStatus,
@@ -9,6 +9,7 @@ export const TTSControlsContent = ({
   resumeReading,
   stopReading,
   skipSentence,
+  skipToPreviousSentence,
   handleReadingSpeedChange,
   currentReadingSpeed,
   followAlongEnabled,
@@ -20,6 +21,7 @@ export const TTSControlsContent = ({
   resumeReading: () => void;
   stopReading: () => void;
   skipSentence: () => void;
+  skipToPreviousSentence: () => void;
   handleReadingSpeedChange: () => Promise<void>;
   currentReadingSpeed: number;
   followAlongEnabled: boolean;
@@ -28,29 +30,55 @@ export const TTSControlsContent = ({
   return (
     <div className="relative w-full">
       <div className="gap-1 relative z-50 flex items-center rounded-lg">
+        <div>
+          <Button
+            onClick={skipToPreviousSentence}
+            disabled={readingStatus === READING_STATUS.IDLE}
+            variant="ghost"
+            size="xs"
+            aria-label="Previous sentence"
+            title="Previous sentence"
+          >
+            <SkipBackIcon aria-hidden="true" className="h-5 w-5" />
+          </Button>
+        </div>
         {readingStatus === READING_STATUS.IDLE && (
           <div>
             <Button
               onClick={() => startWordByWordHighlighting(false)}
               variant="ghost"
               size="xs"
+              aria-label="Read"
+              title="Read"
             >
-              <PlayIcon className="h-5 w-5" />
+              <PlayIcon aria-hidden="true" className="h-5 w-5" />
             </Button>
           </div>
         )}
         {readingStatus === READING_STATUS.READING && (
           <div>
-            <Button onClick={pauseReading} variant="ghost" size="xs">
-              <PauseIcon className="h-5 w-5" />
+            <Button
+              onClick={pauseReading}
+              variant="ghost"
+              size="xs"
+              aria-label="Pause"
+              title="Pause"
+            >
+              <PauseIcon aria-hidden="true" className="h-5 w-5" />
             </Button>
           </div>
         )}
 
         {readingStatus === READING_STATUS.PAUSED && (
           <div>
-            <Button onClick={resumeReading} variant="ghost" size="xs">
-              <PlayIcon className="h-5 w-5" />
+            <Button
+              onClick={resumeReading}
+              variant="ghost"
+              size="xs"
+              aria-label="Resume"
+              title="Resume"
+            >
+              <PlayIcon aria-hidden="true" className="h-5 w-5" />
             </Button>
           </div>
         )}
@@ -60,9 +88,10 @@ export const TTSControlsContent = ({
             disabled={readingStatus === READING_STATUS.IDLE}
             variant="ghost"
             size="xs"
-            title="Skip sentence"
+            aria-label="Next sentence"
+            title="Next sentence"
           >
-            <SkipForwardIcon className="h-5 w-5" />
+            <SkipForwardIcon aria-hidden="true" className="h-5 w-5" />
           </Button>
         </div>
         <div>
@@ -71,8 +100,10 @@ export const TTSControlsContent = ({
             disabled={readingStatus === READING_STATUS.IDLE}
             variant="ghost"
             size="xs"
+            aria-label="Stop reading"
+            title="Stop reading"
           >
-            <BanIcon className="h-5 w-5" />
+            <BanIcon aria-hidden="true" className="h-5 w-5" />
           </Button>
         </div>
         <div>
@@ -85,9 +116,12 @@ export const TTSControlsContent = ({
             onClick={toggleFollowAlong}
             variant={followAlongEnabled ? "default" : "ghost"}
             size="xs"
+            aria-label={
+              followAlongEnabled ? "Disable follow along" : "Enable follow along"
+            }
             title={followAlongEnabled ? "Follow along (on)" : "Follow along (off)"}
           >
-            <EyeIcon className="h-5 w-5" />
+            <EyeIcon aria-hidden="true" className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -103,8 +137,10 @@ export const TTSControlsIcon = () => {
       variant="ghost"
       size="xs"
       disabled={!browserSupportsSpeechSynthesis}
+      aria-label="Text to speech"
+      title="Text to speech"
     >
-      <AudioLinesIcon className="h-5 w-5" />
+      <AudioLinesIcon aria-hidden="true" className="h-5 w-5" />
     </Button>
   );
 };

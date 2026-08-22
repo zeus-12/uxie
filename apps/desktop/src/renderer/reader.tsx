@@ -261,6 +261,7 @@ function ReaderContent({
     stopReading,
     pauseReading,
     skipSentence,
+    skipToPreviousSentence,
     handleZoomChange,
     handlePageChange,
     readSelectedText,
@@ -447,6 +448,7 @@ function ReaderContent({
             stopReading={stopReading}
             pauseReading={pauseReading}
             skipSentence={skipSentence}
+            skipToPreviousSentence={skipToPreviousSentence}
             totalPages={doc.pageCount}
             onZoomChange={handleZoomChange}
             onPageChange={handlePageChange}
