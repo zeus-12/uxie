@@ -7,6 +7,14 @@ import {
   getInformationInputSchema,
 } from "@uxie/shared/lib/chat";
 import type { ChatMessage } from "../../ipc-contract";
+import {
+  chatMessagesToModelMessages,
+  completedChatParts,
+  textPart,
+  toChatToolCallPart,
+  toChatToolResultPart,
+  type ChatPart,
+} from "../../chat-messages";
 import { getSettings } from "../settings";
 
 // Chat runs here (main), not the renderer, so the fetch stream is a real Node
@@ -82,11 +90,17 @@ export async function streamChat(
   controllers.set(streamId, controller);
 
   let full = "";
+  const responseParts: ChatPart[] = [];
+  const completedParts = () =>
+    completedChatParts([
+      ...responseParts,
+      ...(full ? [textPart(full)] : []),
+    ]);
   try {
     const result = streamText({
       model: provider(llm.model),
       system: CHAT_SYSTEM_PROMPT,
-      messages,
+      messages: chatMessagesToModelMessages(messages),
       abortSignal: controller.signal,
       stopWhen: stepCountIs(3),
       // The Claude-CLI-backed proxy emits the answer in a couple of huge chunks
@@ -111,17 +125,31 @@ export async function streamChat(
       if (part.type === "text-delta") {
         full += part.text;
         send("chat:delta", streamId, part.text);
+      } else if (part.type === "tool-call") {
+        const chatPart = toChatToolCallPart({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        });
+        if (chatPart) responseParts.push(chatPart);
+      } else if (part.type === "tool-result" && !part.preliminary) {
+        const chatPart = toChatToolResultPart({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: part.output,
+        });
+        if (chatPart) responseParts.push(chatPart);
       } else if (part.type === "error") {
         throw part.error instanceof Error
           ? part.error
           : new Error(String(part.error));
       }
     }
-    send("chat:done", streamId, full);
+    send("chat:done", streamId, completedParts());
   } catch (e) {
     // On cancel, keep whatever streamed so far; otherwise surface the error.
     if (controller.signal.aborted) {
-      send("chat:done", streamId, full);
+      send("chat:done", streamId, completedParts());
     } else {
       send("chat:error", streamId, e instanceof Error ? e.message : String(e));
     }

@@ -12,7 +12,11 @@ import {
   type ChatRow,
 } from "@uxie/shared/components/chat/chat-panel";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
-import type { ChatMessage } from "../ipc-contract";
+import {
+  chatMessageToRows,
+  textPart,
+  type ChatMessage,
+} from "../chat-messages";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
@@ -136,12 +140,12 @@ function ChatView({ docId }: { docId: string }) {
       setRetrieving(true);
       setSearchedOnce(true);
     });
-    const offDone = window.uxieAPI.onChatDone((sid, full) => {
+    const offDone = window.uxieAPI.onChatDone((sid, parts) => {
       if (sid !== streamIdRef.current) return;
-      if (full) {
-        setMessages((m) => [...m, { role: "assistant", content: full }]);
+      if (parts.length) {
+        setMessages((m) => [...m, { role: "assistant", parts }]);
         void window.uxieAPI
-          .createMessage(docId, "assistant", full)
+          .createMessage(docId, "assistant", parts)
           .catch(() => {});
       }
       finalize();
@@ -182,11 +186,7 @@ function ChatView({ docId }: { docId: string }) {
     if (tab === "chat") inputRef.current?.focus();
   }, [tab]);
 
-  const rows: ChatRow[] = messages.map((m) => ({
-    kind: "message",
-    role: m.role,
-    content: m.content,
-  }));
+  const rows: ChatRow[] = messages.flatMap(chatMessageToRows);
   // The current assistant turn: an optional tool chip (outside the bubble, like
   // ChatGPT), then either the streaming answer or a "thinking" shimmer.
   if (streaming) {
@@ -207,7 +207,7 @@ function ChatView({ docId }: { docId: string }) {
     if (!text || streaming) return;
     const history: ChatMessage[] = [
       ...messages,
-      { role: "user", content: text },
+      { role: "user", parts: [textPart(text)] },
     ];
     setMessages(history);
     setInput("");
@@ -220,7 +220,9 @@ function ChatView({ docId }: { docId: string }) {
 
     const streamId = createId();
     streamIdRef.current = streamId;
-    void window.uxieAPI.createMessage(docId, "user", text).catch(() => {});
+    void window.uxieAPI
+      .createMessage(docId, "user", [textPart(text)])
+      .catch(() => {});
     window.uxieAPI.startChat(streamId, docId, history);
   }
 

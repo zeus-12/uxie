@@ -89,12 +89,9 @@ const invokeHandlers: {
   "flashcards:getByDocId": (docId) => getFlashcardsByDocId(getDb(), docId),
   "flashcards:generate": (docId) => generateFlashcardsForDoc(docId),
 
-  "messages:getByDocId": (docId) =>
-    getMessagesByDocId(getDb(), docId).then((msgs) =>
-      msgs.map((m) => ({ role: m.role, content: m.content })),
-    ),
-  "messages:create": (docId, role, content) =>
-    createMessage(getDb(), docId, role, content),
+  "messages:getByDocId": (docId) => getMessagesByDocId(getDb(), docId),
+  "messages:create": (docId, role, parts) =>
+    createMessage(getDb(), docId, role, parts),
 
   "documents:getText": (docId) => extractPdfText(docId),
   "embeddings:store": (docId, items) => storeEmbeddings(docId, items),

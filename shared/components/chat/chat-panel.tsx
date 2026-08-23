@@ -172,8 +172,8 @@ function ToolChip({ label, active }: { label: string; active: boolean }) {
     return <ShimmeringText text={label} startOnView={false} className="px-1 text-sm" />;
   }
   return (
-    <div className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
-      <SearchIcon className="h-3.5 w-3.5" />
+    <div className="flex items-center gap-1.5 px-1 text-sm text-muted-foreground">
+      <SearchIcon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
       <span>{label}</span>
     </div>
   );

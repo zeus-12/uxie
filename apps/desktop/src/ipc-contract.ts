@@ -28,6 +28,9 @@ import type {
   ReaderStateInput,
   RectInput,
 } from "@uxie/shared/schema";
+import type { ChatMessage, ChatPart } from "./chat-messages";
+
+export type { ChatMessage, ChatPart } from "./chat-messages";
 import type { FlashcardVerdict } from "@uxie/shared/schema/flashcard";
 
 export type FlashcardWithAttempts = Flashcard & {
@@ -56,11 +59,6 @@ export interface LlmSettings {
 
 export interface Settings {
   llm: LlmSettings;
-}
-
-export interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
 }
 
 export interface EmbeddedChunk {
@@ -122,7 +120,7 @@ export interface IpcInvokeContract {
   // Chat history
   "messages:getByDocId": { args: [docId: string]; result: ChatMessage[] };
   "messages:create": {
-    args: [docId: string, role: "user" | "assistant", content: string];
+    args: [docId: string, role: "user" | "assistant", parts: ChatPart[]];
     result: void;
   };
 
@@ -167,7 +165,7 @@ export interface IpcEventContract {
   // Document chat stream + the main→renderer retrieval request.
   "chat:delta": [streamId: string, delta: string];
   "chat:retrieving": [streamId: string];
-  "chat:done": [streamId: string, fullText: string];
+  "chat:done": [streamId: string, parts: ChatPart[]];
   "chat:error": [streamId: string, message: string];
   "chat:retrieve": [reqId: string, docId: string, question: string];
 }
