@@ -64,10 +64,10 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
   return (
     <div
       ref={outsideClickRef}
-      className="flex items-center rounded-2xl border bg-background shadow-sm divide-x border-gray-200"
+      className="flex w-max items-center rounded-2xl border bg-background shadow-sm divide-x border-gray-200"
     >
       {tabs.map((tab, index) => (
-        <div className="flex justify-center" key={index}>
+        <div className="flex shrink-0 justify-center" key={index}>
           <motion.div
             key={index}
             variants={buttonVariants}

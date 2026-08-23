@@ -22,7 +22,7 @@ export const PageControlsContent = ({
   return (
     <Input
       ref={inputRef}
-      className="h-7"
+      className="h-7 w-16"
       value={pageNumber > 0 ? pageNumber : ""}
       onChange={(e) => {
         const value = e.target.value;
