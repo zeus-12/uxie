@@ -1,6 +1,6 @@
-import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { resetDemo } from "@/lib/demo/store";
 import { cn } from "@/lib/utils";
+import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import Link from "next/link";
 
@@ -12,9 +12,8 @@ export default function DemoBanner() {
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-center text-xs text-amber-900 sm:text-sm">
       <span>
-        <span className="font-semibold">You&apos;re exploring the demo</span> —
-        play around all you like! Your highlights and notes stay right here on
-        your device.
+        <span className="font-semibold">Explore the demo.</span> Your highlights
+        and notes stay on this device.
       </span>
       <div className="flex items-center gap-2">
         <button

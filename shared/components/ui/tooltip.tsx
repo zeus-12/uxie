@@ -28,14 +28,16 @@ TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 const CustomTooltip = ({
   children,
   content,
+  asChild = false,
 }: {
   children: React.ReactNode;
   content: string;
+  asChild?: boolean;
 }) => {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger>{children}</TooltipTrigger>
+        <TooltipTrigger asChild={asChild}>{children}</TooltipTrigger>
         <TooltipPrimitive.Portal>
           <TooltipContent>
             <p>{content}</p>

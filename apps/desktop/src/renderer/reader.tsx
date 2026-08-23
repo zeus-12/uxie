@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
-import { ChevronLeftIcon, SettingsIcon } from "lucide-react";
+import { ChevronLeftIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@uxie/shared/components/ui/resizable";
 import {
   Sidebar,
-  SidebarHeader,
+  SidebarSettingsButton,
 } from "@uxie/shared/components/workspace/sidebar";
 import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
 import { buttonVariants } from "@uxie/shared/components/ui/button";
@@ -463,28 +463,21 @@ function ReaderContent({
       </ResizablePanel>
       <ResizableHandle className="relative w-2 border-0 bg-gray-50 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-neutral-400 after:transition-colors hover:after:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
-        <div className="flex h-full flex-col">
-          <SidebarHeader className="app-drag" tabsClassName="app-no-drag">
-            <button
+        <Sidebar
+          headerClassName="app-drag"
+          tabsClassName="app-no-drag"
+          headerActions={
+            <SidebarSettingsButton
               onClick={onSettings}
               aria-label="Settings"
-              className="app-no-drag ml-auto rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-90"
-            >
-              <SettingsIcon
-                size={18}
-                className="transition-transform duration-300 hover:rotate-45"
-              />
-            </button>
-          </SidebarHeader>
-          <div className="min-h-0 flex-1">
-            <Sidebar
-              notes={<Notes docId={docId} note={doc.note} />}
-              chat={<Chat docId={docId} isVectorised={doc.isVectorised} />}
-              flashcards={<FlashcardsPanel docId={docId} />}
-              defaultTab="notes"
+              className="app-no-drag"
             />
-          </div>
-        </div>
+          }
+          notes={<Notes docId={docId} note={doc.note} />}
+          chat={<Chat docId={docId} isVectorised={doc.isVectorised} />}
+          flashcards={<FlashcardsPanel docId={docId} />}
+          defaultTab="notes"
+        />
       </ResizablePanel>
     </ResizablePanelGroup>
   );

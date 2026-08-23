@@ -1,6 +1,20 @@
-import { AlbumIcon, Layers, MessagesSquareIcon } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
-import { DEFAULT_SIDEBAR_TAB, useSidebarTabStore, type SidebarTab } from "../../lib/store";
+import {
+  AlbumIcon,
+  Layers,
+  MessagesSquareIcon,
+  SettingsIcon,
+} from "lucide-react";
+import {
+  forwardRef,
+  useEffect,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from "react";
+import {
+  DEFAULT_SIDEBAR_TAB,
+  useSidebarTabStore,
+  type SidebarTab,
+} from "../../lib/store";
 import { cn } from "../../lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { CustomTooltip } from "../ui/tooltip";
@@ -23,28 +37,27 @@ const CONTENT_TW =
   "mt-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto";
 
 export function SidebarTabs({ className }: { className?: string }) {
-  const tab = useSidebarTabStore((s) => s.tab);
-  const setTab = useSidebarTabStore((s) => s.setTab);
-
   return (
-    <Tabs
-      value={tab}
-      onValueChange={(v) => setTab(v as SidebarTab)}
-      className={className}
-    >
+    <div className={className}>
       <TabsList className="h-9 rounded-md bg-gray-200">
         {TABS.map((item) => (
-          <CustomTooltip content={item.tooltip} key={item.value}>
-            <TabsTrigger
-              value={item.value}
-              className="relative px-2.5 py-1 text-muted-foreground transition-all duration-150 hover:bg-white/60 hover:text-foreground active:scale-95 data-[state=active]:text-foreground"
-            >
-              {item.icon}
-            </TabsTrigger>
+          <CustomTooltip content={item.tooltip} key={item.value} asChild>
+            {/* Keep Tooltip's data-state on this wrapper. Putting both Radix
+                triggers on the button makes Tooltip overwrite Tabs' active
+                state, which removes the selected styling. */}
+            <span className="inline-flex">
+              <TabsTrigger
+                value={item.value}
+                aria-label={item.tooltip}
+                className="relative px-2.5 py-1 text-muted-foreground transition-all duration-150 hover:bg-white/60 hover:text-foreground active:scale-95 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
+                {item.icon}
+              </TabsTrigger>
+            </span>
           </CustomTooltip>
         ))}
       </TabsList>
-    </Tabs>
+    </div>
   );
 }
 
@@ -67,16 +80,48 @@ export function SidebarHeader({
   );
 }
 
+// The gear on the right of the header. Desktop wires it straight to onClick,
+// web and the demo wrap it in a dropdown — so it stays a plain forwardRef
+// button that Radix can use as `asChild`.
+export const SidebarSettingsButton = forwardRef<
+  HTMLButtonElement,
+  ComponentPropsWithoutRef<"button">
+>(({ className, ...props }, ref) => (
+  <button
+    ref={ref}
+    type="button"
+    aria-label="Document options"
+    className={cn(
+      "ml-auto rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-90",
+      className,
+    )}
+    {...props}
+  >
+    <SettingsIcon
+      aria-hidden="true"
+      size={18}
+      className="transition-transform duration-300 hover:rotate-45"
+    />
+  </button>
+));
+SidebarSettingsButton.displayName = "SidebarSettingsButton";
+
 export function Sidebar({
   notes,
   chat,
   flashcards,
+  headerActions,
+  headerClassName,
+  tabsClassName,
   defaultTab = DEFAULT_SIDEBAR_TAB,
   resetTabOnMount = true,
 }: {
   notes: ReactNode;
   chat: ReactNode;
   flashcards: ReactNode;
+  headerActions?: ReactNode;
+  headerClassName?: string;
+  tabsClassName?: string;
   defaultTab?: SidebarTab;
   // Desktop resets to the default tab on mount (a new document starts on notes).
   // Web owns the initial tab via the URL (?tab=), so it opts out.
@@ -100,24 +145,29 @@ export function Sidebar({
   ];
 
   return (
-    <div className="h-full bg-gray-50">
-      <Tabs
-        value={tab}
-        onValueChange={(v) => setTab(v as SidebarTab)}
-        className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden"
-      >
-        {contents.map((item) => (
-          <TabsContent
-            key={item.value}
-            forceMount
-            hidden={item.value !== tab}
-            value={item.value}
-            className={item.tw}
-          >
-            {item.children}
-          </TabsContent>
-        ))}
-      </Tabs>
-    </div>
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as SidebarTab)}
+      className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden bg-gray-50"
+    >
+      <SidebarHeader className={headerClassName} tabsClassName={tabsClassName}>
+        {headerActions}
+      </SidebarHeader>
+      <div className="min-h-0 flex-1">
+        <div className="h-full">
+          {contents.map((item) => (
+            <TabsContent
+              key={item.value}
+              forceMount
+              hidden={item.value !== tab}
+              value={item.value}
+              className={item.tw}
+            >
+              {item.children}
+            </TabsContent>
+          ))}
+        </div>
+      </div>
+    </Tabs>
   );
 }

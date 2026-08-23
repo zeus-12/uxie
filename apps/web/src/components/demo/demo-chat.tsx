@@ -1,12 +1,13 @@
-import FeatureCard from "@uxie/shared/components/other/feature-card";
 import { DEMO_CHAT_REPLIES, DEMO_CHAT_WELCOME } from "@/lib/demo/seed";
 import { useDemoDocStore } from "@/lib/demo/store";
+import { createId } from "@paralleldrive/cuid2";
 import {
   ChatPanel,
   type ChatRow,
 } from "@uxie/shared/components/chat/chat-panel";
+import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
 import { useChatStore } from "@uxie/shared/lib/store";
-import { createId } from "@paralleldrive/cuid2";
+import { SparklesIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
@@ -113,17 +114,12 @@ export default function DemoChat() {
 
   if (!isVectorised) {
     return (
-      <FeatureCard
-        isLoading={false}
-        bulletPoints={[
-          "🔍 Ask questions about any part of your PDF.",
-          "📝 Summarize content with ease.",
-          "📊 Analyze and extract data effortlessly.",
-        ]}
+      <EmptyStatePrompt
+        icon={<SparklesIcon className="h-6 w-6" />}
+        title="Chat with this document"
+        subtext="Ask anything and get instant answers straight from your PDF."
+        buttonText="Start chatting"
         onClick={() => setIsVectorised(true)}
-        buttonText="Turn PDF Interactive"
-        subtext="Try the chat experience (demo responses only):"
-        title="Chat with your PDF — right here in the demo!"
       />
     );
   }
