@@ -3,19 +3,14 @@ import {
   KOKORO_VOICES,
   KokoroProvider,
 } from "../lib/tts/providers/kokoro-provider";
-import {
-  SUPERTONIC_VOICES,
-  SupertonicProvider,
-} from "../lib/tts/providers/supertonic-provider";
 import type { TTSStatus } from "../lib/tts/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-type LocalTtsEngine = "kokoro" | "supertonic";
+type LocalTtsEngine = "kokoro";
 
 const DEFAULT_VOICES: Record<LocalTtsEngine, string> = {
   kokoro: KOKORO_VOICES[0].id,
-  supertonic: SUPERTONIC_VOICES[0].id,
 };
 
 type LocalTtsLoadProgress = {
@@ -38,13 +33,7 @@ function getProvider(engine: LocalTtsEngine): BaseAudioProvider<string> {
   let instance = providers.get(engine);
 
   if (!instance) {
-    if (engine === "kokoro") {
-      instance = new KokoroProvider();
-    } else if (engine === "supertonic") {
-      instance = new SupertonicProvider();
-    } else {
-      throw new Error("Invalid TTS engine.");
-    }
+    instance = new KokoroProvider();
     providers.set(engine, instance);
   }
 

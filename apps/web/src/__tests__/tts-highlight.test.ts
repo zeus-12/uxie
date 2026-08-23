@@ -3,9 +3,10 @@ import {
   type SentencePosition,
 } from "@uxie/shared/hooks/use-sentence-reader";
 import {
-  computeChunkWordTimings,
+  extractWordsWithPositions,
   findChunkPosition,
   normalizeWord,
+  wordTimingsFromPhonemeDurations,
 } from "@uxie/shared/lib/tts/utils";
 import { TextSplitterStream } from "kokoro-js";
 import React from "react";
@@ -94,23 +95,20 @@ function readSentence(api: ReaderApi, pos: SentencePosition) {
   const splitter = new TextSplitterStream();
   splitter.push(spoken);
   splitter.close();
-  const timings: ReturnType<typeof computeChunkWordTimings> = [];
+  const timings: { word: string; charIndex: number; charLength: number }[] = [];
   let searchStart = 0;
-  let timeMs = 0;
   for (const chunk of [...splitter.sentences]) {
     const chunkStart = findChunkPosition(spoken, chunk, searchStart);
     if (chunkStart !== -1) {
-      timings.push(
-        ...computeChunkWordTimings(
-          chunk,
-          chunkStart,
-          timeMs,
-          chunk.length * 50,
-        ),
-      );
+      for (const w of extractWordsWithPositions(chunk)) {
+        timings.push({
+          word: w.word,
+          charIndex: chunkStart + w.charOffset,
+          charLength: w.word.length,
+        });
+      }
       searchStart = chunkStart + chunk.length;
     }
-    timeMs += chunk.length * 50;
   }
   return timings.map((t) => {
     api.highlightWord(t.charIndex, t.charLength, spoken);
@@ -124,6 +122,95 @@ function readSentence(api: ReaderApi, pos: SentencePosition) {
 const isComplete = (sentence: string) => /[.!?”"]\s*$/.test(sentence.trim());
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("Kokoro model timing boundaries", () => {
+  it("maps measured phoneme frames to the matching source words", () => {
+    const phonemes = "wˈʌn fˈɪʃ";
+    const durations = new Float32Array(phonemes.length + 2).fill(1);
+
+    expect(
+      wordTimingsFromPhonemeDurations(
+        "One fish.",
+        phonemes,
+        phonemes,
+        12,
+        100,
+        durations,
+      ),
+    ).toEqual([
+      {
+        word: "One",
+        charIndex: 12,
+        charLength: 3,
+        startTime: 125,
+        endTime: 225,
+      },
+      {
+        word: "fish.",
+        charIndex: 16,
+        charLength: 5,
+        startTime: 250,
+        endTime: 350,
+      },
+    ]);
+  });
+
+  it("returns no timings when source and phoneme word boundaries differ", () => {
+    const phonemes = "θɹˈiː pˈɔɪnt wˈʌn fˈɔːɹ";
+    const durations = new Float32Array(phonemes.length + 2).fill(1);
+
+    expect(
+      wordTimingsFromPhonemeDurations(
+        "3.14",
+        phonemes,
+        phonemes,
+        0,
+        0,
+        durations,
+      ),
+    ).toBeNull();
+  });
+
+  it.each([
+    [
+      "It is slower, more deliberate, and far more rewarding.",
+      "ɪɾ ɪz slˈoʊɚ mˈoːɹ dᵻlˈɪbɚɹət ænd fˈɑːɹmˌoːɹ ɹᵻwˈɔːɹdɪŋ",
+      "ɪɾ ɪz slˈoʊɚ mˈoːɹ dᵻlˈɪbɚɹət ænd fˈɑːɹ mˈoːɹ ɹᵻwˈɔːɹdɪŋ",
+    ],
+    [
+      "In the margin, write the question that the paragraph refuses to answer.",
+      "ɪnðə mˈɑːɹdʒɪn ɹˈaɪt ðə kwˈɛstʃən ðætðə pˈæɹəɡɹˌæf ɹᵻfjˈuːzᵻz tʊ ˈænsɚ",
+      "ɪn ðə mˈɑːɹdʒɪn ɹˈaɪt ðə kwˈɛstʃən ðæt ðə pˈæɹəɡɹˌæf ɹᵻfjˈuːzᵻz tʊ ˈænsɚ",
+    ],
+    [
+      "A marked-up page is a record of a conversation between you and the author.",
+      "ɐ mˈɑːɹktˌʌp pˈeɪdʒ ɪz ɐ ɹˈɛkɚd əvə kɑːnvɚsˈeɪʃən bᵻtwˌiːn juː ænd ðɪ ˈɔːθɚ",
+      "ɐ mˈɑːɹktˌʌp pˈeɪdʒ ɪz ɐ ɹˈɛkɚd ʌv ɐ kɑːnvɚsˈeɪʃən bᵻtwˌiːn juː ænd ðɪ ˈɔːθɚ",
+    ],
+    [
+      "Do not highlight everything; a page drowned in yellow is as useless as a blank one.",
+      "duːnˌɑːt hˈaɪlaɪt ˈɛvɹɪθˌɪŋ ɐ pˈeɪdʒ dɹˈaʊnd ɪn jˈɛloʊ ɪz æz jˈuːsləs æz ɐ blˈæŋk wˌʌn",
+      "dˈuː nˌɑːt hˈaɪlaɪt ˈɛvɹɪθˌɪŋ ɐ pˈeɪdʒ dɹˈaʊnd ɪn jˈɛloʊ ɪz æz jˈuːsləs æz ɐ blˈæŋk wˌʌn",
+    ],
+  ])("keeps every source word when eSpeak joins connected speech: %s", (text, contextual, separated) => {
+    const durations = new Float32Array(contextual.length + 2).fill(1);
+    const timings = wordTimingsFromPhonemeDurations(
+      text,
+      contextual,
+      separated,
+      0,
+      0,
+      durations,
+    );
+
+    expect(timings?.map((timing) => timing.word)).toEqual(
+      extractWordsWithPositions(text).map((word) => word.word),
+    );
+    expect(timings?.every((timing) => timing.startTime < timing.endTime)).toBe(
+      true,
+    );
+  });
+});
 
 describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () => {
   it("highlights every spoken word of every complete sentence — no skips, no whitespace, correct text", () => {

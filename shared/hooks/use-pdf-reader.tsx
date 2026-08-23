@@ -94,15 +94,12 @@ const usePdfReader = ({
 
   const browserTts = useBrowserTts(ttsParams);
 
-  const supertonicTts = useLocalTts("supertonic", ttsParams);
-
   const getLocalTts = useCallback(
     (engine: string): LocalTtsHook | null => {
       if (engine === "kokoro") return kokoroTts;
-      if (engine === "supertonic") return supertonicTts;
       return null;
     },
-    [kokoroTts, supertonicTts],
+    [kokoroTts],
   );
 
   const resetWordTrackingRef = useRef<() => void>(() => {});
@@ -149,8 +146,7 @@ const usePdfReader = ({
     currentOperationIdRef.current++;
     kokoroTts.stop();
     browserTts.stop();
-    supertonicTts.stop();
-  }, [kokoroTts, browserTts, supertonicTts]);
+  }, [kokoroTts, browserTts]);
 
   const playCurrentSentenceAudio = useCallback(
     async (operationId?: number) => {
@@ -374,7 +370,6 @@ const usePdfReader = ({
 
         kokoroTts.reset();
         browserTts.reset();
-        supertonicTts.reset();
 
         const startPage = isContinueReading
           ? sentenceReader.getCurrentPage()
@@ -413,7 +408,6 @@ const usePdfReader = ({
       playCurrentSentenceAudio,
       kokoroTts,
       browserTts,
-      supertonicTts,
     ],
   );
 
@@ -625,7 +619,6 @@ const usePdfReader = ({
 
       kokoroTts.reset();
       browserTts.reset();
-      supertonicTts.reset();
 
       const startPage =
         selectionPageNumber ?? (pageNumberInView > 0 ? pageNumberInView : 1);
@@ -652,7 +645,6 @@ const usePdfReader = ({
       sentenceReader,
       kokoroTts,
       browserTts,
-      supertonicTts,
       pageNumberInView,
       scrollToHighlight,
       playCurrentSentenceAudio,

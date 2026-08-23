@@ -545,6 +545,9 @@ importers:
       pdfjs-dist:
         specifier: 2.16.105
         version: 2.16.105
+      phonemizer:
+        specifier: ^1.2.1
+        version: 1.2.1
       react:
         specifier: ^18
         version: 18.3.1

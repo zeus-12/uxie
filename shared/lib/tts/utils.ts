@@ -231,71 +231,172 @@ export function findChunkPosition(
   return searchStart;
 }
 
-export function computeChunkWordTimings(
-  chunk: string,
-  chunkOffset: number,
-  chunkStartTimeMs: number,
-  chunkDurationMs: number,
-): WordTiming[] {
-  const words: { word: string; localIndex: number; charLength: number }[] = [];
-  const wordRegex = /\S+/g;
-  let match: RegExpExecArray | null;
+const KOKORO_FRAMES_PER_SECOND = 40;
+const PHONEME_EDGE_PUNCTUATION =
+  /^[\s$;:,.!?¡¿—…"«»“”(){}\[\]]+|[\s$;:,.!?¡¿—…"«»“”(){}\[\]]+$/g;
 
-  while ((match = wordRegex.exec(chunk)) !== null) {
-    words.push({
-      word: match[0],
-      localIndex: match.index,
-      charLength: match[0].length,
-    });
+type PhonemeUnit = {
+  flatStart: number;
+  flatEnd: number;
+};
+
+function flattenPhonemes(phonemes: string): {
+  characters: string[];
+  tokenIndices: number[];
+  units: PhonemeUnit[];
+} {
+  const characters: string[] = [];
+  const tokenIndices: number[] = [];
+  const units: PhonemeUnit[] = [];
+
+  for (const match of phonemes.matchAll(/\S+/g)) {
+    const raw = match[0];
+    const spoken = raw.replace(PHONEME_EDGE_PUNCTUATION, "");
+    if (!spoken) continue;
+    const leading = raw.indexOf(spoken);
+    const flatStart = characters.length;
+    for (let i = 0; i < spoken.length; i++) {
+      characters.push(spoken[i]!);
+      tokenIndices.push(match.index + leading + i);
+    }
+    units.push({ flatStart, flatEnd: characters.length });
   }
 
-  if (words.length === 0) return [];
-
-  const totalChars = words.reduce((sum, w) => sum + w.charLength, 0);
-  const timings: WordTiming[] = [];
-  let currentTime = chunkStartTimeMs;
-
-  for (const wordInfo of words) {
-    const charRatio = wordInfo.charLength / Math.max(totalChars, 1);
-    const wordDuration = chunkDurationMs * charRatio;
-
-    timings.push({
-      word: wordInfo.word,
-      charIndex: chunkOffset + wordInfo.localIndex,
-      charLength: wordInfo.charLength,
-      startTime: currentTime,
-      endTime: currentTime + wordDuration,
-    });
-
-    currentTime += wordDuration;
-  }
-
-  return timings;
+  return { characters, tokenIndices, units };
 }
 
-export function findVoicedRangeMs(
-  samples: Float32Array,
-  sampleRate: number,
-  threshold = 0.005,
-): { startMs: number; endMs: number } {
-  let first = 0;
-  while (first < samples.length && Math.abs(samples[first]!) < threshold) {
-    first++;
+// Aligns the same sentence phonemized in connected-speech and word-separated
+// modes. This transfers source-word boundaries only; all timestamps still come
+// directly from the connected-speech model's measured duration tensor.
+function alignPhonemeBoundaries(
+  contextual: ReturnType<typeof flattenPhonemes>,
+  separated: ReturnType<typeof flattenPhonemes>,
+): number[] | null {
+  const source = separated.characters;
+  const target = contextual.characters;
+  const width = target.length + 1;
+  const costs = new Uint16Array((source.length + 1) * width);
+  for (let i = 0; i <= source.length; i++) costs[i * width] = i;
+  for (let j = 0; j <= target.length; j++) costs[j] = j;
+
+  for (let i = 1; i <= source.length; i++) {
+    for (let j = 1; j <= target.length; j++) {
+      const substitution =
+        costs[(i - 1) * width + j - 1]! +
+        (source[i - 1] === target[j - 1] ? 0 : 1);
+      const deletion = costs[(i - 1) * width + j]! + 1;
+      const insertion = costs[i * width + j - 1]! + 1;
+      costs[i * width + j] = Math.min(substitution, deletion, insertion);
+    }
   }
 
-  if (first === samples.length) {
-    return { startMs: 0, endMs: (samples.length / sampleRate) * 1000 };
+  const sourceToTarget = new Array<number | undefined>(source.length);
+  let i = source.length;
+  let j = target.length;
+  while (i > 0 || j > 0) {
+    const current = costs[i * width + j]!;
+    const diagonal =
+      i > 0 && j > 0
+        ? costs[(i - 1) * width + j - 1]! +
+          (source[i - 1] === target[j - 1] ? 0 : 1)
+        : Number.POSITIVE_INFINITY;
+    if (diagonal === current) {
+      sourceToTarget[i - 1] = j - 1;
+      i--;
+      j--;
+    } else if (i > 0 && costs[(i - 1) * width + j]! + 1 === current) {
+      i--;
+    } else {
+      j--;
+    }
   }
 
-  let last = samples.length - 1;
-  while (last > first && Math.abs(samples[last]!) < threshold) {
-    last--;
+  const starts = [0];
+  for (let unitIndex = 1; unitIndex < separated.units.length; unitIndex++) {
+    const left = separated.units[unitIndex - 1]!;
+    const right = separated.units[unitIndex]!;
+    let leftTarget: number | undefined;
+    let rightTarget: number | undefined;
+    for (let k = left.flatEnd - 1; k >= left.flatStart; k--) {
+      if (sourceToTarget[k] !== undefined) {
+        leftTarget = sourceToTarget[k];
+        break;
+      }
+    }
+    for (let k = right.flatStart; k < right.flatEnd; k++) {
+      if (sourceToTarget[k] !== undefined) {
+        rightTarget = sourceToTarget[k];
+        break;
+      }
+    }
+
+    // Any unassigned contextual phoneme at a word boundary makes that boundary
+    // ambiguous, so reject the entire chunk instead of guessing which word owns it.
+    if (
+      leftTarget === undefined ||
+      rightTarget === undefined ||
+      leftTarget + 1 !== rightTarget
+    ) {
+      return null;
+    }
+    starts.push(rightTarget);
+  }
+  starts.push(target.length);
+  return starts;
+}
+
+// Converts Kokoro's measured per-phoneme frame counts into source-word
+// boundaries. The mapping is deliberately all-or-nothing: whitespace-delimited
+// source words must match the phonemizer's word boundaries exactly.
+export function wordTimingsFromPhonemeDurations(
+  chunk: string,
+  contextualPhonemes: string,
+  separatedPhonemes: string,
+  chunkOffset: number,
+  chunkStartTimeMs: number,
+  durations: Float32Array,
+): WordTiming[] | null {
+  if (durations.length !== contextualPhonemes.length + 2) return null;
+
+  const sourceWords = extractWordsWithPositions(chunk).filter((word) =>
+    isRealWord(word.word),
+  );
+  const contextual = flattenPhonemes(contextualPhonemes);
+  const separated = flattenPhonemes(separatedPhonemes);
+  if (sourceWords.length === 0 || sourceWords.length !== separated.units.length) {
+    return null;
+  }
+  const wordStarts = alignPhonemeBoundaries(contextual, separated);
+  if (!wordStarts || wordStarts.length !== sourceWords.length + 1) return null;
+  for (let i = 0; i < sourceWords.length; i++) {
+    if (wordStarts[i]! >= wordStarts[i + 1]!) return null;
   }
 
-  return {
-    startMs: (first / sampleRate) * 1000,
-    endMs: ((last + 1) / sampleRate) * 1000,
-  };
+  const frameStarts = new Array<number>(durations.length + 1);
+  let frame = 0;
+  for (let i = 0; i < durations.length; i++) {
+    frameStarts[i] = frame;
+    frame += Math.round(durations[i]!);
+  }
+  frameStarts[durations.length] = frame;
+
+  const toMs = (frames: number) =>
+    chunkStartTimeMs + (frames / KOKORO_FRAMES_PER_SECOND) * 1000;
+
+  return sourceWords.map((sourceWord, index) => {
+    const flatStart = wordStarts[index]!;
+    const flatEnd = wordStarts[index + 1]!;
+    // +1 accounts for the tokenizer's BOS token.
+    const first = contextual.tokenIndices[flatStart]! + 1;
+    const last = contextual.tokenIndices[flatEnd - 1]! + 2;
+    return {
+      word: sourceWord.word,
+      charIndex: chunkOffset + sourceWord.charOffset,
+      charLength: sourceWord.word.length,
+      startTime: toMs(frameStarts[first]!),
+      endTime: toMs(frameStarts[last]!),
+    };
+  });
 }
 
 export function findCurrentWordIndex(

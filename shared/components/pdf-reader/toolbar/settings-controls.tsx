@@ -10,7 +10,6 @@ import { usePdfSettingsStore } from "../../../lib/store";
 import { getEngineFromVoice, type TTSVoiceId } from "../../../lib/tts";
 import { BROWSER_VOICES } from "../../../lib/tts/providers/browser-provider";
 import { KOKORO_VOICES } from "../../../lib/tts/providers/kokoro-provider";
-import { SUPERTONIC_VOICES } from "../../../lib/tts/providers/supertonic-provider";
 import type { TTSVoice } from "../../../lib/tts/types";
 import { cn } from "../../../lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -45,12 +44,6 @@ const VOICE_SELECTOR_OPTIONS = [
     icon: BotIcon,
     title: "Kokoro",
     description: "First load takes time, better quality",
-  },
-  {
-    voices: SUPERTONIC_VOICES,
-    icon: BotIcon,
-    title: "Supertonic",
-    description: "First load takes time, faster, decent quality.",
   },
 ];
 
@@ -119,9 +112,7 @@ export const SettingsControls = () => {
 
   const engine = getEngineFromVoice(voice);
   const hasActiveSettings =
-    settingsOptions.some((opt) => opt.enabled) ||
-    engine === "kokoro" ||
-    engine === "supertonic";
+    settingsOptions.some((opt) => opt.enabled) || engine === "kokoro";
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">

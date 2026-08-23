@@ -6,7 +6,7 @@ import {
 } from "@uxie/shared/hooks/use-sentence-reader";
 import { usePdfSettingsStore } from "@/lib/store";
 import { getEngineFromVoice } from "@uxie/shared/lib/tts";
-import { SUPERTONIC_VOICES } from "@uxie/shared/lib/tts/providers/supertonic-provider";
+import { KOKORO_VOICES } from "@uxie/shared/lib/tts/providers/kokoro-provider";
 import {
   extractWordsWithPositions,
   isRealWord,
@@ -117,7 +117,6 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   });
 
   const kokoroTts = useLocalTts("kokoro");
-  const supertonicTts = useLocalTts("supertonic");
 
   const currentVoice = usePdfSettingsStore((state) => state.voice);
 
@@ -398,36 +397,15 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     updateWordDisplay();
   }, [status, updateWordDisplay]);
 
-  const getTtsInstanceFromEngine = useCallback(
-    (engine: string) => {
-      if (engine === "kokoro") {
-        return kokoroTts;
-      } else if (engine === "supertonic") {
-        return supertonicTts;
-      } else if (engine === "browser") {
-        return supertonicTts;
-      }
-      return null;
-    },
-    [kokoroTts, supertonicTts],
-  );
-
   const speakCurrentWord = useCallback(async () => {
     if (!currentWord) return;
     const engine = getEngineFromVoice(currentVoice);
-    const tts = getTtsInstanceFromEngine(engine);
-
-    if (!tts) return;
-
-    if (engine === "browser") {
-      tts.setVoice(SUPERTONIC_VOICES[0].id);
-    } else {
-      tts.setVoice(currentVoice);
-    }
-
-    tts.reset();
-    await tts.speak(cleanSentenceForTts(currentWord), { speed: 1 });
-  }, [currentWord, getTtsInstanceFromEngine, currentVoice]);
+    kokoroTts.setVoice(
+      engine === "kokoro" ? currentVoice : KOKORO_VOICES[0].id,
+    );
+    kokoroTts.reset();
+    await kokoroTts.speak(cleanSentenceForTts(currentWord), { speed: 1 });
+  }, [currentWord, currentVoice, kokoroTts]);
 
   const updatePage = useCallback(
     (pageNumber: number) => {

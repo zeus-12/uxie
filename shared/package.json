@@ -39,6 +39,7 @@
     "kokoro-js": "^1.2.1",
     "lucide-react": "^0.563.0",
     "pdfjs-dist": "2.16.105",
+    "phonemizer": "^1.2.1",
     "react-hook-form": "^7.46.2",
     "react-hotkeys-hook": "^5.2.3",
     "react-pdf-highlighter": "^6.1.0",
