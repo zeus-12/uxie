@@ -15,8 +15,10 @@ import { cn } from "../../../lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { BotIcon, GlobeIcon, SettingsIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
+
+type SettingsReader = "pdf" | "article";
 
 interface SettingOption {
   id: string;
@@ -25,12 +27,6 @@ interface SettingOption {
   enabled: boolean;
   onToggle: () => void;
 }
-
-const SettingsIconComponent = ({ active }: { active: boolean }) => (
-  <Button variant="ghost" size="xs" className="block">
-    <SettingsIcon size={20} className={cn(active && "text-foreground")} />
-  </Button>
-);
 
 const VOICE_SELECTOR_OPTIONS = [
   {
@@ -47,10 +43,14 @@ const VOICE_SELECTOR_OPTIONS = [
   },
 ];
 
-export const SettingsControls = () => {
+export const SettingsControls = ({
+  reader = "pdf",
+}: {
+  reader?: SettingsReader;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const iconRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
   const toggleLinksDisabled = usePdfSettingsStore(
     (state) => state.toggleLinksDisabled,
@@ -74,41 +74,55 @@ export const SettingsControls = () => {
   );
 
   useOnClickOutside(containerRef, (e) => {
-    if (iconRef.current?.contains(e.target as Node)) {
+    if (triggerRef.current?.contains(e.target as Node)) {
       return;
     }
     setIsOpen(false);
   });
 
-  const settingsOptions: SettingOption[] = [
-    {
-      id: "disable-links",
-      label: "Disable PDF links",
-      enabled: linksDisabled,
-      onToggle: toggleLinksDisabled,
-    },
-    {
-      id: "bionic-reading",
-      label: "Bionic reading (BETA)",
-      description: "If it overlaps, try increasing the zoom.",
-      enabled: bionicReadingEnabled,
-      onToggle: toggleBionicReading,
-    },
-    {
-      id: "speed-read",
-      label: "Speed Read",
-      description: "RSVP word-by-word reader",
-      enabled: rsvpOpen,
-      onToggle: () => setRsvpOpen(!rsvpOpen),
-    },
-    {
-      id: "speak-along",
-      label: "Speak along (BETA)",
-      description: "Practice pronunciation with your mic",
-      enabled: speakAlongEnabled,
-      onToggle: () => setSpeakAlongEnabled(!speakAlongEnabled),
-    },
-  ];
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
+
+  const settingsOptions: SettingOption[] =
+    reader === "article"
+      ? []
+      : [
+          {
+            id: "disable-links",
+            label: "Disable PDF links",
+            enabled: linksDisabled,
+            onToggle: toggleLinksDisabled,
+          },
+          {
+            id: "bionic-reading",
+            label: "Bionic reading (BETA)",
+            description: "If it overlaps, try increasing the zoom.",
+            enabled: bionicReadingEnabled,
+            onToggle: toggleBionicReading,
+          },
+          {
+            id: "speed-read",
+            label: "Speed Read",
+            description: "RSVP word-by-word reader",
+            enabled: rsvpOpen,
+            onToggle: () => setRsvpOpen(!rsvpOpen),
+          },
+          {
+            id: "speak-along",
+            label: "Speak along (BETA)",
+            description: "Practice pronunciation with your mic",
+            enabled: speakAlongEnabled,
+            onToggle: () => setSpeakAlongEnabled(!speakAlongEnabled),
+          },
+        ];
 
   const engine = getEngineFromVoice(voice);
   const hasActiveSettings =
@@ -116,16 +130,27 @@ export const SettingsControls = () => {
 
   return (
     <div className="relative flex h-full w-full items-center justify-center">
-      <div
-        ref={iconRef}
+      <Button
+        ref={triggerRef}
+        type="button"
+        variant="ghost"
+        size="xs"
+        className="block"
+        aria-label="Reader settings"
+        title="Reader settings"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className="flex h-full w-full items-center justify-center"
       >
-        <SettingsIconComponent active={hasActiveSettings} />
-      </div>
+        <SettingsIcon
+          aria-hidden="true"
+          size={20}
+          className={cn(hasActiveSettings && "text-foreground")}
+        />
+      </Button>
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -136,17 +161,24 @@ export const SettingsControls = () => {
               duration: 0.2,
               ease: [0.16, 1, 0.3, 1],
             }}
-            className="absolute bottom-full mb-3 left-0 z-[99]"
+            // Icon-anchored on desktop; below md that overflows the right edge.
+            // `fixed` resolves against the toolbar, not the viewport, because
+            // the toolbar is translated — so this spans the toolbar's width.
+            className="absolute bottom-full left-0 z-[99] mb-3 max-md:fixed max-md:inset-x-2 max-md:bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)] max-md:mb-0"
             ref={containerRef}
+            role="dialog"
+            aria-label="Reader settings"
           >
-            <ScrollArea className="rounded-lg border bg-background shadow-lg max-h-[55vh] [&>div[data-radix-scroll-area-viewport]]:max-h-[55vh]">
+            {/* The toggle rows are what give this panel its width. Articles
+                have none, so without a floor it collapses to the voice column. */}
+            <ScrollArea className="min-w-56 rounded-lg border bg-background shadow-lg max-h-[55vh] [&>div[data-radix-scroll-area-viewport]]:max-h-[55vh]">
               <div className="divide-y">
                 {settingsOptions.map((option) => (
                   <SettingToggleOption key={option.id} option={option} />
                 ))}
 
                 <div className="pt-3 pb-1">
-                  <span className="text-sm text-gray-800 tracking-wide block mb-2 px-4">
+                  <span className="mb-2 block whitespace-nowrap px-4 text-sm tracking-wide text-gray-800">
                     Text to Speech
                   </span>
 

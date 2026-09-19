@@ -1,20 +1,32 @@
 import { READING_STATUS } from "@/components/pdf-reader/constants";
-import { RsvpReader } from "@uxie/shared/components/pdf-reader/rsvp-reader";
 import { SpeakAlong } from "@/components/pdf-reader/speak-along";
-import { ExpandableTabs, type Tab } from "@uxie/shared/components/ui/expandable-tabs";
 import SidebarDrawer from "@/components/workspace/sidebar-drawer";
-import { useEffect, useMemo, useState } from "react";
-import { useDebouncedCallback } from "use-debounce";
-import { useMediaQuery } from "usehooks-ts";
+import { RsvpReader } from "@uxie/shared/components/pdf-reader/rsvp-reader";
 import {
   BackgroundControlsContent,
   BackgroundControlsIcon,
 } from "@uxie/shared/components/pdf-reader/toolbar/background-controls";
-import { PageControlsContent, PageControlsIcon } from "@uxie/shared/components/pdf-reader/toolbar/page-controls";
+import {
+  PageControlsContent,
+  PageControlsIcon,
+} from "@uxie/shared/components/pdf-reader/toolbar/page-controls";
 import { PanelToggle } from "@uxie/shared/components/pdf-reader/toolbar/panel-toggle";
 import { SettingsControls } from "@uxie/shared/components/pdf-reader/toolbar/settings-controls";
-import { TTSControlsContent, TTSControlsIcon } from "@uxie/shared/components/pdf-reader/toolbar/tts-controls";
-import { ZoomControlsContent, ZoomControlsIcon } from "@uxie/shared/components/pdf-reader/toolbar/zoom-controls";
+import {
+  TTSControlsContent,
+  TTSControlsIcon,
+} from "@uxie/shared/components/pdf-reader/toolbar/tts-controls";
+import {
+  ZoomControlsContent,
+  ZoomControlsIcon,
+} from "@uxie/shared/components/pdf-reader/toolbar/zoom-controls";
+import {
+  ExpandableTabs,
+  type Tab,
+} from "@uxie/shared/components/ui/expandable-tabs";
+import { useEffect, useMemo, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
+import { useMediaQuery } from "usehooks-ts";
 
 const BottomToolbar = ({
   pageNumberInView,
@@ -179,7 +191,7 @@ const BottomToolbar = ({
   ]);
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+    <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 flex-col items-center">
       <SpeakAlong pageNumber={pageNumberInView} pageCount={totalPages} />
       <RsvpReader pageNumber={pageNumberInView} pageCount={totalPages} />
       <ExpandableTabs tabs={tabs} />

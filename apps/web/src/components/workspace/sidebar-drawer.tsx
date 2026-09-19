@@ -1,6 +1,6 @@
-import { Button } from "@uxie/shared/components/ui/button";
 import { useMobileSidebarStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { Button } from "@uxie/shared/components/ui/button";
 import { PanelBottomOpen } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 
@@ -8,8 +8,15 @@ export const SidebarDrawerTrigger = () => {
   const setDrawerOpen = useMobileSidebarStore((s) => s.setDrawerOpen);
 
   return (
-    <Button variant="ghost" size="sm" onClick={() => setDrawerOpen(true)}>
-      <PanelBottomOpen className="h-5 w-5" />
+    <Button
+      type="button"
+      variant="ghost"
+      size="xs"
+      onClick={() => setDrawerOpen(true)}
+      aria-label="Open notes and chat"
+      title="Open notes and chat"
+    >
+      <PanelBottomOpen aria-hidden="true" className="h-5 w-5" />
     </Button>
   );
 };

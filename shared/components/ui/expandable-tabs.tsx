@@ -7,6 +7,7 @@ export interface Tab {
   children: React.ReactNode;
   icon: React.ReactNode;
   clickOutsideToClose: boolean;
+  closeOnChildClick?: boolean;
 }
 
 interface ExpandableTabsProps {
@@ -64,7 +65,7 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
   return (
     <div
       ref={outsideClickRef}
-      className="flex w-max items-center rounded-2xl border bg-background shadow-sm divide-x border-gray-200"
+      className="relative flex w-max max-w-[calc(100vw-1rem)] items-center divide-x rounded-2xl border border-gray-200 bg-background shadow-sm"
     >
       {tabs.map((tab, index) => (
         <div className="flex shrink-0 justify-center" key={index}>
@@ -75,16 +76,14 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
             animate="animate"
             custom={selected === index && !!tab.children}
             transition={transition}
-            className={cn(
-              "relative flex items-center mx-1 rounded-xl text-sm font-medium shrink-0",
-            )}
+            className="mx-0.5 flex shrink-0 items-center rounded-xl text-sm font-medium md:mx-1"
           >
             <div
               className={cn(
-                "rounded-md flex my-1 transition-colors duration-300 hover:cursor-pointer p-1",
+                "my-1 flex rounded-md p-0.5 text-muted-foreground transition-colors duration-150 hover:cursor-pointer hover:text-foreground md:p-1",
                 selected === index && !!tab.children
-                  ? "text-black"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ? "bg-muted text-foreground"
+                  : "hover:bg-muted",
               )}
               onClick={() => handleSelect(index)}
             >
@@ -99,7 +98,12 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
                   animate="animate"
                   exit="exit"
                   transition={transition}
-                  className="overflow-hidden"
+                  className="overflow-hidden max-md:absolute max-md:bottom-[calc(100%+0.75rem)] max-md:left-1/2 max-md:z-50 max-md:max-w-[calc(100vw-1rem)] max-md:-translate-x-1/2 max-md:rounded-xl max-md:border max-md:border-gray-200 max-md:bg-background max-md:p-1 max-md:shadow-lg"
+                  onClick={() => {
+                    if (!tab.closeOnChildClick) return;
+                    setSelected(null);
+                    onChange?.(null);
+                  }}
                 >
                   {tab.children}
                 </motion.div>

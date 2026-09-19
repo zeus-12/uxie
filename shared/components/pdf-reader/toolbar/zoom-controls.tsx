@@ -41,8 +41,14 @@ export const ZoomControlsContent = ({
 
 export const ZoomControlsIcon = () => {
   return (
-    <Button variant="ghost" size="xs" className="block">
-      <ZoomInIcon className="h-5 w-5" />
+    <Button
+      variant="ghost"
+      size="xs"
+      className="block"
+      aria-label="Zoom"
+      title="Zoom"
+    >
+      <ZoomInIcon aria-hidden="true" className="h-5 w-5" />
     </Button>
   );
 };

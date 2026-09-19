@@ -48,7 +48,12 @@ export const PageControlsIcon = ({
   totalPages: number;
 }) => {
   return (
-    <Button variant="ghost" size="xs">
+    <Button
+      variant="ghost"
+      size="xs"
+      aria-label={`Page ${pageNumberInView} of ${totalPages}. Go to page`}
+      title="Go to page"
+    >
       {pageNumberInView > 0 ? (
         <p>
           {pageNumberInView}{" "}
