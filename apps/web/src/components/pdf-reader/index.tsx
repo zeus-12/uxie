@@ -1,112 +1,22 @@
 import PdfReader from "@/components/pdf-reader/reader";
-import { buttonVariants } from "@uxie/shared/components/ui/button";
-import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
+import { ReaderHeader } from "@/components/workspace/reader-header";
+import { addHighlightToNotes } from "@/lib/add-highlight-to-notes";
 import { api } from "@/lib/api";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
-import { type AppRouter } from "@/server/api/root";
-import { type BlockNoteEditorType } from "@/types/editor";
 import { type AddHighlightType, HighlightContentType } from "@/types/highlight";
+import type { PdfDocumentData } from "@/types/reader";
 import { createId } from "@paralleldrive/cuid2";
 import { HighlightTypeEnum } from "@prisma/client";
-import { type inferRouterOutputs } from "@trpc/server";
-import { ChevronLeftIcon } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/router";
 
 import { toast } from "sonner";
-
-export const addHighlightToNotes = async (
-  content: string,
-  highlightId: string,
-  type: HighlightContentType,
-  editor: BlockNoteEditorType | null,
-  canEdit: boolean,
-  pageNumber?: number,
-) => {
-  if (!editor) {
-    toast.error("Couldn't add highlight to text, try reloading the page.", {
-      duration: 3000,
-    });
-    return;
-  }
-
-  if (!canEdit) {
-    toast.error(
-      "User doesn't have the required permission to edit the document",
-      {
-        duration: 3000,
-      },
-    );
-    return;
-  }
-
-  if (type === HighlightContentType.TEXT) {
-    if (!content || !highlightId) return;
-
-    try {
-      editor.insertBlocks(
-        [
-          {
-            type: "highlight",
-            content,
-            props: {
-              highlightId,
-              ...(pageNumber ? { pageNumber } : {}),
-            },
-          },
-        ],
-        // cause of noUncheckedIndexedAccess => issue in blocknote
-        // @ts-ignore
-        editor.document[editor.document.length - 1],
-      );
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  } else {
-    if (!content || !highlightId || !editor.uploadFile) return;
-
-    const base64StringWithoutHeader = content.split(",")[1];
-    if (!base64StringWithoutHeader) {
-      toast.error("Invalid image", { duration: 3000 });
-      return;
-    }
-
-    const byteArray = Uint8Array.from(atob(base64StringWithoutHeader), (c) =>
-      c.charCodeAt(0),
-    );
-    const file = new File([byteArray], `${highlightId}.png`, {
-      type: "image/png",
-    });
-
-    const url = (await editor.uploadFile(file)) as string;
-
-    try {
-      editor.insertBlocks(
-        [
-          {
-            props: {
-              url,
-            },
-            type: "image",
-          },
-        ],
-        // cause of noUncheckedIndexedAccess => issue in blocknote
-        // @ts-ignore
-        editor.document[editor.document.length - 1],
-      );
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  }
-};
 
 const DocViewer = ({
   canEdit,
   doc,
 }: {
   canEdit: boolean;
-  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
+  doc: PdfDocumentData;
 }) => {
   const { query, isReady } = useRouter();
 
@@ -118,18 +28,26 @@ const DocViewer = ({
       await utils.document.getDocData.cancel();
       const prevData = utils.document.getDocData.getData();
 
-      // @ts-ignore
       utils.document.getDocData.setData({ docId: docId }, (old) => {
-        if (!old) return null;
+        if (!old || old.kind !== "pdf") return old;
 
         return {
           ...old,
           highlights: [
             ...old.highlights,
             {
+              id: newHighlight.id,
               position: {
-                boundingRect: newHighlight.boundingRect,
-                rects: newHighlight.rects,
+                boundingRect: {
+                  id: `${newHighlight.id}-bounds`,
+                  ...newHighlight.boundingRect,
+                  pageNumber: newHighlight.boundingRect.pageNumber ?? null,
+                },
+                rects: newHighlight.rects.map((rect, index) => ({
+                  id: `${newHighlight.id}-rect-${index}`,
+                  ...rect,
+                  pageNumber: rect.pageNumber ?? null,
+                })),
                 pageNumber: newHighlight.pageNumber,
               },
             },
@@ -158,7 +76,7 @@ const DocViewer = ({
       const prevData = utils.document.getDocData.getData();
 
       utils.document.getDocData.setData({ docId: docId }, (old) => {
-        if (!old) return undefined;
+        if (!old || old.kind !== "pdf") return old;
         return {
           ...old,
           highlights: [
@@ -205,24 +123,24 @@ const DocViewer = ({
       if (!content.text) return;
 
       // todo why is id being passed here?
-      addHighlightToNotes(
-        content.text,
+      void addHighlightToNotes({
+        content: content.text,
         highlightId,
-        HighlightContentType.TEXT,
+        type: HighlightContentType.TEXT,
         editor,
         canEdit,
-        position.pageNumber,
-      );
+        pageNumber: position.pageNumber,
+      });
     } else {
       if (!content.image) return;
 
-      addHighlightToNotes(
-        content.image,
+      void addHighlightToNotes({
+        content: content.image,
         highlightId,
-        HighlightContentType.IMAGE,
+        type: HighlightContentType.IMAGE,
         editor,
         canEdit,
-      );
+      });
     }
   }
 
@@ -240,19 +158,7 @@ const DocViewer = ({
 
   return (
     <div className="flex h-full flex-1 flex-col">
-      <div className="flex items-center">
-        <Link
-          href="/f"
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "w-fit justify-start",
-          )}
-        >
-          <ChevronLeftIcon className="mr-2 h-4 w-4" />
-        </Link>
-
-        <Title title={doc?.title} canEdit={canEdit} docId={docId} />
-      </div>
+      <ReaderHeader title={doc.title} canEdit={canEdit} documentId={docId} />
       <div className="relative h-full w-full">
         <PdfReader
           deleteHighlight={deleteHighlight}
@@ -261,50 +167,6 @@ const DocViewer = ({
         />
       </div>
     </div>
-  );
-};
-
-const Title = ({
-  canEdit,
-  title,
-  docId,
-}: {
-  canEdit: boolean;
-  title: string | null;
-  docId: string;
-}) => {
-  const utils = api.useContext();
-
-  const { mutate: updateTitleMutation } = api.document.updateTitle.useMutation({
-    async onMutate(newData) {
-      await utils.document.getDocData.cancel();
-      const prevData = utils.document.getDocData.getData({ docId });
-
-      utils.document.getDocData.setData({ docId }, (old) => {
-        if (!old) return undefined;
-        return {
-          ...old,
-          title: newData.title,
-        };
-      });
-
-      return { prevData };
-    },
-    onError(err, _newData, ctx) {
-      toast.error("Failed to update title");
-      utils.document.getDocData.setData({ docId }, ctx?.prevData);
-    },
-    onSettled() {
-      utils.document.getDocData.invalidate();
-    },
-  });
-
-  return (
-    <DocumentTitle
-      title={title}
-      canEdit={canEdit}
-      onSave={(newTitle) => updateTitleMutation({ docId, title: newTitle })}
-    />
   );
 };
 

@@ -1,4 +1,4 @@
-import { PDF_BACKGROUND_COLOURS } from "./constants";
+import { PDF_BACKGROUND_COLOURS, READER_BACKGROUND_COLOURS } from "./constants";
 import { type BlockNoteEditorType } from "../types/editor";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -89,6 +89,34 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
       setPageColour: (colour) => set({ pageColour: colour }),
     }),
     { name: "pdf-settings" },
+  ),
+);
+
+export type ArticleFontFamily = "sans" | "serif" | "mono";
+export type ArticleFontSize = 16 | 18 | 20 | 22;
+export type ArticleBackgroundColour =
+  (typeof READER_BACKGROUND_COLOURS)[number];
+
+interface ArticleSettingsStore {
+  fontFamily: ArticleFontFamily;
+  setFontFamily: (fontFamily: ArticleFontFamily) => void;
+  fontSize: ArticleFontSize;
+  setFontSize: (fontSize: ArticleFontSize) => void;
+  backgroundColour: ArticleBackgroundColour;
+  setBackgroundColour: (backgroundColour: ArticleBackgroundColour) => void;
+}
+
+export const useArticleSettingsStore = create<ArticleSettingsStore>()(
+  persist(
+    (set) => ({
+      fontFamily: "sans",
+      setFontFamily: (fontFamily) => set({ fontFamily }),
+      fontSize: 18,
+      setFontSize: (fontSize) => set({ fontSize }),
+      backgroundColour: READER_BACKGROUND_COLOURS[0],
+      setBackgroundColour: (backgroundColour) => set({ backgroundColour }),
+    }),
+    { name: "article-settings" },
   ),
 );
 

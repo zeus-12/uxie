@@ -1,3 +1,8 @@
+import { api } from "@/lib/api";
+import { PLANS, fileSizeBytes, fileSizeLabel } from "@/lib/constants";
+import { useUploadThing } from "@/lib/uploadthing";
+import { cn } from "@/lib/utils";
+import { useDropzone } from "@uploadthing/react";
 import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
 import { Checkbox } from "@uxie/shared/components/ui/checkbox";
 import {
@@ -9,11 +14,6 @@ import {
 } from "@uxie/shared/components/ui/dialog";
 import { Input } from "@uxie/shared/components/ui/input";
 import { Spinner } from "@uxie/shared/components/ui/spinner";
-import { api } from "@/lib/api";
-import { PLANS, fileSizeBytes, fileSizeLabel } from "@/lib/constants";
-import { useUploadThing } from "@/lib/uploadthing";
-import { cn } from "@/lib/utils";
-import { useDropzone } from "@uploadthing/react";
 import { XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCallback, useState } from "react";
@@ -22,10 +22,8 @@ import {
   generateClientDropzoneAccept,
   generatePermittedFileTypes,
 } from "uploadthing/client";
-import { z } from "zod";
 // @ts-ignore
 import scribe from "scribe.js-ocr";
-
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -129,35 +127,9 @@ const UploadFileModal = ({
       if (file) {
         await startUpload([file]);
       } else if (url) {
-        const urlSchema = z.string().url();
-        try {
-          urlSchema.parse(url);
-        } catch (err) {
-          toast.error("Invalid URL", {
-            duration: 3000,
-          });
-          return;
-        }
+        await mutateAddDocumentByLink({ url });
 
-        const res = await fetch(url);
-        const contentType = res.headers.get("Content-Type");
-        if (contentType !== "application/pdf") {
-          toast.error("URL is not a PDF", {
-            duration: 3000,
-          });
-          return;
-        }
-
-        const fileName =
-          res.headers.get("Content-Disposition")?.split("filename=")[1] ||
-          url.split("/").pop();
-
-        await mutateAddDocumentByLink({
-          title: fileName ?? "Untitled",
-          url,
-        });
-
-        toast.success("File uploaded successfully.", {
+        toast.success("Content added successfully.", {
           duration: 3000,
         });
       }
@@ -165,11 +137,11 @@ const UploadFileModal = ({
       setFile(undefined);
       setUrl("");
       refetchUserDocs();
-    } catch (err: any) {
-      console.log("error", err.message);
-
+    } catch (err: unknown) {
       toast.error(
-        "Error occurred while uploading. Please make sure the PDF is accessible.",
+        err instanceof Error
+          ? err.message
+          : "The content could not be imported.",
         {
           duration: 3000,
         },
@@ -197,16 +169,16 @@ const UploadFileModal = ({
           }}
           className={cn(buttonVariants())}
         >
-          Upload File
+          Add content
         </div>
       </DialogTrigger>
       <DialogContent hideClose={true}>
         <DialogHeader>
           <DialogTitle>
-            <p className="text-xl">Upload File</p>
+            <p className="text-xl">Add content</p>
             <p className="text-sm font-normal text-gray-500">
-              Choose files with {userPlan} or less pages to use AI features.
-              (For now)
+              Upload a PDF with up to {userPlan} pages, or paste a public web
+              article.
             </p>
           </DialogTitle>
 
@@ -229,14 +201,14 @@ const UploadFileModal = ({
           <div>
             <p>Import from URL</p>
             <p className="mb-2 text-xs font-normal text-gray-500">
-              Your files are not stored, only the URL is retained, also supports
-              Google Drive and Dropbox links.
+              Paste a public article or direct PDF link. Articles open in a
+              clean reader view.
             </p>
 
             <Input
               value={url}
               onChange={onUrlChange}
-              placeholder="https://example.com/file.pdf"
+              placeholder="https://example.com/article"
               className="w-full"
             />
           </div>

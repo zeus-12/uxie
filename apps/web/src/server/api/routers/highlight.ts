@@ -1,10 +1,102 @@
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { getArticleBlockText } from "@/server/article/extract";
 import { CollaboratorRole, HighlightTypeEnum } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 
 export const highlightRouter = createTRPCRouter({
+  addArticleText: protectedProcedure
+    .input(
+      z
+        .object({
+          documentId: z.string(),
+          id: z.string(),
+          snapshotId: z.string(),
+          blockId: z.string().regex(/^block-\d+$/),
+          startOffset: z.number().int().nonnegative(),
+          endOffset: z.number().int().positive(),
+          exactText: z.string().min(1).max(20_000),
+          prefix: z.string().max(256),
+          suffix: z.string().max(256),
+        })
+        .refine((value) => value.endOffset > value.startOffset, {
+          message: "The highlight range is invalid.",
+        }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const document = await ctx.prisma.document.findFirst({
+        where: {
+          id: input.documentId,
+          kind: "ARTICLE",
+          OR: [
+            { ownerId: ctx.session.user.id },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                  role: CollaboratorRole.EDITOR,
+                },
+              },
+            },
+          ],
+        },
+        select: {
+          article: {
+            select: {
+              snapshots: {
+                where: { id: input.snapshotId },
+                select: { id: true, contentHtml: true },
+                take: 1,
+              },
+            },
+          },
+        },
+      });
+
+      const snapshot = document?.article?.snapshots[0];
+      if (!snapshot) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not authorized to annotate this article.",
+        });
+      }
+
+      const blockText = getArticleBlockText({
+        contentHtml: snapshot.contentHtml,
+        blockId: input.blockId,
+      });
+      const selectedText = blockText?.slice(input.startOffset, input.endOffset);
+      if (!blockText || selectedText !== input.exactText) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The selected text no longer matches this article.",
+        });
+      }
+
+      await ctx.prisma.highlight.create({
+        data: {
+          id: input.id,
+          type: HighlightTypeEnum.ARTICLE_TEXT,
+          documentId: input.documentId,
+          selectedText: input.exactText,
+          articleAnchor: {
+            create: {
+              snapshotId: input.snapshotId,
+              blockId: input.blockId,
+              startOffset: input.startOffset,
+              endOffset: input.endOffset,
+              exactText: input.exactText,
+              prefix: input.prefix,
+              suffix: input.suffix,
+            },
+          },
+        },
+      });
+
+      return true;
+    }),
+
   add: protectedProcedure
     .input(
       z.object({

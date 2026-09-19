@@ -12,6 +12,11 @@ type Rect = {
   id?: string;
 };
 
+export type DocumentData =
+  inferRouterOutputs<AppRouter>["document"]["getDocData"];
+export type PdfDocumentData = Extract<DocumentData, { kind: "pdf" }>;
+export type ArticleDocumentData = Extract<DocumentData, { kind: "article" }>;
+
 /**
  * The structural subset of a document that the reader subtree (PdfReader →
  * PdfHighlighter) actually renders. It lets the demo reuse the production reader
@@ -24,7 +29,7 @@ type Rect = {
  * react-pdf-highlighter), so no precision is lost here.
  */
 export type ReaderDoc = Pick<
-  inferRouterOutputs<AppRouter>["document"]["getDocData"],
+  PdfDocumentData,
   | "id"
   | "title"
   | "url"

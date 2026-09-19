@@ -19,16 +19,20 @@ import Link from "next/link";
 import { useState } from "react";
 import InviteCollab from "./invite-collab-modal";
 
+const ARTICLE_SIDEBAR_TABS = ["notes", "chat"] as const;
+
 const Sidebar = ({
   canEdit,
   isOwner,
   isVectorised,
   note,
+  showFlashcards = true,
 }: {
   canEdit: boolean;
   isOwner: boolean;
   isVectorised: boolean;
   note: string | null;
+  showFlashcards?: boolean;
 }) => {
   const { editor } = useBlocknoteEditorStore();
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -86,6 +90,7 @@ const Sidebar = ({
         notes={<BlockNoteEditor canEdit={canEdit} note={note} />}
         chat={<Chat isVectorised={isVectorised} />}
         flashcards={<Flashcards />}
+        tabs={showFlashcards ? undefined : ARTICLE_SIDEBAR_TABS}
         defaultTab="notes"
         resetTabOnMount={false}
       />

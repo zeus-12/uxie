@@ -1,9 +1,18 @@
-import { PLANS } from "@/lib/constants";
+import { PLANS, fileSizeBytes } from "@/lib/constants";
 import { generateAndUploadCover } from "@/lib/pdf-cover";
 import { stripTextFromEnd } from "@/lib/utils";
 import { vectoriseDocument } from "@/lib/vectorise";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { CollaboratorRole } from "@prisma/client";
+import { extractArticle } from "@/server/article/extract";
+import {
+  ArticleFetchError,
+  fetchPublicResource,
+} from "@/server/article/safe-fetch";
+import {
+  ArticleIngestionStatus,
+  CollaboratorRole,
+  DocumentKind,
+} from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { z } from "zod";
@@ -35,7 +44,20 @@ export const documentRouter = createTRPCRouter({
             include: {
               boundingRectangle: true,
               rectangles: true,
+              articleAnchor: true,
             },
+          },
+          article: {
+            include: {
+              snapshots: {
+                orderBy: { createdAt: "desc" },
+                take: 1,
+              },
+            },
+          },
+          articleProgress: {
+            where: { userId: ctx.session.user.id },
+            take: 1,
           },
           owner: true,
           collaborators: {
@@ -54,32 +76,34 @@ export const documentRouter = createTRPCRouter({
         });
       }
 
-      const highlightData = res.highlights.map((highlight) => ({
-        id: highlight.id,
-        position: {
-          boundingRect: {
-            id: highlight.boundingRectangle?.id,
-            x1: highlight.boundingRectangle?.x1,
-            y1: highlight.boundingRectangle?.y1,
-            x2: highlight.boundingRectangle?.x2,
-            y2: highlight.boundingRectangle?.y2,
-            width: highlight.boundingRectangle?.width,
-            height: highlight.boundingRectangle?.height,
-            pageNumber: highlight.boundingRectangle?.pageNumber,
+      const highlightData = res.highlights
+        .filter((highlight) => highlight.type !== "ARTICLE_TEXT")
+        .map((highlight) => ({
+          id: highlight.id,
+          position: {
+            boundingRect: {
+              id: highlight.boundingRectangle?.id,
+              x1: highlight.boundingRectangle?.x1,
+              y1: highlight.boundingRectangle?.y1,
+              x2: highlight.boundingRectangle?.x2,
+              y2: highlight.boundingRectangle?.y2,
+              width: highlight.boundingRectangle?.width,
+              height: highlight.boundingRectangle?.height,
+              pageNumber: highlight.boundingRectangle?.pageNumber,
+            },
+            rects: highlight.rectangles.map((rect) => ({
+              id: rect.id,
+              x1: rect.x1,
+              y1: rect.y1,
+              x2: rect.x2,
+              y2: rect.y2,
+              width: rect.width,
+              height: rect.height,
+              pageNumber: rect.pageNumber,
+            })),
+            pageNumber: highlight.pageNumber,
           },
-          rects: highlight.rectangles.map((rect) => ({
-            id: rect.id,
-            x1: rect.x1,
-            y1: rect.y1,
-            x2: rect.x2,
-            y2: rect.y2,
-            width: rect.width,
-            height: rect.height,
-            pageNumber: rect.pageNumber,
-          })),
-          pageNumber: highlight.pageNumber,
-        },
-      }));
+        }));
 
       const collaborator = res.collaborators.find(
         (c) => c.userId === ctx.session.user.id,
@@ -88,12 +112,9 @@ export const documentRouter = createTRPCRouter({
       const isOwner = res.owner.id === ctx.session.user.id;
       const canEdit = isOwner || collaborator?.role === CollaboratorRole.EDITOR;
       const username = isOwner ? res.owner.name : collaborator?.user.name || "";
-      const pageCount = res.pageCount;
-
-      return {
+      const common = {
         id: res.id,
         title: res.title,
-        highlights: highlightData!,
         owner: res.owner,
         collaborators: res.collaborators,
         messages: res.messages,
@@ -104,10 +125,73 @@ export const documentRouter = createTRPCRouter({
           username,
           isOwner: res.owner.id === ctx.session.user.id,
         },
-        pageCount,
+        note: res.note,
+      };
+
+      if (res.kind === DocumentKind.ARTICLE) {
+        const snapshot = res.article?.snapshots[0];
+        if (!res.article || !snapshot) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "This article is missing its reader snapshot.",
+          });
+        }
+
+        return {
+          ...common,
+          kind: "article" as const,
+          article: {
+            canonicalUrl: res.article.canonicalUrl,
+            sourceUrl: res.article.sourceUrl,
+            siteName: res.article.siteName,
+            byline: res.article.byline,
+            excerpt: res.article.excerpt,
+            wordCount: res.article.wordCount,
+            snapshot: {
+              id: snapshot.id,
+              title: snapshot.title,
+              contentHtml: snapshot.contentHtml,
+              textContent: snapshot.textContent,
+              contentHash: snapshot.contentHash,
+            },
+          },
+          highlights: res.highlights.flatMap((highlight) => {
+            const anchor = highlight.articleAnchor;
+            if (highlight.type !== "ARTICLE_TEXT" || !anchor) return [];
+            return [
+              {
+                id: highlight.id,
+                selectedText: highlight.selectedText ?? anchor.exactText,
+                anchor: {
+                  snapshotId: anchor.snapshotId,
+                  blockId: anchor.blockId,
+                  startOffset: anchor.startOffset,
+                  endOffset: anchor.endOffset,
+                  prefix: anchor.prefix,
+                  suffix: anchor.suffix,
+                  exactText: anchor.exactText,
+                },
+              },
+            ];
+          }),
+          progress: res.articleProgress[0]
+            ? {
+                snapshotId: res.articleProgress[0].snapshotId,
+                blockId: res.articleProgress[0].blockId,
+                characterOffset: res.articleProgress[0].characterOffset,
+                scrollFraction: res.articleProgress[0].scrollFraction,
+              }
+            : null,
+        };
+      }
+
+      return {
+        ...common,
+        kind: "pdf" as const,
+        highlights: highlightData,
+        pageCount: res.pageCount,
         lastReadPage: res.lastReadPage,
         zoomLevel: res.zoomLevel,
-        note: res.note,
       };
     }),
 
@@ -284,6 +368,7 @@ export const documentRouter = createTRPCRouter({
           isVectorised: true,
           url: true,
           id: true,
+          kind: true,
         },
       });
 
@@ -305,7 +390,13 @@ export const documentRouter = createTRPCRouter({
       const maxPagesAllowed = PLANS[docOwnerPlan].maxPagesPerDoc;
 
       try {
-        await vectoriseDocument(doc.url, doc.id, maxPagesAllowed);
+        await vectoriseDocument({
+          fileUrl: doc.url,
+          documentId: doc.id,
+          maxPagesAllowed,
+          maxFileBytes: fileSizeBytes(PLANS[docOwnerPlan].maxFileSizeMbPerDoc),
+          kind: doc.kind,
+        });
       } catch (err: any) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -319,8 +410,8 @@ export const documentRouter = createTRPCRouter({
   addDocumentByLink: protectedProcedure
     .input(
       z.object({
-        url: z.string(),
-        title: z.string(),
+        url: z.string().url(),
+        title: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -358,52 +449,98 @@ export const documentRouter = createTRPCRouter({
           });
         }
 
-        const fileUrl = input.url;
-        const response = await fetch(fileUrl);
+        const resource = await fetchPublicResource({
+          inputUrl: input.url,
+          maxBytes: fileSizeBytes(PLANS[user.plan].maxFileSizeMbPerDoc),
+        });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (resource.contentType.includes("application/pdf")) {
+          const arrayBuffer = resource.body.buffer.slice(
+            resource.body.byteOffset,
+            resource.body.byteOffset + resource.body.byteLength,
+          );
+          const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+          const loader = new PDFLoader(blob);
+          const pageLevelDocs = await loader.load();
+          const numPages = pageLevelDocs.length;
+          const sourceTitle =
+            input.title ||
+            new URL(resource.finalUrl).pathname.split("/").pop() ||
+            "Untitled";
+          const coverImageUrl = await generateAndUploadCover(
+            arrayBuffer,
+            sourceTitle,
+          );
+
+          return ctx.prisma.document.create({
+            data: {
+              title: stripTextFromEnd(sourceTitle, ".pdf"),
+              url: resource.finalUrl,
+              isUploaded: false,
+              pageCount: numPages,
+              coverImageUrl: coverImageUrl ?? "",
+              owner: { connect: { id: ctx.session.user.id } },
+            },
+          });
         }
+
         if (
-          !response.headers.get("content-type")?.includes("application/pdf")
+          !resource.contentType.includes("text/html") &&
+          !resource.contentType.includes("application/xhtml+xml")
         ) {
-          throw new Error("Invalid file type. Only PDFs are allowed.");
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "This URL is not a PDF or a readable web page.",
+          });
         }
 
-        const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
+        const article = extractArticle({
+          html: new TextDecoder().decode(resource.body),
+          url: resource.finalUrl,
+        });
 
-        const loader = new PDFLoader(blob);
-        const pageLevelDocs = await loader.load();
-        const numPages = pageLevelDocs.length;
-
-        const coverImageUrl = await generateAndUploadCover(
-          arrayBuffer,
-          input.title,
-        );
-
-        const title = stripTextFromEnd(input.title, ".pdf");
-
-        const newFile = await ctx.prisma.document.create({
+        return ctx.prisma.document.create({
           data: {
-            title,
+            kind: DocumentKind.ARTICLE,
+            title: article.title,
             url: input.url,
             isUploaded: false,
-            pageCount: numPages,
-            coverImageUrl: coverImageUrl ?? "",
-            owner: {
-              connect: {
-                id: ctx.session.user.id,
+            pageCount: 0,
+            coverImageUrl: article.coverImageUrl,
+            owner: { connect: { id: ctx.session.user.id } },
+            article: {
+              create: {
+                sourceUrl: input.url,
+                canonicalUrl: article.canonicalUrl,
+                siteName: article.siteName,
+                byline: article.byline,
+                excerpt: article.excerpt,
+                wordCount: article.wordCount,
+                status: ArticleIngestionStatus.READY,
+                snapshots: {
+                  create: {
+                    title: article.title,
+                    contentHtml: article.contentHtml,
+                    textContent: article.textContent,
+                    contentHash: article.contentHash,
+                  },
+                },
               },
             },
           },
         });
-        return newFile;
-      } catch (err: any) {
-        console.log(err.message);
+      } catch (error: unknown) {
+        if (error instanceof TRPCError) throw error;
+        const message =
+          error instanceof ArticleFetchError || error instanceof Error
+            ? error.message
+            : "The URL could not be imported.";
         throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: err.message,
+          code:
+            error instanceof ArticleFetchError && error.kind === "failed"
+              ? "INTERNAL_SERVER_ERROR"
+              : "BAD_REQUEST",
+          message,
         });
       }
     }),
@@ -477,6 +614,65 @@ export const documentRouter = createTRPCRouter({
             lastReadPage: input.lastReadPage,
           }),
           ...(input.zoomLevel !== undefined && { zoomLevel: input.zoomLevel }),
+        },
+      });
+
+      return true;
+    }),
+
+  updateArticleProgress: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+        snapshotId: z.string(),
+        blockId: z.string().nullable(),
+        characterOffset: z.number().int().nonnegative(),
+        scrollFraction: z.number().min(0).max(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const document = await ctx.prisma.document.findFirst({
+        where: {
+          id: input.documentId,
+          kind: DocumentKind.ARTICLE,
+          OR: [
+            { ownerId: ctx.session.user.id },
+            { collaborators: { some: { userId: ctx.session.user.id } } },
+          ],
+          article: {
+            snapshots: { some: { id: input.snapshotId } },
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!document) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Article not found or you do not have access to it.",
+        });
+      }
+
+      await ctx.prisma.articleProgress.upsert({
+        where: {
+          documentId_userId: {
+            documentId: input.documentId,
+            userId: ctx.session.user.id,
+          },
+        },
+        create: {
+          documentId: input.documentId,
+          userId: ctx.session.user.id,
+          snapshotId: input.snapshotId,
+          blockId: input.blockId,
+          characterOffset: input.characterOffset,
+          scrollFraction: input.scrollFraction,
+        },
+        update: {
+          snapshotId: input.snapshotId,
+          blockId: input.blockId,
+          characterOffset: input.characterOffset,
+          scrollFraction: input.scrollFraction,
         },
       });
 

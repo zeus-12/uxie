@@ -38,8 +38,14 @@ model User {
   createdAt                 DateTime           @default(now())
   feedbacks                 Feedback[]
   flashcardAttempts         FlashcardAttempt[]
+  articleProgress           ArticleProgress[]
 
   plan Plan @default(FREE)
+}
+
+enum DocumentKind {
+  PDF
+  ARTICLE
 }
 
 enum Plan {
@@ -49,28 +55,84 @@ enum Plan {
 }
 
 model Document {
-  url           String
-  id            String         @id @default(cuid())
-  title         String
-  owner         User           @relation(fields: [ownerId], references: [id])
-  highlights    Highlight[]
-  collaborators Collaborator[]
-  ownerId       String
-  note          String?        @db.Text
-  messages      Message[]
-  isVectorised  Boolean        @default(false)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @default(now()) @updatedAt
-  pageCount     Int
+  url             String
+  id              String            @id @default(cuid())
+  title           String
+  owner           User              @relation(fields: [ownerId], references: [id])
+  highlights      Highlight[]
+  collaborators   Collaborator[]
+  ownerId         String
+  note            String?           @db.Text
+  messages        Message[]
+  isVectorised    Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  pageCount       Int
   // false if user adds document by url
-  isUploaded    Boolean        @default(true)
-  flashcards    Flashcard[]
-  lastReadPage  Int            @default(1)
+  isUploaded      Boolean           @default(true)
+  flashcards      Flashcard[]
+  lastReadPage    Int               @default(1)
   // The pdf.js scale to restore on open. Null means "auto" — the viewer's own
   // fit-to-width default, which is what a document gets until the user zooms.
-  zoomLevel     Float?
-  coverImageUrl String
-  summary       String?        @db.Text
+  zoomLevel       Float?
+  coverImageUrl   String
+  summary         String?           @db.Text
+  kind            DocumentKind      @default(PDF)
+  article         ArticleDocument?
+  articleProgress ArticleProgress[]
+}
+
+enum ArticleIngestionStatus {
+  PROCESSING
+  READY
+  UNSUPPORTED
+  FAILED
+}
+
+model ArticleDocument {
+  id           String                 @id @default(cuid())
+  document     Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId   String                 @unique
+  sourceUrl    String                 @db.Text
+  canonicalUrl String                 @db.Text
+  siteName     String?
+  byline       String?
+  excerpt      String?                @db.Text
+  wordCount    Int
+  status       ArticleIngestionStatus @default(PROCESSING)
+  error        String?                @db.Text
+  snapshots    ArticleSnapshot[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @default(now()) @updatedAt
+}
+
+model ArticleSnapshot {
+  id                String              @id @default(cuid())
+  articleDocument   ArticleDocument     @relation(fields: [articleDocumentId], references: [id], onDelete: Cascade)
+  articleDocumentId String
+  title             String
+  contentHtml       String              @db.Text
+  textContent       String              @db.Text
+  contentHash       String
+  anchors           ArticleTextAnchor[]
+  createdAt         DateTime            @default(now())
+
+  @@index([articleDocumentId, createdAt])
+}
+
+model ArticleProgress {
+  id              String   @id @default(cuid())
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId      String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  snapshotId      String
+  blockId         String?
+  characterOffset Int      @default(0)
+  scrollFraction  Float    @default(0)
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@unique([documentId, userId])
 }
 
 enum CollaboratorRole {
@@ -103,6 +165,7 @@ model Message {
 enum HighlightTypeEnum {
   TEXT
   IMAGE
+  ARTICLE_TEXT
 }
 
 model Highlight {
@@ -118,7 +181,23 @@ model Highlight {
 
   rectangles Cordinate[] @relation("rectangles")
 
-  pageNumber Int?
+  pageNumber    Int?
+  selectedText  String?            @db.Text
+  articleAnchor ArticleTextAnchor?
+}
+
+model ArticleTextAnchor {
+  id          String          @id @default(cuid())
+  highlight   Highlight       @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  highlightId String          @unique
+  snapshot    ArticleSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  snapshotId  String
+  blockId     String
+  startOffset Int
+  endOffset   Int
+  prefix      String          @db.Text
+  suffix      String          @db.Text
+  exactText   String          @db.Text
 }
 
 model Cordinate {

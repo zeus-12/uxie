@@ -1,8 +1,7 @@
+import { cn } from "@/lib/utils";
 import { Badge } from "@uxie/shared/components/ui/badge";
 import { CustomTooltip } from "@uxie/shared/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { FileText, Sparkle } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 const ProgressRing = ({
@@ -86,12 +85,13 @@ const DocCard = ({
       >
         <div className="relative aspect-[3/4] w-full bg-gray-50">
           {coverImageUrl ? (
-            <Image
+            <img
               src={coverImageUrl}
               alt={title}
-              fill
-              className="object-cover object-top"
-              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 h-full w-full object-cover object-top"
             />
           ) : (
             <div className="flex h-full items-center justify-center">

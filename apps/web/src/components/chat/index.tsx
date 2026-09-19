@@ -54,7 +54,7 @@ function VectoriseGate({ docId }: { docId: string }) {
     <EmptyStatePrompt
       icon={<SparklesIcon className="h-6 w-6" />}
       title="Chat with this document"
-      subtext="Ask anything and get instant answers straight from your PDF."
+      subtext="Ask anything and get answers grounded in this document."
       buttonText="Start chatting"
       onClick={start}
     />

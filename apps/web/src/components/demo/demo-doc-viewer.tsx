@@ -1,12 +1,12 @@
-import { addHighlightToNotes } from "@/components/pdf-reader";
 import PdfReader from "@/components/pdf-reader/reader";
-import { buttonVariants } from "@uxie/shared/components/ui/button";
+import { addHighlightToNotes } from "@/lib/add-highlight-to-notes";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { cn, stripTextFromEnd } from "@/lib/utils";
 import { type AddHighlightType, HighlightContentType } from "@/types/highlight";
 import { type ReaderDoc } from "@/types/reader";
 import { createId } from "@paralleldrive/cuid2";
+import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -32,16 +32,22 @@ const DemoDocViewer = ({ doc }: { doc: ReaderDoc }) => {
 
     const editor = useBlocknoteEditorStore.getState().editor;
     if (text) {
-      addHighlightToNotes(
-        text,
+      void addHighlightToNotes({
+        content: text,
         highlightId,
-        HighlightContentType.TEXT,
+        type: HighlightContentType.TEXT,
         editor,
-        true,
-        position.pageNumber,
-      );
+        canEdit: true,
+        pageNumber: position.pageNumber,
+      });
     } else if (image) {
-      addHighlightToNotes(image, highlightId, HighlightContentType.IMAGE, editor, true);
+      void addHighlightToNotes({
+        content: image,
+        highlightId,
+        type: HighlightContentType.IMAGE,
+        editor,
+        canEdit: true,
+      });
     }
   }
 

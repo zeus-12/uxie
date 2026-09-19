@@ -164,6 +164,14 @@
   mix-blend-mode: multiply;
 }
 
+::highlight(uxie-article-tts-sentence) {
+  background-color: rgb(214 247 205);
+}
+
+::highlight(uxie-article-tts-word) {
+  background-color: rgb(116 242 115);
+}
+
 @layer utilities {
   .hd-screen {
     /* 100vh for browsers not supporting dvh */

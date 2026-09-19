@@ -7,6 +7,7 @@ import { create } from "zustand";
 export {
   DEFAULT_SIDEBAR_TAB,
   SIDEBAR_TABS,
+  useArticleSettingsStore,
   useBlocknoteEditorStore,
   useChatStore,
   useCitationHighlightStore,
@@ -14,6 +15,9 @@ export {
   useMobileSidebarStore,
   usePdfSettingsStore,
   useSidebarTabStore,
+  type ArticleBackgroundColour,
+  type ArticleFontFamily,
+  type ArticleFontSize,
   type SidebarTab,
 } from "@uxie/shared/lib/store";
 

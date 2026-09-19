@@ -34,7 +34,10 @@ afterEach(() => {
   container = null;
 });
 
-function renderSidebar(onSettings = vi.fn()) {
+function renderSidebar(
+  onSettings = vi.fn(),
+  tabs?: readonly ("notes" | "chat" | "flashcards")[],
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -49,6 +52,7 @@ function renderSidebar(onSettings = vi.fn()) {
             onClick: onSettings,
           }),
           resetTabOnMount: false,
+          tabs,
         }),
       ),
   );
@@ -64,17 +68,30 @@ describe("shared reader sidebar header", () => {
     );
     expect(tabs.map((tab) => tab.getAttribute("aria-label"))).toEqual([
       "Take notes",
-      "Chat with the pdf",
-      "Generate flashcards from the pdf",
+      "Chat with this document",
+      "Generate flashcards",
     ]);
     expect(container!.querySelector("button button")).toBeNull();
+  });
+
+  it("can omit flashcards for article readers", () => {
+    renderSidebar(vi.fn(), ["notes", "chat"]);
+
+    const tabs = Array.from(
+      container!.querySelectorAll<HTMLButtonElement>('button[role="tab"]'),
+    );
+    expect(tabs.map((tab) => tab.getAttribute("aria-label"))).toEqual([
+      "Take notes",
+      "Chat with this document",
+    ]);
+    expect(container!.textContent).not.toContain("Flashcards panel");
   });
 
   it("switches the shared tab state", () => {
     renderSidebar();
 
     const chat = container!.querySelector<HTMLButtonElement>(
-      'button[aria-label="Chat with the pdf"]',
+      'button[aria-label="Chat with this document"]',
     )!;
     flushSync(() =>
       chat.dispatchEvent(
