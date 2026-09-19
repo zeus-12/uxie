@@ -129,7 +129,7 @@ const UploadFileModal = ({
       } else if (url) {
         await mutateAddDocumentByLink({ url });
 
-        toast.success("Content added successfully.", {
+        toast.success("Added successfully.", {
           duration: 3000,
         });
       }
@@ -141,7 +141,7 @@ const UploadFileModal = ({
       toast.error(
         err instanceof Error
           ? err.message
-          : "The content could not be imported.",
+          : "This PDF or URL could not be imported.",
         {
           duration: 3000,
         },
@@ -169,13 +169,13 @@ const UploadFileModal = ({
           }}
           className={cn(buttonVariants())}
         >
-          Add content
+          Add PDF/URL
         </div>
       </DialogTrigger>
       <DialogContent hideClose={true}>
         <DialogHeader>
           <DialogTitle>
-            <p className="text-xl">Add content</p>
+            <p className="text-xl">Add PDF/URL</p>
             <p className="text-sm font-normal text-gray-500">
               Upload a PDF with up to {userPlan} pages, or paste a public web
               article.
