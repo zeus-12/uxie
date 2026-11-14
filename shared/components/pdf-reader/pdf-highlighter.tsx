@@ -7,9 +7,11 @@ import {
 import { getHighlightPageNumber } from "../../lib/highlights";
 import {
   useChatStore,
+  useCitationHighlightStore,
   useHighlightJumpStore,
   usePdfSettingsStore,
 } from "../../lib/store";
+import { createCitationNavigator } from "../../lib/citation-navigation";
 import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useRef } from "react";
 import {
@@ -92,6 +94,9 @@ const PdfHighlighter = ({
   const setJumpToHighlight = useHighlightJumpStore(
     (state) => state.setJumpToHighlight,
   );
+  const setHighlightSource = useCitationHighlightStore(
+    (state) => state.setHighlightSource,
+  );
 
   // Keep the mounted instance locally (for the jump fallback below) as well as
   // handing it to the caller.
@@ -142,6 +147,28 @@ const PdfHighlighter = ({
 
     return () => setJumpToHighlight(null);
   }, [highlights, setJumpToHighlight]);
+
+  useEffect(() => {
+    const navigator = createCitationNavigator({
+      getViewer: () => highlighterInstanceRef.current?.viewer ?? null,
+      onError: (message) => toast.error(message, { duration: 3000 }),
+      subscribeTextLayerRendered: (listener) => {
+        const eventBus = highlighterInstanceRef.current?.eventBus;
+        if (!eventBus) return () => {};
+        const onRendered = ({ pageNumber }: { pageNumber?: number }) => {
+          if (pageNumber) listener(pageNumber);
+        };
+        eventBus.on("textlayerrendered", onRendered);
+        return () => eventBus.off("textlayerrendered", onRendered);
+      },
+    });
+    setHighlightSource(navigator.showSource);
+
+    return () => {
+      setHighlightSource(null);
+      navigator.dispose();
+    };
+  }, [setHighlightSource]);
 
   // Remember where in the text layer the selection started, so "Read the text"
   // can begin at that word rather than at the top of the selection.
@@ -281,7 +308,9 @@ const PdfHighlighter = ({
                 hideTip={hideTip}
               />
             }
-            onMouseOver={(popupContent) => setTip(highlight, () => popupContent)}
+            onMouseOver={(popupContent) =>
+              setTip(highlight, () => popupContent)
+            }
             onMouseOut={hideTip}
             key={index}
           >

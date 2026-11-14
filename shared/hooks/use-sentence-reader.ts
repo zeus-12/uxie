@@ -2,11 +2,14 @@ import {
   buildWordMap,
   extractWordsWithPositions,
   LINE_BREAK_HYPHEN_JOIN,
-  normalizeWhitespace,
   splitSentences,
-  type NormalizedText,
   type WordMapEntry,
 } from "../lib/tts/utils";
+import {
+  buildPdfTextLayerModel,
+  normalizedRangeToDomRange,
+  type PdfTextLayerModel,
+} from "../lib/pdf-text-layer";
 import { useCallback, useEffect, useRef } from "react";
 
 export type HighlightMode = "tts" | "rsvp";
@@ -87,45 +90,20 @@ export function cleanSentenceForTts(text: string): string {
 
 // Offsets are normalized (whitespace runs collapsed) — what sbd and the TTS
 // engines see — and mapped back to raw DOM offsets only when highlighting.
-type PageTextModel = {
-  pageElement: Element;
-  blocks: Element[];
-  // 0 for whitespace-only blocks; excludes the separator space between blocks.
-  blockRawLens: number[];
-  blockStarts: number[];
-  norm: NormalizedText;
+type PageTextModel = PdfTextLayerModel & {
   sentences: string[];
   sentenceStarts: number[];
 };
 
 function buildPageTextModel(pageElement: Element): PageTextModel {
-  const blocks = Array.from(
-    pageElement.querySelectorAll("span[role='presentation']"),
-  );
-
-  const blockRawLens: number[] = [];
-  const blockStarts: number[] = [];
-  let rawText = "";
-
-  for (const block of blocks) {
-    const text = block.textContent ?? "";
-    blockStarts.push(rawText.length);
-    if (text.trim().length === 0) {
-      blockRawLens.push(0);
-      continue;
-    }
-    blockRawLens.push(text.length);
-    rawText += /\s$/.test(text) ? text : `${text} `;
-  }
-
-  const norm = normalizeWhitespace(rawText);
+  const base = buildPdfTextLayerModel(pageElement);
 
   const sentences: string[] = [];
   const sentenceStarts: number[] = [];
   let searchStart = 0;
 
-  for (const sentence of splitSentences(norm.text)) {
-    const pos = norm.text.indexOf(sentence, searchStart);
+  for (const sentence of splitSentences(base.norm.text)) {
+    const pos = base.norm.text.indexOf(sentence, searchStart);
     if (pos !== -1) searchStart = pos + sentence.length;
 
     const cleaned = cleanSentenceForTts(sentence);
@@ -137,83 +115,10 @@ function buildPageTextModel(pageElement: Element): PageTextModel {
   }
 
   return {
-    pageElement,
-    blocks,
-    blockRawLens,
-    blockStarts,
-    norm,
+    ...base,
     sentences,
     sentenceStarts,
   };
-}
-
-function normRangeToRaw(
-  norm: NormalizedText,
-  normStart: number,
-  normEnd: number,
-): [number, number] | null {
-  if (normStart < 0 || normEnd <= normStart || normEnd > norm.toRaw.length) {
-    return null;
-  }
-  return [norm.toRaw[normStart]!, norm.toRaw[normEnd - 1]! + 1];
-}
-
-// Whitespace-only blocks and the synthetic inter-block separators occupy no
-// real DOM, so a position landing on one snaps to the nearest content block.
-function rawPosToDom(
-  model: PageTextModel,
-  rawPos: number,
-  atEnd: boolean,
-): { node: Node; offset: number } | null {
-  for (let i = 0; i < model.blocks.length; i++) {
-    const len = model.blockRawLens[i]!;
-    if (len === 0) continue;
-    const bs = model.blockStarts[i]!;
-    const be = bs + len;
-    const inside = atEnd
-      ? rawPos > bs && rawPos <= be
-      : rawPos >= bs && rawPos < be;
-    if (inside) {
-      const node = model.blocks[i]!.firstChild;
-      if (!node) return null;
-      return { node, offset: rawPos - bs };
-    }
-  }
-  if (atEnd) {
-    for (let i = model.blocks.length - 1; i >= 0; i--) {
-      const len = model.blockRawLens[i]!;
-      if (len === 0) continue;
-      const be = model.blockStarts[i]! + len;
-      const node = model.blocks[i]!.firstChild;
-      if (be <= rawPos && node) return { node, offset: len };
-    }
-  } else {
-    for (let i = 0; i < model.blocks.length; i++) {
-      const len = model.blockRawLens[i]!;
-      if (len === 0) continue;
-      const node = model.blocks[i]!.firstChild;
-      if (model.blockStarts[i]! >= rawPos && node) return { node, offset: 0 };
-    }
-  }
-  return null;
-}
-
-function rawRangeToRange(
-  model: PageTextModel,
-  rawStart: number,
-  rawEnd: number,
-): Range | null {
-  const s = rawPosToDom(model, rawStart, false);
-  const e = rawPosToDom(model, rawEnd, true);
-  if (!s || !e) return null;
-  const range = document.createRange();
-  try {
-    range.setStart(s.node, s.offset);
-    range.setEnd(e.node, e.offset);
-  } catch {
-    return null;
-  }
-  return range.collapsed ? null : range;
 }
 
 type Rect = { left: number; top: number; width: number; height: number };
@@ -443,10 +348,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const start = model.sentenceStarts[idx] ?? -1;
       if (start < 0) return;
 
-      const raw = normRangeToRaw(model.norm, start, start + sentence.length);
-      if (!raw) return;
-
-      const range = rawRangeToRange(model, raw[0], raw[1]);
+      const range = normalizedRangeToDomRange(
+        model,
+        start,
+        start + sentence.length,
+      );
       if (!range) return;
       paintOverlays(
         range,
@@ -479,14 +385,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
       const end = Math.min(charOffsetInSentence + wordLength, sentence.length);
 
-      const raw = normRangeToRaw(
-        model.norm,
+      const range = normalizedRangeToDomRange(
+        model,
         sentenceStart + charOffsetInSentence,
         sentenceStart + end,
       );
-      if (!raw) return;
-
-      const range = rawRangeToRange(model, raw[0], raw[1]);
       if (!range) return;
 
       const className = getHighlightClass("word", mode);

@@ -28,7 +28,7 @@ import { cancelCompletion, streamCompletion } from "./ai/completion";
 import { cancelChat, resolveChatRetrieve, streamChat } from "./ai/chat";
 import { getFlashcardsByDocId } from "./db/flashcards";
 import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
-import { extractPdfText } from "./pdf-text";
+import { extractPdfPages } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
 import { createMessage, getMessagesByDocId } from "./db/messages";
 
@@ -64,8 +64,7 @@ const invokeHandlers: {
   "documents:list": () => listDocuments(getDb()),
   "documents:get": (id) => getDocument(getDb(), id),
   "documents:create": (input) => createDocument(getDb(), input),
-  "documents:updateNotes": (id, note) =>
-    updateDocumentNotes(getDb(), id, note),
+  "documents:updateNotes": (id, note) => updateDocumentNotes(getDb(), id, note),
   "documents:updateReaderState": (id, state) =>
     updateReaderState(getDb(), id, state),
   "documents:updateTitle": (id, title) =>
@@ -93,7 +92,7 @@ const invokeHandlers: {
   "messages:create": (docId, role, parts) =>
     createMessage(getDb(), docId, role, parts),
 
-  "documents:getText": (docId) => extractPdfText(docId),
+  "documents:getPages": (docId) => extractPdfPages(docId),
   "embeddings:store": (docId, items) => storeEmbeddings(docId, items),
   "embeddings:query": (docId, embedding, k) =>
     queryEmbeddings(docId, embedding, k),

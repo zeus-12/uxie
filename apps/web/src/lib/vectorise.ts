@@ -2,10 +2,41 @@ import { env } from "@/env.mjs";
 import { getPineconeClient } from "@/lib/pinecone";
 import { prisma } from "@/server/db";
 import { InferenceClient } from "@huggingface/inference";
+import {
+  retrievedChunkSchema,
+  type PdfPageText,
+  type RetrievedChunk,
+} from "@uxie/shared/lib/chat";
+import { findUniquePdfPageNumber } from "@uxie/shared/lib/pdf-text-layer";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { Embeddings } from "langchain/embeddings/base";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function pageNumberFromMetadata(metadata: unknown): number | null {
+  if (!isRecord(metadata)) return null;
+  if (
+    typeof metadata.pageNumber === "number" &&
+    Number.isInteger(metadata.pageNumber) &&
+    metadata.pageNumber > 0
+  ) {
+    return metadata.pageNumber;
+  }
+  const location = metadata.loc;
+  if (
+    isRecord(location) &&
+    typeof location.pageNumber === "number" &&
+    Number.isInteger(location.pageNumber) &&
+    location.pageNumber > 0
+  ) {
+    return location.pageNumber;
+  }
+  return null;
+}
 
 const parseEmbeddingResult = (result: unknown): number[] => {
   if (Array.isArray(result) && Array.isArray(result[0])) {
@@ -91,10 +122,15 @@ export const vectoriseDocument = async (
     const splitDocs = await textSplitter.splitDocuments(pageLevelDocs);
 
     const combinedData = splitDocs.map((document) => {
+      const pageNumber = pageNumberFromMetadata(document.metadata);
+      if (!pageNumber) {
+        throw new Error("PDF loader returned a chunk without a page number");
+      }
       return {
         ...document,
         metadata: {
           fileId: newFileId,
+          pageNumber,
         },
         dataset: "pdf",
       };
@@ -123,7 +159,7 @@ export const vectoriseDocument = async (
 export const retrieveRelevantDocumentContent = async (
   docId: string,
   question: string,
-) => {
+): Promise<RetrievedChunk[]> => {
   if (!env.HUGGINGFACE_API_KEY) {
     throw new Error("HUGGINGFACE_API_KEY is not configured");
   }
@@ -139,5 +175,49 @@ export const retrieveRelevantDocumentContent = async (
   });
 
   const results = await vectorStore.similaritySearch(question, 4);
-  return results;
+  const needsLegacyResolution = results.some(
+    (result) => pageNumberFromMetadata(result.metadata) === null,
+  );
+
+  let legacyPages: PdfPageText[] = [];
+  if (needsLegacyResolution) {
+    try {
+      const document = await prisma.document.findUnique({
+        where: { id: docId },
+        select: { url: true },
+      });
+      if (document) {
+        const response = await fetch(document.url);
+        if (response.ok) {
+          const pageDocuments = await new PDFLoader(
+            await response.blob(),
+          ).load();
+          legacyPages = pageDocuments.map((page, index) => ({
+            pageNumber: pageNumberFromMetadata(page.metadata) ?? index + 1,
+            text: page.pageContent,
+          }));
+        }
+      }
+    } catch {
+      // Keep any new-format results that already carry valid provenance. If
+      // every result is legacy, the empty-result guard below asks for reindexing.
+    }
+  }
+
+  const chunks = results.flatMap((result): RetrievedChunk[] => {
+    const pageNumber =
+      pageNumberFromMetadata(result.metadata) ??
+      findUniquePdfPageNumber(result.pageContent, legacyPages);
+    const parsed = retrievedChunkSchema.safeParse({
+      pageContent: result.pageContent,
+      pageNumber,
+    });
+    return parsed.success ? [parsed.data] : [];
+  });
+  if (chunks.length === 0) {
+    throw new Error(
+      "This document needs to be indexed again before cited answers are available.",
+    );
+  }
+  return chunks;
 };

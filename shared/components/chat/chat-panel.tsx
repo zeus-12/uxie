@@ -1,25 +1,23 @@
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import {
-  useEffect,
-  useRef,
-  type ReactNode,
-  type RefObject,
-} from "react";
-import { ArrowUpIcon, Loader2Icon, SearchIcon, SquareIcon } from "lucide-react";
+  ArrowUpIcon,
+  FileTextIcon,
+  Loader2Icon,
+  SearchIcon,
+  SquareIcon,
+} from "lucide-react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import { toast } from "sonner";
+import type { RetrievedChunk } from "../../lib/chat";
+import type { ChatRole, ChatRow } from "../../lib/chat-rows";
+import {
+  useCitationHighlightStore,
+  useMobileSidebarStore,
+} from "../../lib/store";
 import { cn } from "../../lib/utils";
 import { ShimmeringText } from "../ui/shimmering-text";
 
-export type ChatRole = "user" | "assistant";
-
-// A flat, render-agnostic view of the conversation. Both apps translate their
-// native state (desktop: streamText state; web: useChat `parts`) into this, so
-// the whole chat surface looks identical regardless of the data layer.
-export type ChatRow =
-  | { kind: "message"; role: ChatRole; content: string }
-  | { kind: "streaming"; content: string }
-  | { kind: "tool"; label: string; active: boolean }
-  | { kind: "thinking"; label: string }
-  | { kind: "error"; content: string };
+export type { ChatRole, ChatRow } from "../../lib/chat-rows";
 
 interface ChatPanelProps {
   rows: ChatRow[];
@@ -147,6 +145,7 @@ function RowView({
         <ChatBubble
           role={row.role}
           content={row.content}
+          sources={row.sources}
           renderMarkdown={renderMarkdown}
         />
       ) : row.kind === "streaming" ? (
@@ -158,7 +157,11 @@ function RowView({
       ) : row.kind === "tool" ? (
         <ToolChip label={row.label} active={row.active} />
       ) : row.kind === "thinking" ? (
-        <ShimmeringText text={row.label} startOnView={false} className="px-1 text-sm" />
+        <ShimmeringText
+          text={row.label}
+          startOnView={false}
+          className="px-1 text-sm"
+        />
       ) : (
         <p className="px-1 text-sm text-destructive">{row.content}</p>
       )}
@@ -169,7 +172,13 @@ function RowView({
 // ChatGPT-style: tool activity lives OUTSIDE the bubble, on its own line.
 function ToolChip({ label, active }: { label: string; active: boolean }) {
   if (active) {
-    return <ShimmeringText text={label} startOnView={false} className="px-1 text-sm" />;
+    return (
+      <ShimmeringText
+        text={label}
+        startOnView={false}
+        className="px-1 text-sm"
+      />
+    );
   }
   return (
     <div className="flex items-center gap-1.5 px-1 text-sm text-muted-foreground">
@@ -182,24 +191,77 @@ function ToolChip({ label, active }: { label: string; active: boolean }) {
 function ChatBubble({
   role,
   content,
+  sources,
   renderMarkdown,
 }: {
   role: ChatRole;
   content: string;
+  sources?: RetrievedChunk[];
   renderMarkdown: (text: string) => ReactNode;
 }) {
   const isUser = role === "user";
   return (
-    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
+    <div
+      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+    >
       {isUser ? (
         <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm text-white">
           {content}
         </div>
       ) : (
-        <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mt-2 prose-headings:mb-1">
-          {renderMarkdown(content)}
+        <div className="max-w-full">
+          <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mb-1 prose-headings:mt-2">
+            {renderMarkdown(content)}
+          </div>
+          {sources?.length ? <CitationSources sources={sources} /> : null}
         </div>
       )}
     </div>
+  );
+}
+
+export function CitationSources({ sources }: { sources: RetrievedChunk[] }) {
+  const highlightSource = useCitationHighlightStore(
+    (state) => state.highlightSource,
+  );
+  const setDrawerOpen = useMobileSidebarStore((state) => state.setDrawerOpen);
+
+  const openSource = (source: RetrievedChunk) => {
+    setDrawerOpen(false);
+    if (!highlightSource) {
+      toast.error("The document is still loading", { duration: 3000 });
+      return;
+    }
+    highlightSource(source.pageNumber, source.pageContent);
+  };
+
+  return (
+    <details
+      open
+      className="mt-2 rounded-xl border border-border bg-background"
+    >
+      <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+        Sources ({sources.length})
+      </summary>
+      <div className="space-y-2 border-t border-border p-2">
+        {sources.map((source, index) => (
+          <button
+            key={`${source.pageNumber}-${source.pageContent}-${index}`}
+            type="button"
+            onClick={() => openSource(source)}
+            className="block w-full rounded-lg bg-muted/60 p-3 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:active:scale-[0.96]"
+            aria-label={`Open source ${index + 1} on page ${source.pageNumber}`}
+          >
+            <span className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-blue-600">
+              <FileTextIcon className="h-3.5 w-3.5" strokeWidth={2} />
+              Page {source.pageNumber}
+            </span>
+            <span className="whitespace-pre-wrap leading-relaxed">
+              {source.pageContent}
+            </span>
+          </button>
+        ))}
+      </div>
+    </details>
   );
 }

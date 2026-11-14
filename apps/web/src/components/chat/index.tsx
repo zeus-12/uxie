@@ -10,6 +10,7 @@ import {
   IndexingState,
 } from "@uxie/shared/components/other/indexing-state";
 import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
+import { chatPartsToRows } from "@uxie/shared/lib/chat-rows";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import { DefaultChatTransport } from "ai";
 import { SparklesIcon } from "lucide-react";
@@ -63,33 +64,20 @@ function VectoriseGate({ docId }: { docId: string }) {
 
 // A stored/streamed message part, loosely typed — the same shape flows from the
 // live `useChat` stream and from persisted DB messages (trpc JSON).
-type LoosePart = { type: string; text?: string; state?: string };
-const partsOf = (m: { parts?: unknown }): LoosePart[] =>
-  Array.isArray(m.parts) ? (m.parts as LoosePart[]) : [];
-
-// Fan a message's parts into flat rows: text → a bubble, a tool call → a chip
-// that sits OUTSIDE the bubble (ChatGPT-style). tool-result parts are internal.
-function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
-  const displayRole = role === "user" ? "user" : "assistant";
-  const rows: ChatRow[] = [];
-  for (const p of parts) {
-    if (p.type === "text") {
-      if (p.text?.trim()) {
-        rows.push({ kind: "message", role: displayRole, content: p.text });
-      }
-    } else if (p.type.startsWith("tool-") && p.type !== "tool-result") {
-      const active =
-        p.state !== undefined &&
-        p.state !== "output-available" &&
-        p.state !== "output-error";
-      rows.push({
-        kind: "tool",
-        label: active ? "Searching the document…" : "Searched the document",
-        active,
-      });
+type LoosePart = Record<string, unknown> & { type: string };
+function partsOf(message: { parts?: unknown }): LoosePart[] {
+  if (!Array.isArray(message.parts)) return [];
+  return message.parts.flatMap((part): LoosePart[] => {
+    if (
+      typeof part !== "object" ||
+      part === null ||
+      !("type" in part) ||
+      typeof part.type !== "string"
+    ) {
+      return [];
     }
-  }
-  return rows;
+    return [part];
+  });
 }
 
 function ChatView({ docId }: { docId: string }) {
@@ -159,7 +147,7 @@ function ChatView({ docId }: { docId: string }) {
 
   const history = [...(prevChatMessages ?? []), ...messages];
   const rows: ChatRow[] = [];
-  for (const m of history) rows.push(...messageToRows(m.role, partsOf(m)));
+  for (const m of history) rows.push(...chatPartsToRows(m.role, partsOf(m)));
 
   // Current turn hasn't produced a tool chip or any text yet → a Thinking
   // shimmer, driven by the real in-flight request status.
@@ -168,7 +156,7 @@ function ChatView({ docId }: { docId: string }) {
     const lastHasAssistantContent =
       !!last &&
       last.role !== "user" &&
-      messageToRows(last.role, partsOf(last)).length > 0;
+      chatPartsToRows(last.role, partsOf(last)).length > 0;
     if (!lastHasAssistantContent)
       rows.push({ kind: "thinking", label: "Thinking…" });
   }

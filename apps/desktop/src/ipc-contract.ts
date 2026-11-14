@@ -28,6 +28,7 @@ import type {
   ReaderStateInput,
   RectInput,
 } from "@uxie/shared/schema";
+import type { PdfPageText, RetrievedChunk } from "@uxie/shared/lib/chat";
 import type { ChatMessage, ChatPart } from "./chat-messages";
 
 export type { ChatMessage, ChatPart } from "./chat-messages";
@@ -61,8 +62,7 @@ export interface Settings {
   llm: LlmSettings;
 }
 
-export interface EmbeddedChunk {
-  chunk: string;
+export interface EmbeddedChunk extends RetrievedChunk {
   embedding: number[];
 }
 
@@ -125,14 +125,14 @@ export interface IpcInvokeContract {
   };
 
   // RAG (document-grounded chat)
-  "documents:getText": { args: [docId: string]; result: string };
+  "documents:getPages": { args: [docId: string]; result: PdfPageText[] };
   "embeddings:store": {
     args: [docId: string, items: EmbeddedChunk[]];
     result: void;
   };
   "embeddings:query": {
     args: [docId: string, embedding: number[], k: number];
-    result: string[];
+    result: RetrievedChunk[];
   };
 }
 
@@ -148,7 +148,7 @@ export interface IpcSendContract {
   // AI feature). Retrieval stays in the renderer worker via the reply channel.
   "chat:start": [streamId: string, docId: string, messages: ChatMessage[]];
   "chat:cancel": [streamId: string];
-  "chat:retrieve:reply": [reqId: string, chunks: string[] | null];
+  "chat:retrieve:reply": [reqId: string, chunks: RetrievedChunk[] | null];
 }
 
 /** Main→renderer push channels: `webContents.send` ↔ `ipcRenderer.on`. */
@@ -201,7 +201,7 @@ export const API_INVOKE = {
 
   getMessages: "messages:getByDocId",
   createMessage: "messages:create",
-  getDocumentText: "documents:getText",
+  getDocumentPages: "documents:getPages",
   storeEmbeddings: "embeddings:store",
   queryEmbeddings: "embeddings:query",
 } as const satisfies Record<string, keyof IpcInvokeContract>;

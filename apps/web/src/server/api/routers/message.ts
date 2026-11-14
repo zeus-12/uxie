@@ -26,7 +26,9 @@ export const messageRouter = createTRPCRouter({
           ],
         },
         select: {
-          messages: true,
+          messages: {
+            orderBy: { createdAt: "asc" },
+          },
         },
       });
 

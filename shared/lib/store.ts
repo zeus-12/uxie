@@ -112,7 +112,9 @@ export const useHighlightJumpStore = create<HighlightJumpStore>((set) => ({
 
 interface CitationHighlightStore {
   highlightSource: ((pageNumber: number, text: string) => void) | null;
-  setHighlightSource: (fn: (pageNumber: number, text: string) => void) => void;
+  setHighlightSource: (
+    fn: ((pageNumber: number, text: string) => void) | null,
+  ) => void;
 }
 
 export const useCitationHighlightStore = create<CitationHighlightStore>(

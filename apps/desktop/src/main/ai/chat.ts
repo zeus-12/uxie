@@ -5,6 +5,7 @@ import {
   CHAT_SYSTEM_PROMPT,
   GET_INFORMATION_TOOL_DESCRIPTION,
   getInformationInputSchema,
+  type RetrievedChunk,
 } from "@uxie/shared/lib/chat";
 import type { ChatMessage } from "../../ipc-contract";
 import {
@@ -25,12 +26,12 @@ import { getSettings } from "../settings";
 
 const controllers = new Map<string, AbortController>();
 
-const retrievePending = new Map<string, (chunks: string[]) => void>();
+const retrievePending = new Map<string, (chunks: RetrievedChunk[]) => void>();
 let reqCounter = 0;
 
 export function resolveChatRetrieve(
   reqId: string,
-  chunks: string[] | null,
+  chunks: RetrievedChunk[] | null,
 ): void {
   const resolve = retrievePending.get(reqId);
   if (resolve) {
@@ -43,7 +44,7 @@ function retrieveViaRenderer(
   wc: WebContents,
   docId: string,
   question: string,
-): Promise<string[]> {
+): Promise<RetrievedChunk[]> {
   return new Promise((resolve) => {
     if (wc.isDestroyed()) return resolve([]);
     const reqId = `chat-retrieve-${++reqCounter}`;
@@ -92,10 +93,7 @@ export async function streamChat(
   let full = "";
   const responseParts: ChatPart[] = [];
   const completedParts = () =>
-    completedChatParts([
-      ...responseParts,
-      ...(full ? [textPart(full)] : []),
-    ]);
+    completedChatParts([...responseParts, ...(full ? [textPart(full)] : [])]);
   try {
     const result = streamText({
       model: provider(llm.model),
@@ -114,7 +112,7 @@ export async function streamChat(
           execute: async ({ question }) => {
             send("chat:retrieving", streamId);
             const chunks = await retrieveViaRenderer(wc, docId, question);
-            return { results: chunks.map((pageContent) => ({ pageContent })) };
+            return { results: chunks };
           },
         }),
       },

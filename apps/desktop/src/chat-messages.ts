@@ -1,16 +1,12 @@
-import type {
-  AssistantModelMessage,
-  ModelMessage,
-  ToolModelMessage,
-} from "ai";
+import type { AssistantModelMessage, ModelMessage, ToolModelMessage } from "ai";
 import {
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
+  getInformationOutputSchema,
   type GetInformationInput,
-  type RetrievedChunk,
+  type GetInformationOutput,
 } from "@uxie/shared/lib/chat";
-
-type GetInformationOutput = { results: RetrievedChunk[] };
+import { chatPartsToRows, type ChatRow } from "@uxie/shared/lib/chat-rows";
 
 export type ChatPart =
   | { type: "text"; text: string }
@@ -32,10 +28,6 @@ export interface ChatMessage {
   parts: ChatPart[];
 }
 
-export type ChatDisplayRow =
-  | { kind: "message"; role: "user" | "assistant"; content: string }
-  | { kind: "tool"; label: string; active: false };
-
 export function textPart(text: string): ChatPart {
   return { type: "text", text };
 }
@@ -50,24 +42,8 @@ export function chatMessageText(message: ChatMessage): string {
     .join("");
 }
 
-export function chatMessageToRows(message: ChatMessage): ChatDisplayRow[] {
-  const rows: ChatDisplayRow[] = [];
-  for (const part of message.parts) {
-    if (part.type === "tool-call") {
-      rows.push({
-        kind: "tool",
-        label: "Searched the document",
-        active: false,
-      });
-    } else if (part.type === "text" && part.text.trim()) {
-      rows.push({
-        kind: "message",
-        role: message.role,
-        content: part.text,
-      });
-    }
-  }
-  return rows;
+export function chatMessageToRows(message: ChatMessage): ChatRow[] {
+  return chatPartsToRows(message.role, message.parts);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -82,25 +58,8 @@ function isGetInformationInput(value: unknown): value is GetInformationInput {
   );
 }
 
-function isRetrievedChunk(value: unknown): value is RetrievedChunk {
-  if (!isRecord(value) || typeof value.pageContent !== "string") return false;
-  if (value.metadata === undefined) return true;
-  return (
-    isRecord(value.metadata) &&
-    Object.values(value.metadata).every(
-      (item) => typeof item === "string" || typeof item === "number",
-    )
-  );
-}
-
-function isGetInformationOutput(
-  value: unknown,
-): value is GetInformationOutput {
-  return (
-    isRecord(value) &&
-    Array.isArray(value.results) &&
-    value.results.every(isRetrievedChunk)
-  );
+function isGetInformationOutput(value: unknown): value is GetInformationOutput {
+  return getInformationOutputSchema.safeParse(value).success;
 }
 
 export function normalizeChatParts(parts: unknown): ChatPart[] {

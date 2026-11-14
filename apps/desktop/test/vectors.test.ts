@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import * as sqliteVec from "sqlite-vec";
 import { describe, expect, it } from "vitest";
 import {
   EMBEDDING_DIM,
@@ -17,6 +18,10 @@ function vec(seed: number): number[] {
   return v;
 }
 
+function item(pageContent: string, seed: number, pageNumber = 1) {
+  return { pageContent, pageNumber, embedding: vec(seed) };
+}
+
 function freshStore() {
   const sqlite = new Database(":memory:");
   initVectorStore(sqlite);
@@ -32,30 +37,36 @@ describe("sqlite-vec vector store", () => {
   it("upserts and retrieves the nearest chunk within a doc", () => {
     const sqlite = freshStore();
     upsertVectors(sqlite, "doc1", [
-      { chunk: "about cats", embedding: vec(1) },
-      { chunk: "about dogs", embedding: vec(2) },
-      { chunk: "about fish", embedding: vec(3) },
+      item("about cats", 1, 2),
+      item("about dogs", 2, 3),
+      item("about fish", 3, 4),
     ]);
     expect(hasVectors(sqlite, "doc1")).toBe(true);
 
     const top = queryVectors(sqlite, "doc1", vec(2), 1);
-    expect(top).toEqual(["about dogs"]);
+    expect(top).toEqual([{ pageContent: "about dogs", pageNumber: 3 }]);
   });
 
   it("scopes results to the given document (partition key)", () => {
     const sqlite = freshStore();
-    upsertVectors(sqlite, "doc1", [{ chunk: "d1 chunk", embedding: vec(5) }]);
-    upsertVectors(sqlite, "doc2", [{ chunk: "d2 chunk", embedding: vec(5) }]);
+    upsertVectors(sqlite, "doc1", [item("d1 chunk", 5, 1)]);
+    upsertVectors(sqlite, "doc2", [item("d2 chunk", 5, 2)]);
 
-    expect(queryVectors(sqlite, "doc1", vec(5), 5)).toEqual(["d1 chunk"]);
-    expect(queryVectors(sqlite, "doc2", vec(5), 5)).toEqual(["d2 chunk"]);
+    expect(queryVectors(sqlite, "doc1", vec(5), 5)).toEqual([
+      { pageContent: "d1 chunk", pageNumber: 1 },
+    ]);
+    expect(queryVectors(sqlite, "doc2", vec(5), 5)).toEqual([
+      { pageContent: "d2 chunk", pageNumber: 2 },
+    ]);
   });
 
   it("re-vectorising replaces prior vectors", () => {
     const sqlite = freshStore();
-    upsertVectors(sqlite, "doc1", [{ chunk: "old", embedding: vec(7) }]);
-    upsertVectors(sqlite, "doc1", [{ chunk: "new", embedding: vec(7) }]);
-    expect(queryVectors(sqlite, "doc1", vec(7), 5)).toEqual(["new"]);
+    upsertVectors(sqlite, "doc1", [item("old", 7, 1)]);
+    upsertVectors(sqlite, "doc1", [item("new", 7, 2)]);
+    expect(queryVectors(sqlite, "doc1", vec(7), 5)).toEqual([
+      { pageContent: "new", pageNumber: 2 },
+    ]);
   });
 
   it("reports no rebuild for a fresh or already-correct store", () => {
@@ -67,7 +78,7 @@ describe("sqlite-vec vector store", () => {
   it("rebuilds and reports it when the stored dimension is stale", () => {
     const sqlite = new Database(":memory:");
     initVectorStore(sqlite);
-    upsertVectors(sqlite, "doc1", [{ chunk: "stale", embedding: vec(1) }]);
+    upsertVectors(sqlite, "doc1", [item("stale", 1)]);
 
     // Re-create the table at the old model's width to stand in for a DB written
     // before the embedding model changed.
@@ -79,13 +90,29 @@ describe("sqlite-vec vector store", () => {
     expect(initVectorStore(sqlite)).toBe(true);
     expect(hasVectors(sqlite, "doc1")).toBe(false);
     // The new table takes current-width vectors, which the stale one would reject.
-    upsertVectors(sqlite, "doc1", [{ chunk: "fresh", embedding: vec(1) }]);
-    expect(queryVectors(sqlite, "doc1", vec(1), 1)).toEqual(["fresh"]);
+    upsertVectors(sqlite, "doc1", [item("fresh", 1, 7)]);
+    expect(queryVectors(sqlite, "doc1", vec(1), 1)).toEqual([
+      { pageContent: "fresh", pageNumber: 7 },
+    ]);
+  });
+
+  it("rebuilds a current-dimension table that has no page provenance", () => {
+    const sqlite = new Database(":memory:");
+    sqliteVec.load(sqlite);
+    sqlite.exec(
+      `CREATE VIRTUAL TABLE doc_vectors USING vec0(doc_id TEXT partition key, embedding FLOAT[${EMBEDDING_DIM}], +chunk TEXT)`,
+    );
+
+    expect(initVectorStore(sqlite)).toBe(true);
+    upsertVectors(sqlite, "doc1", [item("page-aware", 4, 9)]);
+    expect(queryVectors(sqlite, "doc1", vec(4), 1)).toEqual([
+      { pageContent: "page-aware", pageNumber: 9 },
+    ]);
   });
 
   it("deletes a doc's vectors", () => {
     const sqlite = freshStore();
-    upsertVectors(sqlite, "doc1", [{ chunk: "x", embedding: vec(9) }]);
+    upsertVectors(sqlite, "doc1", [item("x", 9)]);
     deleteVectors(sqlite, "doc1");
     expect(hasVectors(sqlite, "doc1")).toBe(false);
   });

@@ -1,11 +1,8 @@
 import { eq } from "drizzle-orm";
 import * as schema from "@uxie/shared/schema";
+import type { RetrievedChunk } from "@uxie/shared/lib/chat";
 import { getDb, getSqlite } from "./db";
-import {
-  queryVectors,
-  upsertVectors,
-  type EmbeddedChunk,
-} from "./db/vectors";
+import { queryVectors, upsertVectors, type EmbeddedChunk } from "./db/vectors";
 
 /** Store a document's chunk embeddings and mark it vectorised. */
 export async function storeEmbeddings(
@@ -23,6 +20,6 @@ export function queryEmbeddings(
   docId: string,
   embedding: number[],
   k: number,
-): string[] {
+): RetrievedChunk[] {
   return queryVectors(getSqlite(), docId, embedding, k);
 }

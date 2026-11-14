@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 import * as sqliteVec from "sqlite-vec";
 import { DESKTOP_EMBEDDING } from "@uxie/shared/lib/embedding-models";
+import type { RetrievedChunk } from "@uxie/shared/lib/chat";
 
 // Sized for whichever model the desktop embeds with — changing the model there
 // changes this, so the two can no longer drift apart silently.
@@ -9,17 +10,23 @@ export const EMBEDDING_DIM = DESKTOP_EMBEDDING.dim;
 const CREATE_VECTOR_TABLE = `CREATE VIRTUAL TABLE doc_vectors USING vec0(
        doc_id TEXT partition key,
        embedding FLOAT[${EMBEDDING_DIM}],
-       +chunk TEXT
+       +page_content TEXT,
+       +page_number TEXT
      )`;
 
-/** The dimension an existing doc_vectors table was created with, if it exists. */
-function existingDim(sqlite: Database.Database): number | null {
+type ExistingSchema = { dim: number | null; hasPageNumber: boolean };
+
+/** The relevant shape of an existing derived vector table, if it exists. */
+function existingSchema(sqlite: Database.Database): ExistingSchema | null {
   const row = sqlite
     .prepare("SELECT sql FROM sqlite_master WHERE name = 'doc_vectors'")
     .get() as { sql: string } | undefined;
   if (!row) return null;
   const match = row.sql.match(/FLOAT\[(\d+)\]/i);
-  return match ? Number(match[1]) : null;
+  return {
+    dim: match ? Number(match[1]) : null,
+    hasPageNumber: /\+page_number\s+TEXT/i.test(row.sql),
+  };
 }
 
 /**
@@ -32,21 +39,21 @@ export function initVectorStore(sqlite: Database.Database): boolean {
 
   // Vectors are derived data — if the embedding model changed, the old table is
   // the wrong width and every insert would fail at runtime. Drop and rebuild.
-  const dim = existingDim(sqlite);
-  if (dim === EMBEDDING_DIM) return false;
+  const schema = existingSchema(sqlite);
+  if (schema?.dim === EMBEDDING_DIM && schema.hasPageNumber) return false;
 
-  if (dim !== null) {
-    console.warn(
-      `[uxie] embedding dimension changed ${dim} → ${EMBEDDING_DIM}; rebuilding vector store`,
-    );
+  if (schema) {
+    const reason = schema.hasPageNumber
+      ? `embedding dimension changed ${schema.dim} → ${EMBEDDING_DIM}`
+      : "page provenance is missing";
+    console.warn(`[uxie] ${reason}; rebuilding vector store`);
     sqlite.exec("DROP TABLE doc_vectors");
   }
   sqlite.exec(CREATE_VECTOR_TABLE);
-  return dim !== null;
+  return schema !== null;
 }
 
-export interface EmbeddedChunk {
-  chunk: string;
+export interface EmbeddedChunk extends RetrievedChunk {
   embedding: number[];
 }
 
@@ -58,12 +65,17 @@ export function upsertVectors(
 ): void {
   const del = sqlite.prepare("DELETE FROM doc_vectors WHERE doc_id = ?");
   const ins = sqlite.prepare(
-    "INSERT INTO doc_vectors(doc_id, embedding, chunk) VALUES (?, ?, ?)",
+    "INSERT INTO doc_vectors(doc_id, embedding, page_content, page_number) VALUES (?, ?, ?, ?)",
   );
   const tx = sqlite.transaction(() => {
     del.run(docId);
     for (const it of items) {
-      ins.run(docId, JSON.stringify(it.embedding), it.chunk);
+      ins.run(
+        docId,
+        JSON.stringify(it.embedding),
+        it.pageContent,
+        String(it.pageNumber),
+      );
     }
   });
   tx();
@@ -86,13 +98,21 @@ export function queryVectors(
   docId: string,
   embedding: number[],
   k: number,
-): string[] {
+): RetrievedChunk[] {
   const rows = sqlite
     .prepare(
-      `SELECT chunk FROM doc_vectors
+      `SELECT page_content, page_number FROM doc_vectors
        WHERE doc_id = ? AND embedding MATCH ? AND k = ?
        ORDER BY distance`,
     )
-    .all(docId, JSON.stringify(embedding), k) as { chunk: string }[];
-  return rows.map((r) => r.chunk);
+    .all(docId, JSON.stringify(embedding), k) as Array<{
+    page_content: string;
+    page_number: string;
+  }>;
+  return rows.flatMap((row): RetrievedChunk[] => {
+    const pageNumber = Number(row.page_number);
+    return Number.isInteger(pageNumber) && pageNumber > 0
+      ? [{ pageContent: row.page_content, pageNumber }]
+      : [];
+  });
 }

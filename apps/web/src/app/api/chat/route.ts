@@ -9,6 +9,8 @@ import {
   GET_INFORMATION_TOOL_DESCRIPTION,
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
+  getInformationOutputSchema,
+  type GetInformationOutput,
 } from "@uxie/shared/lib/chat";
 import { convertToModelMessages, stepCountIs, streamText, tool } from "ai";
 import { getServerSession } from "next-auth";
@@ -26,14 +28,10 @@ function isGetInformationInput(input: unknown): input is { question: string } {
   );
 }
 
-function isGetInformationOutput(output: unknown): output is {
-  results: Array<{
-    pageContent: string;
-    metadata: Record<string, string | number>;
-  }>;
-} {
-  if (typeof output !== "object" || output === null) return false;
-  return "results" in output && Array.isArray(getProperty(output, "results"));
+function isGetInformationOutput(
+  output: unknown,
+): output is GetInformationOutput {
+  return getInformationOutputSchema.safeParse(output).success;
 }
 
 export const maxDuration = 30;
