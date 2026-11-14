@@ -156,7 +156,7 @@ const InviteCollab = ({
         </DialogHeader>
 
         <div className="space-y-2">
-          <div className="space-y-2 rounded-md border-[0.5px] border-gray-200 bg-[#fdfeff] p-3">
+          <div className="space-y-2 rounded-md border-[0.5px] border-border bg-background p-3">
             <p className="mb-2 font-semibold">Invite members</p>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Input
@@ -195,7 +195,7 @@ const InviteCollab = ({
             </Button>
           </div>
 
-          <div className="space-y-2 rounded-md border-[0.5px] border-gray-200 bg-gray-50 p-3">
+          <div className="space-y-2 rounded-md border-[0.5px] border-border bg-muted/40 p-3">
             <p className="mb-2 font-medium">Team members</p>
             <div className="mb-6 mt-4 space-y-2 text-sm text-muted-foreground">
               {collaborators?.map((user, id) => (

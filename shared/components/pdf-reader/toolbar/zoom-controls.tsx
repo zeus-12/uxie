@@ -14,8 +14,8 @@ export const ZoomControlsContent = ({
   if (currentZoom === null) {
     return (
       <div className="gap-2 flex items-center">
-        <div className="bg-gray-200 h-4 w-9 animate-pulse rounded-md" />
-        <div className="bg-gray-200 h-4 w-24 animate-pulse rounded-md" />
+        <div className="h-4 w-9 animate-pulse rounded-md bg-muted" />
+        <div className="h-4 w-24 animate-pulse rounded-md bg-muted" />
       </div>
     );
   }

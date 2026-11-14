@@ -61,7 +61,7 @@ export const PageControlsIcon = ({
           <span className="text-muted-foreground">{totalPages}</span>
         </p>
       ) : (
-        <div className="h-7 w-7 bg-gray-200 animate-pulse m-auto rounded-md" />
+        <div className="m-auto h-7 w-7 animate-pulse rounded-md bg-muted" />
       )}
     </Button>
   );

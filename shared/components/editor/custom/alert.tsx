@@ -15,27 +15,39 @@ import { createElement } from "react";
 const alertTypes = {
   warning: {
     icon: ShieldAlertIcon,
-    color: "#e69819",
-    backgroundColor: "#fff6e6",
+    color: "hsl(var(--status-warning-solid))",
+    backgroundColor: "hsl(var(--status-warning-subtle))",
   },
   error: {
     icon: Ban,
-    color: "#d80d0d",
-    backgroundColor: "#ffe6e6",
+    color: "hsl(var(--status-error-solid))",
+    backgroundColor: "hsl(var(--status-error-subtle))",
   },
   info: {
     icon: Info,
-    color: "#507aff",
-    backgroundColor: "#e6ebff",
+    color: "hsl(var(--status-info-solid))",
+    backgroundColor: "hsl(var(--status-info-subtle))",
   },
   success: {
     icon: Check,
-    color: "#0bc10b",
-    backgroundColor: "#e6ffe6",
+    color: "hsl(var(--status-success-solid))",
+    backgroundColor: "hsl(var(--status-success-subtle))",
   },
 } as const;
 
 type AlertTypeKeys = keyof typeof alertTypes;
+
+function parseAlertType(value: string): AlertTypeKeys {
+  switch (value) {
+    case "warning":
+    case "error":
+    case "info":
+    case "success":
+      return value;
+    default:
+      return "warning";
+  }
+}
 
 export const AlertBlock = createReactBlockSpec(
   {
@@ -62,7 +74,7 @@ export const AlertBlock = createReactBlockSpec(
           onValueChange={(value) => {
             props.editor.updateBlock(props.block, {
               type: "alert",
-              props: { type: value as AlertTypeKeys },
+              props: { type: parseAlertType(value) },
             });
           }}
         >

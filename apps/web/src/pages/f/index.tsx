@@ -58,7 +58,7 @@ const UserLibraryPage = () => {
           <div className="relative my-4">
             <SearchIcon className="absolute left-3 top-[50%] h-4 w-4 -translate-y-[50%] text-muted-foreground" />
             <Input
-              className="pl-9 border-gray-200"
+              className="border-border pl-9"
               type="search"
               placeholder="Search for a document"
               value={searchQuery}
@@ -108,7 +108,7 @@ const UserLibrarySkeleton = () => {
           {Array.from({ length: 8 }).map((_, index) => (
             <div
               key={index}
-              className="flex flex-col overflow-hidden rounded-md border border-gray-200"
+              className="flex flex-col overflow-hidden rounded-md border border-border"
             >
               <Skeleton className="aspect-[3/4] w-full" />
               <div className="flex flex-col gap-1 p-2.5">

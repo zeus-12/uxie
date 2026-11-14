@@ -155,7 +155,7 @@ export function Reader({
 
   if (doc) {
     return (
-      <div className="flex h-full flex-col bg-gray-50">
+      <div className="flex h-full flex-col bg-muted/40">
         <ReaderContent
           docId={id}
           doc={doc}
@@ -168,7 +168,7 @@ export function Reader({
   }
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
+    <div className="flex h-full flex-col bg-muted/40">
       <header className="app-drag flex h-12 items-center pl-24 pr-4">
         <button
           onClick={onBack}
@@ -385,7 +385,7 @@ function ReaderContent({
       className="flex-1 overflow-hidden"
     >
       <ResizablePanel defaultSize={55} minSize={30}>
-        <div className="flex h-full flex-col border-r border-stone-200 bg-white">
+        <div className="flex h-full flex-col border-r border-border bg-background">
           <div className="app-drag flex h-12 shrink-0 items-center pl-24 pr-3">
             <button
               onClick={onBack}
@@ -407,7 +407,7 @@ function ReaderContent({
             style={{ background: pageColour }}
           >
             {error && (
-            <p className="absolute left-2 top-2 z-50 rounded bg-red-50 px-2 py-1 text-xs text-destructive">
+            <p className="absolute left-2 top-2 z-50 rounded bg-red-50 px-2 py-1 text-xs text-destructive dark:bg-red-950/70">
               {error}
             </p>
           )}
@@ -461,7 +461,7 @@ function ReaderContent({
           </div>
         </div>
       </ResizablePanel>
-      <ResizableHandle className="relative w-2 border-0 bg-gray-50 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-neutral-400 after:transition-colors hover:after:bg-primary" />
+      <ResizableHandle className="relative w-2 border-0 bg-muted/40 after:absolute after:left-1/2 after:top-1/2 after:h-16 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-muted-foreground/60 after:transition-colors hover:after:bg-primary" />
       <ResizablePanel defaultSize={45} minSize={25}>
         <Sidebar
           headerClassName="app-drag"
