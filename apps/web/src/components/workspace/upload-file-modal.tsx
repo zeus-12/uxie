@@ -22,8 +22,32 @@ import {
   generateClientDropzoneAccept,
   generatePermittedFileTypes,
 } from "uploadthing/client";
-// @ts-ignore
-import scribe from "scribe.js-ocr";
+
+type OcrProgress =
+  | { kind: "loading" | "reading" | "exporting" }
+  | {
+      kind: "recognizing";
+      pages: { completed: number; total: number } | null;
+    };
+
+const ocrProgressLabel = (progress: OcrProgress) => {
+  switch (progress.kind) {
+    case "loading":
+      return "Loading OCR...";
+    case "reading":
+      return "Reading PDF...";
+    case "recognizing":
+      return progress.pages
+        ? `Recognized ${progress.pages.completed} of ${progress.pages.total} pages...`
+        : "Recognizing text...";
+    case "exporting":
+      return "Saving searchable PDF...";
+    default: {
+      const exhaustive: never = progress;
+      return exhaustive;
+    }
+  }
+};
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -45,7 +69,8 @@ const UploadFileModal = ({
   const [doOcr, setDoOcr] = useState(false);
 
   const [open, setOpen] = useState(false);
-  const [isOcring, setIsOcring] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
+  const isOcring = ocrProgress !== null;
 
   const closeModal = () => setOpen(false);
 
@@ -70,37 +95,69 @@ const UploadFileModal = ({
         }
 
         if (doOcr) {
-          setIsOcring(true);
-          // await scribe.init({ pdf: true, ocr: true, font: true });
-          // const params = {
-          //   extractPDFTextNative: optGUI.extractText,
-          //   extractPDFTextOCR: optGUI.extractText,
-          // };
-          scribe.opt.displayMode = "invis";
+          setOcrProgress({ kind: "loading" });
+          const { default: scribe } = await import("scribe.js-ocr");
+          setOcrProgress({ kind: "reading" });
+          const doc = await scribe.openDocument(files);
+          let failed = false;
+          try {
+            const completedPages = new Set<number>();
+            doc.progressHandler = (message) => {
+              if (
+                message.type !== "convert" ||
+                message.info?.engineName !== "Combined" ||
+                typeof message.n !== "number"
+              ) {
+                return;
+              }
+              completedPages.add(message.n);
+              setOcrProgress({
+                kind: "recognizing",
+                pages: {
+                  completed: completedPages.size,
+                  total: doc.inputData.pageCount,
+                },
+              });
+            };
+            setOcrProgress({ kind: "recognizing", pages: null });
+            await doc.recognize({
+              langs: ["eng"],
+              modeAdv: "lstm",
+              vanillaMode: true,
+              ocrPages: "autoShallow",
+            });
 
-          await scribe.importFiles(files);
-          await scribe.recognize({
-            mode: "quality",
-            langs: ["eng"],
-            modeAdv: "combined",
-            vanillaMode: true,
-            combineMode: "data",
-          });
-
-          const data = (await scribe.exportData("pdf")) as string | ArrayBuffer;
-
-          const blob = new Blob([data], { type: "application/pdf" });
-          const file = new File([blob], firstFile.name, {
-            type: "application/pdf",
-          });
-
-          setIsOcring(false);
-          return [file];
+            setOcrProgress({ kind: "exporting" });
+            const data = await doc.exportData("pdf", { displayMode: "invis" });
+            const bytes =
+              data instanceof Uint8Array ? new Uint8Array(data) : data;
+            return [
+              new File([bytes], firstFile.name, {
+                type: firstFile.type,
+                lastModified: firstFile.lastModified,
+              }),
+            ];
+          } catch (error) {
+            failed = true;
+            throw error;
+          } finally {
+            doc.progressHandler = () => {};
+            try {
+              await doc.close();
+            } catch (error) {
+              if (!failed) throw error;
+            }
+          }
         }
         return files;
       } catch (err) {
-        setIsOcring(false);
-        throw new Error("Something went wrong while ocr-ing the file.");
+        throw err instanceof Error
+          ? err
+          : new Error("This PDF could not be processed with OCR.", {
+              cause: err,
+            });
+      } finally {
+        setOcrProgress(null);
       }
     },
     onClientUploadComplete: () => {
@@ -248,13 +305,11 @@ const UploadFileModal = ({
               {isUploadthingUploading || isUrlUploading || isOcring ? (
                 <>
                   <Spinner />
-                  {isUploadthingUploading && (
+                  {isUploadthingUploading && !isOcring && (
                     <p className="ml-1">{uploadProgress}%</p>
                   )}
 
-                  {isOcring && (
-                    <span>Applying OCR, it might take a while...</span>
-                  )}
+                  {ocrProgress && <span>{ocrProgressLabel(ocrProgress)}</span>}
                 </>
               ) : (
                 "Upload"
