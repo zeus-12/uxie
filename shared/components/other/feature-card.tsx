@@ -19,7 +19,9 @@ const FeatureCard = ({
   return (
     <div className="mx-auto flex h-full w-[90%] max-w-[30rem] flex-col justify-center">
       <p className="text-2xl font-bold tracking-tight">{title}</p>
-      <p className="my-2 text-lg font-normal text-gray-500">{subtext}</p>
+      <p className="my-2 text-lg font-normal text-muted-foreground">
+        {subtext}
+      </p>
 
       <ul>
         {bulletPoints.map((point, index) => (

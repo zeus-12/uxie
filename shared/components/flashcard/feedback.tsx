@@ -1,8 +1,16 @@
 // Feedback as labelled prose rather than tinted alert boxes. Colour lives in
 // the label alone, and a field the model left empty renders nothing at all.
 const SECTIONS = [
-  { key: "correctResponse", label: "Got right", tone: "text-emerald-700" },
-  { key: "incorrectResponse", label: "Missed", tone: "text-red-700" },
+  {
+    key: "correctResponse",
+    label: "Got right",
+    tone: "text-emerald-700 dark:text-emerald-400",
+  },
+  {
+    key: "incorrectResponse",
+    label: "Missed",
+    tone: "text-red-700 dark:text-red-400",
+  },
   { key: "moreInfo", label: "Context", tone: "text-muted-foreground" },
 ] as const;
 

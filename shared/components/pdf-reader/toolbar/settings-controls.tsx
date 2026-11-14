@@ -178,7 +178,7 @@ export const SettingsControls = ({
                 ))}
 
                 <div className="pt-3 pb-1">
-                  <span className="mb-2 block whitespace-nowrap px-4 text-sm tracking-wide text-gray-800">
+                  <span className="mb-2 block whitespace-nowrap px-4 text-sm tracking-wide text-foreground">
                     Text to Speech
                   </span>
 
@@ -238,7 +238,7 @@ const VoiceSelector = ({
             className={cn(
               "transition-colors w-12",
               selectedVoice === voice.id
-                ? "text-gray-800"
+                ? "text-foreground"
                 : "text-muted-foreground",
             )}
           >
@@ -251,7 +251,7 @@ const VoiceSelector = ({
                   className={cn(
                     "text-sm w-4 text-center",
                     selectedVoice === voice.id
-                      ? "text-gray-800"
+                      ? "text-foreground"
                       : "text-muted-foreground",
                   )}
                 >

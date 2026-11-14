@@ -3,10 +3,12 @@ import BlockNoteEditor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
 import { useBlocknoteEditorStore } from "@/lib/store";
+import { ThemeMenuSub } from "@uxie/shared/components/theme/theme-controls";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
 import {
@@ -47,7 +49,7 @@ const Sidebar = ({
   };
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
+    <div className="flex h-full flex-col bg-muted/40">
       {isOwner && (
         <InviteCollab open={isInviteOpen} onOpenChange={setIsInviteOpen} />
       )}
@@ -84,6 +86,9 @@ const Sidebar = ({
                   Report a bug
                 </Link>
               </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <ThemeMenuSub />
             </DropdownMenuContent>
           </DropdownMenu>
         }

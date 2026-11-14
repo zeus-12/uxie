@@ -22,11 +22,14 @@ import {
   SideMenuController,
   SuggestionMenuController,
   TextAlignButton,
+  BlockNoteContext,
 } from "@blocknote/react";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { useTheme } from "../theme/theme-provider";
 import { SpinnerCentered } from "../ui/spinner";
 import { useSideMenuGate } from "./use-side-menu-gate";
+import { getBlockNoteTheme } from "./theme";
 import { useDebouncedCallback } from "use-debounce";
 
 /** Minimal streaming-completion contract (matches the AI SDK's useCompletion). */
@@ -56,6 +59,7 @@ export default function Editor({
   // the public tmpfiles.org — fine for a scratch demo, not for real notes.
   uploadFile?: EditorUploadFile;
 }) {
+  const { resolvedTheme } = useTheme();
   const debounced = useDebouncedCallback((value: string) => {
     onSaveNotes(value);
   }, 2000);
@@ -155,109 +159,113 @@ export default function Editor({
 
   return (
     <div ref={containerRef}>
-      <BlockNoteView
-        sideMenu={false}
-        onChange={async () => {
-          if (ai && !isLoading) {
-            const block = editor.getTextCursorPosition().block;
-            const blockText = (
-              await editor.blocksToMarkdownLossy([block])
-            ).trim();
-            if (blockText.slice(-2) === "++") {
-              const base = blockText.slice(0, -2);
-              editor.updateBlock(block, { content: base });
-              gen.current = { blockId: block.id, base };
-              ai.complete(blockText.slice(-500));
-            }
-          }
-          debounced(JSON.stringify(editor.document, null, 2));
-        }}
-        className="w-full flex-1"
-        theme={"light"}
-        editor={editor}
-        slashMenu={false}
-        editable={canEdit}
-        formattingToolbar={false}
+      <BlockNoteContext.Provider
+        value={{ colorSchemePreference: resolvedTheme }}
       >
-        <SuggestionMenuController
-          triggerCharacter={"/"}
-          getItems={async (query) =>
-            filterSuggestionItems(getSlashMenuItems(editor), query)
-          }
-        />
+        <BlockNoteView
+          sideMenu={false}
+          onChange={async () => {
+            if (ai && !isLoading) {
+              const block = editor.getTextCursorPosition().block;
+              const blockText = (
+                await editor.blocksToMarkdownLossy([block])
+              ).trim();
+              if (blockText.slice(-2) === "++") {
+                const base = blockText.slice(0, -2);
+                editor.updateBlock(block, { content: base });
+                gen.current = { blockId: block.id, base };
+                ai.complete(blockText.slice(-500));
+              }
+            }
+            debounced(JSON.stringify(editor.document, null, 2));
+          }}
+          className="w-full flex-1"
+          theme={getBlockNoteTheme(resolvedTheme)}
+          editor={editor}
+          slashMenu={false}
+          editable={canEdit}
+          formattingToolbar={false}
+        >
+          <SuggestionMenuController
+            triggerCharacter={"/"}
+            getItems={async (query) =>
+              filterSuggestionItems(getSlashMenuItems(editor), query)
+            }
+          />
 
-        <FormattingToolbarController
-          formattingToolbar={() => (
-            <FormattingToolbar>
-              <BlockTypeSelect key={"blockTypeSelect"} />
+          <FormattingToolbarController
+            formattingToolbar={() => (
+              <FormattingToolbar>
+                <BlockTypeSelect key={"blockTypeSelect"} />
 
-              <FileCaptionButton key="fileCaptionButton" />
+                <FileCaptionButton key="fileCaptionButton" />
 
-              <BasicTextStyleButton
-                basicTextStyle={"bold"}
-                key={"boldStyleButton"}
-              />
-              <BasicTextStyleButton
-                basicTextStyle={"italic"}
-                key={"italicStyleButton"}
-              />
-              <BasicTextStyleButton
-                basicTextStyle={"underline"}
-                key={"underlineStyleButton"}
-              />
-              <BasicTextStyleButton
-                basicTextStyle={"strike"}
-                key={"strikeStyleButton"}
-              />
-              <BasicTextStyleButton
-                key={"codeStyleButton"}
-                basicTextStyle={"code"}
-              />
+                <BasicTextStyleButton
+                  basicTextStyle={"bold"}
+                  key={"boldStyleButton"}
+                />
+                <BasicTextStyleButton
+                  basicTextStyle={"italic"}
+                  key={"italicStyleButton"}
+                />
+                <BasicTextStyleButton
+                  basicTextStyle={"underline"}
+                  key={"underlineStyleButton"}
+                />
+                <BasicTextStyleButton
+                  basicTextStyle={"strike"}
+                  key={"strikeStyleButton"}
+                />
+                <BasicTextStyleButton
+                  key={"codeStyleButton"}
+                  basicTextStyle={"code"}
+                />
 
-              <TextAlignButton
-                textAlignment={"left"}
-                key={"textAlignLeftButton"}
-              />
-              <TextAlignButton
-                textAlignment={"center"}
-                key={"textAlignCenterButton"}
-              />
-              <TextAlignButton
-                textAlignment={"right"}
-                key={"textAlignRightButton"}
-              />
+                <TextAlignButton
+                  textAlignment={"left"}
+                  key={"textAlignLeftButton"}
+                />
+                <TextAlignButton
+                  textAlignment={"center"}
+                  key={"textAlignCenterButton"}
+                />
+                <TextAlignButton
+                  textAlignment={"right"}
+                  key={"textAlignRightButton"}
+                />
 
-              <ColorStyleButton key={"colorStyleButton"} />
+                <ColorStyleButton key={"colorStyleButton"} />
 
-              <CreateLinkButton key={"createLinkButton"} />
-            </FormattingToolbar>
-          )}
-        />
+                <CreateLinkButton key={"createLinkButton"} />
+              </FormattingToolbar>
+            )}
+          />
 
-        <SideMenuController
-          sideMenu={(props) => (
-            <SideMenu
-              {...props}
-              freezeMenu={() => {
-                onDragHandleMenuOpen();
-                return props.freezeMenu();
-              }}
-              unfreezeMenu={() => {
-                onDragHandleMenuClose();
-                return props.unfreezeMenu();
-              }}
-              dragHandleMenu={(props) => (
-                <DragHandleMenu {...props}>
-                  <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
-                  {/* TODO(desktop-ai): inline AI block action (AiDragHandleMenu + AiPopover) — wire over IPC */}
-                  <BlockColorsItem {...props}>Colors</BlockColorsItem>
-                </DragHandleMenu>
-              )}
-            />
-          )}
-        />
-        {/* TODO(desktop-ai): AiPopover rendered here in web via useCompletion; wire over IPC */}
-      </BlockNoteView>
+          <SideMenuController
+            sideMenu={(props) => (
+              <SideMenu
+                {...props}
+                freezeMenu={() => {
+                  onDragHandleMenuOpen();
+                  return props.freezeMenu();
+                }}
+                unfreezeMenu={() => {
+                  onDragHandleMenuClose();
+                  return props.unfreezeMenu();
+                }}
+                dragHandleMenu={(props) => (
+                  <DragHandleMenu {...props}>
+                    <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
+                    {/* TODO(desktop-ai): inline AI block action (AiDragHandleMenu + AiPopover) — wire over IPC */}
+                    <BlockColorsItem {...props}>Colors</BlockColorsItem>
+                  </DragHandleMenu>
+                )}
+              />
+            )}
+          />
+          {/* TODO(desktop-ai): AiPopover rendered here in web via useCompletion; wire over IPC */}
+        </BlockNoteView>
+      </BlockNoteContext.Provider>
     </div>
   );
 }

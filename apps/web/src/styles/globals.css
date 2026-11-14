@@ -1,5 +1,6 @@
 /* Must stay above the @tailwind directives — @import precedes all other rules. */
 @import "@uxie/shared/styles/tts-highlight.css";
+@import "@uxie/shared/styles/themes.css";
 
 @tailwind base;
 @tailwind components;
@@ -34,6 +35,14 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
+    --status-warning-solid: 38 80% 50%;
+    --status-warning-subtle: 39 100% 95%;
+    --status-error-solid: 0 88% 45%;
+    --status-error-subtle: 0 100% 95%;
+    --status-info-solid: 226 100% 66%;
+    --status-info-subtle: 228 100% 95%;
+    --status-success-solid: 120 90% 40%;
+    --status-success-subtle: 120 100% 95%;
 
     --radius: 0.5rem;
 
@@ -72,6 +81,14 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    --status-warning-solid: 40 90% 58%;
+    --status-warning-subtle: 38 55% 16%;
+    --status-error-solid: 0 78% 62%;
+    --status-error-subtle: 0 48% 17%;
+    --status-info-solid: 222 96% 70%;
+    --status-info-subtle: 225 47% 18%;
+    --status-success-solid: 130 65% 56%;
+    --status-success-subtle: 132 45% 16%;
   }
 }
 
@@ -127,7 +144,7 @@
   height: 6px;
   margin: 3px;
   border-radius: 50%;
-  background-color: #a3a1a1;
+  background-color: hsl(var(--muted-foreground));
   opacity: 1;
   animation: bouncing-loader 0.6s infinite alternate;
 }

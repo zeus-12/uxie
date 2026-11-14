@@ -4,10 +4,12 @@ import BlockNoteEditor from "@/components/editor";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { useBlocknoteEditorStore } from "@/lib/store";
+import { ThemeMenuSub } from "@uxie/shared/components/theme/theme-controls";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
 import {
@@ -37,7 +39,7 @@ const DemoSidebar = () => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
+    <div className="flex h-full flex-col bg-muted/40">
       <SharedSidebar
         headerClassName="md:pl-0 md:pr-1"
         headerActions={
@@ -54,6 +56,8 @@ const DemoSidebar = () => {
                 <Download size={16} />
                 Download notes
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <ThemeMenuSub />
             </DropdownMenuContent>
           </DropdownMenu>
         }

@@ -11,6 +11,7 @@ import {
 import { Input } from "@uxie/shared/components/ui/input";
 import { Label } from "@uxie/shared/components/ui/label";
 import { Spinner } from "@uxie/shared/components/ui/spinner";
+import { ThemePicker } from "@uxie/shared/components/theme/theme-controls";
 import type { Settings } from "../ipc-contract";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -66,6 +67,11 @@ export function SettingsDialog({
             use http://localhost:11434/v1.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>Appearance</Label>
+          <ThemePicker />
+        </div>
 
         {settings === null ? (
           <div className="flex justify-center py-6">

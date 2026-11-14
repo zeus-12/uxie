@@ -1,4 +1,11 @@
-import { app, BrowserWindow, ipcMain, protocol, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  nativeTheme,
+  protocol,
+  shell,
+} from "electron";
 import { join } from "path";
 import type { IpcInvokeContract } from "../ipc-contract";
 import {
@@ -133,7 +140,7 @@ function createMainWindow(): BrowserWindow {
     minHeight: 600,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 18, y: 18 },
-    backgroundColor: "#ffffff",
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#020817" : "#ffffff",
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
     },

@@ -18,16 +18,16 @@ export function AddDocCard({
       aria-label="Add PDF"
       className="group block h-full w-full text-left disabled:cursor-default"
     >
-      <div className="flex h-full flex-col overflow-hidden rounded-md border-[1.5px] border-dashed border-gray-300 bg-transparent transition-all duration-300 ease-out group-hover:border-gray-400 group-hover:bg-white group-hover:shadow-sm group-disabled:opacity-70">
+      <div className="flex h-full flex-col overflow-hidden rounded-md border-[1.5px] border-dashed border-border bg-transparent transition-all duration-300 ease-out group-hover:border-muted-foreground/50 group-hover:bg-card group-hover:shadow-sm group-disabled:opacity-70">
         <div className="flex aspect-[3/4] flex-1 flex-col items-center justify-center gap-2.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full border-[1.5px] border-dashed border-slate-300 text-slate-400 transition-all duration-200 group-hover:scale-105 group-hover:border-slate-500 group-hover:text-slate-600">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full border-[1.5px] border-dashed border-border text-muted-foreground transition-all duration-200 group-hover:scale-105 group-hover:border-foreground/50 group-hover:text-foreground">
             {importing ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <Plus className="h-5 w-5" strokeWidth={1.75} />
             )}
           </div>
-          <span className="text-sm font-medium text-slate-500">
+          <span className="text-sm font-medium text-muted-foreground">
             {importing ? "Importing…" : "Add PDF"}
           </span>
         </div>

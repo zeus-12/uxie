@@ -29,22 +29,22 @@ const FEEDBACK_ITEMS = [
   {
     icon: ThumbsUp,
     text: "Identified the process",
-    bg: "bg-[#f0fff4]",
-    textColor: "text-green-700",
+    bg: "bg-[#f0fff4] dark:bg-green-950/40",
+    textColor: "text-green-700 dark:text-green-200",
     iconColor: "text-green-500",
   },
   {
     icon: Bug,
     text: "Missing: yields 36-38 ATP",
-    bg: "bg-[#fef2f2]",
-    textColor: "text-red-700",
+    bg: "bg-[#fef2f2] dark:bg-red-950/40",
+    textColor: "text-red-700 dark:text-red-200",
     iconColor: "text-red-500",
   },
   {
     icon: Info,
     text: "Also produces CO₂ and H₂O",
-    bg: "bg-[#ebf4ff]",
-    textColor: "text-blue-700",
+    bg: "bg-[#ebf4ff] dark:bg-blue-950/40",
+    textColor: "text-blue-700 dark:text-blue-200",
     iconColor: "text-blue-500",
   },
 ];
@@ -167,10 +167,10 @@ export default function BentoGrid() {
         <p className="text-sm font-medium uppercase tracking-widest text-purple-600">
           Features
         </p>
-        <h2 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        <h2 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           Everything you need to learn smarter
         </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-lg text-gray-500">
+        <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
           AI-powered tools that transform how you read, take notes, and study
         </p>
       </div>
@@ -199,7 +199,7 @@ function BentoCard({
   return (
     <motion.div
       className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white/80 backdrop-blur-sm p-5 transition-all duration-300 hover:shadow-sm",
+        "group flex flex-col overflow-hidden rounded-2xl border border-border bg-card/80 p-5 backdrop-blur-sm transition-all duration-300 hover:shadow-sm",
         className,
       )}
       variants={cardVariants}
@@ -222,9 +222,11 @@ function CardText({
   description: string;
 }) {
   return (
-    <div className="mt-auto -mx-5 -mb-5 border-t border-gray-100 bg-gray-50/80 px-5 pb-5 pt-3">
-      <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-      <p className="mt-0.5 text-sm leading-snug text-gray-500">{description}</p>
+    <div className="-mx-5 -mb-5 mt-auto border-t border-border bg-muted/40 px-5 pb-5 pt-3">
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+        {description}
+      </p>
     </div>
   );
 }
@@ -245,13 +247,13 @@ function ShimmerBar({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-full bg-gray-200",
+        "relative overflow-hidden rounded-full bg-muted",
         className,
       )}
       style={{ width }}
     >
       <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-white/20"
         animate={{ x: ["-100%", "100%"] }}
         transition={{ duration: 2, repeat: Infinity, delay, ease: "easeInOut" }}
       />
@@ -280,7 +282,7 @@ function ToggleButtons<T extends string>({
             "rounded-full px-3 py-1 text-xs font-medium transition-colors",
             active === mode.key
               ? `${activeColor} text-white`
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200",
+              : "bg-muted text-muted-foreground hover:bg-accent",
           )}
         >
           {mode.label}
@@ -305,7 +307,7 @@ function AIChatVisual() {
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
         >
-          <div className="rounded-2xl rounded-br-sm bg-purple-100 px-3 py-1.5 text-[11px] font-medium text-purple-800">
+          <div className="rounded-2xl rounded-br-sm bg-purple-100 px-3 py-1.5 text-[11px] font-medium text-purple-800 dark:bg-purple-950/50 dark:text-purple-200">
             What are the key findings?
           </div>
         </motion.div>
@@ -320,7 +322,7 @@ function AIChatVisual() {
           <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600">
             <Sparkles className="h-3 w-3 text-white" />
           </div>
-          <div className="rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-1.5 text-[11px] text-gray-700">
+          <div className="rounded-2xl rounded-bl-sm bg-muted px-3 py-1.5 text-[11px] text-foreground">
             Based on section 3.2, the study found three significant results...
             <span className="mt-1 block text-[10px] font-medium text-purple-500">
               p.12 &middot; Highlighted
@@ -338,11 +340,11 @@ function AIChatVisual() {
           <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-600">
             <Sparkles className="h-3 w-3 text-white" />
           </div>
-          <div className="flex gap-0.5 rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2">
+          <div className="flex gap-0.5 rounded-2xl rounded-bl-sm bg-muted px-3 py-2">
             {BOUNCE_DELAYS.map((delay) => (
               <span
                 key={delay}
-                className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400"
+                className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60"
                 style={{ animationDelay: `${delay}ms` }}
               />
             ))}
@@ -356,13 +358,17 @@ function AIChatVisual() {
 function SmartEditorVisual() {
   return (
     <div className="flex flex-1 items-center justify-center">
-      <div className="w-full max-w-[200px] space-y-2 rounded-lg border border-gray-100 bg-gray-50/50 p-3">
+      <div className="w-full max-w-[200px] space-y-2 rounded-lg border border-border bg-muted/30 p-3">
         <ShimmerBar width="90%" delay={0} className="h-2" />
         <ShimmerBar width="70%" delay={0.3} className="h-2" />
         <div className="flex items-center gap-0.5">
           <ShimmerBar width="40%" delay={0.6} className="h-2" />
           <div className="h-3.5 w-px animate-pulse bg-blue-500" />
-          <ShimmerBar width="30%" delay={0.9} className="h-2 bg-blue-100/60" />
+          <ShimmerBar
+            width="30%"
+            delay={0.9}
+            className="h-2 bg-blue-100/60 dark:bg-blue-900/40"
+          />
         </div>
         <div className="flex items-center gap-1 pt-0.5">
           <PenLine className="h-3 w-3 text-blue-400" />
@@ -391,18 +397,18 @@ function FlashcardsVisual() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3">
       <div className="relative h-28 w-44" style={{ perspective: 800 }}>
-        <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl border border-amber-100 bg-amber-50/30" />
-        <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-xl border border-amber-100 bg-amber-50/50" />
+        <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-xl border border-amber-100 bg-amber-50/30 dark:border-amber-900/40 dark:bg-amber-950/20" />
+        <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-xl border border-amber-100 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-950/30" />
         <motion.div
-          className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-amber-200 bg-white shadow-sm"
+          className="absolute inset-0 flex flex-col items-center justify-center rounded-xl border border-amber-200 bg-background shadow-sm dark:border-amber-900/60"
           whileHover={{ rotateY: 10, scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300 }}
         >
           <BrainCircuit className="mb-1.5 h-6 w-6 text-amber-500" />
-          <span className="text-[11px] font-medium text-gray-700">
+          <span className="text-[11px] font-medium text-foreground">
             What process converts
           </span>
-          <span className="text-[11px] font-medium text-gray-700">
+          <span className="text-[11px] font-medium text-foreground">
             glucose to ATP?
           </span>
         </motion.div>
@@ -416,9 +422,11 @@ function FlashcardsVisual() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex h-full items-center justify-center rounded-lg border border-dashed border-gray-200"
+              className="flex h-full items-center justify-center rounded-lg border border-dashed border-border"
             >
-              <span className="text-[10px] text-gray-400">Your answer...</span>
+              <span className="text-[10px] text-muted-foreground">
+                Your answer...
+              </span>
             </motion.div>
           )}
           {phase === 1 && (
@@ -427,9 +435,9 @@ function FlashcardsVisual() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="flex h-full items-center rounded-lg bg-[#F7F5FB] px-3"
+              className="flex h-full items-center rounded-lg bg-[#F7F5FB] px-3 dark:bg-purple-950/30"
             >
-              <p className="text-[11px] leading-snug text-purple-800">
+              <p className="text-[11px] leading-snug text-purple-800 dark:text-purple-200">
                 Cellular respiration breaks down glucose to produce energy...
               </p>
             </motion.div>
@@ -476,7 +484,7 @@ function FlashcardsVisual() {
               exit={{ opacity: 0 }}
               className="flex h-full items-center justify-center"
             >
-              <span className="text-[10px] text-gray-400">
+              <span className="text-[10px] text-muted-foreground">
                 Next question...
               </span>
             </motion.div>
@@ -493,7 +501,7 @@ function FlashcardsVisual() {
 
 function BionicDemo() {
   return (
-    <p className="text-[11px] leading-relaxed text-gray-700">
+    <p className="text-[11px] leading-relaxed text-foreground">
       <strong className="font-bold">Th</strong>e{" "}
       <strong className="font-bold">qui</strong>ck{" "}
       <strong className="font-bold">bro</strong>wn{" "}
@@ -522,9 +530,9 @@ function RSVPDemo() {
           transform: `translateX(calc(-${before.length}ch - 0.5ch))`,
         }}
       >
-        <span className="text-gray-700">{before}</span>
+        <span className="text-foreground">{before}</span>
         <span className="font-bold text-[#ff6500]">{orpChar}</span>
-        <span className="text-gray-700">{after}</span>
+        <span className="text-foreground">{after}</span>
       </div>
     </div>
   );
@@ -535,13 +543,13 @@ function ReadAlongDemo() {
 
   return (
     <div className="flex items-center gap-2">
-      <p className="flex-1 text-[11px] leading-relaxed text-gray-700">
+      <p className="flex-1 text-[11px] leading-relaxed text-foreground">
         {SAMPLE_WORDS.map((word, i) => (
           <span key={word}>
             <span
               className={cn(
                 "rounded px-0.5 transition-colors duration-200",
-                i === index && "bg-[#74f273]",
+                i === index && "bg-[#74f273] text-emerald-950",
               )}
             >
               {word}
@@ -550,7 +558,7 @@ function ReadAlongDemo() {
         ))}
       </p>
       <div className="relative flex h-5 w-5 items-center justify-center">
-        <Mic className="h-3.5 w-3.5 text-gray-500" />
+        <Mic className="h-3.5 w-3.5 text-muted-foreground" />
         <span className="absolute -right-0.5 -top-0.5 h-2 w-2 animate-pulse rounded-full bg-red-500" />
       </div>
     </div>
@@ -570,7 +578,7 @@ function ReadingModesVisual() {
           onChange={setActive}
           activeColor="bg-emerald-500"
         />
-        <div className="flex h-12 items-center rounded-lg border border-emerald-100 bg-emerald-50/30 px-3">
+        <div className="flex h-12 items-center rounded-lg border border-emerald-100 bg-emerald-50/30 px-3 dark:border-emerald-900/50 dark:bg-emerald-950/20">
           <AnimatePresence mode="wait">
             <motion.div
               key={active}
@@ -617,13 +625,14 @@ function TTSDemo() {
           />
         ))}
       </div>
-      <p className="text-[11px] text-gray-600">
+      <p className="text-[11px] text-muted-foreground">
         {SAMPLE_WORDS.map((word, i) => (
           <span key={word}>
             <span
               className={cn(
                 "rounded px-0.5 transition-colors duration-200",
-                i === index && "bg-teal-200 font-medium text-teal-800",
+                i === index &&
+                  "bg-teal-200 font-medium text-teal-800 dark:bg-teal-800 dark:text-teal-100",
               )}
             >
               {word}
@@ -651,13 +660,13 @@ function OCRDemo() {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="relative flex-1 space-y-1.5 overflow-hidden rounded border border-gray-200 bg-white p-2">
+      <div className="relative flex-1 space-y-1.5 overflow-hidden rounded border border-border bg-background p-2">
         {OCR_LINE_WIDTHS.map((width) => (
           <div
             key={width}
             className={cn(
               "h-1.5 rounded-full transition-colors duration-500",
-              isExtracted ? "bg-gray-600" : "bg-gray-200",
+              isExtracted ? "bg-foreground/70" : "bg-muted",
             )}
             style={{ width }}
           />
@@ -683,7 +692,7 @@ function OCRDemo() {
                 ? "scale-75 opacity-0"
                 : isScanning
                 ? "animate-pulse text-teal-500"
-                : "text-gray-400",
+                : "text-muted-foreground",
             )}
           />
           <Check
@@ -700,7 +709,7 @@ function OCRDemo() {
               ? "text-teal-600"
               : isScanning
               ? "text-teal-500"
-              : "text-gray-400",
+              : "text-muted-foreground",
           )}
         >
           {isExtracted ? "Done!" : isScanning ? "Scanning" : "OCR"}
@@ -723,7 +732,7 @@ function TTSVisual() {
           onChange={setActive}
           activeColor="bg-teal-500"
         />
-        <div className="flex h-14 items-center rounded-lg border border-teal-100 bg-teal-50/30 px-3">
+        <div className="flex h-14 items-center rounded-lg border border-teal-100 bg-teal-50/30 px-3 dark:border-teal-900/50 dark:bg-teal-950/20">
           <AnimatePresence mode="wait">
             <motion.div
               key={active}
@@ -765,7 +774,7 @@ function CollabVisual() {
               key={user.letter}
               layout
               className={cn(
-                "relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white",
+                "relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-xs font-bold text-white",
                 user.bg,
               )}
               initial={{ scale: 0, opacity: 0 }}
@@ -785,13 +794,15 @@ function CollabVisual() {
       <div className="space-y-1">
         <div className="flex items-center gap-1.5">
           <div className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-          <span className="text-[11px] font-medium text-gray-600">
+          <span className="text-[11px] font-medium text-foreground">
             {visibleUsers.length} editing now
           </span>
         </div>
         <div className="flex items-center gap-1">
           <Users className="h-3 w-3 text-rose-400" />
-          <span className="text-[10px] text-gray-500">Editor synced</span>
+          <span className="text-[10px] text-muted-foreground">
+            Editor synced
+          </span>
         </div>
       </div>
     </div>
