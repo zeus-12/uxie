@@ -6,6 +6,8 @@ import {
   type ChatRow,
 } from "@uxie/shared/components/chat/chat-panel";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
+import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
+import type { ChatImageAttachment } from "@uxie/shared/lib/chat-attachments";
 import { useChatStore } from "@uxie/shared/lib/store";
 import { SparklesIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +19,7 @@ interface DemoMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
+  attachments?: ChatImageAttachment[];
 }
 
 /**
@@ -33,11 +36,23 @@ export default function DemoChat() {
   const [messages, setMessages] = useState<DemoMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const {
+    attachments,
+    attachmentError,
+    addDataUrl,
+    addFiles,
+    removeAttachment,
+    clearAttachments,
+  } = useChatImageAttachments();
 
   const replyIndexRef = useRef(0);
   const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const setSendMessage = useChatStore((s) => s.setSendMessage);
+  const setStageImageAttachment = useChatStore(
+    (s) => s.setStageImageAttachment,
+  );
+  const setFocusInput = useChatStore((s) => s.setFocusInput);
 
   const clearStreamTimer = () => {
     if (streamTimerRef.current) {
@@ -76,12 +91,17 @@ export default function DemoChat() {
   }, []);
 
   const send = useCallback(
-    (text: string) => {
+    (text: string, sentAttachments: ChatImageAttachment[] = []) => {
       const trimmed = text.trim();
-      if (!trimmed || isStreaming) return;
+      if ((!trimmed && !sentAttachments.length) || isStreaming) return;
       setMessages((prev) => [
         ...prev,
-        { id: createId(), role: "user", text: trimmed },
+        {
+          id: createId(),
+          role: "user",
+          text: trimmed,
+          attachments: sentAttachments,
+        },
       ]);
       streamCannedReply();
     },
@@ -91,7 +111,20 @@ export default function DemoChat() {
   // Expose sending to the PDF text-selection popover ("explain"/"summarise").
   useEffect(() => {
     setSendMessage((message: string) => send(message));
+    return () => setSendMessage(null);
   }, [send, setSendMessage]);
+  useEffect(() => {
+    setStageImageAttachment((dataUrl: string) => {
+      setIsVectorised(true);
+      addDataUrl(dataUrl, "PDF selection.png");
+    });
+    return () => setStageImageAttachment(null);
+  }, [addDataUrl, setIsVectorised, setStageImageAttachment]);
+  useEffect(() => {
+    const focus = () => inputRef.current?.focus();
+    setFocusInput(focus);
+    return () => setFocusInput(null);
+  }, [setFocusInput]);
 
   useEffect(() => clearStreamTimer, []);
 
@@ -102,9 +135,10 @@ export default function DemoChat() {
 
   const handleSubmit = () => {
     const text = input.trim();
-    if (!text || isStreaming) return;
-    send(text);
+    if ((!text && !attachments.length) || isStreaming) return;
+    send(text, attachments);
     setInput("");
+    clearAttachments();
   };
 
   const handleStop = () => {
@@ -128,7 +162,14 @@ export default function DemoChat() {
     { kind: "message", role: "assistant", content: DEMO_CHAT_WELCOME },
   ];
   for (const m of messages) {
-    if (m.text) rows.push({ kind: "message", role: m.role, content: m.text });
+    if (m.text || m.attachments?.length) {
+      rows.push({
+        kind: "message",
+        role: m.role,
+        content: m.text,
+        attachments: m.attachments,
+      });
+    }
   }
   const lastMessage = messages[messages.length - 1];
   if (isStreaming && lastMessage?.role === "assistant" && !lastMessage.text) {
@@ -140,7 +181,11 @@ export default function DemoChat() {
       rows={rows}
       loaded
       input={input}
+      attachments={attachments}
+      attachmentError={attachmentError}
       onInputChange={setInput}
+      onFilesSelected={(files) => void addFiles(files)}
+      onRemoveAttachment={removeAttachment}
       onSubmit={handleSubmit}
       onStop={handleStop}
       streaming={isStreaming}

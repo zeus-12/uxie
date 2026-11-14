@@ -4,6 +4,7 @@ import {
   chatMessageToRows,
   chatMessagesToModelMessages,
   completedChatParts,
+  normalizeChatParts,
   type ChatMessage,
 } from "../src/chat-messages";
 import {
@@ -132,5 +133,71 @@ describe("desktop chat message history", () => {
         { type: "text", text: "Partial answer" },
       ]),
     ).toEqual([{ type: "text", text: "Partial answer" }]);
+  });
+
+  it("persists, renders, and sends image attachments to the model", async () => {
+    const imageUrl = "data:image/png;base64,aGVsbG8=";
+    const message: ChatMessage = {
+      role: "user",
+      parts: [
+        { type: "text", text: "What does this diagram show?" },
+        {
+          type: "file",
+          filename: "diagram.png",
+          mediaType: "image/png",
+          url: imageUrl,
+        },
+      ],
+    };
+
+    const { db } = openDatabase(":memory:");
+    runMigrations(db, MIGRATIONS);
+    seedLocalUser(db);
+    const document = await createDocument(db, {
+      title: "Paper",
+      url: "/paper.pdf",
+      coverImageUrl: "/paper.png",
+      pageCount: 12,
+    });
+    await createMessage(db, document.id, message.role, message.parts);
+
+    const [stored] = await getMessagesByDocId(db, document.id);
+    expect(stored).toMatchObject(message);
+    expect(chatMessageToRows(stored)).toMatchObject([
+      {
+        kind: "message",
+        role: "user",
+        content: "What does this diagram show?",
+        attachments: [
+          {
+            filename: "diagram.png",
+            mediaType: "image/png",
+            url: imageUrl,
+          },
+        ],
+      },
+    ]);
+    expect(chatMessagesToModelMessages([stored])).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "What does this diagram show?" },
+          { type: "image", image: imageUrl, mediaType: "image/png" },
+        ],
+      },
+    ]);
+  });
+
+  it("drops malformed stored image parts at the persistence boundary", () => {
+    expect(
+      normalizeChatParts([
+        {
+          type: "file",
+          filename: "notes.txt",
+          mediaType: "text/plain",
+          url: "data:text/plain;base64,aGVsbG8=",
+        },
+      ]),
+    ).toEqual([]);
   });
 });

@@ -17,15 +17,21 @@ export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
 
 interface ChatMessageStore {
   sendMessage: null | ((message: string) => void);
-  setSendMessage: (sendMessage: (message: string) => void) => void;
+  setSendMessage: (sendMessage: ((message: string) => void) | null) => void;
+  stageImageAttachment: null | ((dataUrl: string) => void);
+  setStageImageAttachment: (
+    stageImageAttachment: ((dataUrl: string) => void) | null,
+  ) => void;
   // The chat input registers a focuser so ⌘L / the chat tab can focus it.
   focusInput: null | (() => void);
   setFocusInput: (focusInput: (() => void) | null) => void;
 }
 export const useChatStore = create<ChatMessageStore>((set) => ({
   sendMessage: null,
-  setSendMessage: (sendMessage: (message: string) => void) =>
-    set({ sendMessage }),
+  setSendMessage: (sendMessage) => set({ sendMessage }),
+  stageImageAttachment: null,
+  setStageImageAttachment: (stageImageAttachment) =>
+    set({ stageImageAttachment }),
   focusInput: null,
   setFocusInput: (focusInput) => set({ focusInput }),
 }));

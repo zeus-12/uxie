@@ -10,8 +10,13 @@ import {
   IndexingState,
 } from "@uxie/shared/components/other/indexing-state";
 import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
+import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
+import {
+  attachmentFromDataUrl,
+  type ChatImageAttachment,
+} from "@uxie/shared/lib/chat-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type FileUIPart } from "ai";
 import { SparklesIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -63,7 +68,14 @@ function VectoriseGate({ docId }: { docId: string }) {
 
 // A stored/streamed message part, loosely typed — the same shape flows from the
 // live `useChat` stream and from persisted DB messages (trpc JSON).
-type LoosePart = { type: string; text?: string; state?: string };
+type LoosePart = {
+  type: string;
+  text?: string;
+  state?: string;
+  filename?: string;
+  mediaType?: string;
+  url?: string;
+};
 const partsOf = (m: { parts?: unknown }): LoosePart[] =>
   Array.isArray(m.parts) ? (m.parts as LoosePart[]) : [];
 
@@ -71,6 +83,32 @@ const partsOf = (m: { parts?: unknown }): LoosePart[] =>
 // that sits OUTSIDE the bubble (ChatGPT-style). tool-result parts are internal.
 function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
   const displayRole = role === "user" ? "user" : "assistant";
+  if (displayRole === "user") {
+    const content = parts
+      .filter((part) => part.type === "text")
+      .map((part) => part.text ?? "")
+      .join("");
+    const attachments = parts.flatMap((part, index): ChatImageAttachment[] => {
+      if (part.type !== "file" || !part.url) return [];
+      const result = attachmentFromDataUrl({
+        url: part.url,
+        filename: part.filename ?? "Attached image",
+        id: `attachment-${index}`,
+      });
+      return result.kind === "attachment" ? [result.attachment] : [];
+    });
+    return content.trim() || attachments.length
+      ? [
+          {
+            kind: "message",
+            role: "user",
+            content,
+            attachments,
+          },
+        ]
+      : [];
+  }
+
   const rows: ChatRow[] = [];
   for (const p of parts) {
     if (p.type === "text") {
@@ -104,24 +142,50 @@ function ChatView({ docId }: { docId: string }) {
     );
 
   const [input, setInput] = useState("");
+  const {
+    attachments,
+    attachmentError,
+    addDataUrl,
+    addFiles,
+    removeAttachment,
+    clearAttachments,
+  } = useChatImageAttachments();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const streaming = status === "streaming" || status === "submitted";
 
   const submit = () => {
     const text = input.trim();
-    if (!text || streaming) return;
-    sendMessage({ text });
+    if ((!text && !attachments.length) || streaming) return;
+    const files: FileUIPart[] = attachments.map((attachment) => ({
+      type: "file",
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      url: attachment.url,
+    }));
+    if (text) void sendMessage({ text, files });
+    else void sendMessage({ files });
     setInput("");
+    clearAttachments();
   };
 
   // Register a sender (highlight popover → chat) + a focuser (⌘L) on the shared
   // store, and focus the input whenever the chat tab becomes active.
   const setSendMessage = useChatStore((s) => s.setSendMessage);
+  const setStageImageAttachment = useChatStore(
+    (s) => s.setStageImageAttachment,
+  );
   const setFocusInput = useChatStore((s) => s.setFocusInput);
   const tab = useSidebarTabStore((s) => s.tab);
   useEffect(() => {
     setSendMessage((text: string) => sendMessage({ text }));
+    return () => setSendMessage(null);
   }, [sendMessage, setSendMessage]);
+  useEffect(() => {
+    setStageImageAttachment((dataUrl: string) => {
+      addDataUrl(dataUrl, "PDF selection.png");
+    });
+    return () => setStageImageAttachment(null);
+  }, [addDataUrl, setStageImageAttachment]);
   useEffect(() => {
     const focus = () => inputRef.current?.focus();
     setFocusInput(focus);
@@ -185,7 +249,11 @@ function ChatView({ docId }: { docId: string }) {
       rows={rows}
       loaded={!isChatsLoading}
       input={input}
+      attachments={attachments}
+      attachmentError={attachmentError}
       onInputChange={setInput}
+      onFilesSelected={(files) => void addFiles(files)}
+      onRemoveAttachment={removeAttachment}
       onSubmit={submit}
       onStop={stop}
       streaming={streaming}
