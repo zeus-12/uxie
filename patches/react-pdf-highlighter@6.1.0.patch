@@ -1,7 +1,60 @@
+diff --git a/dist/cjs/components/PdfHighlighter.d.ts b/dist/cjs/components/PdfHighlighter.d.ts
+index 5cd1bf75e195b44f1ac969d0330d89d64221cad1..da883464f0374557d41f82469e1981750eff072f 100644
+--- a/dist/cjs/components/PdfHighlighter.d.ts
++++ b/dist/cjs/components/PdfHighlighter.d.ts
+@@ -1,7 +1,7 @@
+ import "pdfjs-dist/web/pdf_viewer.css";
+ import "../style/pdf_viewer.css";
+ import "../style/PdfHighlighter.css";
+-import { EventBus, PDFLinkService, PDFViewer } from "pdfjs-dist/legacy/web/pdf_viewer";
++import { EventBus, PDFFindController, PDFLinkService, PDFViewer } from "pdfjs-dist/legacy/web/pdf_viewer";
+ import type { IHighlight, LTWH, LTWHP, Position, Scaled, ScaledPosition } from "../types";
+ import { PointerEventHandler, PureComponent, RefObject } from "react";
+ import type { PDFDocumentProxy } from "pdfjs-dist";
+@@ -48,6 +48,7 @@ export declare class PdfHighlighter<T_HT extends IHighlight> extends PureCompone
+     state: State<T_HT>;
+     eventBus: EventBus;
+     linkService: PDFLinkService;
++    findController: PDFFindController;
+     viewer: PDFViewer;
+     resizeObserver: ResizeObserver | null;
+     containerNode?: HTMLDivElement | null;
+diff --git a/dist/cjs/components/PdfHighlighter.js b/dist/cjs/components/PdfHighlighter.js
+index a4ca3e9c677c6bc600cfbe1455fd3977eaa42b2a..17f90f3e3d71dfe7f49d5bcdc301ee1181875d38 100644
+--- a/dist/cjs/components/PdfHighlighter.js
++++ b/dist/cjs/components/PdfHighlighter.js
+@@ -61,6 +61,10 @@ class PdfHighlighter extends react_1.PureComponent {
+             eventBus: this.eventBus,
+             externalLinkTarget: 2,
+         });
++        this.findController = new pdf_viewer_1.PDFFindController({
++            eventBus: this.eventBus,
++            linkService: this.linkService,
++        });
+         this.resizeObserver = null;
+         this.containerNode = null;
+         this.highlightRoots = {};
+@@ -264,6 +268,7 @@ class PdfHighlighter extends react_1.PureComponent {
+                     // enhanceTextSelection: true, // deprecated. https://github.com/mozilla/pdf.js/issues/9943#issuecomment-409369485
+                     textLayerMode: 2,
+                     removePageBorders: true,
++                    findController: this.findController,
+                     linkService: this.linkService,
+                     l10n: pdf_viewer_1.NullL10n,
+                 });
 diff --git a/dist/esm/components/PdfHighlighter.d.ts b/dist/esm/components/PdfHighlighter.d.ts
-index 5cd1bf75e195b44f1ac969d0330d89d64221cad1..3b97f77a71212571d80d42ffa6ba564fe66a4485 100644
+index 5cd1bf75e195b44f1ac969d0330d89d64221cad1..5b7da7ac3fa3c67fcbb68b45ee3d82e2583e9eb7 100644
 --- a/dist/esm/components/PdfHighlighter.d.ts
 +++ b/dist/esm/components/PdfHighlighter.d.ts
+@@ -1,7 +1,7 @@
+ import "pdfjs-dist/web/pdf_viewer.css";
+ import "../style/pdf_viewer.css";
+ import "../style/PdfHighlighter.css";
+-import { EventBus, PDFLinkService, PDFViewer } from "pdfjs-dist/legacy/web/pdf_viewer";
++import { EventBus, PDFFindController, PDFLinkService, PDFViewer } from "pdfjs-dist/legacy/web/pdf_viewer";
+ import type { IHighlight, LTWH, LTWHP, Position, Scaled, ScaledPosition } from "../types";
+ import { PointerEventHandler, PureComponent, RefObject } from "react";
+ import type { PDFDocumentProxy } from "pdfjs-dist";
 @@ -19,6 +19,7 @@ interface State<T_HT> {
      } | null;
      isCollapsed: boolean;
@@ -10,10 +63,27 @@ index 5cd1bf75e195b44f1ac969d0330d89d64221cad1..3b97f77a71212571d80d42ffa6ba564f
      tip: {
          highlight: T_ViewportHighlight<T_HT>;
          callback: (highlight: T_ViewportHighlight<T_HT>) => JSX.Element;
+@@ -48,6 +49,7 @@ export declare class PdfHighlighter<T_HT extends IHighlight> extends PureCompone
+     state: State<T_HT>;
+     eventBus: EventBus;
+     linkService: PDFLinkService;
++    findController: PDFFindController;
+     viewer: PDFViewer;
+     resizeObserver: ResizeObserver | null;
+     containerNode?: HTMLDivElement | null;
 diff --git a/dist/esm/components/PdfHighlighter.js b/dist/esm/components/PdfHighlighter.js
-index d2322a24ae538c122dc336fd9c960708254acc4f..bd2c72ed09f7f84b0e008167c9fc1288339b2ba4 100644
+index d2322a24ae538c122dc336fd9c960708254acc4f..22fa6b24b2bea4be94e99108ccc215fdc67fe768 100644
 --- a/dist/esm/components/PdfHighlighter.js
 +++ b/dist/esm/components/PdfHighlighter.js
+@@ -1,7 +1,7 @@
+ import "pdfjs-dist/web/pdf_viewer.css";
+ import "../style/pdf_viewer.css";
+ import "../style/PdfHighlighter.css";
+-import { EventBus, NullL10n, PDFLinkService, PDFViewer, } from "pdfjs-dist/legacy/web/pdf_viewer";
++import { EventBus, NullL10n, PDFFindController, PDFLinkService, PDFViewer, } from "pdfjs-dist/legacy/web/pdf_viewer";
+ import React, { PureComponent } from "react";
+ import { asElement, findOrCreateContainerLayer, getPageFromElement, getPagesFromRange, getWindow, isHTMLElement, } from "../lib/pdfjs-dom";
+ import { scaledToViewport, viewportToScaled } from "../lib/coordinates";
 @@ -21,6 +21,7 @@ export class PdfHighlighter extends PureComponent {
              ghostHighlight: null,
              isCollapsed: true,
@@ -22,7 +92,18 @@ index d2322a24ae538c122dc336fd9c960708254acc4f..bd2c72ed09f7f84b0e008167c9fc1288
              scrolledToHighlightId: EMPTY_ID,
              isAreaSelectionInProgress: false,
              tip: null,
-@@ -129,11 +130,13 @@ export class PdfHighlighter extends PureComponent {
+@@ -32,6 +33,10 @@ export class PdfHighlighter extends PureComponent {
+             eventBus: this.eventBus,
+             externalLinkTarget: 2,
+         });
++        this.findController = new PDFFindController({
++            eventBus: this.eventBus,
++            linkService: this.linkService,
++        });
+         this.resizeObserver = null;
+         this.containerNode = null;
+         this.highlightRoots = {};
+@@ -129,11 +134,13 @@ export class PdfHighlighter extends PureComponent {
              scrollRef(this.scrollTo);
          };
          this.onSelectionChange = () => {
@@ -36,7 +117,7 @@ index d2322a24ae538c122dc336fd9c960708254acc4f..bd2c72ed09f7f84b0e008167c9fc1288
              const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
              if (selection.isCollapsed) {
                  this.setState({ isCollapsed: true });
-@@ -147,6 +150,7 @@ export class PdfHighlighter extends PureComponent {
+@@ -147,6 +154,7 @@ export class PdfHighlighter extends PureComponent {
              this.setState({
                  isCollapsed: false,
                  range,
@@ -44,7 +125,7 @@ index d2322a24ae538c122dc336fd9c960708254acc4f..bd2c72ed09f7f84b0e008167c9fc1288
              });
              this.debouncedAfterSelection();
          };
-@@ -193,7 +197,7 @@ export class PdfHighlighter extends PureComponent {
+@@ -193,7 +201,7 @@ export class PdfHighlighter extends PureComponent {
                  pageNumber: pages[0].number,
              };
              const content = {
@@ -53,8 +134,16 @@ index d2322a24ae538c122dc336fd9c960708254acc4f..bd2c72ed09f7f84b0e008167c9fc1288
              };
              const scaledPosition = this.viewportPositionToScaled(viewportPosition);
              this.setTip(viewportPosition, onSelectionFinished(scaledPosition, content, () => this.hideTipAndSelection(), () => this.setState({
+@@ -235,6 +243,7 @@ export class PdfHighlighter extends PureComponent {
+                     // enhanceTextSelection: true, // deprecated. https://github.com/mozilla/pdf.js/issues/9943#issuecomment-409369485
+                     textLayerMode: 2,
+                     removePageBorders: true,
++                    findController: this.findController,
+                     linkService: this.linkService,
+                     l10n: NullL10n,
+                 });
 diff --git a/dist/esm/components/PdfHighlighter.js.map b/dist/esm/components/PdfHighlighter.js.map
-index e01992f3d2d06ada3bcc499900e59b6b8595b542..977ff96f072cf22196094e51549525ffa159281b 100644
+index e01992f3d2d06ada3bcc499900e59b6b8595b542..38958c68033ffdc004f69c91a64117666260582a 100644
 --- a/dist/esm/components/PdfHighlighter.js.map
 +++ b/dist/esm/components/PdfHighlighter.js.map
 @@ -1 +1 @@
