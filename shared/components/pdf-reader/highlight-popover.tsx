@@ -4,6 +4,7 @@ import { copyTextToClipboard } from "../../lib/utils";
 import { AskAiMenu } from "./ask-ai-menu";
 import {
   AudioLines,
+  BookmarkPlus,
   ClipboardCopy,
   Highlighter,
   Sparkles,
@@ -36,6 +37,7 @@ export const TextSelectionPopover = ({
   content,
   hideTipAndSelection,
   addHighlight,
+  addBookmark,
   sendMessage,
   showAiFeatures,
   readSelectedText,
@@ -46,6 +48,7 @@ export const TextSelectionPopover = ({
   // AI input steals focus and collapses the native selection.
   transformSelection: () => void;
   addHighlight: () => void;
+  addBookmark?: () => void;
   content: {
     text?: string | undefined;
     image?: string | undefined;
@@ -109,6 +112,15 @@ export const TextSelectionPopover = ({
       icon: Highlighter,
       tooltip: "Highlight",
     },
+    isTextHighlight &&
+      addBookmark && {
+        onClick: () => {
+          addBookmark();
+          hideTipAndSelection();
+        },
+        icon: BookmarkPlus,
+        tooltip: "Bookmark passage",
+      },
     showAiFeatures &&
       sendMessage && {
         onClick: () => {
@@ -129,21 +141,23 @@ export const TextSelectionPopover = ({
         {OPTIONS.map((option, id) => {
           if (!option) return null;
           return (
-            <div
-              className="group px-[0.5rem] pb-[0.2rem] pt-[0.5rem] hover:cursor-pointer"
-              key={id}
-              onClick={option.onClick}
-            >
-              <CustomTooltip content={option.tooltip}>
+            <CustomTooltip content={option.tooltip} asChild key={id}>
+              <button
+                type="button"
+                className="group px-[0.5rem] pb-[0.2rem] pt-[0.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                onClick={option.onClick}
+                aria-label={option.tooltip}
+              >
                 <option.icon
+                  aria-hidden="true"
                   className={
                     "accent" in option && option.accent
                       ? "h-5 w-5 text-violet-400 group-hover:text-violet-300"
                       : "h-5 w-5 text-gray-300 group-hover:text-gray-50"
                   }
                 />
-              </CustomTooltip>
-            </div>
+              </button>
+            </CustomTooltip>
           );
         })}
       </div>
@@ -165,18 +179,21 @@ export const HighlightedTextPopover = ({
       <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent" />
 
       <div className="flex divide-x divide-gray-800">
-        <div
-          className="group p-2 hover:cursor-pointer"
+        <button
+          type="button"
+          className="group p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           onClick={() => {
             deleteHighlight(id);
             hideTip();
           }}
+          aria-label="Delete highlight"
         >
           <TrashIcon
+            aria-hidden="true"
             size={18}
             className="rounded-full text-gray-300 group-hover:text-gray-50"
           />
-        </div>
+        </button>
       </div>
     </div>
   );

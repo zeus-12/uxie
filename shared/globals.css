@@ -163,6 +163,12 @@
   mix-blend-mode: multiply;
 }
 
+/* Temporary focus shared by bookmark navigation and cited source jumps. */
+.uxie-source-focus .Highlight__part {
+  background: rgba(139, 92, 246, 0.32) !important;
+  outline: 1px solid rgba(109, 40, 217, 0.24);
+}
+
 @layer utilities {
   .hd-screen {
     height: 100vh;

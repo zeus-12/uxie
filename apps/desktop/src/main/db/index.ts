@@ -59,3 +59,4 @@ export function getSqlite(): Database.Database {
 
 export * from "./documents";
 export * from "./highlights";
+export * from "./bookmarks";

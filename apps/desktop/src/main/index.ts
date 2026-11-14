@@ -3,17 +3,26 @@ import { join } from "path";
 import type { IpcInvokeContract } from "../ipc-contract";
 import {
   addHighlight,
+  createBookmark,
   createDocument,
+  deleteBookmark,
   deleteHighlight,
   getDb,
   getDocument,
   initDatabase,
+  listBookmarks,
   listDocuments,
+  renameBookmark,
   updateAreaHighlight,
   updateDocumentNotes,
   updateDocumentTitle,
   updateReaderState,
 } from "./db";
+import {
+  parseBookmarkId,
+  parseBookmarkLabel,
+  parseCreateBookmarkInput,
+} from "./bookmark-input";
 import {
   deleteDocumentWithFile,
   importPdf,
@@ -64,8 +73,7 @@ const invokeHandlers: {
   "documents:list": () => listDocuments(getDb()),
   "documents:get": (id) => getDocument(getDb(), id),
   "documents:create": (input) => createDocument(getDb(), input),
-  "documents:updateNotes": (id, note) =>
-    updateDocumentNotes(getDb(), id, note),
+  "documents:updateNotes": (id, note) => updateDocumentNotes(getDb(), id, note),
   "documents:updateReaderState": (id, state) =>
     updateReaderState(getDb(), id, state),
   "documents:updateTitle": (id, title) =>
@@ -82,6 +90,14 @@ const invokeHandlers: {
   "highlights:delete": (id) => deleteHighlight(getDb(), id),
   "highlights:updateArea": (id, boundingRect) =>
     updateAreaHighlight(getDb(), id, boundingRect),
+
+  "bookmarks:list": (documentId) =>
+    listBookmarks(getDb(), parseBookmarkId(documentId)),
+  "bookmarks:create": (input) =>
+    createBookmark(getDb(), parseCreateBookmarkInput(input)),
+  "bookmarks:rename": (id, label) =>
+    renameBookmark(getDb(), parseBookmarkId(id), parseBookmarkLabel(label)),
+  "bookmarks:delete": (id) => deleteBookmark(getDb(), parseBookmarkId(id)),
 
   "settings:get": () => getSettings(),
   "settings:set": (settings) => setSettings(settings),

@@ -20,6 +20,12 @@ import {
   deleteHighlight,
   updateAreaHighlight,
 } from "../src/main/db/highlights";
+import {
+  createBookmark,
+  deleteBookmark,
+  listBookmarks,
+  renameBookmark,
+} from "../src/main/db/bookmarks";
 
 const MIGRATIONS = join(__dirname, "../drizzle");
 
@@ -247,5 +253,65 @@ describe("desktop db layer", () => {
     const hl = (await getDocument(db, doc.id))!.highlights[0];
     expect(hl.boundingRectangle?.x1).toBe(99);
     expect(hl.boundingRectangle?.pageNumber).toBe(3);
+  });
+
+  it("stores document-scoped page and passage bookmarks", async () => {
+    const firstDoc = await makeDoc(db);
+    const secondDoc = await makeDoc(db);
+
+    const pageBookmark = await createBookmark(db, {
+      documentId: firstDoc.id,
+      pageNumber: 3,
+    });
+    const duplicate = await createBookmark(db, {
+      documentId: firstDoc.id,
+      pageNumber: 3,
+    });
+    const passageBookmark = await createBookmark(db, {
+      documentId: firstDoc.id,
+      pageNumber: 3,
+      location: {
+        version: 1,
+        kind: "selection",
+        exact: "A useful passage",
+        position: {
+          boundingRect: rect({ pageNumber: 3 }),
+          rects: [rect({ pageNumber: 3 })],
+        },
+        textLayerStart: { blockIndex: 4, offsetInBlock: 12 },
+      },
+    });
+    await createBookmark(db, {
+      documentId: secondDoc.id,
+      pageNumber: 1,
+    });
+
+    expect(duplicate.id).toBe(pageBookmark.id);
+    expect(passageBookmark.id).not.toBe(pageBookmark.id);
+    expect(await listBookmarks(db, firstDoc.id)).toHaveLength(2);
+    expect(await listBookmarks(db, secondDoc.id)).toHaveLength(1);
+  });
+
+  it("renames and deletes bookmarks", async () => {
+    const doc = await makeDoc(db);
+    const bookmark = await createBookmark(db, {
+      documentId: doc.id,
+      pageNumber: 2,
+    });
+
+    const renamed = await renameBookmark(db, bookmark.id, "Key result");
+    expect(renamed.label).toBe("Key result");
+
+    await deleteBookmark(db, bookmark.id);
+    expect(await listBookmarks(db, doc.id)).toEqual([]);
+  });
+
+  it("cascades: deleting a document removes its bookmarks", async () => {
+    const doc = await makeDoc(db);
+    await createBookmark(db, { documentId: doc.id, pageNumber: 1 });
+
+    await deleteDocument(db, doc.id);
+
+    expect(await listBookmarks(db, doc.id)).toEqual([]);
   });
 });
