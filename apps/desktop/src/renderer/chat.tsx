@@ -11,9 +11,11 @@ import {
   ChatPanel,
   type ChatRow,
 } from "@uxie/shared/components/chat/chat-panel";
+import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import {
   chatMessageToRows,
+  imagePart,
   textPart,
   type ChatMessage,
 } from "../chat-messages";
@@ -97,6 +99,14 @@ function ChatView({ docId }: { docId: string }) {
   const [searchedOnce, setSearchedOnce] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const {
+    attachments,
+    attachmentError,
+    addDataUrl,
+    addFiles,
+    removeAttachment,
+    clearAttachments,
+  } = useChatImageAttachments();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const streamIdRef = useRef<string | null>(null);
@@ -204,13 +214,18 @@ function ChatView({ docId }: { docId: string }) {
 
   function send(override?: string) {
     const text = (override ?? input).trim();
-    if (!text || streaming) return;
-    const history: ChatMessage[] = [
-      ...messages,
-      { role: "user", parts: [textPart(text)] },
+    const sentAttachments = override === undefined ? attachments : [];
+    if ((!text && !sentAttachments.length) || streaming) return;
+    const parts = [
+      ...(text ? [textPart(text)] : []),
+      ...sentAttachments.map(imagePart),
     ];
+    const history: ChatMessage[] = [...messages, { role: "user", parts }];
     setMessages(history);
-    setInput("");
+    if (override === undefined) {
+      setInput("");
+      clearAttachments();
+    }
     setError(null);
     setStreaming(true);
     setRetrieving(false);
@@ -220,9 +235,7 @@ function ChatView({ docId }: { docId: string }) {
 
     const streamId = createId();
     streamIdRef.current = streamId;
-    void window.uxieAPI
-      .createMessage(docId, "user", [textPart(text)])
-      .catch(() => {});
+    void window.uxieAPI.createMessage(docId, "user", parts).catch(() => {});
     window.uxieAPI.startChat(streamId, docId, history);
   }
 
@@ -235,16 +248,30 @@ function ChatView({ docId }: { docId: string }) {
   const sendRef = useRef(send);
   sendRef.current = send;
   const setSendMessage = useChatStore((s) => s.setSendMessage);
+  const setStageImageAttachment = useChatStore(
+    (s) => s.setStageImageAttachment,
+  );
   useEffect(() => {
     setSendMessage((text: string) => sendRef.current(text));
+    return () => setSendMessage(null);
   }, [setSendMessage]);
+  useEffect(() => {
+    setStageImageAttachment((dataUrl: string) => {
+      addDataUrl(dataUrl, "PDF selection.png");
+    });
+    return () => setStageImageAttachment(null);
+  }, [addDataUrl, setStageImageAttachment]);
 
   return (
     <ChatPanel
       rows={rows}
       loaded={loaded}
       input={input}
+      attachments={attachments}
+      attachmentError={attachmentError}
       onInputChange={setInput}
+      onFilesSelected={(files) => void addFiles(files)}
+      onRemoveAttachment={removeAttachment}
       onSubmit={() => send()}
       onStop={stop}
       streaming={streaming}

@@ -1,11 +1,20 @@
 import {
   useEffect,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from "react";
-import { ArrowUpIcon, Loader2Icon, SearchIcon, SquareIcon } from "lucide-react";
+import {
+  ArrowUpIcon,
+  Loader2Icon,
+  PaperclipIcon,
+  SearchIcon,
+  SquareIcon,
+  XIcon,
+} from "lucide-react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import type { ChatImageAttachment } from "../../lib/chat-attachments";
 import { cn } from "../../lib/utils";
 import { ShimmeringText } from "../ui/shimmering-text";
 
@@ -15,7 +24,12 @@ export type ChatRole = "user" | "assistant";
 // native state (desktop: streamText state; web: useChat `parts`) into this, so
 // the whole chat surface looks identical regardless of the data layer.
 export type ChatRow =
-  | { kind: "message"; role: ChatRole; content: string }
+  | {
+      kind: "message";
+      role: ChatRole;
+      content: string;
+      attachments?: ChatImageAttachment[];
+    }
   | { kind: "streaming"; content: string }
   | { kind: "tool"; label: string; active: boolean }
   | { kind: "thinking"; label: string }
@@ -26,7 +40,11 @@ interface ChatPanelProps {
   /** Gate the list until history has loaded so it can start pinned to bottom. */
   loaded: boolean;
   input: string;
+  attachments: ChatImageAttachment[];
+  attachmentError?: string | null;
   onInputChange: (value: string) => void;
+  onFilesSelected: (files: File[]) => void;
+  onRemoveAttachment: (id: string) => void;
   onSubmit: () => void;
   onStop?: () => void;
   streaming: boolean;
@@ -41,7 +59,11 @@ export function ChatPanel({
   rows,
   loaded,
   input,
+  attachments,
+  attachmentError,
   onInputChange,
+  onFilesSelected,
+  onRemoveAttachment,
   onSubmit,
   onStop,
   streaming,
@@ -52,7 +74,9 @@ export function ChatPanel({
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const atBottomRef = useRef(true);
   const internalTaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const taRef = inputRef ?? internalTaRef;
+  const [dragActive, setDragActive] = useState(false);
 
   function grow() {
     const t = taRef.current;
@@ -93,41 +117,124 @@ export function ChatPanel({
       )}
 
       <div className="p-2">
-        <div className="flex items-end gap-2 rounded-2xl border border-input bg-muted/60 py-2 pl-3.5 pr-2 focus-within:border-ring">
-          <textarea
-            ref={taRef}
-            value={input}
-            onChange={(e) => {
-              onInputChange(e.target.value);
-              grow();
-            }}
-            onKeyDown={(e) => {
-              const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
-              if (cmdEnter || (e.key === "Enter" && !e.shiftKey)) {
-                e.preventDefault();
-                onSubmit();
-              }
-            }}
-            rows={2}
-            placeholder={placeholder}
-            className="max-h-40 min-h-[3.25rem] flex-1 resize-none self-stretch bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <button
-            onClick={() => (streaming && onStop ? onStop() : onSubmit())}
-            disabled={!streaming && !input.trim()}
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white transition-opacity disabled:opacity-40"
-            aria-label={streaming && onStop ? "Stop" : "Send"}
-          >
-            {streaming ? (
-              onStop ? (
-                <SquareIcon className="h-3.5 w-3.5 fill-current" />
+        <div
+          className={cn(
+            "rounded-2xl border border-input bg-muted/60 transition-colors focus-within:border-blue-400",
+            dragActive && "border-blue-500 bg-blue-50/70",
+          )}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDragActive(true);
+          }}
+          onDragOver={(event) => event.preventDefault()}
+          onDragLeave={(event) => {
+            const relatedTarget = event.relatedTarget;
+            if (
+              !(relatedTarget instanceof Node) ||
+              !event.currentTarget.contains(relatedTarget)
+            ) {
+              setDragActive(false);
+            }
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragActive(false);
+            onFilesSelected(Array.from(event.dataTransfer.files));
+          }}
+        >
+          {attachments.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto px-2 pb-0 pt-2">
+              {attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border bg-background shadow-sm"
+                >
+                  <img
+                    src={attachment.url}
+                    alt={attachment.filename}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onRemoveAttachment(attachment.id)}
+                    aria-label={`Remove ${attachment.filename}`}
+                    className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/75 text-white opacity-90 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <XIcon className="h-3 w-3" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-end gap-1.5 p-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(event) => {
+                onFilesSelected(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Attach images"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <PaperclipIcon className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <textarea
+              ref={taRef}
+              value={input}
+              onChange={(e) => {
+                onInputChange(e.target.value);
+                grow();
+              }}
+              onPaste={(event) => {
+                const files = Array.from(event.clipboardData.files);
+                if (!files.length) return;
+                event.preventDefault();
+                onFilesSelected(files);
+              }}
+              onKeyDown={(e) => {
+                const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
+                if (cmdEnter || (e.key === "Enter" && !e.shiftKey)) {
+                  e.preventDefault();
+                  onSubmit();
+                }
+              }}
+              rows={1}
+              placeholder={placeholder}
+              className="max-h-40 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-sm leading-5 outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="button"
+              onClick={() => (streaming && onStop ? onStop() : onSubmit())}
+              disabled={!streaming && !input.trim() && !attachments.length}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-40"
+              aria-label={streaming && onStop ? "Stop" : "Send"}
+            >
+              {streaming ? (
+                onStop ? (
+                  <SquareIcon className="h-3.5 w-3.5 fill-current" />
+                ) : (
+                  <Loader2Icon className="h-4 w-4 animate-spin" />
+                )
               ) : (
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-              )
-            ) : (
-              <ArrowUpIcon className="h-4 w-4" />
-            )}
-          </button>
+                <ArrowUpIcon className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          {attachmentError && (
+            <p role="alert" className="px-3 pb-2 text-xs text-destructive">
+              {attachmentError}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -147,6 +254,7 @@ function RowView({
         <ChatBubble
           role={row.role}
           content={row.content}
+          attachments={row.attachments}
           renderMarkdown={renderMarkdown}
         />
       ) : row.kind === "streaming" ? (
@@ -158,7 +266,11 @@ function RowView({
       ) : row.kind === "tool" ? (
         <ToolChip label={row.label} active={row.active} />
       ) : row.kind === "thinking" ? (
-        <ShimmeringText text={row.label} startOnView={false} className="px-1 text-sm" />
+        <ShimmeringText
+          text={row.label}
+          startOnView={false}
+          className="px-1 text-sm"
+        />
       ) : (
         <p className="px-1 text-sm text-destructive">{row.content}</p>
       )}
@@ -169,7 +281,13 @@ function RowView({
 // ChatGPT-style: tool activity lives OUTSIDE the bubble, on its own line.
 function ToolChip({ label, active }: { label: string; active: boolean }) {
   if (active) {
-    return <ShimmeringText text={label} startOnView={false} className="px-1 text-sm" />;
+    return (
+      <ShimmeringText
+        text={label}
+        startOnView={false}
+        className="px-1 text-sm"
+      />
+    );
   }
   return (
     <div className="flex items-center gap-1.5 px-1 text-sm text-muted-foreground">
@@ -182,24 +300,72 @@ function ToolChip({ label, active }: { label: string; active: boolean }) {
 function ChatBubble({
   role,
   content,
+  attachments = [],
   renderMarkdown,
 }: {
   role: ChatRole;
   content: string;
+  attachments?: ChatImageAttachment[];
   renderMarkdown: (text: string) => ReactNode;
 }) {
   const isUser = role === "user";
   return (
-    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
+    <div
+      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+    >
       {isUser ? (
-        <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm text-white">
-          {content}
+        <div className="ml-auto flex max-w-[85%] flex-col items-end gap-1.5">
+          <AttachmentGallery attachments={attachments} />
+          {content && (
+            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm leading-5 text-white">
+              {content}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mt-2 prose-headings:mb-1">
-          {renderMarkdown(content)}
+        <div className="flex max-w-[85%] flex-col items-start gap-1.5">
+          <AttachmentGallery attachments={attachments} />
+          {content && (
+            <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-sm leading-5 text-foreground prose-p:my-0 prose-p:leading-5 prose-pre:my-2 prose-headings:mb-1 prose-headings:mt-2 [&_p+p]:mt-2">
+              {renderMarkdown(content)}
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function AttachmentGallery({
+  attachments,
+}: {
+  attachments: ChatImageAttachment[];
+}) {
+  if (!attachments.length) return null;
+
+  return (
+    <div
+      className={cn(
+        "grid max-w-full gap-1 overflow-hidden rounded-2xl border border-border bg-muted p-1 shadow-sm",
+        attachments.length > 1 ? "grid-cols-2" : "grid-cols-1",
+      )}
+    >
+      {attachments.map((attachment, index) => (
+        <img
+          key={attachment.id}
+          src={attachment.url}
+          alt={attachment.filename}
+          className={cn(
+            "block bg-background object-cover",
+            attachments.length === 1
+              ? "max-h-64 min-h-32 max-w-full rounded-xl"
+              : "aspect-square min-w-0 rounded-lg",
+            attachments.length === 3 &&
+              index === 2 &&
+              "col-span-2 aspect-[2/1]",
+          )}
+        />
+      ))}
     </div>
   );
 }
