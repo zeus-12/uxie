@@ -1,8 +1,11 @@
 import Chat from "@/components/chat";
 import BlockNoteEditor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
+import { AnnotatedPdfExportMenuItem } from "@/components/workspace/annotated-pdf-export-menu-item";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
+import { type LoadedPdfForExport } from "@/lib/annotated-pdf-export";
 import { useBlocknoteEditorStore } from "@/lib/store";
+import { type ReaderDoc } from "@/types/reader";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +29,17 @@ const Sidebar = ({
   isOwner,
   isVectorised,
   note,
+  annotatedPdfExport,
   showFlashcards = true,
 }: {
   canEdit: boolean;
   isOwner: boolean;
   isVectorised: boolean;
   note: string | null;
+  annotatedPdfExport?: {
+    pdfDocument: LoadedPdfForExport | null;
+    readerDocument: Pick<ReaderDoc, "highlights" | "title">;
+  };
   showFlashcards?: boolean;
 }) => {
   const { editor } = useBlocknoteEditorStore();
@@ -58,7 +66,10 @@ const Sidebar = ({
             <DropdownMenuTrigger asChild>
               <SidebarSettingsButton />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent
+              align="end"
+              className={annotatedPdfExport ? "w-64" : "w-52"}
+            >
               {isOwner && (
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"
@@ -77,6 +88,10 @@ const Sidebar = ({
                 <Download size={16} />
                 Download notes
               </DropdownMenuItem>
+
+              {annotatedPdfExport && (
+                <AnnotatedPdfExportMenuItem {...annotatedPdfExport} />
+              )}
 
               <DropdownMenuItem className="cursor-pointer gap-2" asChild>
                 <Link href="/feedback">

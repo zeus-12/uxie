@@ -9,6 +9,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { ChevronLeftIcon } from "lucide-react";
 import Link from "next/link";
+import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -17,7 +18,13 @@ import { useEffect, useRef, useState } from "react";
  * touches the backend. Only the demo-specific header (back link + always-editable
  * title) lives here.
  */
-const DemoDocViewer = ({ doc }: { doc: ReaderDoc }) => {
+const DemoDocViewer = ({
+  doc,
+  onPdfDocumentChange,
+}: {
+  doc: ReaderDoc;
+  onPdfDocumentChange: (pdfDocument: PDFDocumentProxy | null) => void;
+}) => {
   const addHighlightToStore = useDemoDocStore((s) => s.addHighlight);
   const deleteHighlight = useDemoDocStore((s) => s.deleteHighlight);
   const updateAreaHighlight = useDemoDocStore((s) => s.updateAreaHighlight);
@@ -73,6 +80,7 @@ const DemoDocViewer = ({ doc }: { doc: ReaderDoc }) => {
           deleteHighlight={deleteHighlight}
           onUpdateReaderState={(_id, state) => setReaderState(state)}
           onUpdateAreaHighlight={updateAreaHighlight}
+          onPdfDocumentChange={onPdfDocumentChange}
         />
       </div>
     </div>

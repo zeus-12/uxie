@@ -61,6 +61,10 @@ export interface Settings {
   llm: LlmSettings;
 }
 
+export type AnnotatedPdfExportResult =
+  | { status: "cancelled" }
+  | { status: "exported" };
+
 export interface EmbeddedChunk {
   chunk: string;
   embedding: number[];
@@ -96,6 +100,10 @@ export interface IpcInvokeContract {
   "documents:storeImage": {
     args: [docId: string, png: Uint8Array];
     result: string;
+  };
+  "documents:exportAnnotatedPdf": {
+    args: [docId: string];
+    result: AnnotatedPdfExportResult;
   };
 
   // Highlights
@@ -188,6 +196,7 @@ export const API_INVOKE = {
   setDocumentCover: "documents:setCover",
   deleteDocument: "documents:delete",
   storeDocumentImage: "documents:storeImage",
+  exportAnnotatedPdf: "documents:exportAnnotatedPdf",
 
   addHighlight: "highlights:add",
   deleteHighlight: "highlights:delete",

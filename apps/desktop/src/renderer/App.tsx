@@ -23,7 +23,11 @@ export default function App() {
           onSettings={() => setSettingsOpen(true)}
         />
       )}
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        activeDocumentId={view.name === "reader" ? view.id : null}
+      />
     </>
   );
 }
