@@ -31,6 +31,7 @@ import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 import { extractPdfText } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
 import { createMessage, getMessagesByDocId } from "./db/messages";
+import { exportAnnotatedPdf } from "./pdf-export";
 
 // Without this, app.getName() falls back to package.json's "name" — the
 // workspace's "@uxie/desktop" — and userData lands in a nested "@uxie/desktop"
@@ -73,6 +74,7 @@ const invokeHandlers: {
   "documents:setCover": (id, png) => setDocumentCover(id, png),
   "documents:delete": (id) => deleteDocumentWithFile(id),
   "documents:storeImage": (docId, png) => storeDocumentImage(docId, png),
+  "documents:exportAnnotatedPdf": (docId) => exportAnnotatedPdf(docId),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
   // Deliberately leaves the screenshot on disk: the same image is embedded in

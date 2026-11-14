@@ -38,6 +38,7 @@
     "framer-motion": "^10.16.4",
     "kokoro-js": "^1.2.1",
     "lucide-react": "^0.563.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "2.16.105",
     "phonemizer": "^1.2.1",
     "react-hook-form": "^7.46.2",

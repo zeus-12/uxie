@@ -13,7 +13,8 @@ import {
 } from "@uxie/shared/components/ui/resizable";
 import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import { useRouter } from "next/router";
-import { useEffect, useRef } from "react";
+import { type PDFDocumentProxy } from "pdfjs-dist";
+import { useEffect, useRef, useState } from "react";
 import { type ImperativePanelHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 import { useMediaQuery } from "usehooks-ts";
@@ -22,6 +23,7 @@ function DocViewerContent({ doc }: { doc: DocumentData }) {
   const sidebarHidden = usePdfSettingsStore((state) => state.sidebarHidden);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
 
   useEffect(() => {
     const panel = sidebarPanelRef.current;
@@ -40,6 +42,9 @@ function DocViewerContent({ doc }: { doc: DocumentData }) {
       isOwner={doc.userPermissions.isOwner}
       isVectorised={doc.isVectorised}
       note={doc.note}
+      annotatedPdfExport={
+        doc.kind === "pdf" ? { pdfDocument, readerDocument: doc } : undefined
+      }
       showFlashcards={doc.kind === "pdf"}
     />
   );
@@ -54,7 +59,11 @@ function DocViewerContent({ doc }: { doc: DocumentData }) {
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
               {doc.kind === "pdf" ? (
-                <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
+                <DocViewer
+                  doc={doc}
+                  canEdit={doc.userPermissions.canEdit}
+                  onPdfDocumentChange={setPdfDocument}
+                />
               ) : (
                 <ArticleReader doc={doc} />
               )}
