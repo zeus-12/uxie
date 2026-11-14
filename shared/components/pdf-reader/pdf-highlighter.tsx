@@ -11,7 +11,7 @@ import {
   usePdfSettingsStore,
 } from "../../lib/store";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -20,6 +20,7 @@ import {
   Popup,
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
+import type { PdfPassageAnchor, RectInput } from "../../schema";
 
 type Rect = {
   x1?: number;
@@ -47,6 +48,32 @@ export type ReaderHighlight = {
 
 export type HighlighterInstance = InstanceType<typeof PdfHighlighterComponent>;
 
+export interface PdfSourceFocus {
+  requestId: string;
+  pageNumber: number;
+  location: PdfPassageAnchor | null;
+}
+
+function sourceHighlightFromFocus(focus: PdfSourceFocus): IHighlight | null {
+  if (focus.location?.kind !== "selection") return null;
+
+  const withPage = (rect: RectInput) => ({
+    ...rect,
+    pageNumber: rect.pageNumber ?? focus.pageNumber,
+  });
+
+  return {
+    id: `source-${focus.requestId}`,
+    position: {
+      boundingRect: withPage(focus.location.position.boundingRect),
+      rects: focus.location.position.rects.map(withPage),
+      pageNumber: focus.pageNumber,
+    },
+    content: { text: focus.location.exact },
+    comment: { text: "", emoji: "" },
+  };
+}
+
 const PdfHighlighter = ({
   pdfDocument,
   highlights,
@@ -57,6 +84,8 @@ const PdfHighlighter = ({
   updateAreaHighlight,
   readSelectedText,
   showAiFeatures,
+  addBookmark,
+  focusedSource,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
@@ -77,6 +106,12 @@ const PdfHighlighter = ({
     pageNumber?: number,
   ) => void;
   readSelectedText: ReadSelectedText;
+  addBookmark?: (args: {
+    content: { text?: string; image?: string };
+    position: IHighlight["position"];
+    selectionInfo: SelectionInfo | null;
+  }) => void;
+  focusedSource?: PdfSourceFocus | null;
   // Whether the document is indexed — the AI actions are hidden until it is.
   showAiFeatures: boolean;
 }) => {
@@ -84,6 +119,13 @@ const PdfHighlighter = ({
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
+  const sourceHighlight = useMemo(
+    () => (focusedSource ? sourceHighlightFromFocus(focusedSource) : null),
+    [focusedSource],
+  );
+  const renderedHighlights = sourceHighlight
+    ? [...highlights, sourceHighlight]
+    : highlights;
 
   // Handed to us by the viewer once the document is ready.
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
@@ -143,10 +185,24 @@ const PdfHighlighter = ({
     return () => setJumpToHighlight(null);
   }, [highlights, setJumpToHighlight]);
 
+  useEffect(() => {
+    if (!focusedSource) return;
+
+    if (sourceHighlight && scrollToHighlightRef.current) {
+      scrollToHighlightRef.current(sourceHighlight);
+      return;
+    }
+
+    highlighterInstanceRef.current?.viewer.scrollPageIntoView({
+      pageNumber: focusedSource.pageNumber,
+    });
+  }, [focusedSource, sourceHighlight]);
+
   // Remember where in the text layer the selection started, so "Read the text"
   // can begin at that word rather than at the top of the selection.
   useEffect(() => {
     const handleMouseUp = () => {
+      selectionInfoRef.current = null;
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
 
@@ -232,6 +288,16 @@ const PdfHighlighter = ({
           content={content}
           hideTipAndSelection={hideTipAndSelection}
           addHighlight={() => addHighlight({ content, position })}
+          addBookmark={
+            addBookmark
+              ? () =>
+                  addBookmark({
+                    content,
+                    position,
+                    selectionInfo: selectionInfoRef.current,
+                  })
+              : undefined
+          }
           readSelectedText={readSelectedText}
           selectionInfoRef={selectionInfoRef}
           transformSelection={transformSelection}
@@ -247,6 +313,19 @@ const PdfHighlighter = ({
         isScrolledTo,
       ) => {
         const isTextHighlight = highlight.position.rects?.length !== 0;
+        const isFocusedSource = highlight.id === sourceHighlight?.id;
+
+        if (isFocusedSource) {
+          return (
+            <div id={highlight.id} className="uxie-source-focus" key={index}>
+              <Highlight
+                isScrolledTo={isScrolledTo}
+                position={highlight.position}
+                comment={highlight.comment}
+              />
+            </div>
+          );
+        }
 
         const component = isTextHighlight ? (
           <div id={highlight.id}>
@@ -281,7 +360,9 @@ const PdfHighlighter = ({
                 hideTip={hideTip}
               />
             }
-            onMouseOver={(popupContent) => setTip(highlight, () => popupContent)}
+            onMouseOver={(popupContent) =>
+              setTip(highlight, () => popupContent)
+            }
             onMouseOut={hideTip}
             key={index}
           >
@@ -289,7 +370,7 @@ const PdfHighlighter = ({
           </Popup>
         );
       }}
-      highlights={highlights as unknown as IHighlight[]}
+      highlights={renderedHighlights as unknown as IHighlight[]}
     />
   );
 };

@@ -32,6 +32,7 @@ const BottomToolbar = ({
   pageColourChangeHandler,
   followAlongEnabled,
   toggleFollowAlong,
+  bookmarkTab,
 }: {
   pageNumberInView: number;
   currentReadingSpeed: number;
@@ -51,6 +52,7 @@ const BottomToolbar = ({
   pageColourChangeHandler: (colour: string) => void;
   followAlongEnabled: boolean;
   toggleFollowAlong: () => void;
+  bookmarkTab?: Tab;
 }) => {
   const [pageNumber, setPageNumber] = useState(1);
 
@@ -64,24 +66,27 @@ const BottomToolbar = ({
   );
 
   const tabs: Tab[] = useMemo(() => {
+    const pageTab: Tab = {
+      children: (
+        <PageControlsContent
+          debouncedHandlePageChange={debouncedHandlePageChange}
+          pageNumber={pageNumber}
+          setPageNumber={setPageNumber}
+          totalPages={totalPages}
+        />
+      ),
+      icon: (
+        <PageControlsIcon
+          pageNumberInView={pageNumberInView}
+          totalPages={totalPages}
+        />
+      ),
+      clickOutsideToClose: true,
+    };
+
     return [
-      {
-        children: (
-          <PageControlsContent
-            debouncedHandlePageChange={debouncedHandlePageChange}
-            pageNumber={pageNumber}
-            setPageNumber={setPageNumber}
-            totalPages={totalPages}
-          />
-        ),
-        icon: (
-          <PageControlsIcon
-            pageNumberInView={pageNumberInView}
-            totalPages={totalPages}
-          />
-        ),
-        clickOutsideToClose: true,
-      },
+      pageTab,
+      ...(bookmarkTab ? [bookmarkTab] : []),
       {
         children: (
           <ZoomControlsContent
@@ -152,6 +157,7 @@ const BottomToolbar = ({
     skipToPreviousSentence,
     toggleFollowAlong,
     pageColourChangeHandler,
+    bookmarkTab,
   ]);
 
   return (

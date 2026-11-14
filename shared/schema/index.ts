@@ -1,9 +1,11 @@
-// Local SQLite schema — a 1:1 mirror of apps/web/prisma/schema.prisma so a
-// future Prisma→Drizzle convergence has one source of truth. The desktop app
-// only exercises documents + highlights; the rest is kept for parity.
+// Local SQLite schema. Its base tables mirror apps/web/prisma/schema.prisma so
+// a future Prisma→Drizzle convergence has one source of truth; explicitly
+// marked desktop-only tables hold local reader features that web does not yet
+// expose.
 // Prisma→SQLite: enum→text, bool→int, DateTime→int timestamp, Float→real,
 // Json→text, cuid()→cuid2 (app-side).
 import {
+  index,
   integer,
   real,
   sqliteTable,
@@ -79,7 +81,9 @@ export const document = sqliteTable("Document", {
     .$defaultFn(() => new Date())
     .$onUpdate(() => new Date()),
   pageCount: integer("pageCount").notNull(),
-  isUploaded: integer("isUploaded", { mode: "boolean" }).notNull().default(true),
+  isUploaded: integer("isUploaded", { mode: "boolean" })
+    .notNull()
+    .default(true),
   lastReadPage: integer("lastReadPage").notNull().default(1),
   // The pdf.js scale to restore on open. Null means "auto" — the viewer's own
   // fit-to-width default, which is what a document gets until the user zooms.
@@ -130,6 +134,29 @@ export const highlight = sqliteTable("Highlight", {
   // live, so deleting the highlight can delete the file with it. Null for TEXT.
   imageUrl: text("imageUrl"),
 });
+
+// Desktop-only reader navigation. Bookmarks intentionally stay separate from
+// highlights: they have their own lifecycle and can point at a page without
+// painting a permanent annotation.
+export const bookmark = sqliteTable(
+  "Bookmark",
+  {
+    id: primaryId(),
+    documentId: text("documentId")
+      .notNull()
+      .references(() => document.id, { onDelete: "cascade" }),
+    pageNumber: integer("pageNumber").notNull(),
+    label: text("label"),
+    location: text("location", { mode: "json" }).$type<PdfPassageAnchor>(),
+    createdAt: createdAt(),
+  },
+  (t) => ({
+    documentCreatedAtIndex: index("Bookmark_documentId_createdAt_idx").on(
+      t.documentId,
+      t.createdAt,
+    ),
+  }),
+);
 
 export const cordinate = sqliteTable(
   "Cordinate",
@@ -195,6 +222,7 @@ export type User = typeof user.$inferSelect;
 export type Document = typeof document.$inferSelect;
 export type NewDocument = typeof document.$inferInsert;
 export type Highlight = typeof highlight.$inferSelect;
+export type Bookmark = typeof bookmark.$inferSelect;
 export type Cordinate = typeof cordinate.$inferSelect;
 export type Message = typeof message.$inferSelect;
 export type Flashcard = typeof flashcard.$inferSelect;
@@ -212,6 +240,42 @@ export interface RectInput {
   width: number;
   height: number;
   pageNumber?: number | null;
+}
+
+export interface PdfTextLayerStart {
+  blockIndex: number;
+  offsetInBlock: number;
+}
+
+export interface PdfSelectionPosition {
+  boundingRect: RectInput;
+  rects: RectInput[];
+}
+
+/**
+ * A passage locator shared by bookmarks and future cited-source focusing.
+ * Quote-only locations can still fall back to their bookmark's page; precise
+ * selections additionally carry zoom-independent pdf.js geometry.
+ */
+export type PdfPassageAnchor =
+  | {
+      version: 1;
+      kind: "quote";
+      exact: string;
+    }
+  | {
+      version: 1;
+      kind: "selection";
+      exact: string;
+      position: PdfSelectionPosition;
+      textLayerStart?: PdfTextLayerStart;
+    };
+
+export interface CreateBookmarkInput {
+  documentId: string;
+  pageNumber: number;
+  label?: string | null;
+  location?: PdfPassageAnchor | null;
 }
 
 export interface AddHighlightInput {
