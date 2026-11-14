@@ -1,8 +1,8 @@
 import Navbar from "@/components/navbar";
-import { Toaster } from "@uxie/shared/components/ui/sonner";
 import { api } from "@/lib/api";
 import "@/styles/globals.css";
 import "@blocknote/mantine/style.css";
+import { Toaster } from "@uxie/shared/components/ui/sonner";
 import { type Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { DefaultSeo } from "next-seo";
@@ -16,7 +16,9 @@ const MyApp: AppType<{ session: Session | null }> = ({
 }) => {
   const router = useRouter();
   // Pages that render full-bleed (no navbar chrome).
-  const isFullBleed = ["/f/[docId]", "/demo"].includes(router.pathname);
+  const isFullBleed = ["/f/[docId]", "/demo", "/demo/reflow"].includes(
+    router.pathname,
+  );
 
   return (
     <SessionProvider session={session}>
