@@ -5,6 +5,7 @@ import { Skeleton } from "@uxie/shared/components/ui/skeleton";
 import { AddDocCard } from "@uxie/shared/components/workspace/add-doc-card";
 import { DocCard } from "@uxie/shared/components/workspace/doc-card";
 import type { Document } from "@uxie/shared/schema";
+import { ImportPdfDialog } from "./import-pdf-dialog";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -17,7 +18,7 @@ export function Library({
 }) {
   const [docs, setDocs] = useState<Document[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const refresh = useCallback(() => {
@@ -32,19 +33,9 @@ export function Library({
 
   useEffect(refresh, [refresh]);
 
-  async function onImport() {
-    setImporting(true);
-    try {
-      const doc = await window.uxieAPI.importDocument();
-      if (doc) {
-        refresh();
-        void generateCoverFor(doc.id);
-      }
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setImporting(false);
-    }
+  function onImported(doc: Document) {
+    refresh();
+    void generateCoverFor(doc.id);
   }
 
   // Best-effort thumbnail: the card falls back to the file icon if this fails,
@@ -77,6 +68,11 @@ export function Library({
 
   return (
     <div className="min-h-full">
+      <ImportPdfDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={onImported}
+      />
       <div className="app-drag h-11 w-full" />
       {docs === null && !error ? (
         <LibrarySkeleton />
@@ -142,7 +138,7 @@ export function Library({
 
                   <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-3">
                     {!searching && (
-                      <AddDocCard onClick={onImport} importing={importing} />
+                      <AddDocCard onClick={() => setImportOpen(true)} />
                     )}
                     {filtered.map((doc) => (
                       <DocCard

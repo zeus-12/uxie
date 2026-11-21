@@ -3,6 +3,7 @@ import { readFile } from "fs/promises";
 import { basename, join } from "path";
 import { createId } from "@paralleldrive/cuid2";
 import type { Document } from "@uxie/shared/schema";
+import type { PickedPdf } from "../ipc-contract";
 import {
   createDocument,
   deleteDocument,
@@ -101,17 +102,22 @@ export async function migrateDocumentStorage(): Promise<void> {
   }
 }
 
-export async function importPdf(): Promise<Document | null> {
+export async function pickPdf(): Promise<PickedPdf | null> {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ["openFile"],
     filters: [{ name: "PDF", extensions: ["pdf"] }],
   });
   if (canceled || !filePaths[0]) return null;
+  return { name: basename(filePaths[0]), bytes: await readFile(filePaths[0]) };
+}
 
-  const bytes = await readFile(filePaths[0]);
+export async function importPdf(
+  name: string,
+  bytes: Uint8Array,
+): Promise<Document> {
   const pageCount = await countPdfPages(bytes);
   const id = createId();
-  const title = basename(filePaths[0]).replace(/\.pdf$/i, "");
+  const title = name.replace(/\.pdf$/i, "");
 
   const doc = await createDocument(getDb(), {
     id,
