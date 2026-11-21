@@ -1,21 +1,23 @@
 declare module "scribe.js-ocr" {
-  interface ScribeDocument {
-    inputData: { pageCount: number };
-    progressHandler: (message: {
-      type: string;
-      n?: number;
-      info?: { engineName?: string };
-    }) => void;
+  export interface ScribeProgressMessage {
+    type: string;
+    n?: number;
+    info?: { engineName?: string };
+  }
+
+  export interface ScribeDocument {
+    inputData: { pageCount: number; ocrApplied: boolean[] | null };
+    progressHandler: (message: ScribeProgressMessage) => void;
     recognize(options: {
       langs: string[];
       modeAdv: "lstm";
-      vanillaMode: true;
+      vanillaMode: false;
       ocrPages: "autoShallow";
     }): Promise<unknown>;
     exportData(
       format: "pdf",
       options: { displayMode: "invis" },
-    ): Promise<ArrayBuffer | Uint8Array>;
+    ): Promise<string | ArrayBuffer>;
     close(): Promise<void>;
   }
 

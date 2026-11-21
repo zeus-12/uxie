@@ -346,9 +346,6 @@ importers:
       sbd:
         specifier: ^1.0.19
         version: 1.0.19
-      scribe.js-ocr:
-        specifier: ^0.18.2
-        version: 0.18.2
       sonner:
         specifier: ^1.4.41
         version: 1.4.41(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -587,6 +584,9 @@ importers:
       sbd:
         specifier: ^1.0.19
         version: 1.0.19
+      scribe.js-ocr:
+        specifier: ^0.18.2
+        version: 0.18.2
       sonner:
         specifier: ^1.4.41
         version: 1.4.41(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -15285,7 +15285,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.13.2(debug@4.4.3))
+      retry-axios: 2.6.0(axios@1.13.2)
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -17466,7 +17466,7 @@ snapshots:
     dependencies:
       lowercase-keys: 2.0.0
 
-  retry-axios@2.6.0(axios@1.13.2(debug@4.4.3)):
+  retry-axios@2.6.0(axios@1.13.2):
     dependencies:
       axios: 1.13.2(debug@4.4.3)
 

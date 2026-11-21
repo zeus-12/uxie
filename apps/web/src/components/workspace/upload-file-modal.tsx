@@ -4,7 +4,6 @@ import { useUploadThing } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "@uploadthing/react";
 import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
-import { Checkbox } from "@uxie/shared/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +13,12 @@ import {
 } from "@uxie/shared/components/ui/dialog";
 import { Input } from "@uxie/shared/components/ui/input";
 import { Spinner } from "@uxie/shared/components/ui/spinner";
+import { OcrOption } from "@uxie/shared/components/workspace/ocr-option";
+import {
+  ocrPdf,
+  ocrProgressLabel,
+  type OcrProgress,
+} from "@uxie/shared/lib/ocr";
 import { XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCallback, useState } from "react";
@@ -22,32 +27,6 @@ import {
   generateClientDropzoneAccept,
   generatePermittedFileTypes,
 } from "uploadthing/client";
-
-type OcrProgress =
-  | { kind: "loading" | "reading" | "exporting" }
-  | {
-      kind: "recognizing";
-      pages: { completed: number; total: number } | null;
-    };
-
-const ocrProgressLabel = (progress: OcrProgress) => {
-  switch (progress.kind) {
-    case "loading":
-      return "Loading OCR...";
-    case "reading":
-      return "Reading PDF...";
-    case "recognizing":
-      return progress.pages
-        ? `Recognized ${progress.pages.completed} of ${progress.pages.total} pages...`
-        : "Recognizing text...";
-    case "exporting":
-      return "Saving searchable PDF...";
-    default: {
-      const exhaustive: never = progress;
-      return exhaustive;
-    }
-  }
-};
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -95,67 +74,9 @@ const UploadFileModal = ({
         }
 
         if (doOcr) {
-          setOcrProgress({ kind: "loading" });
-          const { default: scribe } = await import("scribe.js-ocr");
-          setOcrProgress({ kind: "reading" });
-          const doc = await scribe.openDocument(files);
-          let failed = false;
-          try {
-            const completedPages = new Set<number>();
-            doc.progressHandler = (message) => {
-              if (
-                message.type !== "convert" ||
-                message.info?.engineName !== "Combined" ||
-                typeof message.n !== "number"
-              ) {
-                return;
-              }
-              completedPages.add(message.n);
-              setOcrProgress({
-                kind: "recognizing",
-                pages: {
-                  completed: completedPages.size,
-                  total: doc.inputData.pageCount,
-                },
-              });
-            };
-            setOcrProgress({ kind: "recognizing", pages: null });
-            await doc.recognize({
-              langs: ["eng"],
-              modeAdv: "lstm",
-              vanillaMode: true,
-              ocrPages: "autoShallow",
-            });
-
-            setOcrProgress({ kind: "exporting" });
-            const data = await doc.exportData("pdf", { displayMode: "invis" });
-            const bytes =
-              data instanceof Uint8Array ? new Uint8Array(data) : data;
-            return [
-              new File([bytes], firstFile.name, {
-                type: firstFile.type,
-                lastModified: firstFile.lastModified,
-              }),
-            ];
-          } catch (error) {
-            failed = true;
-            throw error;
-          } finally {
-            doc.progressHandler = () => {};
-            try {
-              await doc.close();
-            } catch (error) {
-              if (!failed) throw error;
-            }
-          }
+          return [await ocrPdf(firstFile, setOcrProgress)];
         }
         return files;
-      } catch (err) {
-        throw err instanceof Error
-          ? err
-          : new Error("This PDF could not be processed with OCR.", {
-              cause: err,
-            });
       } finally {
         setOcrProgress(null);
       }
@@ -270,25 +191,12 @@ const UploadFileModal = ({
             />
           </div>
 
-          <div>
-            <div className="my-3 flex items-center space-x-2">
-              <Checkbox
-                id="ocr"
-                checked={doOcr}
-                onCheckedChange={(c) => setDoOcr(!!c)}
-              />
-              <div>
-                <label
-                  htmlFor="ocr"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  OCR Pdf
-                </label>
-                <span className="block text-muted-foreground text-xs">
-                  Convert scanned PDF into searchable and selectable document.
-                </span>
-              </div>
-            </div>
+          <div className="my-3">
+            <OcrOption
+              checked={doOcr}
+              onCheckedChange={setDoOcr}
+              disabled={isOcring}
+            />
           </div>
 
           <div>
