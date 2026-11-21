@@ -47,16 +47,3 @@ textarea,
   cursor: auto;
 }
 
-/* PDF.js creates these spans inside its existing text layer. Keep passive
-   matches translucent so text, annotations, and TTS remain legible; the
-   selected match gets both a stronger fill and an outline. */
-.PdfHighlighter .textLayer .highlight {
-  background-color: rgb(250 204 21 / 45%);
-  border-radius: 2px;
-  mix-blend-mode: multiply;
-}
-
-.PdfHighlighter .textLayer .highlight.selected {
-  background-color: rgb(249 115 22 / 72%);
-  box-shadow: 0 0 0 1px rgb(154 52 18 / 85%);
-}

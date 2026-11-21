@@ -40,7 +40,6 @@ import type {
 import { Chat } from "./chat";
 import { Notes } from "./notes";
 import { FlashcardsPanel } from "./flashcards";
-import { PdfSearch } from "./pdf-search";
 
 type PdfViewerInstance = HighlighterInstance["viewer"];
 
@@ -90,8 +89,7 @@ type NotesEditor = {
 // linked quote for text, the screenshot for an area selection. No-op if the
 // notes tab hasn't mounted the editor yet.
 function appendNoteBlock(block: unknown) {
-  const editor = useBlocknoteEditorStore.getState()
-    .editor as NotesEditor | null;
+  const editor = useBlocknoteEditorStore.getState().editor as NotesEditor | null;
   if (!editor) return;
   try {
     editor.insertBlocks([block], editor.document[editor.document.length - 1]);
@@ -159,7 +157,6 @@ export function Reader({
     return (
       <div className="flex h-full flex-col bg-gray-50">
         <ReaderContent
-          key={id}
           docId={id}
           doc={doc}
           onBack={onBack}
@@ -218,13 +215,10 @@ function ReaderContent({
   // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
   // needs the live instance to track the page in view and apply zoom. The ref
   // mirrors it for callbacks that shouldn't re-subscribe when it arrives.
-  const [highlighter, setHighlighter] = useState<HighlighterInstance | null>(
-    null,
-  );
-  const pdfViewer: PdfViewerInstance | null = highlighter?.viewer ?? null;
+  const [pdfViewer, setPdfViewer] = useState<PdfViewerInstance | null>(null);
   const handleHighlighterRef = useCallback(
     (instance: HighlighterInstance | null) => {
-      setHighlighter(instance);
+      setPdfViewer(instance?.viewer ?? null);
     },
     [],
   );
@@ -413,63 +407,57 @@ function ReaderContent({
             style={{ background: pageColour }}
           >
             {error && (
-              <p className="absolute left-2 top-2 z-50 rounded bg-red-50 px-2 py-1 text-xs text-destructive">
-                {error}
-              </p>
+            <p className="absolute left-2 top-2 z-50 rounded bg-red-50 px-2 py-1 text-xs text-destructive">
+              {error}
+            </p>
+          )}
+          <PdfLoader
+            url={doc.url}
+            workerSrc={workerSrc}
+            beforeLoad={<SpinnerPage />}
+          >
+            {(pdfDocument: PDFDocumentProxy) => (
+              <PdfHighlighter
+                highlighterRef={handleHighlighterRef}
+                pdfDocument={pdfDocument}
+                pdfScaleValue={pdfScaleValue}
+                highlights={highlights}
+                showAiFeatures={doc.isVectorised}
+                addHighlight={({ content, position }) =>
+                  void addHighlight(position as ScaledPosition, content)
+                }
+                deleteHighlight={(hid) => void deleteHighlight(hid)}
+                updateAreaHighlight={(hid, boundingRect) =>
+                  void updateArea(
+                    hid,
+                    boundingRect as ScaledPosition["boundingRect"],
+                  )
+                }
+                readSelectedText={readSelectedText}
+              />
             )}
-            <PdfLoader
-              url={doc.url}
-              workerSrc={workerSrc}
-              beforeLoad={<SpinnerPage />}
-            >
-              {(pdfDocument: PDFDocumentProxy) => (
-                <PdfHighlighter
-                  highlighterRef={handleHighlighterRef}
-                  pdfDocument={pdfDocument}
-                  pdfScaleValue={pdfScaleValue}
-                  highlights={highlights}
-                  showAiFeatures={doc.isVectorised}
-                  addHighlight={({ content, position }) =>
-                    void addHighlight(position as ScaledPosition, content)
-                  }
-                  deleteHighlight={(hid) => void deleteHighlight(hid)}
-                  updateAreaHighlight={(hid, boundingRect) =>
-                    void updateArea(
-                      hid,
-                      boundingRect as ScaledPosition["boundingRect"],
-                    )
-                  }
-                  readSelectedText={readSelectedText}
-                />
-              )}
-            </PdfLoader>
+          </PdfLoader>
 
-            <PdfSearch
-              eventBus={highlighter?.eventBus ?? null}
-              findController={highlighter?.findController ?? null}
-              viewerContainer={highlighter?.containerNode ?? null}
-            />
-
-            <BottomToolbar
-              pageNumberInView={pageNumberInView}
-              currentReadingSpeed={currentReadingSpeed}
-              readingStatus={readingStatus}
-              startWordByWordHighlighting={startSentenceBySentenceHighlighting}
-              handleReadingSpeedChange={handleReadingSpeedChange}
-              resumeReading={resumeReading}
-              stopReading={stopReading}
-              pauseReading={pauseReading}
-              skipSentence={skipSentence}
-              skipToPreviousSentence={skipToPreviousSentence}
-              totalPages={doc.pageCount}
-              onZoomChange={handleZoomChange}
-              onPageChange={handlePageChange}
-              currentZoom={currentZoom}
-              pageColour={pageColour}
-              pageColourChangeHandler={pageColourChangeHandler}
-              followAlongEnabled={followAlongEnabled}
-              toggleFollowAlong={toggleFollowAlong}
-            />
+          <BottomToolbar
+            pageNumberInView={pageNumberInView}
+            currentReadingSpeed={currentReadingSpeed}
+            readingStatus={readingStatus}
+            startWordByWordHighlighting={startSentenceBySentenceHighlighting}
+            handleReadingSpeedChange={handleReadingSpeedChange}
+            resumeReading={resumeReading}
+            stopReading={stopReading}
+            pauseReading={pauseReading}
+            skipSentence={skipSentence}
+            skipToPreviousSentence={skipToPreviousSentence}
+            totalPages={doc.pageCount}
+            onZoomChange={handleZoomChange}
+            onPageChange={handlePageChange}
+            currentZoom={currentZoom}
+            pageColour={pageColour}
+            pageColourChangeHandler={pageColourChangeHandler}
+            followAlongEnabled={followAlongEnabled}
+            toggleFollowAlong={toggleFollowAlong}
+          />
           </div>
         </div>
       </ResizablePanel>
