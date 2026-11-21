@@ -30,6 +30,7 @@ async function recognizeIntoPdf(
   doc: ScribeDocument,
   file: File,
   onProgress: (progress: OcrProgress) => void,
+  signal: AbortSignal | undefined,
 ): Promise<File> {
   const recognizedPages = new Set<number>();
   // Scribe files each Tesseract page under the "Combined" layer, whichever engine ran.
@@ -57,10 +58,12 @@ async function recognizeIntoPdf(
     modeAdv: "lstm",
     vanillaMode: false,
     ocrPages: "autoShallow",
+    signal,
   });
 
   if (countTrue(doc.inputData.ocrApplied) === 0) return file;
 
+  signal?.throwIfAborted();
   onProgress({ kind: "exporting" });
   const data = await doc.exportData("pdf", { displayMode: "invis" });
   if (typeof data === "string") {
@@ -75,15 +78,18 @@ async function recognizeIntoPdf(
 export async function ocrPdf(
   file: File,
   onProgress: (progress: OcrProgress) => void,
+  signal?: AbortSignal,
 ): Promise<File> {
   onProgress({ kind: "loading" });
   const { default: scribe } = await import("scribe.js-ocr");
   onProgress({ kind: "reading" });
+  signal?.throwIfAborted();
   const doc = await scribe.openDocument([file]);
 
   let result: File;
   try {
-    result = await recognizeIntoPdf(doc, file, onProgress);
+    signal?.throwIfAborted();
+    result = await recognizeIntoPdf(doc, file, onProgress, signal);
   } catch (error) {
     await doc.close().catch(() => {});
     throw error;

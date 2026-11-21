@@ -5,7 +5,7 @@ import { Skeleton } from "@uxie/shared/components/ui/skeleton";
 import { AddDocCard } from "@uxie/shared/components/workspace/add-doc-card";
 import { DocCard } from "@uxie/shared/components/workspace/doc-card";
 import type { Document } from "@uxie/shared/schema";
-import { ImportPdfDialog } from "./import-pdf-dialog";
+import { usePdfImport } from "./use-pdf-import";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -18,7 +18,6 @@ export function Library({
 }) {
   const [docs, setDocs] = useState<Document[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const refresh = useCallback(() => {
@@ -33,9 +32,18 @@ export function Library({
 
   useEffect(refresh, [refresh]);
 
-  function onImported(doc: Document) {
+  const pdfImport = usePdfImport((doc, cover) => {
     refresh();
-    void generateCoverFor(doc.id);
+    void (cover ? saveCover(doc.id, cover) : generateCoverFor(doc.id));
+  });
+
+  async function saveCover(id: string, png: Uint8Array) {
+    try {
+      await window.uxieAPI.setDocumentCover(id, png);
+      refresh();
+    } catch (e) {
+      console.error("[cover] saving failed:", e);
+    }
   }
 
   // Best-effort thumbnail: the card falls back to the file icon if this fails,
@@ -68,11 +76,7 @@ export function Library({
 
   return (
     <div className="min-h-full">
-      <ImportPdfDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        onImported={onImported}
-      />
+      {pdfImport.dialog}
       <div className="app-drag h-11 w-full" />
       {docs === null && !error ? (
         <LibrarySkeleton />
@@ -138,7 +142,11 @@ export function Library({
 
                   <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-3">
                     {!searching && (
-                      <AddDocCard onClick={() => setImportOpen(true)} />
+                      <AddDocCard
+                        onClick={() =>
+                          pdfImport.start().catch((e) => setError(message(e)))
+                        }
+                      />
                     )}
                     {filtered.map((doc) => (
                       <DocCard

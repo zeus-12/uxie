@@ -13,6 +13,7 @@ declare module "scribe.js-ocr" {
       modeAdv: "lstm";
       vanillaMode: false;
       ocrPages: "autoShallow";
+      signal?: AbortSignal;
     }): Promise<unknown>;
     exportData(
       format: "pdf",
