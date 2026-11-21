@@ -192,24 +192,27 @@ describe("Kokoro model timing boundaries", () => {
       "duːnˌɑːt hˈaɪlaɪt ˈɛvɹɪθˌɪŋ ɐ pˈeɪdʒ dɹˈaʊnd ɪn jˈɛloʊ ɪz æz jˈuːsləs æz ɐ blˈæŋk wˌʌn",
       "dˈuː nˌɑːt hˈaɪlaɪt ˈɛvɹɪθˌɪŋ ɐ pˈeɪdʒ dɹˈaʊnd ɪn jˈɛloʊ ɪz æz jˈuːsləs æz ɐ blˈæŋk wˌʌn",
     ],
-  ])("keeps every source word when eSpeak joins connected speech: %s", (text, contextual, separated) => {
-    const durations = new Float32Array(contextual.length + 2).fill(1);
-    const timings = wordTimingsFromPhonemeDurations(
-      text,
-      contextual,
-      separated,
-      0,
-      0,
-      durations,
-    );
+  ])(
+    "keeps every source word when eSpeak joins connected speech: %s",
+    (text, contextual, separated) => {
+      const durations = new Float32Array(contextual.length + 2).fill(1);
+      const timings = wordTimingsFromPhonemeDurations(
+        text,
+        contextual,
+        separated,
+        0,
+        0,
+        durations,
+      );
 
-    expect(timings?.map((timing) => timing.word)).toEqual(
-      extractWordsWithPositions(text).map((word) => word.word),
-    );
-    expect(timings?.every((timing) => timing.startTime < timing.endTime)).toBe(
-      true,
-    );
-  });
+      expect(timings?.map((timing) => timing.word)).toEqual(
+        extractWordsWithPositions(text).map((word) => word.word),
+      );
+      expect(
+        timings?.every((timing) => timing.startTime < timing.endTime),
+      ).toBe(true);
+    },
+  );
 });
 
 describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () => {
@@ -400,6 +403,42 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
       { text: " ", top: 0, left: 216, width: 6 },
       { text: "real understanding.", top: 0, left: 222, width: 150 },
     ]);
+    const api = mountReader();
+    const pos = api.startFromPage(1);
+    expect(pos).not.toBeNull();
+
+    const covered = Array.from(document.querySelectorAll(".tts-hl-sentence"))
+      .map((el) => el.getAttribute("data-hl-text") ?? "")
+      .join("");
+    expect(normalizeWord(covered)).toBe(normalizeWord(pos!.sentence));
+
+    for (const step of readSentence(api, pos!)) {
+      if (!normalizeWord(step.spoken)) continue;
+      expect(normalizeWord(step.highlighted.join(""))).toBe(
+        normalizeWord(step.spoken),
+      );
+    }
+  });
+
+  it("highlights words inside spans that pdf.js find has split into match fragments", () => {
+    buildPageFromSpans([
+      {
+        text: "Careful readers build real understanding.",
+        top: 0,
+        left: 40,
+        width: 320,
+      },
+    ]);
+    const span = document.querySelector("span[role='presentation']")!;
+    const match = document.createElement("span");
+    match.className = "highlight selected";
+    match.textContent = "build";
+    span.replaceChildren(
+      document.createTextNode("Careful readers "),
+      match,
+      document.createTextNode(" real understanding."),
+    );
+
     const api = mountReader();
     const pos = api.startFromPage(1);
     expect(pos).not.toBeNull();
