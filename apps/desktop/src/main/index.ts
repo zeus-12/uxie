@@ -31,6 +31,7 @@ import { getFlashcardsByDocId } from "./db/flashcards";
 import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 import { extractPdfText } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
+import { createUserMessage } from "./chat-images";
 import { createMessage, getMessagesByDocId } from "./db/messages";
 
 // Without this, app.getName() falls back to package.json's "name" — the
@@ -66,8 +67,7 @@ const invokeHandlers: {
   "documents:list": () => listDocuments(getDb()),
   "documents:get": (id) => getDocument(getDb(), id),
   "documents:create": (input) => createDocument(getDb(), input),
-  "documents:updateNotes": (id, note) =>
-    updateDocumentNotes(getDb(), id, note),
+  "documents:updateNotes": (id, note) => updateDocumentNotes(getDb(), id, note),
   "documents:updateReaderState": (id, state) =>
     updateReaderState(getDb(), id, state),
   "documents:updateTitle": (id, title) =>
@@ -92,6 +92,8 @@ const invokeHandlers: {
   "flashcards:generate": (docId) => generateFlashcardsForDoc(docId),
 
   "messages:getByDocId": (docId) => getMessagesByDocId(getDb(), docId),
+  "messages:createUser": (docId, text, images) =>
+    createUserMessage(docId, text, images),
   "messages:create": (docId, role, parts) =>
     createMessage(getDb(), docId, role, parts),
 
