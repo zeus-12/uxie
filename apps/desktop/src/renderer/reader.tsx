@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
 import { ChevronLeftIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
@@ -31,7 +31,6 @@ import PdfHighlighter, {
   type HighlighterInstance,
   type PdfSourceFocus,
 } from "@uxie/shared/components/pdf-reader/pdf-highlighter";
-import type { SelectionInfo } from "@uxie/shared/components/pdf-reader/highlight-popover";
 import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import type {
   Bookmark,
@@ -41,6 +40,7 @@ import type {
   PdfPassageAnchor,
   RectInput,
 } from "@uxie/shared/schema";
+import { MAX_BOOKMARK_PASSAGE_LENGTH } from "@uxie/shared/lib/bookmarks";
 import { Chat } from "./chat";
 import { Notes } from "./notes";
 import { FlashcardsPanel } from "./flashcards";
@@ -96,12 +96,10 @@ function passageAnchorFromSelection({
   text,
   position,
   pageNumber,
-  selectionInfo,
 }: {
   text: string;
   position: IHighlight["position"];
   pageNumber: number;
-  selectionInfo: SelectionInfo | null;
 }): PdfPassageAnchor {
   const boundingRect = {
     ...toRectInput(position.boundingRect),
@@ -124,20 +122,11 @@ function passageAnchorFromSelection({
     return { version: 1, kind: "quote", exact: text };
   }
 
-  const textLayerStart =
-    selectionInfo?.pageNumber === pageNumber
-      ? {
-          blockIndex: selectionInfo.blockIndex,
-          offsetInBlock: selectionInfo.offsetInBlock,
-        }
-      : undefined;
-
   return {
     version: 1,
     kind: "selection",
     exact: text,
     position: { boundingRect, rects },
-    ...(textLayerStart ? { textLayerStart } : {}),
   };
 }
 
@@ -150,8 +139,7 @@ type NotesEditor = {
 // linked quote for text, the screenshot for an area selection. No-op if the
 // notes tab hasn't mounted the editor yet.
 function appendNoteBlock(block: unknown) {
-  const editor = useBlocknoteEditorStore.getState()
-    .editor as NotesEditor | null;
+  const editor = useBlocknoteEditorStore.getState().editor as NotesEditor | null;
   if (!editor) return;
   try {
     editor.insertBlocks([block], editor.document[editor.document.length - 1]);
@@ -429,110 +417,148 @@ function ReaderContent({
     }
   }
 
-  const rememberBookmark = (bookmark: Bookmark) => {
+  const rememberBookmark = useCallback((bookmark: Bookmark) => {
     setBookmarks((current) => [
       bookmark,
       ...current.filter((item) => item.id !== bookmark.id),
     ]);
-  };
+  }, []);
 
-  async function addPageBookmark() {
-    if (pageNumberInView < 1) return;
-    setSavingPageBookmark(true);
-    try {
-      const bookmark = await window.uxieAPI.createBookmark({
-        documentId: docId,
-        pageNumber: pageNumberInView,
-      });
-      rememberBookmark(bookmark);
-      setBookmarkAnnouncement({
-        id: createId(),
-        message: `Page ${pageNumberInView} bookmarked`,
-      });
-    } catch (cause) {
-      setError(message(cause));
-    } finally {
-      setSavingPageBookmark(false);
-    }
-  }
+  const addPageBookmark = useCallback(
+    async (pageNumber: number) => {
+      setSavingPageBookmark(true);
+      try {
+        rememberBookmark(
+          await window.uxieAPI.createBookmark({ documentId: docId, pageNumber }),
+        );
+        setBookmarkAnnouncement({
+          id: createId(),
+          message: `Page ${pageNumber} bookmarked`,
+        });
+      } catch (cause) {
+        setError(message(cause));
+      } finally {
+        setSavingPageBookmark(false);
+      }
+    },
+    [docId, rememberBookmark],
+  );
 
   async function addPassageBookmark({
     content,
     position,
-    selectionInfo,
   }: {
     content: { text?: string; image?: string };
     position: IHighlight["position"];
-    selectionInfo: SelectionInfo | null;
   }) {
     const text = content.text?.trim();
     const pageNumber =
       position.pageNumber ?? position.boundingRect.pageNumber ?? null;
     if (!text || !pageNumber) return;
+    if (text.length > MAX_BOOKMARK_PASSAGE_LENGTH) {
+      setError("This passage is too long to bookmark. Select less text.");
+      return;
+    }
 
     try {
-      const bookmark = await window.uxieAPI.createBookmark({
-        documentId: docId,
-        pageNumber,
-        location: passageAnchorFromSelection({
-          text,
-          position,
+      rememberBookmark(
+        await window.uxieAPI.createBookmark({
+          documentId: docId,
           pageNumber,
-          selectionInfo,
+          location: passageAnchorFromSelection({ text, position, pageNumber }),
         }),
-      });
-      rememberBookmark(bookmark);
-      setBookmarkAnnouncement({
-        id: createId(),
-        message: "Passage bookmarked",
-      });
+      );
+      setBookmarkAnnouncement({ id: createId(), message: "Passage bookmarked" });
     } catch (cause) {
       setError(message(cause));
     }
   }
 
-  function openBookmark(bookmark: Bookmark) {
+  const openBookmark = useCallback((bookmark: Bookmark) => {
     setFocusedBookmark({
       bookmarkId: bookmark.id,
       requestId: createId(),
       pageNumber: bookmark.pageNumber,
       location: bookmark.location,
     });
-  }
+  }, []);
 
-  async function renameBookmark(bookmark: Bookmark, label: string | null) {
+  const endBookmarkFocus = useCallback(() => setFocusedBookmark(null), []);
+
+  const renameBookmark = useCallback(
+    async (bookmark: Bookmark, label: string | null) => {
+      try {
+        const renamed = await window.uxieAPI.renameBookmark(bookmark.id, label);
+        setBookmarks((current) =>
+          current.map((item) => (item.id === renamed.id ? renamed : item)),
+        );
+        setBookmarkAnnouncement({
+          id: createId(),
+          message: renamed.label ? "Bookmark renamed" : "Bookmark label removed",
+        });
+      } catch (cause) {
+        setError(message(cause));
+        throw cause;
+      }
+    },
+    [],
+  );
+
+  const deleteBookmark = useCallback(async (bookmark: Bookmark) => {
     try {
-      const renamed = await window.uxieAPI.renameBookmark(bookmark.id, label);
-      setBookmarks((current) =>
-        current.map((item) => (item.id === renamed.id ? renamed : item)),
-      );
-      setBookmarkAnnouncement({
-        id: createId(),
-        message: renamed.label ? "Bookmark renamed" : "Bookmark label removed",
-      });
+      await window.uxieAPI.deleteBookmark(bookmark.id);
     } catch (cause) {
       setError(message(cause));
-      throw cause;
+      return;
     }
-  }
-
-  async function deleteBookmark(bookmark: Bookmark) {
-    const previous = bookmarks;
     setBookmarks((current) =>
       current.filter((item) => item.id !== bookmark.id),
     );
-    if (focusedBookmark?.bookmarkId === bookmark.id) setFocusedBookmark(null);
-    try {
-      await window.uxieAPI.deleteBookmark(bookmark.id);
-      setBookmarkAnnouncement({
-        id: createId(),
-        message: "Bookmark deleted",
-      });
-    } catch (cause) {
-      setBookmarks(previous);
-      setError(message(cause));
-    }
-  }
+    setFocusedBookmark((focused) =>
+      focused?.bookmarkId === bookmark.id ? null : focused,
+    );
+    setBookmarkAnnouncement({ id: createId(), message: "Bookmark deleted" });
+  }, []);
+
+  const bookmarkTab = useMemo(
+    () => ({
+      icon: (
+        <BookmarksToolbarIcon
+          count={bookmarks.length}
+          active={bookmarks.some(
+            (bookmark) =>
+              bookmark.pageNumber === pageNumberInView &&
+              bookmark.location === null,
+          )}
+        />
+      ),
+      children: (
+        <BookmarksToolbarContent
+          bookmarks={bookmarks}
+          pageNumber={pageNumberInView}
+          loading={bookmarksLoading}
+          savingPage={savingPageBookmark}
+          onAddPage={addPageBookmark}
+          onOpenBookmark={openBookmark}
+          onRenameBookmark={renameBookmark}
+          onDeleteBookmark={deleteBookmark}
+        />
+      ),
+      // The list is portalled outside ExpandableTabs, so its clicks
+      // must not collapse the toolbar control underneath it.
+      clickOutsideToClose: false,
+    }),
+    [
+      bookmarks,
+      pageNumberInView,
+      bookmarksLoading,
+      savingPageBookmark,
+      addPageBookmark,
+      openBookmark,
+      renameBookmark,
+      deleteBookmark,
+    ],
+  );
 
   async function deleteHighlight(hlId: string) {
     const prev = highlights;
@@ -644,6 +670,7 @@ function ReaderContent({
                     void addPassageBookmark(selection)
                   }
                   focusedSource={focusedBookmark}
+                  onSourceFocusEnd={endBookmarkFocus}
                 />
               )}
             </PdfLoader>
@@ -667,33 +694,7 @@ function ReaderContent({
               pageColourChangeHandler={pageColourChangeHandler}
               followAlongEnabled={followAlongEnabled}
               toggleFollowAlong={toggleFollowAlong}
-              bookmarkTab={{
-                icon: (
-                  <BookmarksToolbarIcon
-                    count={bookmarks.length}
-                    active={bookmarks.some(
-                      (bookmark) =>
-                        bookmark.pageNumber === pageNumberInView &&
-                        bookmark.location === null,
-                    )}
-                  />
-                ),
-                children: (
-                  <BookmarksToolbarContent
-                    bookmarks={bookmarks}
-                    pageNumber={pageNumberInView}
-                    loading={bookmarksLoading}
-                    savingPage={savingPageBookmark}
-                    onAddPage={addPageBookmark}
-                    onOpenBookmark={openBookmark}
-                    onRenameBookmark={renameBookmark}
-                    onDeleteBookmark={deleteBookmark}
-                  />
-                ),
-                // The list is portalled outside ExpandableTabs, so its clicks
-                // must not collapse the toolbar control underneath it.
-                clickOutsideToClose: false,
-              }}
+              bookmarkTab={bookmarkTab}
             />
           </div>
         </div>

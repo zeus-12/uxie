@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `Bookmark_documentId_pageNumber_page_key` ON `Bookmark` (`documentId`,`pageNumber`) WHERE "Bookmark"."location" IS NULL;

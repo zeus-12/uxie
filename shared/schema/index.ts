@@ -1,9 +1,5 @@
-// Local SQLite schema. Its base tables mirror apps/web/prisma/schema.prisma so
-// a future Prisma→Drizzle convergence has one source of truth; explicitly
-// marked desktop-only tables hold local reader features that web does not yet
-// expose.
-// Prisma→SQLite: enum→text, bool→int, DateTime→int timestamp, Float→real,
-// Json→text, cuid()→cuid2 (app-side).
+// Mirrors apps/web/prisma/schema.prisma (except desktop-only Bookmark) so a future Prisma→Drizzle
+// convergence has one source of truth. Mapping: enum→text, bool→int, DateTime→int timestamp, Json→text.
 import {
   index,
   integer,
@@ -12,6 +8,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export const PLANS = ["FREE", "FREE_PLUS", "PRO"] as const;
@@ -81,9 +78,7 @@ export const document = sqliteTable("Document", {
     .$defaultFn(() => new Date())
     .$onUpdate(() => new Date()),
   pageCount: integer("pageCount").notNull(),
-  isUploaded: integer("isUploaded", { mode: "boolean" })
-    .notNull()
-    .default(true),
+  isUploaded: integer("isUploaded", { mode: "boolean" }).notNull().default(true),
   lastReadPage: integer("lastReadPage").notNull().default(1),
   // The pdf.js scale to restore on open. Null means "auto" — the viewer's own
   // fit-to-width default, which is what a document gets until the user zooms.
@@ -135,9 +130,6 @@ export const highlight = sqliteTable("Highlight", {
   imageUrl: text("imageUrl"),
 });
 
-// Desktop-only reader navigation. Bookmarks intentionally stay separate from
-// highlights: they have their own lifecycle and can point at a page without
-// painting a permanent annotation.
 export const bookmark = sqliteTable(
   "Bookmark",
   {
@@ -155,6 +147,9 @@ export const bookmark = sqliteTable(
       t.documentId,
       t.createdAt,
     ),
+    pageBookmarkUnique: uniqueIndex("Bookmark_documentId_pageNumber_page_key")
+      .on(t.documentId, t.pageNumber)
+      .where(sql`${t.location} IS NULL`),
   }),
 );
 
@@ -242,21 +237,11 @@ export interface RectInput {
   pageNumber?: number | null;
 }
 
-export interface PdfTextLayerStart {
-  blockIndex: number;
-  offsetInBlock: number;
-}
-
 export interface PdfSelectionPosition {
   boundingRect: RectInput;
   rects: RectInput[];
 }
 
-/**
- * A passage locator shared by bookmarks and future cited-source focusing.
- * Quote-only locations can still fall back to their bookmark's page; precise
- * selections additionally carry zoom-independent pdf.js geometry.
- */
 export type PdfPassageAnchor =
   | {
       version: 1;
@@ -268,7 +253,6 @@ export type PdfPassageAnchor =
       kind: "selection";
       exact: string;
       position: PdfSelectionPosition;
-      textLayerStart?: PdfTextLayerStart;
     };
 
 export interface CreateBookmarkInput {

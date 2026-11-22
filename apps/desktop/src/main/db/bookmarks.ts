@@ -18,22 +18,6 @@ export async function createBookmark(
   db: DB,
   input: CreateBookmarkInput,
 ): Promise<Bookmark> {
-  // A page can have many passage bookmarks, but repeated clicks on the page
-  // action should converge on one page-only bookmark.
-  if (input.location == null) {
-    const [existing] = await db
-      .select()
-      .from(schema.bookmark)
-      .where(
-        and(
-          eq(schema.bookmark.documentId, input.documentId),
-          eq(schema.bookmark.pageNumber, input.pageNumber),
-          isNull(schema.bookmark.location),
-        ),
-      );
-    if (existing) return existing;
-  }
-
   const [row] = await db
     .insert(schema.bookmark)
     .values({
@@ -42,8 +26,21 @@ export async function createBookmark(
       label: input.label ?? null,
       location: input.location ?? null,
     })
+    .onConflictDoNothing()
     .returning();
-  return row;
+  if (row) return row;
+
+  const [existing] = await db
+    .select()
+    .from(schema.bookmark)
+    .where(
+      and(
+        eq(schema.bookmark.documentId, input.documentId),
+        eq(schema.bookmark.pageNumber, input.pageNumber),
+        isNull(schema.bookmark.location),
+      ),
+    );
+  return existing;
 }
 
 export async function renameBookmark(

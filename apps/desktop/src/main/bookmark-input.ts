@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_BOOKMARK_PASSAGE_LENGTH } from "@uxie/shared/lib/bookmarks";
 import type {
   CreateBookmarkInput,
   PdfPassageAnchor,
@@ -16,7 +17,7 @@ const rectSchema = z.object({
   pageNumber: z.number().int().positive().nullable().optional(),
 });
 
-const exactTextSchema = z.string().trim().min(1).max(50_000);
+const exactTextSchema = z.string().trim().min(1).max(MAX_BOOKMARK_PASSAGE_LENGTH);
 
 const passageAnchorSchema: z.ZodType<PdfPassageAnchor> = z.discriminatedUnion(
   "kind",
@@ -34,12 +35,6 @@ const passageAnchorSchema: z.ZodType<PdfPassageAnchor> = z.discriminatedUnion(
         boundingRect: rectSchema,
         rects: z.array(rectSchema).min(1),
       }),
-      textLayerStart: z
-        .object({
-          blockIndex: z.number().int().nonnegative(),
-          offsetInBlock: z.number().int().nonnegative(),
-        })
-        .optional(),
     }),
   ],
 );

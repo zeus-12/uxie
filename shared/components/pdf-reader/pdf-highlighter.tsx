@@ -94,6 +94,7 @@ const PdfHighlighter = ({
   showAiFeatures,
   addBookmark,
   focusedSource,
+  onSourceFocusEnd,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
@@ -117,9 +118,9 @@ const PdfHighlighter = ({
   addBookmark?: (args: {
     content: { text?: string; image?: string };
     position: IHighlight["position"];
-    selectionInfo: SelectionInfo | null;
   }) => void;
   focusedSource?: PdfSourceFocus | null;
+  onSourceFocusEnd?: () => void;
   // Whether the document is indexed — the AI actions are hidden until it is.
   showAiFeatures: boolean;
 }) => {
@@ -131,9 +132,10 @@ const PdfHighlighter = ({
     () => (focusedSource ? sourceHighlightFromFocus(focusedSource) : null),
     [focusedSource],
   );
-  const renderedHighlights = sourceHighlight
-    ? [...highlights, sourceHighlight]
-    : highlights;
+  const renderedHighlights = useMemo(
+    () => (sourceHighlight ? [...highlights, sourceHighlight] : highlights),
+    [highlights, sourceHighlight],
+  );
 
   // Handed to us by the viewer once the document is ready.
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
@@ -146,6 +148,7 @@ const PdfHighlighter = ({
   // Keep the mounted instance locally (for the jump fallback below) as well as
   // handing it to the caller.
   const highlighterInstanceRef = useRef<HighlighterInstance | null>(null);
+  const [viewerReady, setViewerReady] = useState(false);
   const [highlighterInstance, setHighlighterInstance] =
     useState<HighlighterInstance | null>(null);
   const setHighlighterRef = useCallback(
@@ -197,7 +200,7 @@ const PdfHighlighter = ({
   }, [highlights, setJumpToHighlight]);
 
   useEffect(() => {
-    if (!focusedSource) return;
+    if (!focusedSource || !viewerReady) return;
 
     if (sourceHighlight && scrollToHighlightRef.current) {
       scrollToHighlightRef.current(sourceHighlight);
@@ -207,13 +210,22 @@ const PdfHighlighter = ({
     highlighterInstanceRef.current?.viewer.scrollPageIntoView({
       pageNumber: focusedSource.pageNumber,
     });
-  }, [focusedSource, sourceHighlight]);
+  }, [focusedSource, sourceHighlight, viewerReady]);
+
+  const viewerContainer = highlighterInstance?.containerNode ?? null;
+  useEffect(() => {
+    if (!sourceHighlight || !viewerContainer || !onSourceFocusEnd) return;
+    viewerContainer.addEventListener("pointerdown", onSourceFocusEnd, {
+      once: true,
+    });
+    return () =>
+      viewerContainer.removeEventListener("pointerdown", onSourceFocusEnd);
+  }, [sourceHighlight, viewerContainer, onSourceFocusEnd]);
 
   // Remember where in the text layer the selection started, so "Read the text"
   // can begin at that word rather than at the top of the selection.
   useEffect(() => {
     const handleMouseUp = () => {
-      selectionInfoRef.current = null;
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
 
@@ -292,6 +304,7 @@ const PdfHighlighter = ({
         onScrollChange={() => {}}
         scrollRef={(scrollTo) => {
           scrollToHighlightRef.current = scrollTo;
+          setViewerReady(true);
         }}
         onSelectionFinished={(
           position,
@@ -307,12 +320,7 @@ const PdfHighlighter = ({
             addHighlight={() => addHighlight({ content, position })}
             addBookmark={
               addBookmark
-                ? () =>
-                    addBookmark({
-                      content,
-                      position,
-                      selectionInfo: selectionInfoRef.current,
-                    })
+                ? () => addBookmark({ content, position })
                 : undefined
             }
             readSelectedText={readSelectedText}

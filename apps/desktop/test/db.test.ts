@@ -278,7 +278,6 @@ describe("desktop db layer", () => {
           boundingRect: rect({ pageNumber: 3 }),
           rects: [rect({ pageNumber: 3 })],
         },
-        textLayerStart: { blockIndex: 4, offsetInBlock: 12 },
       },
     });
     await createBookmark(db, {
@@ -290,6 +289,17 @@ describe("desktop db layer", () => {
     expect(passageBookmark.id).not.toBe(pageBookmark.id);
     expect(await listBookmarks(db, firstDoc.id)).toHaveLength(2);
     expect(await listBookmarks(db, secondDoc.id)).toHaveLength(1);
+  });
+
+  it("keeps one page bookmark when the page is saved concurrently", async () => {
+    const doc = await makeDoc(db);
+    const saves = await Promise.all(
+      [1, 2, 3].map(() =>
+        createBookmark(db, { documentId: doc.id, pageNumber: 4 }),
+      ),
+    );
+    expect(new Set(saves.map((bookmark) => bookmark.id)).size).toBe(1);
+    expect(await listBookmarks(db, doc.id)).toHaveLength(1);
   });
 
   it("renames and deletes bookmarks", async () => {

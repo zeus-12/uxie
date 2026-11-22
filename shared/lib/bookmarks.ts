@@ -1,0 +1,1 @@
+export const MAX_BOOKMARK_PASSAGE_LENGTH = 50_000;
