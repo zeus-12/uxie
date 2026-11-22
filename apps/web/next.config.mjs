@@ -35,11 +35,19 @@ const config = {
           process: "undefined",
         }),
       );
+      // scribe reaches its node: imports only behind `typeof process !== "undefined"`.
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+          if (/[\\/]scribe\.js-ocr[\\/]/.test(resource.context)) {
+            resource.request = "data:text/javascript,export default {}";
+          }
+        }),
+      );
 
       // for "kokoro-js" library (DO NOT REMOVE) -> issue w onnxruntime
       config.optimization.minimizer = [
         new TerserPlugin({
-          exclude: /ort\..*\.mjs$/,
+          exclude: [/ort\..*\.mjs$/, /^static\/media\//],
           terserOptions: {
             compress: true,
             mangle: true,
@@ -52,6 +60,7 @@ const config = {
       ...config.resolve.alias,
       sharp$: false,
       "onnxruntime-node$": false,
+      "@scribe.js/canvas$": false,
     };
 
     config.ignoreWarnings = [

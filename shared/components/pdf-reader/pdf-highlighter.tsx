@@ -4,6 +4,7 @@ import {
   type ReadSelectedText,
   type SelectionInfo,
 } from "./highlight-popover";
+import { PdfSearch } from "./pdf-search";
 import { getHighlightPageNumber } from "../../lib/highlights";
 import {
   useChatStore,
@@ -11,7 +12,14 @@ import {
   usePdfSettingsStore,
 } from "../../lib/store";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -138,9 +146,12 @@ const PdfHighlighter = ({
   // Keep the mounted instance locally (for the jump fallback below) as well as
   // handing it to the caller.
   const highlighterInstanceRef = useRef<HighlighterInstance | null>(null);
+  const [highlighterInstance, setHighlighterInstance] =
+    useState<HighlighterInstance | null>(null);
   const setHighlighterRef = useCallback(
     (instance: HighlighterInstance | null) => {
       highlighterInstanceRef.current = instance;
+      setHighlighterInstance(instance);
       highlighterRef?.(instance);
     },
     [highlighterRef],
@@ -266,112 +277,123 @@ const PdfHighlighter = ({
     };
   }, [linksDisabled]);
 
-  return (
-    <PdfHighlighterComponent
-      ref={setHighlighterRef}
-      pdfDocument={pdfDocument}
-      pdfScaleValue={pdfScaleValue}
-      enableAreaSelection={(event) => event.altKey}
-      onScrollChange={() => {}}
-      scrollRef={(scrollTo) => {
-        scrollToHighlightRef.current = scrollTo;
-      }}
-      onSelectionFinished={(
-        position,
-        content,
-        hideTipAndSelection,
-        transformSelection,
-      ) => (
-        <TextSelectionPopover
-          showAiFeatures={showAiFeatures}
-          sendMessage={sendMessage}
-          content={content}
-          hideTipAndSelection={hideTipAndSelection}
-          addHighlight={() => addHighlight({ content, position })}
-          addBookmark={
-            addBookmark
-              ? () =>
-                  addBookmark({
-                    content,
-                    position,
-                    selectionInfo: selectionInfoRef.current,
-                  })
-              : undefined
-          }
-          readSelectedText={readSelectedText}
-          selectionInfoRef={selectionInfoRef}
-          transformSelection={transformSelection}
-        />
-      )}
-      highlightTransform={(
-        highlight,
-        index,
-        setTip,
-        hideTip,
-        viewportToScaled,
-        _screenshot,
-        isScrolledTo,
-      ) => {
-        const isTextHighlight = highlight.position.rects?.length !== 0;
-        const isFocusedSource = highlight.id === sourceHighlight?.id;
+  // react-pdf-highlighter reuses its viewer and find controller when the
+  // document changes, and pdf.js hands the find controller the new document
+  // asynchronously, so a search in that gap would run against the old one.
+  const documentKey = pdfDocument.loadingTask.docId;
 
-        if (isFocusedSource) {
-          return (
-            <div id={highlight.id} className="uxie-source-focus" key={index}>
+  return (
+    <Fragment key={documentKey}>
+      <PdfHighlighterComponent
+        ref={setHighlighterRef}
+        pdfDocument={pdfDocument}
+        pdfScaleValue={pdfScaleValue}
+        enableAreaSelection={(event) => event.altKey}
+        onScrollChange={() => {}}
+        scrollRef={(scrollTo) => {
+          scrollToHighlightRef.current = scrollTo;
+        }}
+        onSelectionFinished={(
+          position,
+          content,
+          hideTipAndSelection,
+          transformSelection,
+        ) => (
+          <TextSelectionPopover
+            showAiFeatures={showAiFeatures}
+            sendMessage={sendMessage}
+            content={content}
+            hideTipAndSelection={hideTipAndSelection}
+            addHighlight={() => addHighlight({ content, position })}
+            addBookmark={
+              addBookmark
+                ? () =>
+                    addBookmark({
+                      content,
+                      position,
+                      selectionInfo: selectionInfoRef.current,
+                    })
+                : undefined
+            }
+            readSelectedText={readSelectedText}
+            selectionInfoRef={selectionInfoRef}
+            transformSelection={transformSelection}
+          />
+        )}
+        highlightTransform={(
+          highlight,
+          index,
+          setTip,
+          hideTip,
+          viewportToScaled,
+          _screenshot,
+          isScrolledTo,
+        ) => {
+          const isTextHighlight = highlight.position.rects?.length !== 0;
+          const isFocusedSource = highlight.id === sourceHighlight?.id;
+
+          if (isFocusedSource) {
+            return (
+              <div id={highlight.id} className="uxie-source-focus" key={index}>
+                <Highlight
+                  isScrolledTo={isScrolledTo}
+                  position={highlight.position}
+                  comment={highlight.comment}
+                />
+              </div>
+            );
+          }
+
+          const component = isTextHighlight ? (
+            <div id={highlight.id}>
               <Highlight
                 isScrolledTo={isScrolledTo}
                 position={highlight.position}
                 comment={highlight.comment}
               />
             </div>
-          );
-        }
-
-        const component = isTextHighlight ? (
-          <div id={highlight.id}>
-            <Highlight
-              isScrolledTo={isScrolledTo}
-              position={highlight.position}
-              comment={highlight.comment}
-            />
-          </div>
-        ) : (
-          <div id={highlight.id}>
-            <AreaHighlight
-              isScrolledTo={isScrolledTo}
-              highlight={highlight}
-              onChange={(boundingRect) =>
-                updateAreaHighlight(
-                  highlight.id,
-                  viewportToScaled(boundingRect),
-                  boundingRect.pageNumber,
-                )
-              }
-            />
-          </div>
-        );
-
-        return (
-          <Popup
-            popupContent={
-              <HighlightedTextPopover
-                id={highlight.id}
-                deleteHighlight={deleteHighlight}
-                hideTip={hideTip}
+          ) : (
+            <div id={highlight.id}>
+              <AreaHighlight
+                isScrolledTo={isScrolledTo}
+                highlight={highlight}
+                onChange={(boundingRect) =>
+                  updateAreaHighlight(
+                    highlight.id,
+                    viewportToScaled(boundingRect),
+                    boundingRect.pageNumber,
+                  )
+                }
               />
-            }
-            onMouseOver={(popupContent) =>
-              setTip(highlight, () => popupContent)
-            }
-            onMouseOut={hideTip}
-            key={index}
-          >
-            {component}
-          </Popup>
-        );
-      }}
-      highlights={renderedHighlights as unknown as IHighlight[]}
-    />
+            </div>
+          );
+
+          return (
+            <Popup
+              popupContent={
+                <HighlightedTextPopover
+                  id={highlight.id}
+                  deleteHighlight={deleteHighlight}
+                  hideTip={hideTip}
+                />
+              }
+              onMouseOver={(popupContent) =>
+                setTip(highlight, () => popupContent)
+              }
+              onMouseOut={hideTip}
+              key={index}
+            >
+              {component}
+            </Popup>
+          );
+        }}
+        highlights={renderedHighlights as unknown as IHighlight[]}
+      />
+      <PdfSearch
+        eventBus={highlighterInstance?.eventBus ?? null}
+        viewerContainer={highlighterInstance?.containerNode ?? null}
+      />
+    </Fragment>
   );
 };
 

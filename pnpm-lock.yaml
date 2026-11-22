@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   react-pdf-highlighter@6.1.0:
-    hash: c5eyzzqg7gc3gyjqu5zv6plk6i
+    hash: owes3js7dy4tvey3cl3z5l522u
     path: patches/react-pdf-highlighter@6.1.0.patch
 
 importers:
@@ -56,7 +56,7 @@ importers:
         version: 9.0.0(@types/react@18.3.31)(react@18.3.1)
       react-pdf-highlighter:
         specifier: ^6.1.0
-        version: 6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-virtuoso:
         specifier: ^4.18.10
         version: 4.18.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -324,7 +324,7 @@ importers:
         version: 9.0.0(@types/react@18.3.31)(react@18.3.1)
       react-pdf-highlighter:
         specifier: ^6.1.0
-        version: 6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-resizable-panels:
         specifier: ^2.0.10
         version: 2.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -346,9 +346,6 @@ importers:
       sbd:
         specifier: ^1.0.19
         version: 1.0.19
-      scribe.js-ocr:
-        specifier: ^0.9.3
-        version: 0.9.3(encoding@0.1.13)
       sonner:
         specifier: ^1.4.41
         version: 1.4.41(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -577,7 +574,7 @@ importers:
         version: 5.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-pdf-highlighter:
         specifier: ^6.1.0
-        version: 6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-resizable-panels:
         specifier: ^2.0.10
         version: 2.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -587,6 +584,9 @@ importers:
       sbd:
         specifier: ^1.0.19
         version: 1.0.19
+      scribe.js-ocr:
+        specifier: ^0.18.2
+        version: 0.18.2
       sonner:
         specifier: ^1.4.41
         version: 1.4.41(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -4053,11 +4053,75 @@ packages:
   '@rushstack/eslint-patch@1.5.1':
     resolution: {integrity: sha512-6i/8UoL0P5y4leBIGzvkZdS85RDMG9y1ihZzmTZQ5LdHUYmZ7pKFoj8X0236s3lusPs1Fa5HTQUpwI+UfTcmeA==}
 
-  '@scribe.js/tesseract.js-core@6.0.3':
-    resolution: {integrity: sha512-q2bXN0yQCEs5IA9138vF+xGSfNhOaMVdPKkuZNSiz3A+SfuRZuAU3iKzIXJMdSJnWvHSBOUPLDdqguClCNX9Qw==}
+  '@scribe.js/canvas-android-arm64@0.1.97-scribe.8':
+    resolution: {integrity: sha512-MCblXc5W40d9NYCCBKEH83pAQ0iJ2IJlBKHOYwolslu9ccQ8EichPP3VxM3adF15nm9GcN8uJeuJGVWpHH3pRQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [android]
 
-  '@scribe.js/tesseract.js@6.0.4':
-    resolution: {integrity: sha512-XhE6+clXUISxtUQow6icwjMYx8HH8gIiH8DuQH7ICn61yOuC/gfCt3epO1UcSM2vGKWUqoig/POi3uYmRzWyNw==}
+  '@scribe.js/canvas-darwin-arm64@0.1.97-scribe.8':
+    resolution: {integrity: sha512-cqt8rb6LgHoyEYqz+/2ba/AGMZN7T7DqqYrcUPahAEjj+3kLzY3yjLhx6bgtKGD9tQOwWtdyAc/ESKTjSDOTcg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@scribe.js/canvas-darwin-x64@0.1.97-scribe.8':
+    resolution: {integrity: sha512-oX5o92DhXeBRqLC94AolCKpilwHazE8FmmuiWzn66ZldN8a6iSZjbs32G2JCrQKHNynjXy+DcihcgUKSsyU4OA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@scribe.js/canvas-linux-arm-gnueabihf@0.1.97-scribe.8':
+    resolution: {integrity: sha512-EW09OEpBNwCGg9FdSB6t8wgrnIRFhZ3dLjeKSM2kYyKHDunY2Q8n4XljBWxhZ4Jc4KSAIw9jIKVyIExhildnIQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [linux]
+
+  '@scribe.js/canvas-linux-arm64-gnu@0.1.97-scribe.8':
+    resolution: {integrity: sha512-Lx1Q9i+jwuIEEPXfQ2ovLKqGdrrn6O0JJnILBB3xbGnw9ppqa7JhnoatRYnDf9pwazpQpl3amjUs8eQrN9JLVA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@scribe.js/canvas-linux-arm64-musl@0.1.97-scribe.8':
+    resolution: {integrity: sha512-eTIArZ/41tb1y0XKeOm0UQ3oPR9TzkoUnvSq2xJEmmYxKxXZsc+aJ6aiymokx9Gsu+CUoh0NlVKIpjDpmvbIfA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@scribe.js/canvas-linux-riscv64-gnu@0.1.97-scribe.8':
+    resolution: {integrity: sha512-RbLKzglIivAWPCVGiRPkT6d8NJ/tQVsHFLkWgcJCllQYNUuYlWgNTVJlvV9J6tbb+yZArNlpva7tGDEH7mxC2w==}
+    engines: {node: '>= 10'}
+    cpu: [riscv64]
+    os: [linux]
+
+  '@scribe.js/canvas-linux-x64-gnu@0.1.97-scribe.8':
+    resolution: {integrity: sha512-3Cd2uQoRoHcjWnhPCtqFjVoviBm3ss5IxI1/4xhEOTYJphIQta+Pc2HOCu6EBJSAVltjvqXgSCvndNoiZdgsOA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@scribe.js/canvas-linux-x64-musl@0.1.97-scribe.8':
+    resolution: {integrity: sha512-RVoYqieQMlMcxJ18mUz8qfGgP9BVY6GLmyGUQ+NOs29zQEkeiIbWPNa+YqpvHWtYtc8wQVtzk5ot3JIiEZ0e1A==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@scribe.js/canvas-win32-arm64-msvc@0.1.97-scribe.8':
+    resolution: {integrity: sha512-0nx3iBOi8DekxNcwXy9l6bIejs1zDPnEbO9VN6ooZeeyVcPMrw9w7JIKDjhmki3tjK1l20oKS72rnbiI4oeD1A==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@scribe.js/canvas-win32-x64-msvc@0.1.97-scribe.8':
+    resolution: {integrity: sha512-B3+DGHMRE1+r0+JW71tUhv2EmNsgxB+yws5hApxB3mxxWjxYckN3bOv/AH4D0mj1dgMc3uwaPhAYNOpg346ylQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@scribe.js/canvas@0.1.97-scribe.8':
+    resolution: {integrity: sha512-m0WcTa7HHn84nUUyPQBM57E0y+zOadxtho+52ZozR5UaeHHcicn7A0bF3agZ7edifJi6gBV2polpBNqTk28g1g==}
+    engines: {node: '>= 10'}
 
   '@shadcn/react@0.2.1':
     resolution: {integrity: sha512-5krgi3dRMKb5jH6a+qPzVJUy/54s0kKE4Rw4LjDfLqOdVQTWKUgxWf1kW8r912I0jX/Lzxqc+pgjkjWxUIK5BQ==}
@@ -4764,15 +4828,13 @@ packages:
   '@webassemblyjs/wast-printer@1.14.1':
     resolution: {integrity: sha512-kPSSXE6De1XOR820C90RIo2ogvZG+c3KiHzqUoO/F34Y2shGzesfqv7o57xrxovZJH/MetF5UjroJ/R/3isoiw==}
 
-  '@webgpu/types@0.1.21':
-    resolution: {integrity: sha512-pUrWq3V5PiSGFLeLxoGqReTZmiiXwY3jRkIG5sLLKjyqNxrwm/04b4nw7LSmGWJcKk59XOM/YRTUwOzo4MMlow==}
-
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
   '@xmldom/xmldom@0.8.13':
     resolution: {integrity: sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -5017,9 +5079,6 @@ packages:
   bluebird@3.7.2:
     resolution: {integrity: sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==}
 
-  bmp-js@0.1.0:
-    resolution: {integrity: sha512-vHdS19CnY3hwiNdkaqk93DvjVLfbEcI8mys4UjuWrlX1haDmroo8o4xCzh4wD6DGV6HxRCyauwhHRqMTfERtjw==}
-
   boolean@3.2.0:
     resolution: {integrity: sha512-d0II/GO9uf9lfUHH2BQsjxzRJZBdsjgsBiW4BvhWk/3qoKwQFjIDVN19PfX8F2D/r9PCMTtLWjYVCFrpeYUzsw==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
@@ -5119,9 +5178,6 @@ packages:
   canvas@3.2.0:
     resolution: {integrity: sha512-jk0GxrLtUEmW/TmFsk2WghvgHe8B0pxGilqCL21y8lHkPUGa6FTsnCNtHPOzT8O3y+N+m3espawV80bbBlgfTA==}
     engines: {node: ^18.12.0 || >= 20.9.0}
-
-  canvaskit-wasm@0.39.1:
-    resolution: {integrity: sha512-Gy3lCmhUdKq+8bvDrs9t8+qf7RvcjuQn+we7vTVVyqgOVO1UVfHpsnBxkTZw+R4ApEJ3D5fKySl9TU11hmjl/A==}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -6295,9 +6351,6 @@ packages:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
 
-  idb-keyval@6.2.1:
-    resolution: {integrity: sha512-8Sb3veuYCyrZL+VBt9LJfZjLUPWVvqn8tG28VqYNFCo43KHcKuq+b4EiXGeuaLAQWL2YmyDgMp2aSpH9JHsEQg==}
-
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
@@ -6450,9 +6503,6 @@ packages:
   is-typed-array@1.1.12:
     resolution: {integrity: sha512-Z14TF2JNG8Lss5/HMqt0//T9JeHXttXy5pH/DBU4vi98ozO2btxzq9MwYDZYnKwU8nRsz/+GVFVRDq3DkVuSPg==}
     engines: {node: '>= 0.4'}
-
-  is-url@1.2.4:
-    resolution: {integrity: sha512-ITvGim8FhRiYe4IQ5uHSkj7pVaPDrCTkNd3yq3cV7iZAcJdHTUMPMEHcqSOy9xZ9qFenQCvi+2wjH9a1nXqHww==}
 
   is-weakmap@2.0.1:
     resolution: {integrity: sha512-NSBR4kH5oVj1Uwvv970ruUkCV7O1mzgVFO4/rev2cLRda9Tm9HrL70ZPut4rOHgY0FNrUu9BCbXA2sdQ+x0chA==}
@@ -7647,10 +7697,6 @@ packages:
   openapi-types@12.1.3:
     resolution: {integrity: sha512-N4YtSYJqghVu4iek2ZUvcN/0aqH1kRDuNqzcycDxhOUpg7GdvLa2F3DgS6yBNhInhv2r/6I0Flkn7CqL8+nIcw==}
 
-  opencollective-postinstall@2.0.3:
-    resolution: {integrity: sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q==}
-    hasBin: true
-
   openid-client@5.6.0:
     resolution: {integrity: sha512-uFTkN/iqgKvSnmpVAS/T6SNThukRMBcmymTQ71Ngus1F60tdtKVap7zCrleocY+fogPtpmoxi5Q1YdrgYuTlkA==}
 
@@ -8319,9 +8365,6 @@ packages:
     resolution: {integrity: sha512-ECkTw8TmJwW60lOTR+ZkODISW6RQ8+2CL3COqtiJKLd6MmB45hN51HprHFziKLGkAuTGQhBb91V8cy+KHlaCjw==}
     engines: {node: '>= 0.4'}
 
-  regenerator-runtime@0.13.11:
-    resolution: {integrity: sha512-kY1AZVr2Ra+t+piVaJ4gxaFaReZVH40AKNo7UCX6W+dEwBo/2oZJzqfuN1qLq1oL45o56cPaTXELwrTh8Fpggg==}
-
   regenerator-runtime@0.14.0:
     resolution: {integrity: sha512-srw17NI0TUWHuGa5CFGGmhfNIeja30WMBfbslPNhf6JrqQlLN5gcrvig1oqPxiVaXb0oW0XRKtH6Nngs5lKCIA==}
 
@@ -8494,8 +8537,8 @@ packages:
     resolution: {integrity: sha512-eflK8wEtyOE6+hsaRVPxvUKYCpRgzLqDTb8krvAsRIwOGlHoSgYLgBXoubGgLd2fT41/OUYdb48v4k4WWHQurA==}
     engines: {node: '>= 10.13.0'}
 
-  scribe.js-ocr@0.9.3:
-    resolution: {integrity: sha512-tJBqm6WrYi2WZV5tOWWh2Sr6ZIEXd4gzXlG0rUxR3QYqDYmjacmVurTfA+ZtSkugngIkRVIz1Kx/qj8SG2NhhQ==}
+  scribe.js-ocr@0.18.2:
+    resolution: {integrity: sha512-7QsQ9GSTXHx0YRxWM++ixXT7c5UFcP3MLM+Co5Ly0rWTDlYAyzMf6QhOQUIS+iZ+7BEx/sgxpZhsUxLIxB3RWw==}
     hasBin: true
 
   semver-compare@1.0.0:
@@ -9306,9 +9349,6 @@ packages:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
 
-  wasm-feature-detect@1.8.0:
-    resolution: {integrity: sha512-zksaLKM2fVlnB5jQQDqKXXwYHLQUVH9es+5TOOHwGOVJOCeRBCiPjwSg+3tN2AdTCzjgli4jijCH290kXb/zWQ==}
-
   watchpack@2.5.1:
     resolution: {integrity: sha512-Zn5uXdcFNIA1+1Ei5McRd+iRzfhENPCe7LeABkJtNulSxjma+l7ltNx55BWZkRlwRnpOgHqxnjyaDgJnNXnqzg==}
     engines: {node: '>=10.13.0'}
@@ -9501,9 +9541,6 @@ packages:
 
   youtube-player@5.5.2:
     resolution: {integrity: sha512-ZGtsemSpXnDky2AUYWgxjaopgB+shFHgXVpiJFeNB5nWEugpW1KWYDaHKuLqh2b67r24GtP6HoSW5swvf0fFIQ==}
-
-  zlibjs@0.3.1:
-    resolution: {integrity: sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w==}
 
   zod-to-json-schema@3.25.1:
     resolution: {integrity: sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==}
@@ -12507,21 +12544,52 @@ snapshots:
 
   '@rushstack/eslint-patch@1.5.1': {}
 
-  '@scribe.js/tesseract.js-core@6.0.3': {}
+  '@scribe.js/canvas-android-arm64@0.1.97-scribe.8':
+    optional: true
 
-  '@scribe.js/tesseract.js@6.0.4(encoding@0.1.13)':
-    dependencies:
-      '@scribe.js/tesseract.js-core': 6.0.3
-      bmp-js: 0.1.0
-      idb-keyval: 6.2.1
-      is-url: 1.2.4
-      node-fetch: 2.7.0(encoding@0.1.13)
-      opencollective-postinstall: 2.0.3
-      regenerator-runtime: 0.13.11
-      wasm-feature-detect: 1.8.0
-      zlibjs: 0.3.1
-    transitivePeerDependencies:
-      - encoding
+  '@scribe.js/canvas-darwin-arm64@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-darwin-x64@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-linux-arm-gnueabihf@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-linux-arm64-gnu@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-linux-arm64-musl@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-linux-riscv64-gnu@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-linux-x64-gnu@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-linux-x64-musl@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-win32-arm64-msvc@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas-win32-x64-msvc@0.1.97-scribe.8':
+    optional: true
+
+  '@scribe.js/canvas@0.1.97-scribe.8':
+    optionalDependencies:
+      '@scribe.js/canvas-android-arm64': 0.1.97-scribe.8
+      '@scribe.js/canvas-darwin-arm64': 0.1.97-scribe.8
+      '@scribe.js/canvas-darwin-x64': 0.1.97-scribe.8
+      '@scribe.js/canvas-linux-arm-gnueabihf': 0.1.97-scribe.8
+      '@scribe.js/canvas-linux-arm64-gnu': 0.1.97-scribe.8
+      '@scribe.js/canvas-linux-arm64-musl': 0.1.97-scribe.8
+      '@scribe.js/canvas-linux-riscv64-gnu': 0.1.97-scribe.8
+      '@scribe.js/canvas-linux-x64-gnu': 0.1.97-scribe.8
+      '@scribe.js/canvas-linux-x64-musl': 0.1.97-scribe.8
+      '@scribe.js/canvas-win32-arm64-msvc': 0.1.97-scribe.8
+      '@scribe.js/canvas-win32-x64-msvc': 0.1.97-scribe.8
 
   '@shadcn/react@0.2.1(@types/react@18.3.31)(react@18.3.1)':
     optionalDependencies:
@@ -13347,8 +13415,6 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@webgpu/types@0.1.21': {}
-
   '@workflow/serde@4.1.0': {}
 
   '@xmldom/xmldom@0.8.13': {}
@@ -13650,8 +13716,6 @@ snapshots:
 
   bluebird@3.7.2: {}
 
-  bmp-js@0.1.0: {}
-
   boolean@3.2.0: {}
 
   brace-expansion@1.1.11:
@@ -13771,10 +13835,6 @@ snapshots:
     dependencies:
       node-addon-api: 7.1.1
       prebuild-install: 7.1.3
-
-  canvaskit-wasm@0.39.1:
-    dependencies:
-      '@webgpu/types': 0.1.21
 
   ccount@2.0.1: {}
 
@@ -15235,8 +15295,6 @@ snapshots:
       safer-buffer: 2.1.2
     optional: true
 
-  idb-keyval@6.2.1: {}
-
   ieee754@1.2.1: {}
 
   ignore@5.2.4: {}
@@ -15370,8 +15428,6 @@ snapshots:
   is-typed-array@1.1.12:
     dependencies:
       which-typed-array: 1.1.11
-
-  is-url@1.2.4: {}
 
   is-weakmap@2.0.1: {}
 
@@ -16542,8 +16598,6 @@ snapshots:
 
   openapi-types@12.1.3: {}
 
-  opencollective-postinstall@2.0.3: {}
-
   openid-client@5.6.0:
     dependencies:
       jose: 4.15.2
@@ -17093,7 +17147,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  react-pdf-highlighter@6.1.0(patch_hash=c5eyzzqg7gc3gyjqu5zv6plk6i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-pdf-highlighter@6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       lodash.debounce: 4.0.8
       pdfjs-dist: 2.16.105
@@ -17269,8 +17323,6 @@ snapshots:
       get-intrinsic: 1.3.0
       globalthis: 1.0.3
       which-builtin-type: 1.1.3
-
-  regenerator-runtime@0.13.11: {}
 
   regenerator-runtime@0.14.0: {}
 
@@ -17537,13 +17589,10 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.17.1)
       ajv-keywords: 5.1.0(ajv@8.17.1)
 
-  scribe.js-ocr@0.9.3(encoding@0.1.13):
+  scribe.js-ocr@0.18.2:
     dependencies:
-      '@scribe.js/tesseract.js': 6.0.4(encoding@0.1.13)
-      canvaskit-wasm: 0.39.1
+      '@scribe.js/canvas': 0.1.97-scribe.8
       commander: 11.1.0
-    transitivePeerDependencies:
-      - encoding
 
   semver-compare@1.0.0: {}
 
@@ -18414,8 +18463,6 @@ snapshots:
     dependencies:
       xml-name-validator: 5.0.0
 
-  wasm-feature-detect@1.8.0: {}
-
   watchpack@2.5.1:
     dependencies:
       glob-to-regexp: 0.4.1
@@ -18627,8 +18674,6 @@ snapshots:
       sister: 3.0.2
     transitivePeerDependencies:
       - supports-color
-
-  zlibjs@0.3.1: {}
 
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
