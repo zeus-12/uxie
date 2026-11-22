@@ -3,6 +3,7 @@ import {
   retrievedChunksFromParts,
   type RetrievedChunk,
 } from "./chat";
+import type { ChatImage } from "./chat-attachments";
 
 export type ChatRole = "user" | "assistant";
 
@@ -11,6 +12,7 @@ export type ChatRow =
       kind: "message";
       role: ChatRole;
       content: string;
+      attachments?: ChatImage[];
       sources?: RetrievedChunk[];
     }
   | { kind: "streaming"; content: string }

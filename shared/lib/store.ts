@@ -18,15 +18,20 @@ export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
 
 interface ChatMessageStore {
   sendMessage: null | ((message: string) => void);
-  setSendMessage: (sendMessage: (message: string) => void) => void;
-  // The chat input registers a focuser so ⌘L / the chat tab can focus it.
+  setSendMessage: (sendMessage: ((message: string) => void) | null) => void;
+  stageImageAttachment: null | ((dataUrl: string) => void);
+  setStageImageAttachment: (
+    stageImageAttachment: ((dataUrl: string) => void) | null,
+  ) => void;
   focusInput: null | (() => void);
   setFocusInput: (focusInput: (() => void) | null) => void;
 }
 export const useChatStore = create<ChatMessageStore>((set) => ({
   sendMessage: null,
-  setSendMessage: (sendMessage: (message: string) => void) =>
-    set({ sendMessage }),
+  setSendMessage: (sendMessage) => set({ sendMessage }),
+  stageImageAttachment: null,
+  setStageImageAttachment: (stageImageAttachment) =>
+    set({ stageImageAttachment }),
   focusInput: null,
   setFocusInput: (focusInput) => set({ focusInput }),
 }));
@@ -128,8 +133,6 @@ type JumpToHighlight = (
 ) => void;
 
 interface HighlightJumpStore {
-  // The reader registers this once its PDF viewer is ready; the highlight
-  // blocks in the notes editor call it to jump to their highlight.
   jumpToHighlight: JumpToHighlight | null;
   setJumpToHighlight: (fn: JumpToHighlight | null) => void;
 }
@@ -163,8 +166,6 @@ export const useMobileSidebarStore = create<MobileSidebarStore>((set) => ({
   setDrawerOpen: (open) => set({ isDrawerOpen: open }),
 }));
 
-// The reader sidebar's tabs — the single source of truth for their names and
-// order. The sidebar UI, the store default, and web's URL sync all read from here.
 export const SIDEBAR_TABS = ["notes", "chat", "flashcards"] as const;
 export type SidebarTab = (typeof SIDEBAR_TABS)[number];
 export const DEFAULT_SIDEBAR_TAB: SidebarTab = "notes";
@@ -174,9 +175,6 @@ interface SidebarTabStore {
   setTab: (tab: SidebarTab) => void;
 }
 
-// Persisted so the reader reopens on the tab you left it on — including across
-// app restarts (desktop). Web treats the URL (?tab=) as the source of truth on
-// mount, so the rehydrated value there is immediately overwritten; harmless.
 export const useSidebarTabStore = create<SidebarTabStore>()(
   persist(
     (set) => ({

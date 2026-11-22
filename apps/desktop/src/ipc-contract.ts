@@ -14,8 +14,6 @@
  *
  * Only type-erasable imports plus the API_* name maps live here — no Electron
  * or Node imports — so the renderer program can safely include this file.
- *
- * AI streaming channels land in a later phase of the desktop migration.
  */
 
 import type {
@@ -33,7 +31,12 @@ import type {
   PdfPageText,
   RetrievedChunk,
 } from "@uxie/shared/lib/chat";
-import type { ChatMessage, ChatPart } from "./chat-messages";
+import type {
+  ChatImageUpload,
+  ChatMessage,
+  ChatPart,
+  CreateUserMessageResult,
+} from "./chat-messages";
 
 export type { ChatMessage, ChatPart } from "./chat-messages";
 import type { FlashcardVerdict } from "@uxie/shared/schema/flashcard";
@@ -131,6 +134,10 @@ export interface IpcInvokeContract {
     args: [docId: string, role: "user" | "assistant", parts: ChatPart[]];
     result: void;
   };
+  "messages:createUser": {
+    args: [docId: string, text: string, images: ChatImageUpload[]];
+    result: CreateUserMessageResult;
+  };
 
   "documents:getPages": { args: [docId: string]; result: PdfPageText[] };
   "embeddings:store": {
@@ -176,10 +183,6 @@ export interface IpcEventContract {
   "chat:retrieve": [reqId: string, docId: string, question: string];
 }
 
-// Method name → channel. preload builds the real object from these maps, and
-// the UxieAPI type below is derived from them — so a method can't exist without
-// a channel, point at an unknown channel, or disagree on types.
-
 export const API_INVOKE = {
   getAppInfo: "app:info",
 
@@ -207,6 +210,7 @@ export const API_INVOKE = {
 
   getMessages: "messages:getByDocId",
   createMessage: "messages:create",
+  createUserMessage: "messages:createUser",
   getDocumentPages: "documents:getPages",
   storeEmbeddings: "embeddings:store",
   queryEmbeddings: "embeddings:query",

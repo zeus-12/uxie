@@ -1,3 +1,4 @@
+import { MAX_WEB_CHAT_IMAGE_TOTAL_BYTES } from "@/lib/chat-images";
 import { DEMO_CHAT_REPLIES, DEMO_CHAT_WELCOME } from "@/lib/demo/seed";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { createId } from "@paralleldrive/cuid2";
@@ -6,6 +7,11 @@ import {
   type ChatRow,
 } from "@uxie/shared/components/chat/chat-panel";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
+import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
+import {
+  userMessageRows,
+  type ChatImage,
+} from "@uxie/shared/lib/chat-attachments";
 import { useChatStore } from "@uxie/shared/lib/store";
 import { SparklesIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +23,7 @@ interface DemoMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
+  attachments?: ChatImage[];
 }
 
 /**
@@ -33,11 +40,26 @@ export default function DemoChat() {
   const [messages, setMessages] = useState<DemoMessage[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const {
+    attachments,
+    attachmentError,
+    addDataUrl,
+    addFiles,
+    removeAttachments,
+    clearAttachments,
+    attachmentsPending,
+  } = useChatImageAttachments({
+    maxTotalBytes: MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
+  });
 
   const replyIndexRef = useRef(0);
   const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const setSendMessage = useChatStore((s) => s.setSendMessage);
+  const setStageImageAttachment = useChatStore(
+    (s) => s.setStageImageAttachment,
+  );
+  const setFocusInput = useChatStore((s) => s.setFocusInput);
 
   const clearStreamTimer = () => {
     if (streamTimerRef.current) {
@@ -71,40 +93,60 @@ export default function DemoChat() {
         streamTimerRef.current = null;
       }
     };
-    // brief pause so the typing indicator is visible before text appears
     streamTimerRef.current = setTimeout(tick, 420);
   }, []);
 
   const send = useCallback(
-    (text: string) => {
+    (text: string, sentAttachments: ChatImage[] = []) => {
       const trimmed = text.trim();
-      if (!trimmed || isStreaming) return;
+      if ((!trimmed && !sentAttachments.length) || isStreaming) return;
       setMessages((prev) => [
         ...prev,
-        { id: createId(), role: "user", text: trimmed },
+        {
+          id: createId(),
+          role: "user",
+          text: trimmed,
+          attachments: sentAttachments,
+        },
       ]);
       streamCannedReply();
     },
     [isStreaming, streamCannedReply],
   );
 
-  // Expose sending to the PDF text-selection popover ("explain"/"summarise").
   useEffect(() => {
     setSendMessage((message: string) => send(message));
+    return () => setSendMessage(null);
   }, [send, setSendMessage]);
+  useEffect(() => {
+    setStageImageAttachment((dataUrl: string) => {
+      setIsVectorised(true);
+      void addDataUrl(dataUrl, "PDF selection.png");
+    });
+    return () => setStageImageAttachment(null);
+  }, [addDataUrl, setIsVectorised, setStageImageAttachment]);
+  useEffect(() => {
+    const focus = () => inputRef.current?.focus();
+    setFocusInput(focus);
+    return () => setFocusInput(null);
+  }, [setFocusInput]);
 
   useEffect(() => clearStreamTimer, []);
 
-  // Focus the input once the chat becomes interactive.
   useEffect(() => {
     if (isVectorised) inputRef.current?.focus();
   }, [isVectorised]);
 
   const handleSubmit = () => {
     const text = input.trim();
-    if (!text || isStreaming) return;
-    send(text);
+    if ((!text && !attachments.length) || isStreaming || attachmentsPending)
+      return;
+    send(
+      text,
+      attachments.map(({ id, filename, url }) => ({ id, filename, url })),
+    );
     setInput("");
+    clearAttachments();
   };
 
   const handleStop = () => {
@@ -128,7 +170,11 @@ export default function DemoChat() {
     { kind: "message", role: "assistant", content: DEMO_CHAT_WELCOME },
   ];
   for (const m of messages) {
-    if (m.text) rows.push({ kind: "message", role: m.role, content: m.text });
+    if (m.role === "user") {
+      rows.push(...userMessageRows(m.text, m.attachments ?? []));
+    } else if (m.text) {
+      rows.push({ kind: "message", role: "assistant", content: m.text });
+    }
   }
   const lastMessage = messages[messages.length - 1];
   if (isStreaming && lastMessage?.role === "assistant" && !lastMessage.text) {
@@ -140,7 +186,12 @@ export default function DemoChat() {
       rows={rows}
       loaded
       input={input}
+      attachments={attachments}
+      attachmentError={attachmentError}
+      attachmentsPending={attachmentsPending}
       onInputChange={setInput}
+      onFilesSelected={(files) => void addFiles(files)}
+      onRemoveAttachment={(id) => removeAttachments([id])}
       onSubmit={handleSubmit}
       onStop={handleStop}
       streaming={isStreaming}
