@@ -2,13 +2,15 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { chunkPdfPages } from "@uxie/shared/lib/embeddings";
-import { extractPdfPagesFromBytes } from "../src/main/pdf-text";
+import { extractPdfPages } from "@uxie/shared/lib/pdf-pages";
 
 const DEMO_PDF = join(__dirname, "../../web/public/demo.pdf");
 
 describe("page-aware PDF extraction", () => {
   it("keeps text and chunks attached to their real pages", async () => {
-    const pages = await extractPdfPagesFromBytes(await readFile(DEMO_PDF));
+    const pages = await extractPdfPages(
+      new Uint8Array(await readFile(DEMO_PDF)),
+    );
     expect(pages).toHaveLength(2);
     expect(pages[0]).toMatchObject({ pageNumber: 1 });
     expect(pages[1]).toMatchObject({ pageNumber: 2 });

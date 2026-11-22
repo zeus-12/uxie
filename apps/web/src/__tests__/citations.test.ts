@@ -14,7 +14,6 @@ import {
 } from "@uxie/shared/lib/pdf-citation-highlight";
 import {
   findExactPdfTextRange,
-  findUniquePdfPageNumber,
   normalizePdfText,
 } from "@uxie/shared/lib/pdf-text-layer";
 import {
@@ -249,25 +248,8 @@ describe("exact PDF source matching", () => {
   });
 });
 
-describe("legacy web page recovery", () => {
-  const pages = [
-    { pageNumber: 1, text: "First page content." },
-    { pageNumber: 2, text: "Second page has the unique chunk." },
-  ];
-
-  it("accepts only a unique exact normalized page match", () => {
-    expect(
-      findUniquePdfPageNumber("Second page\n has the unique chunk.", pages),
-    ).toBe(2);
+describe("pdf text normalization", () => {
+  it("collapses whitespace runs", () => {
     expect(normalizePdfText(" a\n b  ")).toBe("a b");
-  });
-
-  it("rejects an ambiguous page match", () => {
-    expect(
-      findUniquePdfPageNumber("page", [
-        { pageNumber: 1, text: "page one" },
-        { pageNumber: 2, text: "page two" },
-      ]),
-    ).toBeNull();
   });
 });

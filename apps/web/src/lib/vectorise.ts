@@ -1,18 +1,15 @@
 import { env } from "@/env.mjs";
-import { MAX_FILE_SIZE_MB_ANY_PLAN, fileSizeBytes } from "@/lib/constants";
 import { getPineconeClient } from "@/lib/pinecone";
 import {
-  needsPageLookup,
   pageNumberFromMetadata,
-  toRetrievedChunk,
+  toGetInformationOutput,
 } from "@/lib/retrieved-chunks";
 import { fetchPublicResource } from "@/server/article/safe-fetch";
 import { prisma } from "@/server/db";
 import { InferenceClient } from "@huggingface/inference";
-import { type PdfPageText, type RetrievedChunk } from "@uxie/shared/lib/chat";
+import { extractPdfPages } from "@uxie/shared/lib/pdf-pages";
 import { JSDOM } from "jsdom";
 import { Document as LangChainDocument } from "langchain/document";
-import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { Embeddings } from "langchain/embeddings/base";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
@@ -130,16 +127,19 @@ export const vectoriseDocument = async ({
         resource.body.byteOffset,
         resource.body.byteOffset + resource.body.byteLength,
       );
-      const loader = new PDFLoader(
-        new Blob([arrayBuffer], { type: "application/pdf" }),
-      );
-      sourceDocuments = await loader.load();
-
-      if (sourceDocuments.length > maxPagesAllowed) {
+      const pages = await extractPdfPages(new Uint8Array(arrayBuffer));
+      if (pages.length > maxPagesAllowed) {
         throw new Error(
           `Document to be vectorised can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
         );
       }
+      sourceDocuments = pages.map(
+        ({ pageNumber, text }) =>
+          new LangChainDocument({
+            pageContent: text,
+            metadata: { pageNumber },
+          }),
+      );
     }
 
     const pineconeIndex = getPineconeIndex();
@@ -211,45 +211,5 @@ export const retrieveRelevantDocumentContent = async (
   });
 
   const results = await vectorStore.similaritySearch(question, 4);
-  const pages = results.some(needsPageLookup)
-    ? await loadPdfPages(docId).catch((error: unknown) => {
-        console.error("Couldn't recover pages for legacy vectors:", error);
-        return [];
-      })
-    : [];
-  const chunks = results.flatMap((result): RetrievedChunk[] => {
-    const chunk = toRetrievedChunk(result, pages);
-    return chunk ? [chunk] : [];
-  });
-  if (results.length > 0 && chunks.length === 0) {
-    throw new Error(
-      "This document needs to be indexed again before cited answers are available.",
-    );
-  }
-  return chunks;
-};
-
-// Vectors indexed before page provenance carry no page number; the page is
-// recovered from the PDF text only when the passage occurs on exactly one page.
-const loadPdfPages = async (docId: string): Promise<PdfPageText[]> => {
-  const document = await prisma.document.findUnique({
-    where: { id: docId },
-    select: { url: true },
-  });
-  if (!document) return [];
-  const resource = await fetchPublicResource({
-    inputUrl: document.url,
-    maxBytes: fileSizeBytes(MAX_FILE_SIZE_MB_ANY_PLAN),
-  });
-  const bytes = resource.body.buffer.slice(
-    resource.body.byteOffset,
-    resource.body.byteOffset + resource.body.byteLength,
-  );
-  const pageDocuments = await new PDFLoader(
-    new Blob([bytes], { type: "application/pdf" }),
-  ).load();
-  return pageDocuments.flatMap((page): PdfPageText[] => {
-    const pageNumber = pageNumberFromMetadata(page.metadata);
-    return pageNumber ? [{ pageNumber, text: page.pageContent }] : [];
-  });
+  return toGetInformationOutput(results);
 };

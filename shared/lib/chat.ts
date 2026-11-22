@@ -22,9 +22,7 @@ export const getInformationInputSchema = z.object({
 });
 export type GetInformationInput = z.infer<typeof getInformationInputSchema>;
 
-// What each app's retrieval returns to the model and persists with the
-// assistant turn. Provenance is required so every source can be opened: a PDF
-// passage by page, an article passage by the block it came from.
+// Every cited passage carries the provenance needed to open it: a PDF page or an article block.
 export const pdfChunkSchema = z.object({
   kind: z.literal("pdf"),
   pageContent: z.string().min(1),
@@ -51,8 +49,10 @@ export function retrievedChunkKey(chunk: RetrievedChunk): string {
   return `${location}\u0000${chunk.pageContent}`;
 }
 
+// Passages from vectors indexed before provenance existed: the model reads them, the UI can't open them.
 export const getInformationOutputSchema = z.object({
   results: z.array(retrievedChunkSchema),
+  unlocated: z.array(z.string()).optional(),
 });
 export type GetInformationOutput = z.infer<typeof getInformationOutputSchema>;
 
@@ -76,11 +76,6 @@ function outputFromPart(part: Record<string, unknown>): unknown {
   return undefined;
 }
 
-/**
- * Reads citations from desktop parts, live AI SDK web parts, and the older web
- * persistence shape. Invalid or legacy page-less chunks stay readable as chat
- * history but never become clickable citations.
- */
 export function retrievedChunksFromParts(parts: unknown): RetrievedChunk[] {
   if (!Array.isArray(parts)) return [];
 

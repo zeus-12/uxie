@@ -1,9 +1,8 @@
 import {
   retrievedChunkSchema,
-  type PdfPageText,
+  type GetInformationOutput,
   type RetrievedChunk,
 } from "@uxie/shared/lib/chat";
-import { findUniquePdfPageNumber } from "@uxie/shared/lib/pdf-text-layer";
 
 type RetrievedDocument = {
   pageContent: string;
@@ -31,16 +30,8 @@ export function pageNumberFromMetadata(
   );
 }
 
-export function needsPageLookup(document: RetrievedDocument): boolean {
-  return (
-    document.metadata.kind !== "article" &&
-    pageNumberFromMetadata(document.metadata) === null
-  );
-}
-
 export function toRetrievedChunk(
   document: RetrievedDocument,
-  pages: readonly PdfPageText[],
 ): RetrievedChunk | null {
   const candidate =
     document.metadata.kind === "article"
@@ -52,10 +43,21 @@ export function toRetrievedChunk(
       : {
           kind: "pdf",
           pageContent: document.pageContent,
-          pageNumber:
-            pageNumberFromMetadata(document.metadata) ??
-            findUniquePdfPageNumber(document.pageContent, [...pages]),
+          pageNumber: pageNumberFromMetadata(document.metadata),
         };
   const parsed = retrievedChunkSchema.safeParse(candidate);
   return parsed.success ? parsed.data : null;
+}
+
+export function toGetInformationOutput(
+  documents: readonly RetrievedDocument[],
+): GetInformationOutput {
+  const results: RetrievedChunk[] = [];
+  const unlocated: string[] = [];
+  for (const document of documents) {
+    const chunk = toRetrievedChunk(document);
+    if (chunk) results.push(chunk);
+    else if (document.pageContent.trim()) unlocated.push(document.pageContent);
+  }
+  return unlocated.length > 0 ? { results, unlocated } : { results };
 }

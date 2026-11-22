@@ -1,25 +1,25 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  needsPageLookup,
   pageNumberFromMetadata,
-  toRetrievedChunk,
+  toGetInformationOutput,
 } from "@/lib/retrieved-chunks";
 
-describe("toRetrievedChunk", () => {
-  it("keeps an article passage's block as its provenance", () => {
+describe("toGetInformationOutput", () => {
+  it("cites PDF passages by page and article passages by block", () => {
     expect(
-      toRetrievedChunk(
+      toGetInformationOutput([
+        { pageContent: "pdf text", metadata: { kind: "pdf", pageNumber: 3 } },
         {
-          pageContent: "A relevant passage",
-          metadata: { fileId: "doc", kind: "article", blockId: "block-2" },
+          pageContent: "article text",
+          metadata: { kind: "article", blockId: "block-2", snapshotId: "s" },
         },
-        [],
-      ),
+      ]),
     ).toEqual({
-      kind: "article",
-      pageContent: "A relevant passage",
-      blockId: "block-2",
+      results: [
+        { kind: "pdf", pageContent: "pdf text", pageNumber: 3 },
+        { kind: "article", pageContent: "article text", blockId: "block-2" },
+      ],
     });
   });
 
@@ -30,29 +30,16 @@ describe("toRetrievedChunk", () => {
     expect(pageNumberFromMetadata({ pageNumber: 0 })).toBeNull();
   });
 
-  it("recovers a legacy PDF page only when the passage is on exactly one page", () => {
-    const document = {
-      pageContent: "unique chunk",
-      metadata: { fileId: "doc" },
-    };
-    expect(needsPageLookup(document)).toBe(true);
+  it("keeps passages without provenance for the model but never cites them", () => {
     expect(
-      toRetrievedChunk(document, [
-        { pageNumber: 1, text: "first page" },
-        { pageNumber: 2, text: "has the unique chunk here" },
+      toGetInformationOutput([
+        { pageContent: "legacy pdf text", metadata: { fileId: "doc" } },
+        { pageContent: "orphan article text", metadata: { kind: "article" } },
+        { pageContent: "located", metadata: { "loc.pageNumber": 2 } },
       ]),
-    ).toEqual({ kind: "pdf", pageContent: "unique chunk", pageNumber: 2 });
-    expect(
-      toRetrievedChunk(document, [
-        { pageNumber: 1, text: "unique chunk" },
-        { pageNumber: 2, text: "unique chunk" },
-      ]),
-    ).toBeNull();
-  });
-
-  it("drops an article vector that lost its block id", () => {
-    const document = { pageContent: "orphan", metadata: { kind: "article" } };
-    expect(needsPageLookup(document)).toBe(false);
-    expect(toRetrievedChunk(document, [])).toBeNull();
+    ).toEqual({
+      results: [{ kind: "pdf", pageContent: "located", pageNumber: 2 }],
+      unlocated: ["legacy pdf text", "orphan article text"],
+    });
   });
 });
