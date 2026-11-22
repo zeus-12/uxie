@@ -57,8 +57,10 @@ export function usePdfImport(
     const picked = await window.uxieAPI.pickPdf();
     if (!picked) return;
 
+    if (pending?.preview.coverUrl)
+      URL.revokeObjectURL(pending.preview.coverUrl);
+    else if (!pending) setOcr(false);
     current.current = picked;
-    setOcr(false);
     setError(null);
     setPhase({ kind: "review" });
     setPending({ picked, preview: pendingPreview(picked), cover: null });
@@ -121,6 +123,7 @@ export function usePdfImport(
       onOcrChange={setOcr}
       error={error}
       onImport={confirm}
+      onChangeFile={() => start().catch((e) => setError(message(e)))}
       onCancel={cancel}
     />
   );
