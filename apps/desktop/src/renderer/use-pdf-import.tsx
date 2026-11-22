@@ -15,7 +15,7 @@ interface Pending {
   cover: Uint8Array | null;
 }
 
-const pendingPreview = (picked: PickedPdf): PdfPreview => ({
+const basePreview = (picked: PickedPdf): PdfPreview => ({
   name: picked.name,
   sizeBytes: picked.bytes.byteLength,
   pageCount: null,
@@ -37,6 +37,7 @@ async function applyOcr(
 export function usePdfImport(
   onImported: (doc: Document, cover: Uint8Array | null) => void,
 ) {
+  const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
   const [phase, setPhase] = useState<ImportPhase>({ kind: "review" });
   const [ocr, setOcr] = useState(false);
@@ -44,26 +45,25 @@ export function usePdfImport(
   const current = useRef<PickedPdf | null>(null);
   const abort = useRef<AbortController | null>(null);
 
-  function close() {
+  function clear() {
     if (pending?.preview.coverUrl)
       URL.revokeObjectURL(pending.preview.coverUrl);
     current.current = null;
-    abort.current = null;
     setPending(null);
+    setError(null);
+  }
+
+  function close() {
+    clear();
+    abort.current = null;
+    setOpen(false);
     setPhase({ kind: "review" });
   }
 
-  async function start() {
-    const picked = await window.uxieAPI.pickPdf();
-    if (!picked) return;
-
-    if (pending?.preview.coverUrl)
-      URL.revokeObjectURL(pending.preview.coverUrl);
-    else if (!pending) setOcr(false);
+  async function load(picked: PickedPdf) {
+    clear();
     current.current = picked;
-    setError(null);
-    setPhase({ kind: "review" });
-    setPending({ picked, preview: pendingPreview(picked), cover: null });
+    setPending({ picked, preview: basePreview(picked), cover: null });
 
     try {
       const { pageCount, cover } = await previewPdf(picked.bytes);
@@ -73,12 +73,40 @@ export function usePdfImport(
         : null;
       setPending({
         picked,
-        preview: { ...pendingPreview(picked), pageCount, coverUrl },
+        preview: { ...basePreview(picked), pageCount, coverUrl },
         cover,
       });
     } catch (e) {
       if (current.current === picked) setError(message(e));
     }
+  }
+
+  async function browse() {
+    try {
+      const picked = await window.uxieAPI.pickPdf();
+      if (picked) await load(picked);
+    } catch (e) {
+      setError(message(e));
+    }
+  }
+
+  async function start() {
+    const picked = await window.uxieAPI.pickPdf();
+    if (!picked) return;
+    setOcr(false);
+    setOpen(true);
+    await load(picked);
+  }
+
+  async function dropFile(file: File) {
+    if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+      setError("Only PDF files can be imported.");
+      return;
+    }
+    await load({
+      name: file.name,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+    });
   }
 
   async function confirm() {
@@ -117,13 +145,16 @@ export function usePdfImport(
 
   const dialog = (
     <ImportPdfDialog
+      open={open}
       preview={pending?.preview ?? null}
       phase={phase}
       ocr={ocr}
       onOcrChange={setOcr}
       error={error}
+      onBrowse={browse}
+      onDropFile={(file) => void dropFile(file)}
+      onClear={clear}
       onImport={confirm}
-      onChangeFile={() => start().catch((e) => setError(message(e)))}
       onCancel={cancel}
     />
   );

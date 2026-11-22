@@ -1,6 +1,8 @@
-import { FileText } from "lucide-react";
+import { XIcon } from "lucide-react";
+import { useState, type DragEvent } from "react";
 
 import { ocrProgressLabel, type OcrProgress } from "../../lib/ocr";
+import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Spinner } from "../ui/spinner";
@@ -23,73 +25,119 @@ const formatSize = (bytes: number) =>
     ? `${Math.max(1, Math.round(bytes / 1024))} KB`
     : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
-function SelectedFile({
+function FileBox({
   preview,
-  onChange,
-  disabled,
+  busy,
+  onBrowse,
+  onDropFile,
+  onClear,
 }: {
-  preview: PdfPreview;
-  onChange: () => void;
-  disabled: boolean;
+  preview: PdfPreview | null;
+  busy: boolean;
+  onBrowse: () => void;
+  onDropFile: (file: File) => void;
+  onClear: () => void;
 }) {
+  const [dragging, setDragging] = useState(false);
+
+  const onDrop = (event: DragEvent) => {
+    event.preventDefault();
+    setDragging(false);
+    const file = event.dataTransfer.files[0];
+    if (file && !busy) onDropFile(file);
+  };
+
   return (
-    <div className="flex items-center gap-4 rounded-md border-[0.75px] border-gray-300 p-4">
-      <div className="flex h-[84px] w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-gray-200 bg-gray-50 shadow-sm">
-        {preview.coverUrl ? (
-          <img
-            src={preview.coverUrl}
-            alt=""
-            className="h-full w-full object-cover object-top"
-          />
-        ) : (
-          <FileText aria-hidden="true" className="h-5 w-5 text-gray-400" />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-medium" title={preview.name}>
-          {preview.name}
-        </p>
-        <p className="mt-0.5 text-sm tabular-nums text-gray-500">
-          {preview.pageCount != null &&
-            `${preview.pageCount} ${
-              preview.pageCount === 1 ? "page" : "pages"
-            } · `}
-          {formatSize(preview.sizeBytes)}
-        </p>
-      </div>
-      <Button variant="ghost" size="sm" onClick={onChange} disabled={disabled}>
-        Change
-      </Button>
+    <div
+      role={preview ? undefined : "button"}
+      tabIndex={preview ? undefined : 0}
+      onClick={preview ? undefined : onBrowse}
+      onKeyDown={(e) => !preview && e.key === "Enter" && onBrowse()}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={onDrop}
+      className={cn(
+        "flex flex-col items-center justify-center gap-4 rounded-md border-[0.75px] border-gray-300 px-4 py-12",
+        !preview && "cursor-pointer",
+        dragging && "border-gray-500 bg-gray-50",
+      )}
+    >
+      {preview ? (
+        <>
+          <div className="h-28 w-[86px] overflow-hidden rounded-sm border border-gray-200 bg-gray-50 shadow-sm">
+            {preview.coverUrl && (
+              <img
+                src={preview.coverUrl}
+                alt=""
+                className="h-full w-full object-cover object-top"
+              />
+            )}
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-2">
+              <p>{preview.name}</p>
+              {!busy && (
+                <XIcon
+                  role="button"
+                  aria-label="Remove file"
+                  onClick={onClear}
+                  className="h-4 w-4 text-gray-500 hover:cursor-pointer"
+                />
+              )}
+            </div>
+            <p className="text-sm tabular-nums text-gray-500">
+              {preview.pageCount != null &&
+                `${preview.pageCount} ${
+                  preview.pageCount === 1 ? "page" : "pages"
+                } · `}
+              {formatSize(preview.sizeBytes)}
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <p>Choose a PDF</p>
+          <p className="text-sm text-gray-500">
+            Click to browse, or drop it here
+          </p>
+        </>
+      )}
     </div>
   );
 }
 
 export function ImportPdfDialog({
+  open,
   preview,
   phase,
   ocr,
   onOcrChange,
   error,
+  onBrowse,
+  onDropFile,
+  onClear,
   onImport,
-  onChangeFile,
   onCancel,
 }: {
+  open: boolean;
   preview: PdfPreview | null;
   phase: ImportPhase;
   ocr: boolean;
   onOcrChange: (ocr: boolean) => void;
   error: string | null;
+  onBrowse: () => void;
+  onDropFile: (file: File) => void;
+  onClear: () => void;
   onImport: () => void;
-  onChangeFile: () => void;
   onCancel: () => void;
 }) {
   const busy = phase.kind !== "review";
 
   return (
-    <Dialog
-      open={preview !== null}
-      onOpenChange={(open) => !open && onCancel()}
-    >
+    <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
       <DialogContent hideClose={true}>
         <DialogHeader>
           <DialogTitle>
@@ -101,15 +149,15 @@ export function ImportPdfDialog({
 
           <div className="mb-2" />
 
-          {preview && (
-            <SelectedFile
-              preview={preview}
-              onChange={onChangeFile}
-              disabled={busy}
-            />
-          )}
+          <FileBox
+            preview={preview}
+            busy={busy}
+            onBrowse={onBrowse}
+            onDropFile={onDropFile}
+            onClear={onClear}
+          />
 
-          <div className="my-3 pt-3">
+          <div className="pt-2">
             <OcrOption
               checked={ocr}
               onCheckedChange={onOcrChange}
@@ -142,15 +190,6 @@ export function ImportPdfDialog({
                 "Import"
               )}
             </Button>
-            {phase.kind === "ocr" && (
-              <Button
-                variant="ghost"
-                className="mt-2 w-full text-gray-500"
-                onClick={onCancel}
-              >
-                Stop OCR
-              </Button>
-            )}
           </div>
         </DialogHeader>
       </DialogContent>

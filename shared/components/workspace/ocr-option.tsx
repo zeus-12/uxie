@@ -10,23 +10,22 @@ export function OcrOption({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-2">
+    <div className="my-3 flex items-center space-x-2">
       <Checkbox
         id="ocr"
         checked={checked}
         disabled={disabled}
         onCheckedChange={(c) => onCheckedChange(c === true)}
-        className="mt-0.5"
       />
       <div>
         <label
           htmlFor="ocr"
           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
         >
-          OCR scanned pages
+          OCR Pdf
         </label>
         <span className="block text-xs text-muted-foreground">
-          Make scanned pages searchable and selectable.
+          Convert scanned PDF into searchable and selectable document.
         </span>
       </div>
     </div>

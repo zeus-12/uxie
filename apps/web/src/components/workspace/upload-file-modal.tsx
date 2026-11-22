@@ -191,7 +191,7 @@ const UploadFileModal = ({
             />
           </div>
 
-          <div className="my-3">
+          <div>
             <OcrOption
               checked={doOcr}
               onCheckedChange={setDoOcr}
