@@ -1,3 +1,4 @@
+import { prepareChatMessages } from "@/lib/chat-images";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
@@ -73,28 +74,20 @@ export async function POST(req: Request) {
       throw new Error("Document not vectorized.");
     }
 
-    const prevMessage = messages[messages.length - 1];
-    if (!prevMessage)
-      return new Response("No previous message found", { status: 404 });
+    const prepared = prepareChatMessages(messages);
+    if (!prepared.ok) return new Response(prepared.error, { status: 400 });
 
-    const isPreviousMessageToolInvoked =
-      prevMessage.toolInvocations?.length &&
-      prevMessage.toolInvocations?.length > 0;
-
-    // don't add the user's message to the database if it was a tool invocation
-    if (!isPreviousMessageToolInvoked) {
-      await prisma.message.create({
-        data: {
-          parts: prevMessage.parts,
-          documentId: docId,
-          userId: session?.user.id,
-        },
-      });
-    }
+    await prisma.message.create({
+      data: {
+        parts: prepared.userParts,
+        documentId: docId,
+        userId: session?.user.id,
+      },
+    });
 
     const result = streamText({
       model: google("gemini-2.5-flash"),
-      messages: await convertToModelMessages(messages),
+      messages: await convertToModelMessages(prepared.messages),
       system: CHAT_SYSTEM_PROMPT,
       tools: AI_TOOLS({ docId }),
       toolChoice: "auto",

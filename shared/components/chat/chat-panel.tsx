@@ -7,16 +7,20 @@ import {
 } from "react";
 import {
   ArrowUpIcon,
+  ImagePlusIcon,
   Loader2Icon,
-  PaperclipIcon,
   SearchIcon,
   SquareIcon,
-  XIcon,
 } from "lucide-react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
-import type { ChatImageAttachment } from "../../lib/chat-attachments";
+import type { ChatImage } from "../../lib/chat-attachments";
 import { cn } from "../../lib/utils";
 import { ShimmeringText } from "../ui/shimmering-text";
+import {
+  ImageLightbox,
+  MessageImageGrid,
+  StagedImageStrip,
+} from "./chat-images";
 
 export type ChatRole = "user" | "assistant";
 
@@ -28,7 +32,7 @@ export type ChatRow =
       kind: "message";
       role: ChatRole;
       content: string;
-      attachments?: ChatImageAttachment[];
+      attachments?: ChatImage[];
     }
   | { kind: "streaming"; content: string }
   | { kind: "tool"; label: string; active: boolean }
@@ -40,8 +44,10 @@ interface ChatPanelProps {
   /** Gate the list until history has loaded so it can start pinned to bottom. */
   loaded: boolean;
   input: string;
-  attachments: ChatImageAttachment[];
+  attachments: ChatImage[];
   attachmentError?: string | null;
+  attachmentsPending: number;
+  attachmentsBusy: boolean;
   onInputChange: (value: string) => void;
   onFilesSelected: (files: File[]) => void;
   onRemoveAttachment: (id: string) => void;
@@ -61,6 +67,8 @@ export function ChatPanel({
   input,
   attachments,
   attachmentError,
+  attachmentsPending,
+  attachmentsBusy,
   onInputChange,
   onFilesSelected,
   onRemoveAttachment,
@@ -77,6 +85,14 @@ export function ChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const taRef = inputRef ?? internalTaRef;
   const [dragActive, setDragActive] = useState(false);
+  const [previewImage, setPreviewImage] = useState<ChatImage | null>(null);
+  const canSend =
+    !streaming &&
+    !attachmentsBusy &&
+    (!!input.trim() || attachments.length > 0);
+  const submitIfReady = () => {
+    if (canSend) onSubmit();
+  };
 
   function grow() {
     const t = taRef.current;
@@ -109,7 +125,11 @@ export function ChatPanel({
           increaseViewportBy={{ top: 600, bottom: 200 }}
           components={{ Header: () => <div className="h-3" /> }}
           itemContent={(_, row) => (
-            <RowView row={row} renderMarkdown={renderMarkdown} />
+            <RowView
+              row={row}
+              renderMarkdown={renderMarkdown}
+              onOpenImage={setPreviewImage}
+            />
           )}
         />
       ) : (
@@ -119,14 +139,18 @@ export function ChatPanel({
       <div className="p-2">
         <div
           className={cn(
-            "rounded-2xl border border-input bg-muted/60 transition-colors focus-within:border-blue-400",
-            dragActive && "border-blue-500 bg-blue-50/70",
+            "rounded-2xl border border-input bg-muted/60 transition-colors focus-within:border-ring",
+            dragActive && "border-blue-500 bg-blue-500/10",
           )}
           onDragEnter={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
             event.preventDefault();
             setDragActive(true);
           }}
-          onDragOver={(event) => event.preventDefault()}
+          onDragOver={(event) => {
+            if (event.dataTransfer.types.includes("Files"))
+              event.preventDefault();
+          }}
           onDragLeave={(event) => {
             const relatedTarget = event.relatedTarget;
             if (
@@ -137,35 +161,18 @@ export function ChatPanel({
             }
           }}
           onDrop={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
             event.preventDefault();
             setDragActive(false);
             onFilesSelected(Array.from(event.dataTransfer.files));
           }}
         >
-          {attachments.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto px-2 pb-0 pt-2">
-              {attachments.map((attachment) => (
-                <div
-                  key={attachment.id}
-                  className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-border bg-background shadow-sm"
-                >
-                  <img
-                    src={attachment.url}
-                    alt={attachment.filename}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onRemoveAttachment(attachment.id)}
-                    aria-label={`Remove ${attachment.filename}`}
-                    className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/75 text-white opacity-90 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  >
-                    <XIcon className="h-3 w-3" aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          <StagedImageStrip
+            images={attachments}
+            pending={attachmentsPending}
+            onOpen={setPreviewImage}
+            onRemove={onRemoveAttachment}
+          />
 
           <div className="flex items-end gap-1.5 p-2">
             <input
@@ -184,9 +191,10 @@ export function ChatPanel({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               aria-label="Attach images"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              title="Attach images"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <PaperclipIcon className="h-4 w-4" aria-hidden="true" />
+              <ImagePlusIcon className="size-4" aria-hidden="true" />
             </button>
             <textarea
               ref={taRef}
@@ -205,7 +213,7 @@ export function ChatPanel({
                 const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
                 if (cmdEnter || (e.key === "Enter" && !e.shiftKey)) {
                   e.preventDefault();
-                  onSubmit();
+                  submitIfReady();
                 }
               }}
               rows={1}
@@ -214,8 +222,8 @@ export function ChatPanel({
             />
             <button
               type="button"
-              onClick={() => (streaming && onStop ? onStop() : onSubmit())}
-              disabled={!streaming && !input.trim() && !attachments.length}
+              onClick={() => (streaming && onStop ? onStop() : submitIfReady())}
+              disabled={!streaming && !canSend}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-40"
               aria-label={streaming && onStop ? "Stop" : "Send"}
             >
@@ -225,6 +233,8 @@ export function ChatPanel({
                 ) : (
                   <Loader2Icon className="h-4 w-4 animate-spin" />
                 )
+              ) : attachmentsBusy ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
               ) : (
                 <ArrowUpIcon className="h-4 w-4" />
               )}
@@ -237,6 +247,10 @@ export function ChatPanel({
           )}
         </div>
       </div>
+      <ImageLightbox
+        image={previewImage}
+        onClose={() => setPreviewImage(null)}
+      />
     </div>
   );
 }
@@ -244,9 +258,11 @@ export function ChatPanel({
 function RowView({
   row,
   renderMarkdown,
+  onOpenImage,
 }: {
   row: ChatRow;
   renderMarkdown: (text: string) => ReactNode;
+  onOpenImage: (image: ChatImage) => void;
 }) {
   return (
     <div className="px-2 pb-4">
@@ -256,6 +272,7 @@ function RowView({
           content={row.content}
           attachments={row.attachments}
           renderMarkdown={renderMarkdown}
+          onOpenImage={onOpenImage}
         />
       ) : row.kind === "streaming" ? (
         <ChatBubble
@@ -302,11 +319,13 @@ function ChatBubble({
   content,
   attachments = [],
   renderMarkdown,
+  onOpenImage,
 }: {
   role: ChatRole;
   content: string;
-  attachments?: ChatImageAttachment[];
+  attachments?: ChatImage[];
   renderMarkdown: (text: string) => ReactNode;
+  onOpenImage?: (image: ChatImage) => void;
 }) {
   const isUser = role === "user";
   return (
@@ -315,57 +334,20 @@ function ChatBubble({
     >
       {isUser ? (
         <div className="ml-auto flex max-w-[85%] flex-col items-end gap-1.5">
-          <AttachmentGallery attachments={attachments} />
+          {onOpenImage && (
+            <MessageImageGrid images={attachments} onOpen={onOpenImage} />
+          )}
           {content && (
-            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm leading-5 text-white">
+            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm text-white">
               {content}
             </div>
           )}
         </div>
       ) : (
-        <div className="flex max-w-[85%] flex-col items-start gap-1.5">
-          <AttachmentGallery attachments={attachments} />
-          {content && (
-            <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-sm leading-5 text-foreground prose-p:my-0 prose-p:leading-5 prose-pre:my-2 prose-headings:mb-1 prose-headings:mt-2 [&_p+p]:mt-2">
-              {renderMarkdown(content)}
-            </div>
-          )}
+        <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mt-2 prose-headings:mb-1">
+          {renderMarkdown(content)}
         </div>
       )}
-    </div>
-  );
-}
-
-function AttachmentGallery({
-  attachments,
-}: {
-  attachments: ChatImageAttachment[];
-}) {
-  if (!attachments.length) return null;
-
-  return (
-    <div
-      className={cn(
-        "grid max-w-full gap-1 overflow-hidden rounded-2xl border border-border bg-muted p-1 shadow-sm",
-        attachments.length > 1 ? "grid-cols-2" : "grid-cols-1",
-      )}
-    >
-      {attachments.map((attachment, index) => (
-        <img
-          key={attachment.id}
-          src={attachment.url}
-          alt={attachment.filename}
-          className={cn(
-            "block bg-background object-cover",
-            attachments.length === 1
-              ? "max-h-64 min-h-32 max-w-full rounded-xl"
-              : "aspect-square min-w-0 rounded-lg",
-            attachments.length === 3 &&
-              index === 2 &&
-              "col-span-2 aspect-[2/1]",
-          )}
-        />
-      ))}
     </div>
   );
 }

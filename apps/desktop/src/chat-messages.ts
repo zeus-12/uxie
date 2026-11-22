@@ -11,8 +11,9 @@ import {
   type RetrievedChunk,
 } from "@uxie/shared/lib/chat";
 import {
-  attachmentFromDataUrl,
-  type ChatImageAttachment,
+  isChatImageMediaType,
+  type ChatImage,
+  type ChatImageMediaType,
 } from "@uxie/shared/lib/chat-attachments";
 
 type GetInformationOutput = { results: RetrievedChunk[] };
@@ -22,7 +23,7 @@ export type ChatPart =
   | {
       type: "file";
       filename: string;
-      mediaType: ChatImageAttachment["mediaType"];
+      mediaType: ChatImageMediaType;
       url: string;
     }
   | {
@@ -48,7 +49,7 @@ export type ChatDisplayRow =
       kind: "message";
       role: "user" | "assistant";
       content: string;
-      attachments?: ChatImageAttachment[];
+      attachments?: ChatImage[];
     }
   | { kind: "tool"; label: string; active: false };
 
@@ -56,13 +57,25 @@ export function textPart(text: string): ChatPart {
   return { type: "text", text };
 }
 
-export function imagePart(attachment: ChatImageAttachment): ChatPart {
-  return {
-    type: "file",
-    filename: attachment.filename,
-    mediaType: attachment.mediaType,
-    url: attachment.url,
-  };
+type FilePart = Extract<ChatPart, { type: "file" }>;
+
+export function isDocumentImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "uxie-pdf:" && parsed.host === "image";
+  } catch {
+    return false;
+  }
+}
+
+function fileParts(message: ChatMessage): FilePart[] {
+  return message.parts.filter((part): part is FilePart => part.type === "file");
+}
+
+export function chatMessageImageUrls(messages: ChatMessage[]): string[] {
+  return [
+    ...new Set(messages.flatMap((m) => fileParts(m).map((part) => part.url))),
+  ];
 }
 
 export function chatMessageText(message: ChatMessage): string {
@@ -77,16 +90,12 @@ export function chatMessageText(message: ChatMessage): string {
 
 export function chatMessageToRows(message: ChatMessage): ChatDisplayRow[] {
   if (message.role === "user") {
-    const attachments = message.parts.flatMap(
-      (part, index): ChatImageAttachment[] => {
-        if (part.type !== "file") return [];
-        const result = attachmentFromDataUrl({
-          url: part.url,
-          filename: part.filename,
-          id: `attachment-${index}`,
-        });
-        return result.kind === "attachment" ? [result.attachment] : [];
-      },
+    const attachments = fileParts(message).map(
+      (part, index): ChatImage => ({
+        id: `${index}-${part.url}`,
+        filename: part.filename,
+        url: part.url,
+      }),
     );
     const content = chatMessageText(message);
     return content.trim() || attachments.length
@@ -161,15 +170,18 @@ export function normalizeChatParts(parts: unknown): ChatPart[] {
     if (
       part.type === "file" &&
       typeof part.filename === "string" &&
-      typeof part.url === "string"
+      typeof part.url === "string" &&
+      isDocumentImageUrl(part.url) &&
+      isChatImageMediaType(part.mediaType)
     ) {
-      const result = attachmentFromDataUrl({
-        url: part.url,
-        filename: part.filename,
-      });
-      if (result.kind === "attachment") {
-        return [imagePart(result.attachment)];
-      }
+      return [
+        {
+          type: "file",
+          filename: part.filename,
+          mediaType: part.mediaType,
+          url: part.url,
+        },
+      ];
     }
     if (
       part.type === "tool-call" &&
@@ -271,15 +283,13 @@ export function completedChatParts(parts: ChatPart[]): ChatPart[] {
 
 export function chatMessagesToModelMessages(
   messages: ChatMessage[],
+  images: ReadonlyMap<string, Uint8Array>,
 ): ModelMessage[] {
   const result: ModelMessage[] = [];
 
   for (const message of messages) {
     if (message.role === "user") {
-      const imageParts = message.parts.filter(
-        (part): part is Extract<ChatPart, { type: "file" }> =>
-          part.type === "file",
-      );
+      const imageParts = fileParts(message);
       if (!imageParts.length) {
         result.push({ role: "user", content: chatMessageText(message) });
         continue;
@@ -289,11 +299,9 @@ export function chatMessagesToModelMessages(
       const text = chatMessageText(message);
       if (text) content.push({ type: "text", text });
       for (const part of imageParts) {
-        content.push({
-          type: "image",
-          image: part.url,
-          mediaType: part.mediaType,
-        });
+        const data = images.get(part.url);
+        if (!data) throw new Error(`Missing bytes for image ${part.url}`);
+        content.push({ type: "file", data, mediaType: part.mediaType });
       }
       result.push({ role: "user", content });
       continue;
@@ -352,10 +360,6 @@ export function chatMessagesToModelMessages(
         flushText();
         flushCalls();
         toolResults.push(part);
-      } else {
-        flushText();
-        flushCalls();
-        flushResults();
       }
     }
     flushText();

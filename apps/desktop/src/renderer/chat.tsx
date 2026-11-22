@@ -15,9 +15,9 @@ import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attac
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import {
   chatMessageToRows,
-  imagePart,
   textPart,
   type ChatMessage,
+  type ChatPart,
 } from "../chat-messages";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -99,13 +99,16 @@ function ChatView({ docId }: { docId: string }) {
   const [searchedOnce, setSearchedOnce] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [savingImages, setSavingImages] = useState(false);
   const {
     attachments,
     attachmentError,
+    attachmentsPending,
     addDataUrl,
     addFiles,
     removeAttachment,
     clearAttachments,
+    setAttachmentError,
   } = useChatImageAttachments();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -212,14 +215,42 @@ function ChatView({ docId }: { docId: string }) {
   }
   if (error) rows.push({ kind: "error", content: error });
 
-  function send(override?: string) {
+  async function saveImages(): Promise<ChatPart[] | null> {
+    setSavingImages(true);
+    try {
+      return await Promise.all(
+        attachments.map(
+          async (image): Promise<ChatPart> => ({
+            type: "file",
+            filename: image.filename,
+            mediaType: image.mediaType,
+            url: await window.uxieAPI.storeDocumentImage(
+              docId,
+              new Uint8Array(await image.blob.arrayBuffer()),
+              image.mediaType,
+            ),
+          }),
+        ),
+      );
+    } catch (e) {
+      setAttachmentError(
+        `Couldn't save the image: ${
+          e instanceof Error ? e.message : String(e)
+        }`,
+      );
+      return null;
+    } finally {
+      setSavingImages(false);
+    }
+  }
+
+  async function send(override?: string) {
     const text = (override ?? input).trim();
-    const sentAttachments = override === undefined ? attachments : [];
-    if ((!text && !sentAttachments.length) || streaming) return;
-    const parts = [
-      ...(text ? [textPart(text)] : []),
-      ...sentAttachments.map(imagePart),
-    ];
+    const withImages = override === undefined && attachments.length > 0;
+    if ((!text && !withImages) || streaming || savingImages) return;
+    const imageParts = withImages ? await saveImages() : [];
+    if (!imageParts) return;
+    const parts = [...(text ? [textPart(text)] : []), ...imageParts];
     const history: ChatMessage[] = [...messages, { role: "user", parts }];
     setMessages(history);
     if (override === undefined) {
@@ -252,12 +283,12 @@ function ChatView({ docId }: { docId: string }) {
     (s) => s.setStageImageAttachment,
   );
   useEffect(() => {
-    setSendMessage((text: string) => sendRef.current(text));
+    setSendMessage((text: string) => void sendRef.current(text));
     return () => setSendMessage(null);
   }, [setSendMessage]);
   useEffect(() => {
     setStageImageAttachment((dataUrl: string) => {
-      addDataUrl(dataUrl, "PDF selection.png");
+      void addDataUrl(dataUrl, "PDF selection.png");
     });
     return () => setStageImageAttachment(null);
   }, [addDataUrl, setStageImageAttachment]);
@@ -269,10 +300,12 @@ function ChatView({ docId }: { docId: string }) {
       input={input}
       attachments={attachments}
       attachmentError={attachmentError}
+      attachmentsPending={attachmentsPending}
+      attachmentsBusy={attachmentsPending > 0 || savingImages}
       onInputChange={setInput}
       onFilesSelected={(files) => void addFiles(files)}
       onRemoveAttachment={removeAttachment}
-      onSubmit={() => send()}
+      onSubmit={() => void send()}
       onStop={stop}
       streaming={streaming}
       renderMarkdown={renderMarkdown}

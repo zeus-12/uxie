@@ -12,7 +12,7 @@ export async function countPdfPages(bytes: Uint8Array): Promise<number> {
  *
  *   <root>/<docId>/document.pdf
  *   <root>/<docId>/cover.png
- *   <root>/<docId>/images/<imageId>.png   (area highlights, pasted note images)
+ *   <root>/<docId>/images/<imageId>.<ext>  (area highlights, note images, chat images)
  *
  * Deleting the document is then a single recursive remove, so a new kind of
  * asset can't be forgotten by the cleanup path.
@@ -33,7 +33,8 @@ export const imagePath = (
   root: string,
   docId: string,
   imageId: string,
-): string => join(imagesDir(root, docId), `${imageId}.png`);
+  extension = "png",
+): string => join(imagesDir(root, docId), `${imageId}.${extension}`);
 
 export async function storePdf(
   root: string,
@@ -58,9 +59,10 @@ export async function storeImage(
   docId: string,
   imageId: string,
   bytes: Uint8Array,
+  extension = "png",
 ): Promise<void> {
   await mkdir(imagesDir(root, docId), { recursive: true });
-  await writeFile(imagePath(root, docId, imageId), bytes);
+  await writeFile(imagePath(root, docId, imageId, extension), bytes);
 }
 
 export async function deleteImage(
@@ -72,10 +74,7 @@ export async function deleteImage(
 }
 
 /** Removes the pdf, the cover and every image in one go. */
-export async function deleteDocDir(
-  root: string,
-  docId: string,
-): Promise<void> {
+export async function deleteDocDir(root: string, docId: string): Promise<void> {
   await rm(docDir(root, docId), { recursive: true, force: true });
 }
 

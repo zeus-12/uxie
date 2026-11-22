@@ -1,4 +1,8 @@
 import { api } from "@/lib/api";
+import {
+  MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
+  withoutEarlierImageData,
+} from "@/lib/chat-images";
 import { useChat } from "@ai-sdk/react";
 import {
   ChatPanel,
@@ -11,10 +15,7 @@ import {
 } from "@uxie/shared/components/other/indexing-state";
 import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
 import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
-import {
-  attachmentFromDataUrl,
-  type ChatImageAttachment,
-} from "@uxie/shared/lib/chat-attachments";
+import type { ChatImage } from "@uxie/shared/lib/chat-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import { DefaultChatTransport, type FileUIPart } from "ai";
 import { SparklesIcon } from "lucide-react";
@@ -88,15 +89,17 @@ function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
       .filter((part) => part.type === "text")
       .map((part) => part.text ?? "")
       .join("");
-    const attachments = parts.flatMap((part, index): ChatImageAttachment[] => {
-      if (part.type !== "file" || !part.url) return [];
-      const result = attachmentFromDataUrl({
-        url: part.url,
-        filename: part.filename ?? "Attached image",
-        id: `attachment-${index}`,
-      });
-      return result.kind === "attachment" ? [result.attachment] : [];
-    });
+    const attachments = parts.flatMap((part, index): ChatImage[] =>
+      part.type === "file"
+        ? [
+            {
+              id: String(index),
+              filename: part.filename ?? "image",
+              url: part.url?.startsWith("data:image/") ? part.url : null,
+            },
+          ]
+        : [],
+    );
     return content.trim() || attachments.length
       ? [
           {
@@ -132,7 +135,12 @@ function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
 
 function ChatView({ docId }: { docId: string }) {
   const { messages, status, stop, sendMessage } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat", body: { docId } }),
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      prepareSendMessagesRequest: ({ messages, body }) => ({
+        body: { ...body, docId, messages: withoutEarlierImageData(messages) },
+      }),
+    }),
   });
 
   const { data: prevChatMessages, isLoading: isChatsLoading } =
@@ -145,17 +153,21 @@ function ChatView({ docId }: { docId: string }) {
   const {
     attachments,
     attachmentError,
+    attachmentsPending,
     addDataUrl,
     addFiles,
     removeAttachment,
     clearAttachments,
-  } = useChatImageAttachments();
+  } = useChatImageAttachments({
+    maxTotalBytes: MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
+  });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const streaming = status === "streaming" || status === "submitted";
 
   const submit = () => {
     const text = input.trim();
     if ((!text && !attachments.length) || streaming) return;
+    if (attachmentsPending > 0) return;
     const files: FileUIPart[] = attachments.map((attachment) => ({
       type: "file",
       filename: attachment.filename,
@@ -182,7 +194,7 @@ function ChatView({ docId }: { docId: string }) {
   }, [sendMessage, setSendMessage]);
   useEffect(() => {
     setStageImageAttachment((dataUrl: string) => {
-      addDataUrl(dataUrl, "PDF selection.png");
+      void addDataUrl(dataUrl, "PDF selection.png");
     });
     return () => setStageImageAttachment(null);
   }, [addDataUrl, setStageImageAttachment]);
@@ -251,6 +263,8 @@ function ChatView({ docId }: { docId: string }) {
       input={input}
       attachments={attachments}
       attachmentError={attachmentError}
+      attachmentsPending={attachmentsPending}
+      attachmentsBusy={attachmentsPending > 0}
       onInputChange={setInput}
       onFilesSelected={(files) => void addFiles(files)}
       onRemoveAttachment={removeAttachment}

@@ -8,6 +8,7 @@ import {
 } from "@uxie/shared/lib/chat";
 import type { ChatMessage } from "../../ipc-contract";
 import {
+  chatMessageImageUrls,
   chatMessagesToModelMessages,
   completedChatParts,
   textPart,
@@ -15,6 +16,7 @@ import {
   toChatToolResultPart,
   type ChatPart,
 } from "../../chat-messages";
+import { readDocumentImage } from "../pdf";
 import { getSettings } from "../settings";
 
 // Chat runs here (main), not the renderer, so the fetch stream is a real Node
@@ -92,15 +94,19 @@ export async function streamChat(
   let full = "";
   const responseParts: ChatPart[] = [];
   const completedParts = () =>
-    completedChatParts([
-      ...responseParts,
-      ...(full ? [textPart(full)] : []),
-    ]);
+    completedChatParts([...responseParts, ...(full ? [textPart(full)] : [])]);
   try {
+    const images = new Map(
+      await Promise.all(
+        chatMessageImageUrls(messages).map(
+          async (url) => [url, (await readDocumentImage(url)).bytes] as const,
+        ),
+      ),
+    );
     const result = streamText({
       model: provider(llm.model),
       system: CHAT_SYSTEM_PROMPT,
-      messages: chatMessagesToModelMessages(messages),
+      messages: chatMessagesToModelMessages(messages, images),
       abortSignal: controller.signal,
       stopWhen: stepCountIs(3),
       // The Claude-CLI-backed proxy emits the answer in a couple of huge chunks

@@ -64,15 +64,15 @@ const invokeHandlers: {
   "documents:list": () => listDocuments(getDb()),
   "documents:get": (id) => getDocument(getDb(), id),
   "documents:create": (input) => createDocument(getDb(), input),
-  "documents:updateNotes": (id, note) =>
-    updateDocumentNotes(getDb(), id, note),
+  "documents:updateNotes": (id, note) => updateDocumentNotes(getDb(), id, note),
   "documents:updateReaderState": (id, state) =>
     updateReaderState(getDb(), id, state),
   "documents:updateTitle": (id, title) =>
     updateDocumentTitle(getDb(), id, title),
   "documents:setCover": (id, png) => setDocumentCover(id, png),
   "documents:delete": (id) => deleteDocumentWithFile(id),
-  "documents:storeImage": (docId, png) => storeDocumentImage(docId, png),
+  "documents:storeImage": (docId, bytes, mediaType) =>
+    storeDocumentImage(docId, bytes, mediaType),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
   // Deliberately leaves the screenshot on disk: the same image is embedded in

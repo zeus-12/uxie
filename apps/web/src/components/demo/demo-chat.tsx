@@ -1,3 +1,4 @@
+import { MAX_WEB_CHAT_IMAGE_TOTAL_BYTES } from "@/lib/chat-images";
 import { DEMO_CHAT_REPLIES, DEMO_CHAT_WELCOME } from "@/lib/demo/seed";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { createId } from "@paralleldrive/cuid2";
@@ -7,7 +8,7 @@ import {
 } from "@uxie/shared/components/chat/chat-panel";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
 import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
-import type { ChatImageAttachment } from "@uxie/shared/lib/chat-attachments";
+import type { ChatImage } from "@uxie/shared/lib/chat-attachments";
 import { useChatStore } from "@uxie/shared/lib/store";
 import { SparklesIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,7 +20,7 @@ interface DemoMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
-  attachments?: ChatImageAttachment[];
+  attachments?: ChatImage[];
 }
 
 /**
@@ -43,7 +44,10 @@ export default function DemoChat() {
     addFiles,
     removeAttachment,
     clearAttachments,
-  } = useChatImageAttachments();
+    attachmentsPending,
+  } = useChatImageAttachments({
+    maxTotalBytes: MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
+  });
 
   const replyIndexRef = useRef(0);
   const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,7 +95,7 @@ export default function DemoChat() {
   }, []);
 
   const send = useCallback(
-    (text: string, sentAttachments: ChatImageAttachment[] = []) => {
+    (text: string, sentAttachments: ChatImage[] = []) => {
       const trimmed = text.trim();
       if ((!trimmed && !sentAttachments.length) || isStreaming) return;
       setMessages((prev) => [
@@ -116,7 +120,7 @@ export default function DemoChat() {
   useEffect(() => {
     setStageImageAttachment((dataUrl: string) => {
       setIsVectorised(true);
-      addDataUrl(dataUrl, "PDF selection.png");
+      void addDataUrl(dataUrl, "PDF selection.png");
     });
     return () => setStageImageAttachment(null);
   }, [addDataUrl, setIsVectorised, setStageImageAttachment]);
@@ -135,8 +139,12 @@ export default function DemoChat() {
 
   const handleSubmit = () => {
     const text = input.trim();
-    if ((!text && !attachments.length) || isStreaming) return;
-    send(text, attachments);
+    if ((!text && !attachments.length) || isStreaming || attachmentsPending)
+      return;
+    send(
+      text,
+      attachments.map(({ id, filename, url }) => ({ id, filename, url })),
+    );
     setInput("");
     clearAttachments();
   };
@@ -183,6 +191,8 @@ export default function DemoChat() {
       input={input}
       attachments={attachments}
       attachmentError={attachmentError}
+      attachmentsPending={attachmentsPending}
+      attachmentsBusy={attachmentsPending > 0}
       onInputChange={setInput}
       onFilesSelected={(files) => void addFiles(files)}
       onRemoveAttachment={removeAttachment}

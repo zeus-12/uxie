@@ -32,6 +32,7 @@ import type { ChatMessage, ChatPart } from "./chat-messages";
 
 export type { ChatMessage, ChatPart } from "./chat-messages";
 import type { FlashcardVerdict } from "@uxie/shared/schema/flashcard";
+import type { ChatImageMediaType } from "@uxie/shared/lib/chat-attachments";
 
 export type FlashcardWithAttempts = Flashcard & {
   flashcardAttempts: FlashcardAttempt[];
@@ -92,9 +93,9 @@ export interface IpcInvokeContract {
     result: string;
   };
   "documents:delete": { args: [id: string]; result: void };
-  /** Stores a png under the document and returns its `uxie-pdf://image/...` url. */
+  /** Stores an image under the document and returns its `uxie-pdf://image/...` url. */
   "documents:storeImage": {
-    args: [docId: string, png: Uint8Array];
+    args: [docId: string, bytes: Uint8Array, mediaType?: ChatImageMediaType];
     result: string;
   };
 

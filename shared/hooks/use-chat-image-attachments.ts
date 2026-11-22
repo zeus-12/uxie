@@ -1,50 +1,108 @@
-import { useCallback, useState } from "react";
+import { createId } from "@paralleldrive/cuid2";
+import { useCallback, useReducer } from "react";
 import {
-  attachmentFromDataUrl,
-  isChatImageMediaType,
+  CHAT_IMAGE_COUNT_ERROR,
   MAX_CHAT_IMAGE_BYTES,
   MAX_CHAT_IMAGE_COUNT,
-  type AttachmentResult,
-  type ChatImageAttachment,
-} from "../lib/chat-attachments";
-
-export {
-  attachmentFromDataUrl,
-  MAX_CHAT_IMAGE_BYTES,
-  MAX_CHAT_IMAGE_COUNT,
-  type ChatImageAttachment,
+  type ChatImage,
   type ChatImageMediaType,
 } from "../lib/chat-attachments";
+import {
+  blobToDataUrl,
+  dataUrlToBlob,
+  formatMegabytes,
+  normalizeChatImage,
+} from "../lib/normalize-chat-image";
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () =>
-      typeof reader.result === "string"
-        ? resolve(reader.result)
-        : reject(new Error("This image couldn't be read."));
-    reader.onerror = () => reject(new Error("This image couldn't be read."));
-    reader.readAsDataURL(file);
-  });
+export type StagedChatImage = ChatImage & {
+  url: string;
+  mediaType: ChatImageMediaType;
+  blob: Blob;
+};
+
+type Source = { blob: Blob; filename: string };
+
+type Processed =
+  | { kind: "image"; image: StagedChatImage }
+  | { kind: "error"; message: string };
+
+type State = {
+  attachments: StagedChatImage[];
+  error: string | null;
+  pending: number;
+};
+
+type Action =
+  | { type: "start"; count: number }
+  | { type: "finish"; results: Processed[]; maxTotalBytes: number | null }
+  | { type: "fail"; message: string }
+  | { type: "remove"; id: string }
+  | { type: "clear" };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "start":
+      return { ...state, pending: state.pending + action.count };
+    case "finish": {
+      const attachments = [...state.attachments];
+      let totalBytes = attachments.reduce(
+        (sum, item) => sum + item.blob.size,
+        0,
+      );
+      let error: string | null = null;
+      for (const result of action.results) {
+        if (result.kind === "error") {
+          error ??= result.message;
+        } else if (attachments.length >= MAX_CHAT_IMAGE_COUNT) {
+          error = CHAT_IMAGE_COUNT_ERROR;
+        } else if (
+          action.maxTotalBytes !== null &&
+          totalBytes + result.image.blob.size > action.maxTotalBytes
+        ) {
+          error = `Images in one message can add up to ${formatMegabytes(
+            action.maxTotalBytes,
+          )}.`;
+        } else {
+          attachments.push(result.image);
+          totalBytes += result.image.blob.size;
+        }
+      }
+      return {
+        attachments,
+        error,
+        pending: state.pending - action.results.length,
+      };
+    }
+    case "fail":
+      return { ...state, error: action.message };
+    case "remove":
+      return {
+        ...state,
+        attachments: state.attachments.filter((item) => item.id !== action.id),
+        error: null,
+      };
+    case "clear":
+      return { ...state, attachments: [], error: null };
+  }
 }
 
-async function attachmentFromFile(file: File): Promise<AttachmentResult> {
-  if (!isChatImageMediaType(file.type)) {
-    return {
-      kind: "error",
-      message: "Choose a PNG, JPEG, WebP, or GIF image.",
-    };
-  }
-  if (file.size > MAX_CHAT_IMAGE_BYTES) {
-    return {
-      kind: "error",
-      message: `${file.name} is larger than 8 MB.`,
-    };
-  }
-
+async function processSource(
+  { blob, filename }: Source,
+  maxBytes: number,
+): Promise<Processed> {
+  const result = await normalizeChatImage(blob, filename, maxBytes);
+  if (result.kind === "error") return result;
   try {
-    const url = await readFileAsDataUrl(file);
-    return attachmentFromDataUrl({ url, filename: file.name });
+    return {
+      kind: "image",
+      image: {
+        id: createId(),
+        filename,
+        mediaType: result.image.mediaType,
+        blob: result.image.blob,
+        url: await blobToDataUrl(result.image.blob),
+      },
+    };
   } catch (error) {
     return {
       kind: "error",
@@ -54,66 +112,67 @@ async function attachmentFromFile(file: File): Promise<AttachmentResult> {
   }
 }
 
-export function useChatImageAttachments() {
-  const [attachments, setAttachments] = useState<ChatImageAttachment[]>([]);
-  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+export function useChatImageAttachments({
+  maxTotalBytes = null,
+}: { maxTotalBytes?: number | null } = {}) {
+  const maxImageBytes = Math.min(
+    MAX_CHAT_IMAGE_BYTES,
+    maxTotalBytes ?? MAX_CHAT_IMAGE_BYTES,
+  );
+  const [state, dispatch] = useReducer(reducer, {
+    attachments: [],
+    error: null,
+    pending: 0,
+  });
 
-  const addDataUrl = useCallback((url: string, filename: string) => {
-    const result = attachmentFromDataUrl({ url, filename });
-    if (result.kind === "error") {
-      setAttachmentError(result.message);
-      return;
-    }
+  const addSources = useCallback(
+    async (sources: Source[]) => {
+      if (!sources.length) return;
+      dispatch({ type: "start", count: sources.length });
+      const results = await Promise.all(
+        sources.map((source) => processSource(source, maxImageBytes)),
+      );
+      dispatch({ type: "finish", results, maxTotalBytes });
+    },
+    [maxImageBytes, maxTotalBytes],
+  );
 
-    setAttachments((current) => {
-      if (current.length >= MAX_CHAT_IMAGE_COUNT) {
-        setAttachmentError("You can attach up to four images.");
-        return current;
+  const addFiles = useCallback(
+    (files: File[]) =>
+      addSources(files.map((file) => ({ blob: file, filename: file.name }))),
+    [addSources],
+  );
+
+  const addDataUrl = useCallback(
+    (dataUrl: string, filename: string) => {
+      const blob = dataUrlToBlob(dataUrl);
+      if (!blob) {
+        dispatch({ type: "fail", message: "This image couldn't be read." });
+        return Promise.resolve();
       }
-      setAttachmentError(null);
-      return [...current, result.attachment];
-    });
-  }, []);
+      return addSources([{ blob, filename }]);
+    },
+    [addSources],
+  );
 
-  const addFiles = useCallback(async (files: File[]) => {
-    if (!files.length) return;
-
-    const results = await Promise.all(files.map(attachmentFromFile));
-    const valid = results.flatMap((result) =>
-      result.kind === "attachment" ? [result.attachment] : [],
-    );
-    const firstError = results.find((result) => result.kind === "error");
-
-    setAttachments((current) => {
-      const available = MAX_CHAT_IMAGE_COUNT - current.length;
-      const accepted = valid.slice(0, Math.max(0, available));
-      if (valid.length > available) {
-        setAttachmentError("You can attach up to four images.");
-      } else {
-        setAttachmentError(
-          firstError?.kind === "error" ? firstError.message : null,
-        );
-      }
-      return [...current, ...accepted];
-    });
-  }, []);
-
-  const removeAttachment = useCallback((id: string) => {
-    setAttachments((current) => current.filter((item) => item.id !== id));
-    setAttachmentError(null);
-  }, []);
-
-  const clearAttachments = useCallback(() => {
-    setAttachments([]);
-    setAttachmentError(null);
-  }, []);
+  const removeAttachment = useCallback(
+    (id: string) => dispatch({ type: "remove", id }),
+    [],
+  );
+  const clearAttachments = useCallback(() => dispatch({ type: "clear" }), []);
+  const setAttachmentError = useCallback(
+    (message: string) => dispatch({ type: "fail", message }),
+    [],
+  );
 
   return {
-    attachments,
-    attachmentError,
-    addDataUrl,
+    attachments: state.attachments,
+    attachmentError: state.error,
+    attachmentsPending: state.pending,
     addFiles,
+    addDataUrl,
     removeAttachment,
     clearAttachments,
+    setAttachmentError,
   };
 }
