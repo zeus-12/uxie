@@ -241,7 +241,7 @@ export function CitationSources({ sources }: { sources: RetrievedChunk[] }) {
       className="mt-2 rounded-xl border border-border bg-background"
     >
       <summary className="cursor-pointer select-none px-3 py-2 text-xs font-medium text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        Sources ({sources.length})
+        Retrieved passages ({sources.length})
       </summary>
       <div className="space-y-2 border-t border-border p-2">
         {sources.map((source, index) => (
@@ -252,8 +252,8 @@ export function CitationSources({ sources }: { sources: RetrievedChunk[] }) {
             className="block w-full rounded-lg bg-muted/60 p-3 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:active:scale-[0.96]"
             aria-label={
               source.kind === "pdf"
-                ? `Open source ${index + 1} on page ${source.pageNumber}`
-                : `Open source ${index + 1} in the article`
+                ? `Open passage ${index + 1} on page ${source.pageNumber}`
+                : `Open passage ${index + 1} in the article`
             }
           >
             <span className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-blue-600">

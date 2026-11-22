@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
         for (const step of steps || []) {
           if (step.toolCalls && step.toolCalls.length > 0) {
-            step.toolCalls.forEach((toolCall, index) => {
+            step.toolCalls.forEach((toolCall) => {
               if (isGetInformationInput(toolCall.input)) {
                 parts.push({
                   type: `tool-${toolCall.toolName}`,
@@ -113,7 +113,9 @@ export async function POST(req: Request) {
                 });
               }
 
-              const toolResult = step.toolResults?.[index];
+              const toolResult = step.toolResults?.find(
+                (result) => result.toolCallId === toolCall.toolCallId,
+              );
               if (toolResult && isGetInformationOutput(toolResult.output)) {
                 parts.push({
                   type: "tool-result",
@@ -161,12 +163,7 @@ const AI_TOOLS = ({ docId }: { docId: string }) => ({
   [GET_INFORMATION_TOOL_NAME]: tool({
     description: GET_INFORMATION_TOOL_DESCRIPTION,
     inputSchema: getInformationInputSchema,
-    execute: async ({ question }) => {
-      const results = await retrieveRelevantDocumentContent(docId, question);
-
-      return {
-        results,
-      };
-    },
+    execute: async ({ question }) =>
+      retrieveRelevantDocumentContent(docId, question),
   }),
 });

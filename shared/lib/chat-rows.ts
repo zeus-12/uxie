@@ -22,7 +22,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-/** Converts every app's native message parts into the shared visual model. */
 export function chatPartsToRows(role: string, parts: unknown): ChatRow[] {
   if (!Array.isArray(parts)) return [];
   const displayRole: ChatRole = role === "user" ? "user" : "assistant";
@@ -44,7 +43,11 @@ export function chatPartsToRows(role: string, parts: unknown): ChatRow[] {
     const isDesktopToolCall =
       part.type === "tool-call" && part.toolName === GET_INFORMATION_TOOL_NAME;
     const isWebToolCall = part.type === `tool-${GET_INFORMATION_TOOL_NAME}`;
-    if (!isDesktopToolCall && !isWebToolCall) continue;
+    const isLegacyWebToolCall =
+      part.type === "tool-invocation" &&
+      isRecord(part.toolInvocation) &&
+      part.toolInvocation.toolName === GET_INFORMATION_TOOL_NAME;
+    if (!isDesktopToolCall && !isWebToolCall && !isLegacyWebToolCall) continue;
 
     const active =
       typeof part.state === "string" &&
