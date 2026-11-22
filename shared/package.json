@@ -46,6 +46,7 @@
     "react-resizable-panels": "^2.0.10",
     "react-virtuoso": "4.18.10",
     "sbd": "^1.0.19",
+    "scribe.js-ocr": "^0.18.2",
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.5.0",
     "use-debounce": "^9.0.4",

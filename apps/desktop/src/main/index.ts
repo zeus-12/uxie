@@ -17,6 +17,7 @@ import {
 import {
   deleteDocumentWithFile,
   importPdf,
+  pickPdf,
   migrateDocumentStorage,
   PDF_PRIVILEGE,
   registerPdfProtocol,
@@ -61,7 +62,8 @@ const invokeHandlers: {
     platform: process.platform,
   }),
 
-  "documents:import": () => importPdf(),
+  "documents:pickPdf": () => pickPdf(),
+  "documents:import": (name, bytes) => importPdf(name, bytes),
   "documents:list": () => listDocuments(getDb()),
   "documents:get": (id) => getDocument(getDb(), id),
   "documents:create": (input) => createDocument(getDb(), input),

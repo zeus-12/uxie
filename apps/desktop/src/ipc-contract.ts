@@ -64,6 +64,11 @@ export interface Settings {
   llm: LlmSettings;
 }
 
+export interface PickedPdf {
+  name: string;
+  bytes: Uint8Array;
+}
+
 export interface EmbeddedChunk {
   chunk: string;
   embedding: number[];
@@ -73,7 +78,11 @@ export interface EmbeddedChunk {
 export interface IpcInvokeContract {
   "app:info": { args: []; result: AppInfo };
 
-  "documents:import": { args: []; result: Document | null };
+  "documents:pickPdf": { args: []; result: PickedPdf | null };
+  "documents:import": {
+    args: [name: string, bytes: Uint8Array];
+    result: Document;
+  };
   "documents:list": { args: []; result: Document[] };
   "documents:get": {
     args: [id: string];
@@ -173,6 +182,7 @@ export interface IpcEventContract {
 export const API_INVOKE = {
   getAppInfo: "app:info",
 
+  pickPdf: "documents:pickPdf",
   importDocument: "documents:import",
   listDocuments: "documents:list",
   getDocument: "documents:get",
