@@ -136,9 +136,6 @@ export async function importPdf(
   return doc;
 }
 
-// The renderer rasterises page 1 (it has a real canvas + the doc's bytes over
-// the protocol); main just persists those PNG bytes and records the URL. The
-// cover is only shown once the file is actually on disk and the row updated.
 export async function setDocumentCover(
   id: string,
   png: Uint8Array,

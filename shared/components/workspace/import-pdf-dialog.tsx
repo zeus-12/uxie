@@ -52,7 +52,12 @@ function FileBox({
       role={preview ? undefined : "button"}
       tabIndex={preview ? undefined : 0}
       onClick={preview ? undefined : onBrowse}
-      onKeyDown={(e) => !preview && e.key === "Enter" && onBrowse()}
+      onKeyDown={(e) => {
+        if (!preview && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onBrowse();
+        }
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -80,12 +85,14 @@ function FileBox({
             <div className="flex items-center gap-2">
               <p>{preview.name}</p>
               {!busy && (
-                <XIcon
-                  role="button"
+                <button
+                  type="button"
                   aria-label="Remove file"
                   onClick={onClear}
-                  className="h-4 w-4 text-gray-500 hover:cursor-pointer"
-                />
+                  className="rounded-sm text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <XIcon className="h-4 w-4" />
+                </button>
               )}
             </div>
             <p className="text-sm tabular-nums text-gray-500">

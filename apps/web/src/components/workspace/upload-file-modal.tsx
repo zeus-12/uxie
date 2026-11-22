@@ -21,7 +21,7 @@ import {
 } from "@uxie/shared/lib/ocr";
 import { XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   generateClientDropzoneAccept,
@@ -51,7 +51,14 @@ const UploadFileModal = ({
   const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
   const isOcring = ocrProgress !== null;
 
+  const ocrAbort = useRef<AbortController | null>(null);
+
   const closeModal = () => setOpen(false);
+
+  const onOpenChange = (next: boolean) => {
+    if (!next) ocrAbort.current?.abort();
+    setOpen(next);
+  };
 
   const onUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(undefined);
@@ -74,7 +81,9 @@ const UploadFileModal = ({
         }
 
         if (doOcr) {
-          return [await ocrPdf(firstFile, setOcrProgress)];
+          const controller = new AbortController();
+          ocrAbort.current = controller;
+          return [await ocrPdf(firstFile, setOcrProgress, controller.signal)];
         }
         return files;
       } finally {
@@ -85,6 +94,7 @@ const UploadFileModal = ({
       toast.success("File uploaded successfully.");
     },
     onUploadError: () => {
+      if (ocrAbort.current?.signal.aborted) return;
       toast.error("Error occurred while uploading", {
         duration: 3000,
       });
@@ -128,7 +138,7 @@ const UploadFileModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger>
         <div
           onClick={(e) => {

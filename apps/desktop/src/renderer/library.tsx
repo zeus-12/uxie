@@ -60,7 +60,6 @@ export function Library({
       await window.uxieAPI.setDocumentCover(id, png);
       refresh();
     } catch (e) {
-      // A missing cover is non-fatal, but log it so it isn't invisible.
       console.error("[cover] generation failed:", e);
     }
   }

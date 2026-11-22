@@ -43,11 +43,13 @@ export function usePdfImport(
   const [ocr, setOcr] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const current = useRef<PickedPdf | null>(null);
+  const coverUrl = useRef<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const picking = useRef(false);
 
   function clear() {
-    if (pending?.preview.coverUrl)
-      URL.revokeObjectURL(pending.preview.coverUrl);
+    if (coverUrl.current) URL.revokeObjectURL(coverUrl.current);
+    coverUrl.current = null;
     current.current = null;
     setPending(null);
     setError(null);
@@ -68,12 +70,16 @@ export function usePdfImport(
     try {
       const { pageCount, cover } = await previewPdf(picked.bytes);
       if (current.current !== picked) return;
-      const coverUrl = cover
+      coverUrl.current = cover
         ? URL.createObjectURL(new Blob([cover], { type: "image/png" }))
         : null;
       setPending({
         picked,
-        preview: { ...basePreview(picked), pageCount, coverUrl },
+        preview: {
+          ...basePreview(picked),
+          pageCount,
+          coverUrl: coverUrl.current,
+        },
         cover,
       });
     } catch (e) {
@@ -81,9 +87,19 @@ export function usePdfImport(
     }
   }
 
+  async function pick(): Promise<PickedPdf | null> {
+    if (picking.current) return null;
+    picking.current = true;
+    try {
+      return await window.uxieAPI.pickPdf();
+    } finally {
+      picking.current = false;
+    }
+  }
+
   async function browse() {
     try {
-      const picked = await window.uxieAPI.pickPdf();
+      const picked = await pick();
       if (picked) await load(picked);
     } catch (e) {
       setError(message(e));
@@ -91,9 +107,10 @@ export function usePdfImport(
   }
 
   async function start() {
-    const picked = await window.uxieAPI.pickPdf();
+    const picked = await pick();
     if (!picked) return;
     setOcr(false);
+    setPhase({ kind: "review" });
     setOpen(true);
     await load(picked);
   }
@@ -119,10 +136,15 @@ export function usePdfImport(
       const bytes = ocr
         ? await applyOcr(
             pending.picked,
-            (progress) => setPhase({ kind: "ocr", progress }),
+            (progress) => {
+              if (!controller.signal.aborted) {
+                setPhase({ kind: "ocr", progress });
+              }
+            },
             controller.signal,
           )
         : pending.picked.bytes;
+      controller.signal.throwIfAborted();
       setPhase({ kind: "importing" });
       const doc = await window.uxieAPI.importDocument(
         pending.picked.name,

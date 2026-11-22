@@ -75,7 +75,6 @@ export interface EmbeddedChunk {
 export interface IpcInvokeContract {
   "app:info": { args: []; result: AppInfo };
 
-  // Documents
   "documents:pickPdf": { args: []; result: PickedPdf | null };
   "documents:import": {
     args: [name: string, bytes: Uint8Array];
@@ -107,7 +106,6 @@ export interface IpcInvokeContract {
     result: string;
   };
 
-  // Highlights
   "highlights:add": { args: [input: AddHighlightInput]; result: void };
   "highlights:delete": { args: [id: string]; result: void };
   "highlights:updateArea": {
@@ -115,25 +113,21 @@ export interface IpcInvokeContract {
     result: void;
   };
 
-  // Settings
   "settings:get": { args: []; result: Settings };
   "settings:set": { args: [settings: Settings]; result: void };
 
-  // Flashcards
   "flashcards:getByDocId": {
     args: [docId: string];
     result: FlashcardWithAttempts[];
   };
   "flashcards:generate": { args: [docId: string]; result: number };
 
-  // Chat history
   "messages:getByDocId": { args: [docId: string]; result: ChatMessage[] };
   "messages:create": {
     args: [docId: string, role: "user" | "assistant", parts: ChatPart[]];
     result: void;
   };
 
-  // RAG (document-grounded chat)
   "documents:getText": { args: [docId: string]; result: string };
   "embeddings:store": {
     args: [docId: string, items: EmbeddedChunk[]];
@@ -171,7 +165,6 @@ export interface IpcEventContract {
   ];
   "flashcard:evaluate:done": [streamId: string, feedback: FlashcardFeedback];
   "flashcard:evaluate:error": [streamId: string, message: string];
-  // Document chat stream + the main→renderer retrieval request.
   "chat:delta": [streamId: string, delta: string];
   "chat:retrieving": [streamId: string];
   "chat:done": [streamId: string, parts: ChatPart[]];
@@ -179,7 +172,6 @@ export interface IpcEventContract {
   "chat:retrieve": [reqId: string, docId: string, question: string];
 }
 
-// ── window.uxieAPI surface ───────────────────────────────────────────
 // Method name → channel. preload builds the real object from these maps, and
 // the UxieAPI type below is derived from them — so a method can't exist without
 // a channel, point at an unknown channel, or disagree on types.
