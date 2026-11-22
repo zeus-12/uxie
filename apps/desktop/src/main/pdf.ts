@@ -3,6 +3,7 @@ import { readFile } from "fs/promises";
 import { basename, join } from "path";
 import { createId } from "@paralleldrive/cuid2";
 import type { Document } from "@uxie/shared/schema";
+import type { PickedPdf } from "../ipc-contract";
 import {
   createDocument,
   deleteDocument,
@@ -101,17 +102,22 @@ export async function migrateDocumentStorage(): Promise<void> {
   }
 }
 
-export async function importPdf(): Promise<Document | null> {
+export async function pickPdf(): Promise<PickedPdf | null> {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ["openFile"],
     filters: [{ name: "PDF", extensions: ["pdf"] }],
   });
   if (canceled || !filePaths[0]) return null;
+  return { name: basename(filePaths[0]), bytes: await readFile(filePaths[0]) };
+}
 
-  const bytes = await readFile(filePaths[0]);
+export async function importPdf(
+  name: string,
+  bytes: Uint8Array,
+): Promise<Document> {
   const pageCount = await countPdfPages(bytes);
   const id = createId();
-  const title = basename(filePaths[0]).replace(/\.pdf$/i, "");
+  const title = name.replace(/\.pdf$/i, "");
 
   const doc = await createDocument(getDb(), {
     id,
@@ -130,9 +136,6 @@ export async function importPdf(): Promise<Document | null> {
   return doc;
 }
 
-// The renderer rasterises page 1 (it has a real canvas + the doc's bytes over
-// the protocol); main just persists those PNG bytes and records the URL. The
-// cover is only shown once the file is actually on disk and the row updated.
 export async function setDocumentCover(
   id: string,
   png: Uint8Array,

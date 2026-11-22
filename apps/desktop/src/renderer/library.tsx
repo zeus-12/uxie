@@ -5,6 +5,7 @@ import { Skeleton } from "@uxie/shared/components/ui/skeleton";
 import { AddDocCard } from "@uxie/shared/components/workspace/add-doc-card";
 import { DocCard } from "@uxie/shared/components/workspace/doc-card";
 import type { Document } from "@uxie/shared/schema";
+import { usePdfImport } from "./use-pdf-import";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -17,7 +18,6 @@ export function Library({
 }) {
   const [docs, setDocs] = useState<Document[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
   const [search, setSearch] = useState("");
 
   const refresh = useCallback(() => {
@@ -32,18 +32,17 @@ export function Library({
 
   useEffect(refresh, [refresh]);
 
-  async function onImport() {
-    setImporting(true);
+  const pdfImport = usePdfImport((doc, cover) => {
+    refresh();
+    void (cover ? saveCover(doc.id, cover) : generateCoverFor(doc.id));
+  });
+
+  async function saveCover(id: string, png: Uint8Array) {
     try {
-      const doc = await window.uxieAPI.importDocument();
-      if (doc) {
-        refresh();
-        void generateCoverFor(doc.id);
-      }
+      await window.uxieAPI.setDocumentCover(id, png);
+      refresh();
     } catch (e) {
-      setError(message(e));
-    } finally {
-      setImporting(false);
+      console.error("[cover] saving failed:", e);
     }
   }
 
@@ -61,7 +60,6 @@ export function Library({
       await window.uxieAPI.setDocumentCover(id, png);
       refresh();
     } catch (e) {
-      // A missing cover is non-fatal, but log it so it isn't invisible.
       console.error("[cover] generation failed:", e);
     }
   }
@@ -77,6 +75,7 @@ export function Library({
 
   return (
     <div className="min-h-full">
+      {pdfImport.dialog}
       <div className="app-drag h-11 w-full" />
       {docs === null && !error ? (
         <LibrarySkeleton />
@@ -142,7 +141,11 @@ export function Library({
 
                   <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4 xl:gap-3">
                     {!searching && (
-                      <AddDocCard onClick={onImport} importing={importing} />
+                      <AddDocCard
+                        onClick={() =>
+                          pdfImport.start().catch((e) => setError(message(e)))
+                        }
+                      />
                     )}
                     {filtered.map((doc) => (
                       <DocCard
