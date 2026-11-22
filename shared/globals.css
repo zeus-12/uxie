@@ -3,6 +3,7 @@
    resolve those from the app, not this package). */
 @import "./styles/tts-highlight.css";
 @import "./styles/citation-highlight.css";
+@import "./styles/pdf-search.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

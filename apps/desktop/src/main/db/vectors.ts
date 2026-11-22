@@ -1,7 +1,7 @@
 import type Database from "better-sqlite3";
 import * as sqliteVec from "sqlite-vec";
 import { DESKTOP_EMBEDDING } from "@uxie/shared/lib/embedding-models";
-import type { RetrievedChunk } from "@uxie/shared/lib/chat";
+import type { PdfChunk } from "@uxie/shared/lib/chat";
 
 // Sized for whichever model the desktop embeds with — changing the model there
 // changes this, so the two can no longer drift apart silently.
@@ -53,7 +53,7 @@ export function initVectorStore(sqlite: Database.Database): boolean {
   return schema !== null;
 }
 
-export interface EmbeddedChunk extends RetrievedChunk {
+export interface EmbeddedChunk extends PdfChunk {
   embedding: number[];
 }
 
@@ -98,7 +98,7 @@ export function queryVectors(
   docId: string,
   embedding: number[],
   k: number,
-): RetrievedChunk[] {
+): PdfChunk[] {
   const rows = sqlite
     .prepare(
       `SELECT page_content, page_number FROM doc_vectors
@@ -109,10 +109,10 @@ export function queryVectors(
     page_content: string;
     page_number: string;
   }>;
-  return rows.flatMap((row): RetrievedChunk[] => {
+  return rows.flatMap((row): PdfChunk[] => {
     const pageNumber = Number(row.page_number);
     return Number.isInteger(pageNumber) && pageNumber > 0
-      ? [{ pageContent: row.page_content, pageNumber }]
+      ? [{ kind: "pdf", pageContent: row.page_content, pageNumber }]
       : [];
   });
 }

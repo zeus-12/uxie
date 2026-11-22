@@ -66,7 +66,28 @@ afterEach(() => {
 });
 
 describe("citation source boundaries", () => {
-  const source = { pageContent: "The exact retrieved passage.", pageNumber: 4 };
+  const source = {
+    kind: "pdf" as const,
+    pageContent: "The exact retrieved passage.",
+    pageNumber: 4,
+  };
+  const articleSource = {
+    kind: "article" as const,
+    pageContent: "A passage from the article.",
+    blockId: "block-7",
+  };
+
+  it("keeps PDF and article sources apart, even with identical text", () => {
+    const sameText = { ...articleSource, pageContent: source.pageContent };
+    expect(
+      retrievedChunksFromParts([
+        {
+          type: "tool-result",
+          result: { results: [source, sameText, articleSource] },
+        },
+      ]),
+    ).toEqual([source, sameText, articleSource]);
+  });
 
   it("parses live and persisted tool outputs and deduplicates them", () => {
     expect(
@@ -100,12 +121,17 @@ describe("citation source boundaries", () => {
     expect(stored.at(-1)).toMatchObject({ kind: "message", sources: [source] });
   });
 
-  it("rejects page-less chunks instead of constructing a false citation", () => {
-    expect(
-      getInformationOutputSchema.safeParse({
-        results: [{ pageContent: "Legacy text with no page" }],
-      }).success,
-    ).toBe(false);
+  it("rejects chunks without provenance instead of constructing a false citation", () => {
+    for (const chunk of [
+      { pageContent: "Legacy text with no page" },
+      { pageContent: "Legacy main shape", metadata: { blockId: "b1" } },
+      { kind: "pdf", pageContent: "No page number" },
+      { kind: "article", pageContent: "No block id" },
+    ]) {
+      expect(
+        getInformationOutputSchema.safeParse({ results: [chunk] }).success,
+      ).toBe(false);
+    }
     expect(
       retrievedChunksFromParts([
         {
@@ -121,6 +147,7 @@ describe("exact PDF source matching", () => {
   it("connects the rendered source button to page navigation and exact highlighting", () => {
     vi.useFakeTimers();
     const source = {
+      kind: "pdf" as const,
       pageContent: "The entire exact source passage.",
       pageNumber: 5,
     };
@@ -132,9 +159,11 @@ describe("exact PDF source matching", () => {
       prefersReducedMotion: () => true,
     });
     buildPage(5, [source.pageContent]);
-    useCitationHighlightStore
-      .getState()
-      .setHighlightSource(navigator.showSource);
+    useCitationHighlightStore.getState().setHighlightSource((chunk) => {
+      if (chunk.kind === "pdf") {
+        navigator.showSource(chunk.pageNumber, chunk.pageContent);
+      }
+    });
     useMobileSidebarStore.getState().setDrawerOpen(true);
 
     const container = document.createElement("div");

@@ -1,5 +1,9 @@
+import { api } from "@/lib/api";
+import { PLANS, fileSizeBytes, fileSizeLabel } from "@/lib/constants";
+import { useUploadThing } from "@/lib/uploadthing";
+import { cn } from "@/lib/utils";
+import { useDropzone } from "@uploadthing/react";
 import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
-import { Checkbox } from "@uxie/shared/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -9,23 +13,20 @@ import {
 } from "@uxie/shared/components/ui/dialog";
 import { Input } from "@uxie/shared/components/ui/input";
 import { Spinner } from "@uxie/shared/components/ui/spinner";
-import { api } from "@/lib/api";
-import { PLANS, fileSizeBytes, fileSizeLabel } from "@/lib/constants";
-import { useUploadThing } from "@/lib/uploadthing";
-import { cn } from "@/lib/utils";
-import { useDropzone } from "@uploadthing/react";
+import { OcrOption } from "@uxie/shared/components/workspace/ocr-option";
+import {
+  ocrPdf,
+  ocrProgressLabel,
+  type OcrProgress,
+} from "@uxie/shared/lib/ocr";
 import { XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   generateClientDropzoneAccept,
   generatePermittedFileTypes,
 } from "uploadthing/client";
-import { z } from "zod";
-// @ts-ignore
-import scribe from "scribe.js-ocr";
-
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -47,9 +48,17 @@ const UploadFileModal = ({
   const [doOcr, setDoOcr] = useState(false);
 
   const [open, setOpen] = useState(false);
-  const [isOcring, setIsOcring] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
+  const isOcring = ocrProgress !== null;
+
+  const ocrAbort = useRef<AbortController | null>(null);
 
   const closeModal = () => setOpen(false);
+
+  const onOpenChange = (next: boolean) => {
+    if (!next) ocrAbort.current?.abort();
+    setOpen(next);
+  };
 
   const onUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(undefined);
@@ -72,43 +81,20 @@ const UploadFileModal = ({
         }
 
         if (doOcr) {
-          setIsOcring(true);
-          // await scribe.init({ pdf: true, ocr: true, font: true });
-          // const params = {
-          //   extractPDFTextNative: optGUI.extractText,
-          //   extractPDFTextOCR: optGUI.extractText,
-          // };
-          scribe.opt.displayMode = "invis";
-
-          await scribe.importFiles(files);
-          await scribe.recognize({
-            mode: "quality",
-            langs: ["eng"],
-            modeAdv: "combined",
-            vanillaMode: true,
-            combineMode: "data",
-          });
-
-          const data = (await scribe.exportData("pdf")) as string | ArrayBuffer;
-
-          const blob = new Blob([data], { type: "application/pdf" });
-          const file = new File([blob], firstFile.name, {
-            type: "application/pdf",
-          });
-
-          setIsOcring(false);
-          return [file];
+          const controller = new AbortController();
+          ocrAbort.current = controller;
+          return [await ocrPdf(firstFile, setOcrProgress, controller.signal)];
         }
         return files;
-      } catch (err) {
-        setIsOcring(false);
-        throw new Error("Something went wrong while ocr-ing the file.");
+      } finally {
+        setOcrProgress(null);
       }
     },
     onClientUploadComplete: () => {
       toast.success("File uploaded successfully.");
     },
     onUploadError: () => {
+      if (ocrAbort.current?.signal.aborted) return;
       toast.error("Error occurred while uploading", {
         duration: 3000,
       });
@@ -129,35 +115,9 @@ const UploadFileModal = ({
       if (file) {
         await startUpload([file]);
       } else if (url) {
-        const urlSchema = z.string().url();
-        try {
-          urlSchema.parse(url);
-        } catch (err) {
-          toast.error("Invalid URL", {
-            duration: 3000,
-          });
-          return;
-        }
+        await mutateAddDocumentByLink({ url });
 
-        const res = await fetch(url);
-        const contentType = res.headers.get("Content-Type");
-        if (contentType !== "application/pdf") {
-          toast.error("URL is not a PDF", {
-            duration: 3000,
-          });
-          return;
-        }
-
-        const fileName =
-          res.headers.get("Content-Disposition")?.split("filename=")[1] ||
-          url.split("/").pop();
-
-        await mutateAddDocumentByLink({
-          title: fileName ?? "Untitled",
-          url,
-        });
-
-        toast.success("File uploaded successfully.", {
+        toast.success("Added successfully.", {
           duration: 3000,
         });
       }
@@ -165,11 +125,11 @@ const UploadFileModal = ({
       setFile(undefined);
       setUrl("");
       refetchUserDocs();
-    } catch (err: any) {
-      console.log("error", err.message);
-
+    } catch (err: unknown) {
       toast.error(
-        "Error occurred while uploading. Please make sure the PDF is accessible.",
+        err instanceof Error
+          ? err.message
+          : "This PDF or URL could not be imported.",
         {
           duration: 3000,
         },
@@ -178,7 +138,7 @@ const UploadFileModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger>
         <div
           onClick={(e) => {
@@ -197,16 +157,16 @@ const UploadFileModal = ({
           }}
           className={cn(buttonVariants())}
         >
-          Upload File
+          Add PDF/URL
         </div>
       </DialogTrigger>
       <DialogContent hideClose={true}>
         <DialogHeader>
           <DialogTitle>
-            <p className="text-xl">Upload File</p>
+            <p className="text-xl">Add PDF/URL</p>
             <p className="text-sm font-normal text-gray-500">
-              Choose files with {userPlan} or less pages to use AI features.
-              (For now)
+              Upload a PDF with up to {userPlan} pages, or paste a public web
+              article.
             </p>
           </DialogTitle>
 
@@ -229,37 +189,24 @@ const UploadFileModal = ({
           <div>
             <p>Import from URL</p>
             <p className="mb-2 text-xs font-normal text-gray-500">
-              Your files are not stored, only the URL is retained, also supports
-              Google Drive and Dropbox links.
+              Paste a public article or direct PDF link. Articles open in a
+              clean reader view.
             </p>
 
             <Input
               value={url}
               onChange={onUrlChange}
-              placeholder="https://example.com/file.pdf"
+              placeholder="https://example.com/article"
               className="w-full"
             />
           </div>
 
           <div>
-            <div className="my-3 flex items-center space-x-2">
-              <Checkbox
-                id="ocr"
-                checked={doOcr}
-                onCheckedChange={(c) => setDoOcr(!!c)}
-              />
-              <div>
-                <label
-                  htmlFor="ocr"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  OCR Pdf
-                </label>
-                <span className="block text-muted-foreground text-xs">
-                  Convert scanned PDF into searchable and selectable document.
-                </span>
-              </div>
-            </div>
+            <OcrOption
+              checked={doOcr}
+              onCheckedChange={setDoOcr}
+              disabled={isOcring}
+            />
           </div>
 
           <div>
@@ -276,13 +223,11 @@ const UploadFileModal = ({
               {isUploadthingUploading || isUrlUploading || isOcring ? (
                 <>
                   <Spinner />
-                  {isUploadthingUploading && (
+                  {isUploadthingUploading && !isOcring && (
                     <p className="ml-1">{uploadProgress}%</p>
                   )}
 
-                  {isOcring && (
-                    <span>Applying OCR, it might take a while...</span>
-                  )}
+                  {ocrProgress && <span>{ocrProgressLabel(ocrProgress)}</span>}
                 </>
               ) : (
                 "Upload"

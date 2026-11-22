@@ -32,6 +32,7 @@ const assistantTurn: ChatMessage = {
       output: {
         results: [
           {
+            kind: "pdf",
             pageContent: "Figure 10.1 shows a replicated log.",
             pageNumber: 10,
           },
@@ -71,6 +72,7 @@ describe("desktop chat message history", () => {
         content: "It shows a replicated operation log.",
         sources: [
           {
+            kind: "pdf",
             pageContent: "Figure 10.1 shows a replicated log.",
             pageNumber: 10,
           },
@@ -117,6 +119,7 @@ describe("desktop chat message history", () => {
               value: {
                 results: [
                   {
+                    kind: "pdf",
                     pageContent: "Figure 10.1 shows a replicated log.",
                     pageNumber: 10,
                   },

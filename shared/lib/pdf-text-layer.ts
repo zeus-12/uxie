@@ -50,6 +50,25 @@ function normalizedRangeToRaw(
   return [norm.toRaw[start]!, norm.toRaw[end - 1]! + 1];
 }
 
+// pdf.js find splits a block into text and match <span>s, so an offset into the
+// block's text has to be resolved against its text nodes, not its first child.
+function textPointInBlock(
+  block: Element,
+  offset: number,
+  atEnd: boolean,
+): { node: Node; offset: number } | null {
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  let remaining = offset;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const length = (node as Text).data.length;
+    if (atEnd ? remaining <= length : remaining < length) {
+      return { node, offset: remaining };
+    }
+    remaining -= length;
+  }
+  return null;
+}
+
 function rawPositionToDom(
   model: PdfTextLayerModel,
   rawPosition: number,
@@ -65,8 +84,7 @@ function rawPositionToDom(
       : rawPosition >= start && rawPosition < end;
     if (!inside) continue;
 
-    const node = model.blocks[index]!.firstChild;
-    return node ? { node, offset: rawPosition - start } : null;
+    return textPointInBlock(model.blocks[index]!, rawPosition - start, atEnd);
   }
 
   if (atEnd) {
@@ -74,16 +92,16 @@ function rawPositionToDom(
       const length = model.blockRawLens[index]!;
       if (length === 0) continue;
       const end = model.blockStarts[index]! + length;
-      const node = model.blocks[index]!.firstChild;
-      if (end <= rawPosition && node) return { node, offset: length };
+      if (end <= rawPosition) {
+        return textPointInBlock(model.blocks[index]!, length, true);
+      }
     }
   } else {
     for (let index = 0; index < model.blocks.length; index++) {
       const length = model.blockRawLens[index]!;
       if (length === 0) continue;
-      const node = model.blocks[index]!.firstChild;
-      if (model.blockStarts[index]! >= rawPosition && node) {
-        return { node, offset: 0 };
+      if (model.blockStarts[index]! >= rawPosition) {
+        return textPointInBlock(model.blocks[index]!, 0, false);
       }
     }
   }

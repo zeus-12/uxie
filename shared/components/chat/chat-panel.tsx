@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { toast } from "sonner";
-import type { RetrievedChunk } from "../../lib/chat";
+import { retrievedChunkKey, type RetrievedChunk } from "../../lib/chat";
 import type { ChatRole, ChatRow } from "../../lib/chat-rows";
 import {
   useCitationHighlightStore,
@@ -232,7 +232,7 @@ export function CitationSources({ sources }: { sources: RetrievedChunk[] }) {
       toast.error("The document is still loading", { duration: 3000 });
       return;
     }
-    highlightSource(source.pageNumber, source.pageContent);
+    highlightSource(source);
   };
 
   return (
@@ -246,15 +246,21 @@ export function CitationSources({ sources }: { sources: RetrievedChunk[] }) {
       <div className="space-y-2 border-t border-border p-2">
         {sources.map((source, index) => (
           <button
-            key={`${source.pageNumber}-${source.pageContent}-${index}`}
+            key={`${retrievedChunkKey(source)}-${index}`}
             type="button"
             onClick={() => openSource(source)}
             className="block w-full rounded-lg bg-muted/60 p-3 text-left text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:active:scale-[0.96]"
-            aria-label={`Open source ${index + 1} on page ${source.pageNumber}`}
+            aria-label={
+              source.kind === "pdf"
+                ? `Open source ${index + 1} on page ${source.pageNumber}`
+                : `Open source ${index + 1} in the article`
+            }
           >
             <span className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-blue-600">
               <FileTextIcon className="h-3.5 w-3.5" strokeWidth={2} />
-              Page {source.pageNumber}
+              {source.kind === "pdf"
+                ? `Page ${source.pageNumber}`
+                : `Passage ${index + 1}`}
             </span>
             <span className="whitespace-pre-wrap leading-relaxed">
               {source.pageContent}

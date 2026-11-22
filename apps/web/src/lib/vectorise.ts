@@ -1,42 +1,21 @@
 import { env } from "@/env.mjs";
+import { MAX_FILE_SIZE_MB_ANY_PLAN, fileSizeBytes } from "@/lib/constants";
 import { getPineconeClient } from "@/lib/pinecone";
+import {
+  needsPageLookup,
+  pageNumberFromMetadata,
+  toRetrievedChunk,
+} from "@/lib/retrieved-chunks";
+import { fetchPublicResource } from "@/server/article/safe-fetch";
 import { prisma } from "@/server/db";
 import { InferenceClient } from "@huggingface/inference";
-import {
-  retrievedChunkSchema,
-  type PdfPageText,
-  type RetrievedChunk,
-} from "@uxie/shared/lib/chat";
-import { findUniquePdfPageNumber } from "@uxie/shared/lib/pdf-text-layer";
+import { type PdfPageText, type RetrievedChunk } from "@uxie/shared/lib/chat";
+import { JSDOM } from "jsdom";
+import { Document as LangChainDocument } from "langchain/document";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { Embeddings } from "langchain/embeddings/base";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function pageNumberFromMetadata(metadata: unknown): number | null {
-  if (!isRecord(metadata)) return null;
-  if (
-    typeof metadata.pageNumber === "number" &&
-    Number.isInteger(metadata.pageNumber) &&
-    metadata.pageNumber > 0
-  ) {
-    return metadata.pageNumber;
-  }
-  const location = metadata.loc;
-  if (
-    isRecord(location) &&
-    typeof location.pageNumber === "number" &&
-    Number.isInteger(location.pageNumber) &&
-    location.pageNumber > 0
-  ) {
-    return location.pageNumber;
-  }
-  return null;
-}
 
 const parseEmbeddingResult = (result: unknown): number[] => {
   if (Array.isArray(result) && Array.isArray(result[0])) {
@@ -85,31 +64,82 @@ const getPineconeIndex = () => {
   return pinecone.Index("uxie");
 };
 
-export const vectoriseDocument = async (
-  fileUrl: string,
-  newFileId: string,
-  maxPagesAllowed: number,
-) => {
+export const vectoriseDocument = async ({
+  fileUrl,
+  documentId,
+  maxPagesAllowed,
+  maxFileBytes,
+  kind,
+}: {
+  fileUrl: string;
+  documentId: string;
+  maxPagesAllowed: number;
+  maxFileBytes: number;
+  kind: "PDF" | "ARTICLE";
+}) => {
   try {
-    const response = await fetch(fileUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    let sourceDocuments: LangChainDocument[];
+    if (kind === "ARTICLE") {
+      const article = await prisma.articleDocument.findUnique({
+        where: { documentId },
+        select: {
+          snapshots: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { id: true, contentHtml: true },
+          },
+        },
+      });
+      const snapshot = article?.snapshots[0];
+      if (!snapshot) throw new Error("Article snapshot not found.");
 
-    if (!response.headers.get("content-type")?.includes("application/pdf")) {
-      throw new Error("Invalid file type. Only PDFs are allowed.");
-    }
-
-    const blob = await response.blob();
-    const loader = new PDFLoader(blob);
-
-    const pageLevelDocs = await loader.load();
-    const pageCount = pageLevelDocs.length;
-
-    if (pageCount > maxPagesAllowed) {
-      throw new Error(
-        `Document to be vectorised can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
+      const dom = new JSDOM(`<main>${snapshot.contentHtml}</main>`);
+      sourceDocuments = Array.from(
+        dom.window.document.querySelectorAll<HTMLElement>(
+          "[data-uxie-block-id]",
+        ),
+      )
+        .map((block) => ({
+          blockId: block.dataset.uxieBlockId,
+          text: block.textContent?.trim(),
+        }))
+        .filter((block): block is { blockId: string; text: string } =>
+          Boolean(block.blockId && block.text),
+        )
+        .map(
+          ({ blockId, text }) =>
+            new LangChainDocument({
+              pageContent: text,
+              metadata: {
+                fileId: documentId,
+                kind: "article",
+                snapshotId: snapshot.id,
+                blockId,
+              },
+            }),
+        );
+    } else {
+      const resource = await fetchPublicResource({
+        inputUrl: fileUrl,
+        maxBytes: maxFileBytes,
+      });
+      if (!resource.contentType.includes("application/pdf")) {
+        throw new Error("Invalid file type. Only PDFs are allowed.");
+      }
+      const arrayBuffer = resource.body.buffer.slice(
+        resource.body.byteOffset,
+        resource.body.byteOffset + resource.body.byteLength,
       );
+      const loader = new PDFLoader(
+        new Blob([arrayBuffer], { type: "application/pdf" }),
+      );
+      sourceDocuments = await loader.load();
+
+      if (sourceDocuments.length > maxPagesAllowed) {
+        throw new Error(
+          `Document to be vectorised can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
+        );
+      }
     }
 
     const pineconeIndex = getPineconeIndex();
@@ -119,20 +149,26 @@ export const vectoriseDocument = async (
       chunkOverlap: 200,
     });
 
-    const splitDocs = await textSplitter.splitDocuments(pageLevelDocs);
+    const splitDocs = await textSplitter.splitDocuments(sourceDocuments);
 
     const combinedData = splitDocs.map((document) => {
+      if (kind === "ARTICLE") {
+        return {
+          ...document,
+          metadata: {
+            ...document.metadata,
+            fileId: documentId,
+            kind: "article",
+          },
+        };
+      }
       const pageNumber = pageNumberFromMetadata(document.metadata);
       if (!pageNumber) {
         throw new Error("PDF loader returned a chunk without a page number");
       }
       return {
         ...document,
-        metadata: {
-          fileId: newFileId,
-          pageNumber,
-        },
-        dataset: "pdf",
+        metadata: { fileId: documentId, kind: "pdf", pageNumber },
       };
     });
 
@@ -144,7 +180,7 @@ export const vectoriseDocument = async (
 
     await prisma.document.update({
       where: {
-        id: newFileId,
+        id: documentId,
       },
       data: {
         isVectorised: true,
@@ -159,7 +195,7 @@ export const vectoriseDocument = async (
 export const retrieveRelevantDocumentContent = async (
   docId: string,
   question: string,
-): Promise<RetrievedChunk[]> => {
+) => {
   if (!env.HUGGINGFACE_API_KEY) {
     throw new Error("HUGGINGFACE_API_KEY is not configured");
   }
@@ -175,49 +211,45 @@ export const retrieveRelevantDocumentContent = async (
   });
 
   const results = await vectorStore.similaritySearch(question, 4);
-  const needsLegacyResolution = results.some(
-    (result) => pageNumberFromMetadata(result.metadata) === null,
-  );
-
-  let legacyPages: PdfPageText[] = [];
-  if (needsLegacyResolution) {
-    try {
-      const document = await prisma.document.findUnique({
-        where: { id: docId },
-        select: { url: true },
-      });
-      if (document) {
-        const response = await fetch(document.url);
-        if (response.ok) {
-          const pageDocuments = await new PDFLoader(
-            await response.blob(),
-          ).load();
-          legacyPages = pageDocuments.map((page, index) => ({
-            pageNumber: pageNumberFromMetadata(page.metadata) ?? index + 1,
-            text: page.pageContent,
-          }));
-        }
-      }
-    } catch {
-      // Keep any new-format results that already carry valid provenance. If
-      // every result is legacy, the empty-result guard below asks for reindexing.
-    }
-  }
-
+  const pages = results.some(needsPageLookup)
+    ? await loadPdfPages(docId).catch((error: unknown) => {
+        console.error("Couldn't recover pages for legacy vectors:", error);
+        return [];
+      })
+    : [];
   const chunks = results.flatMap((result): RetrievedChunk[] => {
-    const pageNumber =
-      pageNumberFromMetadata(result.metadata) ??
-      findUniquePdfPageNumber(result.pageContent, legacyPages);
-    const parsed = retrievedChunkSchema.safeParse({
-      pageContent: result.pageContent,
-      pageNumber,
-    });
-    return parsed.success ? [parsed.data] : [];
+    const chunk = toRetrievedChunk(result, pages);
+    return chunk ? [chunk] : [];
   });
-  if (chunks.length === 0) {
+  if (results.length > 0 && chunks.length === 0) {
     throw new Error(
       "This document needs to be indexed again before cited answers are available.",
     );
   }
   return chunks;
+};
+
+// Vectors indexed before page provenance carry no page number; the page is
+// recovered from the PDF text only when the passage occurs on exactly one page.
+const loadPdfPages = async (docId: string): Promise<PdfPageText[]> => {
+  const document = await prisma.document.findUnique({
+    where: { id: docId },
+    select: { url: true },
+  });
+  if (!document) return [];
+  const resource = await fetchPublicResource({
+    inputUrl: document.url,
+    maxBytes: fileSizeBytes(MAX_FILE_SIZE_MB_ANY_PLAN),
+  });
+  const bytes = resource.body.buffer.slice(
+    resource.body.byteOffset,
+    resource.body.byteOffset + resource.body.byteLength,
+  );
+  const pageDocuments = await new PDFLoader(
+    new Blob([bytes], { type: "application/pdf" }),
+  ).load();
+  return pageDocuments.flatMap((page): PdfPageText[] => {
+    const pageNumber = pageNumberFromMetadata(page.metadata);
+    return pageNumber ? [{ pageNumber, text: page.pageContent }] : [];
+  });
 };

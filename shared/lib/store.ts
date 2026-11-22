@@ -1,5 +1,6 @@
-import { PDF_BACKGROUND_COLOURS } from "./constants";
+import { PDF_BACKGROUND_COLOURS, READER_BACKGROUND_COLOURS } from "./constants";
 import { type BlockNoteEditorType } from "../types/editor";
+import { type RetrievedChunk } from "./chat";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { getEngineFromVoice, type TTSEngineType, type TTSVoiceId } from "./tts";
@@ -92,6 +93,34 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
   ),
 );
 
+export type ArticleFontFamily = "sans" | "serif" | "mono";
+export type ArticleFontSize = 16 | 18 | 20 | 22;
+export type ArticleBackgroundColour =
+  (typeof READER_BACKGROUND_COLOURS)[number];
+
+interface ArticleSettingsStore {
+  fontFamily: ArticleFontFamily;
+  setFontFamily: (fontFamily: ArticleFontFamily) => void;
+  fontSize: ArticleFontSize;
+  setFontSize: (fontSize: ArticleFontSize) => void;
+  backgroundColour: ArticleBackgroundColour;
+  setBackgroundColour: (backgroundColour: ArticleBackgroundColour) => void;
+}
+
+export const useArticleSettingsStore = create<ArticleSettingsStore>()(
+  persist(
+    (set) => ({
+      fontFamily: "sans",
+      setFontFamily: (fontFamily) => set({ fontFamily }),
+      fontSize: 18,
+      setFontSize: (fontSize) => set({ fontSize }),
+      backgroundColour: READER_BACKGROUND_COLOURS[0],
+      setBackgroundColour: (backgroundColour) => set({ backgroundColour }),
+    }),
+    { name: "article-settings" },
+  ),
+);
+
 type JumpToHighlight = (
   highlightId: string,
   /** From the note block, used when the highlight itself no longer exists. */
@@ -110,11 +139,11 @@ export const useHighlightJumpStore = create<HighlightJumpStore>((set) => ({
   setJumpToHighlight: (jumpToHighlight) => set({ jumpToHighlight }),
 }));
 
+type ShowSource = (source: RetrievedChunk) => void;
+
 interface CitationHighlightStore {
-  highlightSource: ((pageNumber: number, text: string) => void) | null;
-  setHighlightSource: (
-    fn: ((pageNumber: number, text: string) => void) | null,
-  ) => void;
+  highlightSource: ShowSource | null;
+  setHighlightSource: (fn: ShowSource | null) => void;
 }
 
 export const useCitationHighlightStore = create<CitationHighlightStore>(

@@ -19,7 +19,12 @@ function vec(seed: number): number[] {
 }
 
 function item(pageContent: string, seed: number, pageNumber = 1) {
-  return { pageContent, pageNumber, embedding: vec(seed) };
+  return {
+    kind: "pdf" as const,
+    pageContent,
+    pageNumber,
+    embedding: vec(seed),
+  };
 }
 
 function freshStore() {
@@ -44,7 +49,9 @@ describe("sqlite-vec vector store", () => {
     expect(hasVectors(sqlite, "doc1")).toBe(true);
 
     const top = queryVectors(sqlite, "doc1", vec(2), 1);
-    expect(top).toEqual([{ pageContent: "about dogs", pageNumber: 3 }]);
+    expect(top).toEqual([
+      { kind: "pdf", pageContent: "about dogs", pageNumber: 3 },
+    ]);
   });
 
   it("scopes results to the given document (partition key)", () => {
@@ -53,10 +60,10 @@ describe("sqlite-vec vector store", () => {
     upsertVectors(sqlite, "doc2", [item("d2 chunk", 5, 2)]);
 
     expect(queryVectors(sqlite, "doc1", vec(5), 5)).toEqual([
-      { pageContent: "d1 chunk", pageNumber: 1 },
+      { kind: "pdf", pageContent: "d1 chunk", pageNumber: 1 },
     ]);
     expect(queryVectors(sqlite, "doc2", vec(5), 5)).toEqual([
-      { pageContent: "d2 chunk", pageNumber: 2 },
+      { kind: "pdf", pageContent: "d2 chunk", pageNumber: 2 },
     ]);
   });
 
@@ -65,7 +72,7 @@ describe("sqlite-vec vector store", () => {
     upsertVectors(sqlite, "doc1", [item("old", 7, 1)]);
     upsertVectors(sqlite, "doc1", [item("new", 7, 2)]);
     expect(queryVectors(sqlite, "doc1", vec(7), 5)).toEqual([
-      { pageContent: "new", pageNumber: 2 },
+      { kind: "pdf", pageContent: "new", pageNumber: 2 },
     ]);
   });
 
@@ -92,7 +99,7 @@ describe("sqlite-vec vector store", () => {
     // The new table takes current-width vectors, which the stale one would reject.
     upsertVectors(sqlite, "doc1", [item("fresh", 1, 7)]);
     expect(queryVectors(sqlite, "doc1", vec(1), 1)).toEqual([
-      { pageContent: "fresh", pageNumber: 7 },
+      { kind: "pdf", pageContent: "fresh", pageNumber: 7 },
     ]);
   });
 
@@ -106,7 +113,7 @@ describe("sqlite-vec vector store", () => {
     expect(initVectorStore(sqlite)).toBe(true);
     upsertVectors(sqlite, "doc1", [item("page-aware", 4, 9)]);
     expect(queryVectors(sqlite, "doc1", vec(4), 1)).toEqual([
-      { pageContent: "page-aware", pageNumber: 9 },
+      { kind: "pdf", pageContent: "page-aware", pageNumber: 9 },
     ]);
   });
 

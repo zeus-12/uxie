@@ -12,6 +12,7 @@ import {
 } from "react";
 import {
   DEFAULT_SIDEBAR_TAB,
+  SIDEBAR_TABS,
   useSidebarTabStore,
   type SidebarTab,
 } from "../../lib/store";
@@ -23,12 +24,12 @@ const TABS: { value: SidebarTab; tooltip: string; icon: ReactNode }[] = [
   { value: "notes", tooltip: "Take notes", icon: <AlbumIcon size={20} /> },
   {
     value: "chat",
-    tooltip: "Chat with the pdf",
+    tooltip: "Chat with this document",
     icon: <MessagesSquareIcon size={20} />,
   },
   {
     value: "flashcards",
-    tooltip: "Generate flashcards from the pdf",
+    tooltip: "Generate flashcards",
     icon: <Layers size={20} />,
   },
 ];
@@ -36,11 +37,17 @@ const TABS: { value: SidebarTab; tooltip: string; icon: ReactNode }[] = [
 const CONTENT_TW =
   "mt-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto";
 
-export function SidebarTabs({ className }: { className?: string }) {
+export function SidebarTabs({
+  className,
+  tabs = SIDEBAR_TABS,
+}: {
+  className?: string;
+  tabs?: readonly SidebarTab[];
+}) {
   return (
     <div className={className}>
       <TabsList className="h-9 rounded-md bg-gray-200">
-        {TABS.map((item) => (
+        {TABS.filter((item) => tabs.includes(item.value)).map((item) => (
           <CustomTooltip content={item.tooltip} key={item.value} asChild>
             {/* Keep Tooltip's data-state on this wrapper. Putting both Radix
                 triggers on the button makes Tooltip overwrite Tabs' active
@@ -66,15 +73,17 @@ export function SidebarTabs({ className }: { className?: string }) {
 export function SidebarHeader({
   className,
   tabsClassName,
+  tabs,
   children,
 }: {
   className?: string;
   tabsClassName?: string;
+  tabs?: readonly SidebarTab[];
   children?: ReactNode;
 }) {
   return (
     <div className={cn("flex h-12 shrink-0 items-center px-2", className)}>
-      <SidebarTabs className={tabsClassName} />
+      <SidebarTabs className={tabsClassName} tabs={tabs} />
       {children}
     </div>
   );
@@ -115,6 +124,7 @@ export function Sidebar({
   tabsClassName,
   defaultTab = DEFAULT_SIDEBAR_TAB,
   resetTabOnMount = true,
+  tabs = SIDEBAR_TABS,
 }: {
   notes: ReactNode;
   chat: ReactNode;
@@ -126,6 +136,7 @@ export function Sidebar({
   // Desktop resets to the default tab on mount (a new document starts on notes).
   // Web owns the initial tab via the URL (?tab=), so it opts out.
   resetTabOnMount?: boolean;
+  tabs?: readonly SidebarTab[];
 }) {
   const tab = useSidebarTabStore((s) => s.tab);
   const setTab = useSidebarTabStore((s) => s.setTab);
@@ -136,13 +147,17 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!tabs.includes(tab)) setTab(defaultTab);
+  }, [defaultTab, setTab, tab, tabs]);
+
   const contents = [
     { value: "notes", tw: `flex-1 pb-0 ${CONTENT_TW}`, children: notes },
     // Chat manages its own internal padding (ChatPanel), so it gets none here —
     // keeps its bubbles/input aligned with the tab strip.
     { value: "chat", tw: CONTENT_TW, children: chat },
     { value: "flashcards", tw: `p-2 pb-0 ${CONTENT_TW}`, children: flashcards },
-  ];
+  ].filter((item) => tabs.includes(item.value as SidebarTab));
 
   return (
     <Tabs
@@ -150,7 +165,11 @@ export function Sidebar({
       onValueChange={(v) => setTab(v as SidebarTab)}
       className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden bg-gray-50"
     >
-      <SidebarHeader className={headerClassName} tabsClassName={tabsClassName}>
+      <SidebarHeader
+        className={headerClassName}
+        tabsClassName={tabsClassName}
+        tabs={tabs}
+      >
         {headerActions}
       </SidebarHeader>
       <div className="min-h-0 flex-1">
