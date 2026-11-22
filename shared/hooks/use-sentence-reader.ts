@@ -158,6 +158,25 @@ function normRangeToRaw(
   return [norm.toRaw[normStart]!, norm.toRaw[normEnd - 1]! + 1];
 }
 
+// pdf.js find splits a block into text and match <span>s, so an offset into the
+// block's text has to be resolved against its text nodes, not its first child.
+function textPointInBlock(
+  block: Element,
+  offset: number,
+  atEnd: boolean,
+): { node: Node; offset: number } | null {
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  let remaining = offset;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const length = (node as Text).data.length;
+    if (atEnd ? remaining <= length : remaining < length) {
+      return { node, offset: remaining };
+    }
+    remaining -= length;
+  }
+  return null;
+}
+
 // Whitespace-only blocks and the synthetic inter-block separators occupy no
 // real DOM, so a position landing on one snaps to the nearest content block.
 function rawPosToDom(
@@ -173,26 +192,22 @@ function rawPosToDom(
     const inside = atEnd
       ? rawPos > bs && rawPos <= be
       : rawPos >= bs && rawPos < be;
-    if (inside) {
-      const node = model.blocks[i]!.firstChild;
-      if (!node) return null;
-      return { node, offset: rawPos - bs };
-    }
+    if (inside) return textPointInBlock(model.blocks[i]!, rawPos - bs, atEnd);
   }
   if (atEnd) {
     for (let i = model.blocks.length - 1; i >= 0; i--) {
       const len = model.blockRawLens[i]!;
       if (len === 0) continue;
       const be = model.blockStarts[i]! + len;
-      const node = model.blocks[i]!.firstChild;
-      if (be <= rawPos && node) return { node, offset: len };
+      if (be <= rawPos) return textPointInBlock(model.blocks[i]!, len, true);
     }
   } else {
     for (let i = 0; i < model.blocks.length; i++) {
       const len = model.blockRawLens[i]!;
       if (len === 0) continue;
-      const node = model.blocks[i]!.firstChild;
-      if (model.blockStarts[i]! >= rawPos && node) return { node, offset: 0 };
+      if (model.blockStarts[i]! >= rawPos) {
+        return textPointInBlock(model.blocks[i]!, 0, false);
+      }
     }
   }
   return null;

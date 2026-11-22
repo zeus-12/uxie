@@ -1,7 +1,11 @@
 import { env } from "@/env.mjs";
 import { getPineconeClient } from "@/lib/pinecone";
+import { toRetrievedChunks } from "@/lib/retrieved-chunks";
+import { fetchPublicResource } from "@/server/article/safe-fetch";
 import { prisma } from "@/server/db";
 import { InferenceClient } from "@huggingface/inference";
+import { JSDOM } from "jsdom";
+import { Document as LangChainDocument } from "langchain/document";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { Embeddings } from "langchain/embeddings/base";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
@@ -54,31 +58,82 @@ const getPineconeIndex = () => {
   return pinecone.Index("uxie");
 };
 
-export const vectoriseDocument = async (
-  fileUrl: string,
-  newFileId: string,
-  maxPagesAllowed: number,
-) => {
+export const vectoriseDocument = async ({
+  fileUrl,
+  documentId,
+  maxPagesAllowed,
+  maxFileBytes,
+  kind,
+}: {
+  fileUrl: string;
+  documentId: string;
+  maxPagesAllowed: number;
+  maxFileBytes: number;
+  kind: "PDF" | "ARTICLE";
+}) => {
   try {
-    const response = await fetch(fileUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    let sourceDocuments: LangChainDocument[];
+    if (kind === "ARTICLE") {
+      const article = await prisma.articleDocument.findUnique({
+        where: { documentId },
+        select: {
+          snapshots: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { id: true, contentHtml: true },
+          },
+        },
+      });
+      const snapshot = article?.snapshots[0];
+      if (!snapshot) throw new Error("Article snapshot not found.");
 
-    if (!response.headers.get("content-type")?.includes("application/pdf")) {
-      throw new Error("Invalid file type. Only PDFs are allowed.");
-    }
-
-    const blob = await response.blob();
-    const loader = new PDFLoader(blob);
-
-    const pageLevelDocs = await loader.load();
-    const pageCount = pageLevelDocs.length;
-
-    if (pageCount > maxPagesAllowed) {
-      throw new Error(
-        `Document to be vectorised can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
+      const dom = new JSDOM(`<main>${snapshot.contentHtml}</main>`);
+      sourceDocuments = Array.from(
+        dom.window.document.querySelectorAll<HTMLElement>(
+          "[data-uxie-block-id]",
+        ),
+      )
+        .map((block) => ({
+          blockId: block.dataset.uxieBlockId,
+          text: block.textContent?.trim(),
+        }))
+        .filter((block): block is { blockId: string; text: string } =>
+          Boolean(block.blockId && block.text),
+        )
+        .map(
+          ({ blockId, text }) =>
+            new LangChainDocument({
+              pageContent: text,
+              metadata: {
+                fileId: documentId,
+                kind: "article",
+                snapshotId: snapshot.id,
+                blockId,
+              },
+            }),
+        );
+    } else {
+      const resource = await fetchPublicResource({
+        inputUrl: fileUrl,
+        maxBytes: maxFileBytes,
+      });
+      if (!resource.contentType.includes("application/pdf")) {
+        throw new Error("Invalid file type. Only PDFs are allowed.");
+      }
+      const arrayBuffer = resource.body.buffer.slice(
+        resource.body.byteOffset,
+        resource.body.byteOffset + resource.body.byteLength,
       );
+      const loader = new PDFLoader(
+        new Blob([arrayBuffer], { type: "application/pdf" }),
+      );
+      sourceDocuments = await loader.load();
+
+      if (sourceDocuments.length > maxPagesAllowed) {
+        throw new Error(
+          `Document to be vectorised can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
+        );
+      }
     }
 
     const pineconeIndex = getPineconeIndex();
@@ -88,15 +143,16 @@ export const vectoriseDocument = async (
       chunkOverlap: 200,
     });
 
-    const splitDocs = await textSplitter.splitDocuments(pageLevelDocs);
+    const splitDocs = await textSplitter.splitDocuments(sourceDocuments);
 
     const combinedData = splitDocs.map((document) => {
       return {
         ...document,
         metadata: {
-          fileId: newFileId,
+          ...document.metadata,
+          fileId: documentId,
+          kind: kind === "ARTICLE" ? "article" : "pdf",
         },
-        dataset: "pdf",
       };
     });
 
@@ -108,7 +164,7 @@ export const vectoriseDocument = async (
 
     await prisma.document.update({
       where: {
-        id: newFileId,
+        id: documentId,
       },
       data: {
         isVectorised: true,
@@ -139,5 +195,5 @@ export const retrieveRelevantDocumentContent = async (
   });
 
   const results = await vectorStore.similaritySearch(question, 4);
-  return results;
+  return toRetrievedChunks(results);
 };

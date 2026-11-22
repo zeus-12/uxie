@@ -1,0 +1,13 @@
+/* pdf.js find wraps matches in .highlight spans inside its text layer. */
+.PdfHighlighter .textLayer .highlight {
+  margin: 0;
+  padding: 0;
+  background-color: rgb(250 204 21 / 45%);
+  border-radius: 2px;
+  mix-blend-mode: multiply;
+}
+
+.PdfHighlighter .textLayer .highlight.selected {
+  background-color: rgb(249 115 22 / 72%);
+  box-shadow: 0 0 0 1px rgb(154 52 18 / 85%);
+}
