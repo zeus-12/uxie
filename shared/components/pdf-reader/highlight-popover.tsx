@@ -118,12 +118,11 @@ export const TextSelectionPopover = ({
         onClick: () => {
           stageImageAttachment(content.image ?? "");
           switchSidebarTabToChat();
-          setTimeout(() => useChatStore.getState().focusInput?.(), 0);
           hideTipAndSelection();
+          useChatStore.getState().focusInput?.();
         },
         icon: MessageSquarePlus,
         tooltip: "Attach to chat",
-        accent: true,
       },
     isTextHighlight &&
       showAiFeatures &&
@@ -156,7 +155,7 @@ export const TextSelectionPopover = ({
                 <option.icon
                   className={
                     "accent" in option && option.accent
-                      ? "h-5 w-5 text-blue-400 group-hover:text-blue-300"
+                      ? "h-5 w-5 text-violet-400 group-hover:text-violet-300"
                       : "h-5 w-5 text-gray-300 group-hover:text-gray-50"
                   }
                 />
