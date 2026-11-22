@@ -201,17 +201,10 @@ export function ChatPanel({
               }}
               readOnly={sending}
               onPaste={(event) => {
-                const { clipboardData } = event;
-                const images = Array.from(clipboardData.files).filter((file) =>
-                  file.type.startsWith("image/"),
+                const images = Array.from(event.clipboardData.files).filter(
+                  (file) => file.type.startsWith("image/"),
                 );
-                // Spreadsheet and document copies carry text/html plus a picture of the selection; the text is what was meant.
-                const documentCopy =
-                  clipboardData.types.includes("text/html") &&
-                  clipboardData.getData("text/plain") !== "";
-                if (!images.length || documentCopy) return;
-                event.preventDefault();
-                onFilesSelected(images);
+                if (images.length) onFilesSelected(images);
               }}
               onKeyDown={(e) => {
                 const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";

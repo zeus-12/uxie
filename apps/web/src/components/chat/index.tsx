@@ -132,16 +132,20 @@ function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
 
 type Turn = { text: string; images: StagedChatImage[] };
 
-function withoutLastUserMessage<M extends { role: string }>(messages: M[]) {
+function lastUserMessageId(messages: { id: string; role: string }[]) {
   for (let index = messages.length - 1; index >= 0; index--) {
-    if (messages[index]?.role === "user") return messages.slice(0, index);
+    const message = messages[index];
+    if (message?.role === "user") return message.id;
   }
-  return messages;
+  return null;
 }
 
 function ChatView({ docId }: { docId: string }) {
+  const utils = api.useContext();
   const turnRef = useRef<Turn | null>(null);
-  const undoTurnRef = useRef<(turn: Turn) => void>(() => undefined);
+  const settleFailedTurnRef = useRef<
+    (turn: Turn, userMessageId: string) => Promise<void>
+  >(async () => undefined);
   const { messages, status, error, stop, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -153,10 +157,13 @@ function ChatView({ docId }: { docId: string }) {
         }),
       }),
     }),
-    onFinish: ({ isError, isAbort }) => {
+    onFinish: ({ isError, isAbort, messages }) => {
       const turn = turnRef.current;
       turnRef.current = null;
-      if ((isError || isAbort) && turn) undoTurnRef.current(turn);
+      const userMessageId = lastUserMessageId(messages);
+      if ((isError || isAbort) && turn && userMessageId) {
+        void settleFailedTurnRef.current(turn, userMessageId);
+      }
     },
   });
 
@@ -199,8 +206,20 @@ function ChatView({ docId }: { docId: string }) {
     clearAttachments();
   };
 
-  undoTurnRef.current = (turn) => {
-    setMessages(withoutLastUserMessage);
+  settleFailedTurnRef.current = async (turn, userMessageId) => {
+    const saved = await utils.client.message.getAllByDocId
+      .query({ docId })
+      .then(
+        (history) => history.some((message) => message.id === userMessageId),
+        () => false,
+      );
+    if (saved) return;
+    setMessages((current) => {
+      const index = current.findIndex(
+        (message) => message.id === userMessageId,
+      );
+      return index === -1 ? current : current.slice(0, index);
+    });
     if (turn.text) {
       setInput((current) => (current ? `${turn.text}\n${current}` : turn.text));
     }
@@ -214,12 +233,13 @@ function ChatView({ docId }: { docId: string }) {
   const setFocusInput = useChatStore((s) => s.setFocusInput);
   const tab = useSidebarTabStore((s) => s.tab);
   useEffect(() => {
+    if (streaming) return;
     setSendMessage((text: string) => {
-      turnRef.current = { text: "", images: [] };
+      turnRef.current = { text, images: [] };
       void sendMessage({ text });
     });
     return () => setSendMessage(null);
-  }, [sendMessage, setSendMessage]);
+  }, [sendMessage, setSendMessage, streaming]);
   useEffect(() => {
     setStageImageAttachment((dataUrl: string) => {
       void addDataUrl(dataUrl, "PDF selection.png");

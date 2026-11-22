@@ -1,4 +1,4 @@
-import { CHAT_REQUEST_ERRORS, prepareChatMessages } from "@/lib/chat-images";
+import { chatErrorResponse, prepareChatMessages } from "@/lib/chat-images";
 import { chatTurnResponse } from "@/lib/chat-turn";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     }
 
     const prepared = prepareChatMessages(messages);
-    if (!prepared.ok) return new Response(prepared.error, { status: 400 });
+    if (!prepared.ok) return chatErrorResponse(prepared.error, 400);
 
     return chatTurnResponse({
       options: {
@@ -128,6 +128,7 @@ export async function POST(req: Request) {
         await prisma.$transaction([
           prisma.message.create({
             data: {
+              id: prepared.userMessageId,
               parts: prepared.userParts,
               documentId: docId,
               userId: session.user.id,
@@ -151,7 +152,7 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     if (error instanceof Response && error.status === 429) {
-      return new Response(CHAT_REQUEST_ERRORS.rateLimited, { status: 429 });
+      return chatErrorResponse("rateLimited", 429);
     }
     return new Response("Internal Server Error", { status: 500 });
   }

@@ -121,7 +121,6 @@ export interface IpcInvokeContract {
     args: [docId: string, role: "user" | "assistant", parts: ChatPart[]];
     result: void;
   };
-  /** Stores the images and the user message that references them, or neither. */
   "messages:createUser": {
     args: [docId: string, text: string, images: ChatImageUpload[]];
     result: CreateUserMessageResult;

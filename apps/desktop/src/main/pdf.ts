@@ -209,6 +209,7 @@ export async function storeDocumentImage(
   bytes: Uint8Array,
   mediaType: ChatImageMediaType = "image/png",
 ): Promise<string> {
+  if (!ID.test(docId)) throw new Error(`Invalid document id: ${docId}`);
   if (!CHAT_IMAGE_MEDIA_TYPES.includes(mediaType)) {
     throw new Error(`Unsupported image type: ${mediaType}`);
   }

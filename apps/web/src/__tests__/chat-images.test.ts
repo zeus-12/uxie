@@ -1,5 +1,6 @@
 import {
   CHAT_REQUEST_ERRORS,
+  chatErrorBody,
   chatErrorMessage,
   chatRequestBody,
   MAX_CHAT_REQUEST_BYTES,
@@ -61,6 +62,7 @@ describe("chat images", () => {
           { type: "file", mediaType: "image/png", filename: "b.png", url: PNG },
         ]),
       ],
+      userMessageId: "u",
       userParts: [
         { type: "text", text: "What is this?" },
         { type: "file", mediaType: "image/png", filename: "b.png" },
@@ -112,6 +114,14 @@ describe("chat images", () => {
     for (const part of bad) {
       expect(prepareChatMessages([user([part])]).ok).toBe(false);
     }
+  });
+
+  it("rejects a newest message without a usable id", () => {
+    expect(
+      prepareChatMessages([
+        { id: "../x", role: "user", parts: [{ type: "text", text: "hi" }] },
+      ]),
+    ).toEqual({ ok: false, error: "malformed" });
   });
 
   it("rejects more than four images in one message", () => {
@@ -167,12 +177,15 @@ describe("chat request shaping", () => {
     expect(chatRequestBody({ messages: [] })).toEqual({ messages: [] });
     expect(() =>
       chatRequestBody({ text: "x".repeat(MAX_CHAT_REQUEST_BYTES) }),
-    ).toThrow(CHAT_REQUEST_ERRORS.requestTooLarge);
+    ).toThrow(chatErrorBody("requestTooLarge"));
   });
 
   it("shows only the route's own error texts", () => {
-    expect(chatErrorMessage(new Error(CHAT_REQUEST_ERRORS.imageTooLarge))).toBe(
+    expect(chatErrorMessage(new Error(chatErrorBody("imageTooLarge")))).toBe(
       CHAT_REQUEST_ERRORS.imageTooLarge,
+    );
+    expect(chatErrorMessage(new Error('{"code":"toString"}'))).toBe(
+      "Something went wrong. Please try again.",
     );
     expect(chatErrorMessage(new Error("Internal Server Error"))).toBe(
       "Something went wrong. Please try again.",

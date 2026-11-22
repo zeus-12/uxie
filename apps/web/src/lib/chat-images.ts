@@ -26,13 +26,30 @@ export const CHAT_REQUEST_ERRORS = {
   rateLimited: "Rate limit exceeded. Please wait a little and try again soon.",
 } as const;
 
-const USER_FACING_ERRORS: ReadonlySet<string> = new Set(
-  Object.values(CHAT_REQUEST_ERRORS),
-);
+export type ChatErrorCode = keyof typeof CHAT_REQUEST_ERRORS;
 
+const isChatErrorCode = (value: unknown): value is ChatErrorCode =>
+  typeof value === "string" && Object.hasOwn(CHAT_REQUEST_ERRORS, value);
+
+export const chatErrorBody = (code: ChatErrorCode) => JSON.stringify({ code });
+
+export function chatErrorResponse(code: ChatErrorCode, status: number) {
+  return new Response(chatErrorBody(code), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+// The chat transport rejects with the response body as the error message.
 export function chatErrorMessage(error: Error | undefined): string {
-  return error && USER_FACING_ERRORS.has(error.message)
-    ? error.message
+  let body: unknown;
+  try {
+    body = error ? JSON.parse(error.message) : undefined;
+  } catch {
+    body = undefined;
+  }
+  return isRecord(body) && isChatErrorCode(body.code)
+    ? CHAT_REQUEST_ERRORS[body.code]
     : "Something went wrong. Please try again.";
 }
 
@@ -44,8 +61,15 @@ export type StoredImagePart = {
 export type StoredUserPart = { type: "text"; text: string } | StoredImagePart;
 
 type Prepared =
-  | { ok: true; messages: UIMessage[]; userParts: StoredUserPart[] }
-  | { ok: false; error: string };
+  | {
+      ok: true;
+      messages: UIMessage[];
+      userMessageId: string;
+      userParts: StoredUserPart[];
+    }
+  | { ok: false; error: ChatErrorCode };
+
+const MESSAGE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -99,7 +123,7 @@ export function withoutEarlierImageData(messages: UIMessage[]): unknown[] {
 export function chatRequestBody(body: Record<string, unknown>) {
   const size = new TextEncoder().encode(JSON.stringify(body)).byteLength;
   if (size > MAX_CHAT_REQUEST_BYTES) {
-    throw new Error(CHAT_REQUEST_ERRORS.requestTooLarge);
+    throw new Error(chatErrorBody("requestTooLarge"));
   }
   return body;
 }
@@ -107,7 +131,10 @@ export function chatRequestBody(body: Record<string, unknown>) {
 export function prepareChatMessages(messages: unknown[]): Prepared {
   const last = messages[messages.length - 1];
   if (!isRecord(last) || last.role !== "user") {
-    return { ok: false, error: CHAT_REQUEST_ERRORS.lastNotUser };
+    return { ok: false, error: "lastNotUser" };
+  }
+  if (typeof last.id !== "string" || !MESSAGE_ID.test(last.id)) {
+    return { ok: false, error: "malformed" };
   }
 
   const prepared: unknown[] = [];
@@ -115,7 +142,7 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
 
   for (const [index, message] of messages.entries()) {
     if (!isRecord(message) || !Array.isArray(message.parts)) {
-      return { ok: false, error: CHAT_REQUEST_ERRORS.malformed };
+      return { ok: false, error: "malformed" };
     }
     if (message.role !== "user") {
       prepared.push(message);
@@ -129,8 +156,7 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
     let imageBytes = 0;
 
     for (const part of message.parts) {
-      if (!isRecord(part))
-        return { ok: false, error: CHAT_REQUEST_ERRORS.malformed };
+      if (!isRecord(part)) return { ok: false, error: "malformed" };
 
       if (part.type === "text" && typeof part.text === "string") {
         modelParts.push({ type: "text", text: part.text });
@@ -140,7 +166,7 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
       if (part.type !== "file" || !isChatImageMediaType(part.mediaType)) {
         return {
           ok: false,
-          error: CHAT_REQUEST_ERRORS.unsupportedPart,
+          error: "unsupportedPart",
         };
       }
 
@@ -151,7 +177,7 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
         if (part.url !== undefined) {
           return {
             ok: false,
-            error: CHAT_REQUEST_ERRORS.earlierImageData,
+            error: "earlierImageData",
           };
         }
         modelParts.push({
@@ -168,13 +194,13 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
       if (bytes === null) {
         return {
           ok: false,
-          error: CHAT_REQUEST_ERRORS.invalidImage,
+          error: "invalidImage",
         };
       }
       imageCount += 1;
       imageBytes += bytes;
       if (bytes > MAX_CHAT_IMAGE_BYTES) {
-        return { ok: false, error: CHAT_REQUEST_ERRORS.imageTooLarge };
+        return { ok: false, error: "imageTooLarge" };
       }
       modelParts.push({
         type: "file",
@@ -185,15 +211,20 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
     }
 
     if (imageCount > MAX_CHAT_IMAGE_COUNT) {
-      return { ok: false, error: CHAT_REQUEST_ERRORS.tooManyImages };
+      return { ok: false, error: "tooManyImages" };
     }
     if (imageBytes > MAX_WEB_CHAT_IMAGE_TOTAL_BYTES) {
-      return { ok: false, error: CHAT_REQUEST_ERRORS.imagesTooLarge };
+      return { ok: false, error: "imagesTooLarge" };
     }
 
     prepared.push({ ...message, parts: modelParts });
     if (isLatest) userParts = storedParts;
   }
 
-  return { ok: true, messages: prepared as UIMessage[], userParts };
+  return {
+    ok: true,
+    messages: prepared as UIMessage[],
+    userMessageId: last.id,
+    userParts,
+  };
 }
