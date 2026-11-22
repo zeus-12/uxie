@@ -1,18 +1,20 @@
 import DemoChat from "@/components/demo/demo-chat";
 import DemoFlashcards from "@/components/demo/demo-flashcards";
 import BlockNoteEditor from "@/components/editor";
-import { AnnotatedPdfExportMenuItem } from "@/components/workspace/annotated-pdf-export-menu-item";
+import {
+  type AnnotatedPdfExportSource,
+  useAnnotatedPdfExportMenuItem,
+} from "@/components/workspace/annotated-pdf-export-menu-item";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
-import { type LoadedPdfForExport } from "@/lib/annotated-pdf-export";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { type ReaderDoc } from "@/types/reader";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
+import { AnnotatedPdfExportMenuItem } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
 import {
   Sidebar as SharedSidebar,
   SidebarSettingsButton,
@@ -23,13 +25,8 @@ import { useState } from "react";
 
 // Same chrome as the real reader's sidebar (@/components/workspace/sidebar) —
 // only the panels and the menu items differ, since the demo has no backend.
-const DemoSidebar = ({
-  pdfDocument,
-  readerDocument,
-}: {
-  pdfDocument: LoadedPdfForExport | null;
-  readerDocument: Pick<ReaderDoc, "highlights" | "title">;
-}) => {
+const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
+  const exportMenuItem = useAnnotatedPdfExportMenuItem(annotatedPdfExport);
   const setNote = useDemoDocStore((s) => s.setNote);
   // Snapshot the note once for the editor's initial content. Reading it
   // reactively would recreate the editor on every autosave (it lives in a
@@ -63,10 +60,7 @@ const DemoSidebar = ({
                 <Download size={16} />
                 Download notes
               </DropdownMenuItem>
-              <AnnotatedPdfExportMenuItem
-                pdfDocument={pdfDocument}
-                readerDocument={readerDocument}
-              />
+              <AnnotatedPdfExportMenuItem {...exportMenuItem} />
             </DropdownMenuContent>
           </DropdownMenu>
         }

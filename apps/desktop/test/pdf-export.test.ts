@@ -1,10 +1,18 @@
 import { existsSync } from "fs";
-import { mkdtemp, readFile, readdir, writeFile } from "fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  symlink,
+  writeFile,
+} from "fs/promises";
 import { tmpdir } from "os";
-import { join } from "path";
+import { dirname, join } from "path";
 import {
   degrees,
   PDFDocument,
+  PDFDict,
   PDFName,
   PDFString,
   StandardFonts,
@@ -12,7 +20,7 @@ import {
 import { getDocument as loadPdfJsDocument } from "pdfjs-dist/legacy/build/pdf";
 import { describe, expect, it } from "vitest";
 import {
-  ANNOTATED_PDF_STYLE,
+  HIGHLIGHT_COLOR,
   createAnnotatedPdf,
   type AnnotatedPdfHighlight,
 } from "@uxie/shared/lib/annotated-pdf";
@@ -22,6 +30,35 @@ import type {
   RectInput,
 } from "@uxie/shared/schema";
 import { saveAnnotatedPdf } from "../src/main/pdf-export";
+
+async function annotate(
+  source: Uint8Array,
+  highlights: AnnotatedPdfHighlight[],
+): Promise<Uint8Array> {
+  const pdfJsDocument = await loadPdfJsDocument({
+    data: new Uint8Array(source),
+  }).promise;
+  try {
+    return await createAnnotatedPdf(source, highlights, pdfJsDocument);
+  } finally {
+    await pdfJsDocument.destroy();
+  }
+}
+
+function expectViewportRect(
+  viewport: { convertToViewportRectangle: (rect: number[]) => number[] },
+  pdfRect: number[],
+  expected: number[],
+) {
+  const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(pdfRect);
+  const actual = [
+    Math.min(x1, x2),
+    Math.min(y1, y2),
+    Math.max(x1, x2),
+    Math.max(y1, y2),
+  ];
+  actual.forEach((value, index) => expect(value).toBeCloseTo(expected[index]));
+}
 
 function coordinate(
   input: RectInput,
@@ -70,6 +107,7 @@ function areaHighlight(rectangle: RectInput): HighlightWithRects {
 
 function exportHighlight(highlight: HighlightWithRects): AnnotatedPdfHighlight {
   return {
+    id: highlight.id,
     position: {
       pageNumber: highlight.pageNumber,
       boundingRect: highlight.boundingRectangle,
@@ -129,7 +167,7 @@ describe("annotated PDF export", () => {
   it("adds vector highlights while preserving text, links and page geometry", async () => {
     const source = await sourcePdf();
     const original = new Uint8Array(source);
-    const output = await createAnnotatedPdf(source, [
+    const output = await annotate(source, [
       exportHighlight(textHighlight(textRect)),
       exportHighlight(areaHighlight(areaRect)),
     ]);
@@ -151,39 +189,75 @@ describe("annotated PDF export", () => {
     expect(loaded.getPage(1).getSize().height).toBeCloseTo(595.28);
     expect(loaded.getPage(1).getRotation().angle).toBe(270);
 
-    const loadingTask = loadPdfJsDocument({
+    const pdfJsDocument = await loadPdfJsDocument({
       data: new Uint8Array(output),
-    });
-    const pdfJsDocument = await loadingTask.promise;
+    }).promise;
     try {
-      const page = await pdfJsDocument.getPage(1);
-      const text = await page.getTextContent();
+      const first = await pdfJsDocument.getPage(1);
+      const text = await first.getTextContent();
       expect(
         text.items
           .flatMap((item) => ("str" in item ? [item.str] : []))
           .join(" "),
       ).toContain("Selectable source text");
 
-      const annotations = await page.getAnnotations();
-      expect(
-        annotations.some((annotation) => annotation.subtype === "Link"),
-      ).toBe(true);
+      const firstAnnotations = await first.getAnnotations();
+      expect(firstAnnotations.map((a) => a.subtype).sort()).toEqual([
+        "Highlight",
+        "Link",
+      ]);
+      const highlight = firstAnnotations.find((a) => a.subtype === "Highlight");
+      expect(highlight.color).toEqual(
+        new Uint8ClampedArray(HIGHLIGHT_COLOR),
+      );
+      expectViewportRect(
+        first.getViewport({ scale: 1 }),
+        highlight.rect,
+        [40, 60, 180, 85],
+      );
+
+      const second = await pdfJsDocument.getPage(2);
+      const [area] = await second.getAnnotations();
+      expect(area.subtype).toBe("Square");
+      expectViewportRect(
+        second.getViewport({ scale: 1 }),
+        area.rect,
+        [50, 80, 210, 220],
+      );
     } finally {
       await pdfJsDocument.destroy();
     }
   });
 
-  it("uses the reader's highlight colors at full strength", () => {
-    expect(ANNOTATED_PDF_STYLE).toEqual({
-      textFill: [255, 226, 143],
-      areaFill: [252, 232, 151],
-      areaBorder: [51, 51, 51],
-    });
+  it("splits a highlight that crosses pages into one annotation per page", async () => {
+    const output = await annotate(await sourcePdf(), [
+      {
+        id: "spanning",
+        position: {
+          pageNumber: 1,
+          rects: [textRect, { ...areaRect, pageNumber: 2 }],
+        },
+      },
+    ]);
+    const loaded = await PDFDocument.load(output);
+    const subtypes = (pageIndex: number) =>
+      (loaded.getPage(pageIndex).node.Annots()?.asArray() ?? []).map((ref) =>
+        loaded.context.lookup(ref, PDFDict).get(PDFName.of("Subtype")),
+      );
+    expect(subtypes(0)).toContainEqual(PDFName.of("Highlight"));
+    expect(subtypes(1)).toEqual([PDFName.of("Highlight")]);
+  });
+
+  it("exports an unchanged-looking copy when there are no highlights", async () => {
+    const output = await annotate(await sourcePdf(), []);
+    const loaded = await PDFDocument.load(output);
+    expect(loaded.getPage(1).node.Annots()).toBeUndefined();
   });
 
   it("writes the export without changing the stored source", async () => {
     const root = await mkdtemp(join(tmpdir(), "uxie-export-"));
-    const sourcePath = join(root, "document.pdf");
+    await mkdir(join(root, "library"));
+    const sourcePath = join(root, "library", "document.pdf");
     const destinationPath = join(root, "annotated.pdf");
     const source = await sourcePdf();
     await writeFile(sourcePath, source);
@@ -228,6 +302,27 @@ describe("annotated PDF export", () => {
         sourcePath,
         destinationPath: sourcePath,
       }),
-    ).rejects.toThrow("original PDF stays unchanged");
+    ).rejects.toThrow("outside Uxie's library");
+  });
+
+  it("refuses the library folder reached through a symlink or other casing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uxie-export-alias-"));
+    const library = join(root, "Library");
+    await mkdir(library);
+    const sourcePath = join(library, "document.pdf");
+    const source = await sourcePdf();
+    await writeFile(sourcePath, source);
+    await symlink(library, join(root, "alias"));
+
+    for (const destinationPath of [
+      join(root, "alias", "document.pdf"),
+      join(root, "LIBRARY", "Document.PDF"),
+    ]) {
+      if (!existsSync(dirname(destinationPath))) continue;
+      await expect(
+        saveAnnotatedPdf({ highlights: [], sourcePath, destinationPath }),
+      ).rejects.toThrow("outside Uxie's library");
+    }
+    expect(new Uint8Array(await readFile(sourcePath))).toEqual(source);
   });
 });

@@ -1,17 +1,19 @@
 import Chat from "@/components/chat";
 import BlockNoteEditor from "@/components/editor";
 import Flashcards from "@/components/flashcard";
-import { AnnotatedPdfExportMenuItem } from "@/components/workspace/annotated-pdf-export-menu-item";
+import {
+  type AnnotatedPdfExportSource,
+  useAnnotatedPdfExportMenuItem,
+} from "@/components/workspace/annotated-pdf-export-menu-item";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
-import { type LoadedPdfForExport } from "@/lib/annotated-pdf-export";
 import { useBlocknoteEditorStore } from "@/lib/store";
-import { type ReaderDoc } from "@/types/reader";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
+import { AnnotatedPdfExportMenuItem } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
 import {
   Sidebar as SharedSidebar,
   SidebarSettingsButton,
@@ -36,13 +38,11 @@ const Sidebar = ({
   isOwner: boolean;
   isVectorised: boolean;
   note: string | null;
-  annotatedPdfExport?: {
-    pdfDocument: LoadedPdfForExport | null;
-    readerDocument: Pick<ReaderDoc, "highlights" | "title">;
-  };
+  annotatedPdfExport?: AnnotatedPdfExportSource;
   showFlashcards?: boolean;
 }) => {
   const { editor } = useBlocknoteEditorStore();
+  const exportMenuItem = useAnnotatedPdfExportMenuItem(annotatedPdfExport);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   useSidebarTabUrlSync();
 
@@ -90,7 +90,7 @@ const Sidebar = ({
               </DropdownMenuItem>
 
               {annotatedPdfExport && (
-                <AnnotatedPdfExportMenuItem {...annotatedPdfExport} />
+                <AnnotatedPdfExportMenuItem {...exportMenuItem} />
               )}
 
               <DropdownMenuItem className="cursor-pointer gap-2" asChild>

@@ -63,7 +63,8 @@ export interface Settings {
 
 export type AnnotatedPdfExportResult =
   | { status: "cancelled" }
-  | { status: "exported" };
+  | { status: "exported" }
+  | { status: "failed"; message: string };
 
 export interface PickedPdf {
   name: string;

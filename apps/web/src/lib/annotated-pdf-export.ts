@@ -19,11 +19,12 @@ export async function prepareAnnotatedPdfDownload({
   title: string | null;
 }): Promise<{ blob: Blob; filename: string }> {
   const sourceBytes = await pdfDocument.getData();
-  const exportedBytes = await createAnnotatedPdf(sourceBytes, highlights, {
-    viewportDocument: pdfDocument,
-  });
+  const exportedBytes = await createAnnotatedPdf(
+    sourceBytes,
+    highlights,
+    pdfDocument,
+  );
 
-  // Copy into an ArrayBuffer-backed view for Blob's stricter browser typings.
   const blobBytes = new Uint8Array(exportedBytes.byteLength);
   blobBytes.set(exportedBytes);
 

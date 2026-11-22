@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
-import { readFile, rename, rm, writeFile } from "fs/promises";
-import { basename, dirname, join, resolve } from "path";
-import { dialog } from "electron";
+import { readFile, rename, rm, stat, writeFile } from "fs/promises";
+import { basename, dirname, join } from "path";
+import { BrowserWindow, dialog } from "electron";
+import { getDocument as loadPdfJsDocument } from "pdfjs-dist/legacy/build/pdf";
 import {
   annotatedPdfFilename,
   createAnnotatedPdf,
@@ -17,6 +18,7 @@ function exportHighlights(
   highlights: HighlightWithRects[],
 ): AnnotatedPdfHighlight[] {
   return highlights.map((highlight) => ({
+    id: highlight.id,
     position: {
       pageNumber: highlight.pageNumber,
       boundingRect: highlight.boundingRectangle,
@@ -41,6 +43,11 @@ async function writeAtomically(
   }
 }
 
+async function isSameDirectory(a: string, b: string): Promise<boolean> {
+  const [first, second] = await Promise.all([stat(a), stat(b)]);
+  return first.dev === second.dev && first.ino === second.ino;
+}
+
 export async function saveAnnotatedPdf({
   highlights,
   sourcePath,
@@ -51,17 +58,26 @@ export async function saveAnnotatedPdf({
   destinationPath: string | null;
 }): Promise<AnnotatedPdfExportResult> {
   if (destinationPath === null) return { status: "cancelled" };
-  if (resolve(destinationPath) === resolve(sourcePath)) {
+  if (await isSameDirectory(dirname(destinationPath), dirname(sourcePath))) {
     throw new Error(
-      "Choose a different location so Uxie's original PDF stays unchanged.",
+      "Choose a folder outside Uxie's library so the stored PDFs stay unchanged.",
     );
   }
 
   const sourceBytes = await readFile(sourcePath);
-  const exportedBytes = await createAnnotatedPdf(
-    sourceBytes,
-    exportHighlights(highlights),
-  );
+  const pdfJsDocument = await loadPdfJsDocument({
+    data: new Uint8Array(sourceBytes),
+  }).promise;
+  let exportedBytes: Uint8Array;
+  try {
+    exportedBytes = await createAnnotatedPdf(
+      sourceBytes,
+      exportHighlights(highlights),
+      pdfJsDocument,
+    );
+  } finally {
+    await pdfJsDocument.destroy();
+  }
   await writeAtomically(destinationPath, exportedBytes);
   return { status: "exported" };
 }
@@ -70,20 +86,32 @@ export async function exportAnnotatedPdf(
   documentId: string,
 ): Promise<AnnotatedPdfExportResult> {
   const document = await getDocument(getDb(), documentId);
-  if (!document)
-    throw new Error("Open the document again and retry the export.");
+  if (!document) {
+    return { status: "failed", message: "This document no longer exists." };
+  }
 
   const sourcePath = pdfPath(documentsDir(), document.id);
-  const { canceled, filePath } = await dialog.showSaveDialog({
+  const options: Electron.SaveDialogOptions = {
     title: "Export annotated PDF",
     defaultPath: annotatedPdfFilename(document.title),
     buttonLabel: "Export",
     filters: [{ name: "PDF", extensions: ["pdf"] }],
-  });
+  };
+  const window = BrowserWindow.getFocusedWindow();
+  const { canceled, filePath } = window
+    ? await dialog.showSaveDialog(window, options)
+    : await dialog.showSaveDialog(options);
 
-  return saveAnnotatedPdf({
-    highlights: document.highlights,
-    sourcePath,
-    destinationPath: canceled || !filePath ? null : filePath,
-  });
+  try {
+    return await saveAnnotatedPdf({
+      highlights: document.highlights,
+      sourcePath,
+      destinationPath: canceled || !filePath ? null : filePath,
+    });
+  } catch (error) {
+    return {
+      status: "failed",
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
 }

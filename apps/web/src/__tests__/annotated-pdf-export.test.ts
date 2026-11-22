@@ -1,68 +1,46 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const mocks = vi.hoisted(() => ({
-  createAnnotatedPdf: vi.fn(),
-}));
-
-vi.mock("@uxie/shared/lib/annotated-pdf", async (importOriginal) => ({
-  ...(await importOriginal()),
-  createAnnotatedPdf: mocks.createAnnotatedPdf,
-}));
-
 import { prepareAnnotatedPdfDownload } from "@/lib/annotated-pdf-export";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf";
+import { describe, expect, it, vi } from "vitest";
 
 describe("prepareAnnotatedPdfDownload", () => {
-  beforeEach(() => {
-    mocks.createAnnotatedPdf.mockReset();
-  });
-
-  it("exports from the loaded PDF without fetching or uploading it", async () => {
-    const sourceBytes = new Uint8Array([1, 2, 3]);
-    const exportedBytes = new Uint8Array([37, 80, 68, 70]);
-    const pdfDocument = {
-      numPages: 1,
-      getData: vi.fn().mockResolvedValue(sourceBytes),
-      getPage: vi.fn(),
-    };
-    const highlights = [
-      {
-        position: {
-          pageNumber: 1,
-          rects: [
-            {
-              x1: 1,
-              y1: 2,
-              x2: 3,
-              y2: 4,
-              width: 10,
-              height: 10,
-            },
-          ],
-        },
-      },
-    ];
+  it("annotates the PDF the reader already loaded without fetching it", async () => {
+    const data = new Uint8Array(
+      readFileSync(resolve(__dirname, "../../public/demo.pdf")),
+    );
+    const pdfDocument = await getDocument({ data }).promise;
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    mocks.createAnnotatedPdf.mockResolvedValue(exportedBytes);
 
-    const result = await prepareAnnotatedPdfDownload({
-      highlights,
+    const { blob, filename } = await prepareAnnotatedPdfDownload({
+      highlights: [
+        {
+          id: "highlight-1",
+          position: {
+            pageNumber: 1,
+            boundingRect: null,
+            rects: [
+              { x1: 100, y1: 100, x2: 300, y2: 120, width: 800, height: 1000 },
+            ],
+          },
+        },
+      ],
       pdfDocument,
       title: "Research.pdf",
     });
 
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(pdfDocument.getData).toHaveBeenCalledOnce();
-    expect(mocks.createAnnotatedPdf).toHaveBeenCalledWith(
-      sourceBytes,
-      highlights,
-      { viewportDocument: pdfDocument },
-    );
-    expect(result.filename).toBe("Research annotated.pdf");
-    expect(result.blob.type).toBe("application/pdf");
-    expect(new Uint8Array(await result.blob.arrayBuffer())).toEqual(
-      exportedBytes,
-    );
-
     fetchSpy.mockRestore();
+    expect(filename).toBe("Research annotated.pdf");
+    expect(blob.type).toBe("application/pdf");
+
+    const exported = await getDocument({
+      data: new Uint8Array(await blob.arrayBuffer()),
+    }).promise;
+    const annotations = await (await exported.getPage(1)).getAnnotations();
+    expect(annotations.map((a: { subtype: string }) => a.subtype)).toContain(
+      "Highlight",
+    );
+    await Promise.all([pdfDocument.destroy(), exported.destroy()]);
   });
 });

@@ -42,11 +42,6 @@ function finitePoint(point: unknown): { x: number; y: number } {
   return { x, y };
 }
 
-/**
- * Converts react-pdf-highlighter's stored, zoom-independent geometry back to
- * PDF user-space coordinates. The pdf.js viewport owns crop-box and rotation
- * handling, which keeps this conversion independent of the app and renderer.
- */
 export function scaledRectToPdfRectangle(
   rect: ScaledPdfRect,
   viewport: PdfViewport,
