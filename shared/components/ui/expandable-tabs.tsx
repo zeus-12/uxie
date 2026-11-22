@@ -65,7 +65,7 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
   return (
     <div
       ref={outsideClickRef}
-      className="relative flex w-max max-w-[calc(100vw-1rem)] items-center divide-x rounded-2xl border border-border bg-background shadow-sm"
+      className="relative flex w-max max-w-[calc(100vw-1rem)] items-center divide-x rounded-2xl border border-border bg-popover text-popover-foreground shadow-[0_4px_16px_-4px_rgb(0_0_0/0.18)]"
     >
       {tabs.map((tab, index) => (
         <div className="flex shrink-0 justify-center" key={index}>
@@ -98,7 +98,7 @@ export function ExpandableTabs({ tabs, onChange }: ExpandableTabsProps) {
                   animate="animate"
                   exit="exit"
                   transition={transition}
-                  className="overflow-hidden max-md:absolute max-md:bottom-[calc(100%+0.75rem)] max-md:left-1/2 max-md:z-50 max-md:max-w-[calc(100vw-1rem)] max-md:-translate-x-1/2 max-md:rounded-xl max-md:border max-md:border-border max-md:bg-background max-md:p-1 max-md:shadow-lg"
+                  className="overflow-hidden max-md:absolute max-md:bottom-[calc(100%+0.75rem)] max-md:left-1/2 max-md:z-50 max-md:max-w-[calc(100vw-1rem)] max-md:-translate-x-1/2 max-md:rounded-xl max-md:border max-md:border-border max-md:bg-popover max-md:p-1 max-md:shadow-lg"
                   onClick={() => {
                     if (!tab.closeOnChildClick) return;
                     setSelected(null);

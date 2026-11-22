@@ -403,12 +403,9 @@ function ReaderContent({
               />
             </div>
           </div>
-          <div
-            className="relative flex-1 overflow-hidden shadow-sm"
-            style={{ background: pageColour }}
-          >
+          <div className="relative flex-1 overflow-hidden">
             {error && (
-              <p className="absolute left-2 top-2 z-50 rounded bg-red-50 px-2 py-1 text-xs text-destructive dark:bg-red-950/70">
+              <p className="absolute left-2 top-2 z-50 rounded bg-danger-subtle px-2 py-1 text-xs text-danger">
                 {error}
               </p>
             )}
