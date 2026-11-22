@@ -155,7 +155,7 @@ const BottomToolbar = ({
   ]);
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+    <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 flex-col items-center">
       <RsvpReader pageNumber={pageNumberInView} pageCount={totalPages} />
       <ExpandableTabs tabs={tabs} />
     </div>

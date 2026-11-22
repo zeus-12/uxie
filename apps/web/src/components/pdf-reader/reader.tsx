@@ -1,14 +1,14 @@
 import BottomToolbar from "@/components/pdf-reader/toolbar";
-import PdfHighlighter from "@uxie/shared/components/pdf-reader/pdf-highlighter";
-import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import { api } from "@/lib/api";
-import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import {
   type AddHighlightType,
   type HighlightPositionType,
 } from "@/types/highlight";
 import { type ReaderDoc } from "@/types/reader";
 import { HighlightTypeEnum } from "@prisma/client";
+import PdfHighlighter from "@uxie/shared/components/pdf-reader/pdf-highlighter";
+import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
+import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import { useCallback, useMemo, useState } from "react";
 import { PdfLoader } from "react-pdf-highlighter";
@@ -62,7 +62,7 @@ const PdfReader = ({
         const prevData = utils.document.getDocData.getData();
 
         utils.document.getDocData.setData({ docId }, (old) => {
-          if (!old) return old;
+          if (!old || old.kind !== "pdf") return old;
           return {
             ...old,
             highlights: old.highlights.map((h) =>
@@ -159,7 +159,8 @@ const PdfReader = ({
               }
               persistAreaHighlight({
                 id,
-                boundingRect: boundingRect as HighlightPositionType["boundingRect"],
+                boundingRect:
+                  boundingRect as HighlightPositionType["boundingRect"],
                 type: HighlightTypeEnum.IMAGE,
                 documentId: docId,
                 ...(pageNumber ? { pageNumber } : {}),

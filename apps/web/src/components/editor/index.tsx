@@ -129,9 +129,21 @@ export default function Editor({
     },
   });
 
+  // `note` is re-fetched whenever a highlight mutation invalidates the document
+  // query. Keying the editor on it would rebuild the instance mid-edit and drop
+  // blocks that have not been saved yet, so it is read once per document.
+  const initialNoteRef = useRef(note);
+  const builtForRef = useRef(documentId);
+  if (builtForRef.current !== documentId) {
+    builtForRef.current = documentId;
+    initialNoteRef.current = note;
+  }
+
   const editor = useMemo(() => {
     try {
-      const initialContent = note ? JSON.parse(note) : undefined;
+      const initialContent = initialNoteRef.current
+        ? JSON.parse(initialNoteRef.current)
+        : undefined;
 
       return BlockNoteEditor.create({
         initialContent: initialContent,
@@ -151,7 +163,9 @@ export default function Editor({
       toast.error("Error parsing note", { duration: 3000 });
       return undefined;
     }
-  }, [note]);
+    // documentId is the key, not a value read inside — see the note above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentId]);
 
   const { containerRef, onDragHandleMenuOpen, onDragHandleMenuClose } =
     useSideMenuGate(editor);
@@ -166,6 +180,10 @@ export default function Editor({
 
   useEffect(() => {
     if (!editor) return;
+    // Without this the effect also runs on mount, where it rewrites whatever
+    // block the cursor sits on from its own markdown round-trip — turning a
+    // highlight block into a plain paragraph copy of itself.
+    if (!completion) return;
 
     const streamCompletion = async () => {
       const diff = completion?.slice(prev.current.length);

@@ -1,5 +1,6 @@
 /* Must stay above the @tailwind directives — @import precedes all other rules. */
 @import "@uxie/shared/styles/tts-highlight.css";
+@import "@uxie/shared/styles/pdf-search.css";
 
 @tailwind base;
 @tailwind components;
@@ -162,6 +163,14 @@
    text spans), so both annotation and reading colours are visible. */
 .PdfHighlighter__highlight-layer {
   mix-blend-mode: multiply;
+}
+
+::highlight(uxie-article-tts-sentence) {
+  background-color: rgb(214 247 205);
+}
+
+::highlight(uxie-article-tts-word) {
+  background-color: rgb(116 242 115);
 }
 
 @layer utilities {

@@ -1,28 +1,24 @@
+import ArticleReader from "@/components/article-reader";
 import DocViewer from "@/components/pdf-reader";
+import Sidebar from "@/components/workspace/sidebar";
+import { SidebarDrawerContent } from "@/components/workspace/sidebar-drawer";
+import { api } from "@/lib/api";
+import { usePdfSettingsStore } from "@/lib/store";
+import { cn, stripTextFromEnd } from "@/lib/utils";
+import type { DocumentData } from "@/types/reader";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@uxie/shared/components/ui/resizable";
 import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
-import Sidebar from "@/components/workspace/sidebar";
-import { SidebarDrawerContent } from "@/components/workspace/sidebar-drawer";
-import { api } from "@/lib/api";
-import { usePdfSettingsStore } from "@/lib/store";
-import { cn, stripTextFromEnd } from "@/lib/utils";
-import { type AppRouter } from "@/server/api/root";
-import { type inferRouterOutputs } from "@trpc/server";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import { type ImperativePanelHandle } from "react-resizable-panels";
 import { toast } from "sonner";
 import { useMediaQuery } from "usehooks-ts";
 
-function DocViewerContent({
-  doc,
-}: {
-  doc: inferRouterOutputs<AppRouter>["document"]["getDocData"];
-}) {
+function DocViewerContent({ doc }: { doc: DocumentData }) {
   const sidebarHidden = usePdfSettingsStore((state) => state.sidebarHidden);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -44,6 +40,7 @@ function DocViewerContent({
       isOwner={doc.userPermissions.isOwner}
       isVectorised={doc.isVectorised}
       note={doc.note}
+      showFlashcards={doc.kind === "pdf"}
     />
   );
 
@@ -56,7 +53,11 @@ function DocViewerContent({
         <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
-              <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
+              {doc.kind === "pdf" ? (
+                <DocViewer doc={doc} canEdit={doc.userPermissions.canEdit} />
+              ) : (
+                <ArticleReader doc={doc} />
+              )}
             </div>
           </ResizablePanel>
           <div
@@ -109,7 +110,8 @@ const DocViewerPage = () => {
 
   useEffect(() => {
     if (doc) {
-      document.title = stripTextFromEnd(doc.title, ".pdf");
+      document.title =
+        doc.kind === "pdf" ? stripTextFromEnd(doc.title, ".pdf") : doc.title;
     }
   }, [doc]);
 
