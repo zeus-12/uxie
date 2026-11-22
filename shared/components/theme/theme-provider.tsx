@@ -1,9 +1,11 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -22,23 +24,35 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
 const useBrowserLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function resolveTheme(theme: Theme): ResolvedTheme {
-  if (theme === "light") return "light";
-  if (theme !== "system") return "dark";
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  if (theme === "system") {
+    return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
+  }
+  return theme === "light" ? "light" : "dark";
 }
 
 function applyTheme(theme: Theme): ResolvedTheme {
-  const resolvedTheme = resolveTheme(theme);
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
-  document.documentElement.style.colorScheme = resolvedTheme;
-  return resolvedTheme;
+  const resolved = resolveTheme(theme);
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.classList.toggle("dark", resolved === "dark");
+  return resolved;
+}
+
+// Without this every `transition-colors` element animates separately and the
+// switch smears across the screen instead of landing in one frame.
+function withoutTransitions(change: () => void) {
+  const style = document.createElement("style");
+  style.textContent = "*,*::before,*::after{transition:none!important}";
+  document.head.appendChild(style);
+  change();
+  void getComputedStyle(document.body).transition;
+  requestAnimationFrame(() => style.remove());
 }
 
 function readStoredTheme(): Theme {
@@ -49,44 +63,54 @@ function readStoredTheme(): Theme {
   }
 }
 
-function storeTheme(theme: Theme): void {
+function storeTheme(theme: Theme) {
   try {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
-    // Storage can be unavailable in privacy-restricted browser contexts. The
-    // in-memory preference still applies for the current session.
+    return;
   }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
-  const [mounted, setMounted] = useState(false);
+  const themeRef = useRef<Theme>("system");
 
-  useBrowserLayoutEffect(() => {
-    const storedTheme = readStoredTheme();
-    setTheme(storedTheme);
-    setResolvedTheme(applyTheme(storedTheme));
-    setMounted(true);
+  const show = useCallback((next: Theme) => {
+    themeRef.current = next;
+    setThemeState(next);
+    withoutTransitions(() => setResolvedTheme(applyTheme(next)));
   }, []);
 
-  useEffect(() => {
-    if (!mounted) return;
+  useBrowserLayoutEffect(() => {
+    show(readStoredTheme());
 
-    storeTheme(theme);
-    setResolvedTheme(applyTheme(theme));
+    const media = window.matchMedia(DARK_QUERY);
+    const handleSystemChange = () => {
+      if (themeRef.current === "system") show("system");
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === THEME_STORAGE_KEY) show(parseTheme(event.newValue));
+    };
+    media.addEventListener("change", handleSystemChange);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      media.removeEventListener("change", handleSystemChange);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [show]);
 
-    if (theme !== "system") return;
-
-    const colourScheme = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => setResolvedTheme(applyTheme("system"));
-    colourScheme.addEventListener("change", handleChange);
-    return () => colourScheme.removeEventListener("change", handleChange);
-  }, [mounted, theme]);
+  const setTheme = useCallback(
+    (next: Theme) => {
+      storeTheme(next);
+      show(next);
+    },
+    [show],
+  );
 
   const value = useMemo(
     () => ({ theme, resolvedTheme, setTheme }),
-    [resolvedTheme, theme],
+    [resolvedTheme, setTheme, theme],
   );
 
   return (

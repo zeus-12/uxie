@@ -17,41 +17,31 @@ export type ResolvedTheme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "uxie-theme";
 
-export function parseTheme(value: unknown): Theme {
-  switch (value) {
-    case "light":
-    case "dark":
-    case "system":
-    case "tokyo-night":
-    case "catppuccin-mocha":
-    case "rose-pine":
-    case "kanagawa-wave":
-    case "ayu-mirage":
-    case "everforest":
-    case "solarized-dark":
-      return value;
-    default:
-      return "system";
-  }
+export function isTheme(value: unknown): value is Theme {
+  return (THEMES as readonly unknown[]).includes(value);
 }
 
-// Runs before React in both Next.js and Electron so the first painted frame
-// already uses the persisted theme. Keep this dependency-free: it is serialized
-// directly into a <script> tag by each host.
-export const THEME_BOOTSTRAP_SCRIPT = `
-(() => {
-  const key = "${THEME_STORAGE_KEY}";
+export function parseTheme(value: unknown): Theme {
+  return isTheme(value) ? value : "system";
+}
+
+export function isPresetTheme(theme: Theme): theme is PresetTheme {
+  return (PRESET_THEMES as readonly Theme[]).includes(theme);
+}
+
+// Serialized into a <script> tag by each host so the first frame already has
+// the stored theme; it must stay self-contained.
+export const THEME_BOOTSTRAP_SCRIPT = `(() => {
   const themes = ${JSON.stringify(THEMES)};
   let stored = null;
   try {
-    stored = localStorage.getItem(key);
+    stored = localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
   } catch {}
   const theme = themes.includes(stored) ? stored : "system";
-  const resolved = theme === "system"
-    ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-    : theme === "light" ? "light" : "dark";
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.classList.toggle("dark", resolved === "dark");
-  document.documentElement.style.colorScheme = resolved;
-})();
-`;
+  const dark = theme === "system"
+    ? matchMedia("(prefers-color-scheme: dark)").matches
+    : theme !== "light";
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.classList.toggle("dark", dark);
+})();`;

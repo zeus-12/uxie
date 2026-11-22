@@ -1,11 +1,4 @@
-import {
-  app,
-  BrowserWindow,
-  ipcMain,
-  nativeTheme,
-  protocol,
-  shell,
-} from "electron";
+import { app, BrowserWindow, ipcMain, protocol, shell } from "electron";
 import { join } from "path";
 import type { IpcInvokeContract } from "../ipc-contract";
 import {
@@ -31,6 +24,11 @@ import {
   storeDocumentImage,
 } from "./pdf";
 import { getSettings, setSettings } from "./settings";
+import {
+  getWindowBackground,
+  isWindowBackground,
+  setWindowBackground,
+} from "./window-background";
 import { cancelCompletion, streamCompletion } from "./ai/completion";
 import { cancelChat, resolveChatRetrieve, streamChat } from "./ai/chat";
 import { getFlashcardsByDocId } from "./db/flashcards";
@@ -125,6 +123,11 @@ function registerIpc() {
     void streamChat(event.sender, streamId, docId, messages);
   });
   ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
+  ipcMain.on("window:setBackground", (event, colour) => {
+    if (!isWindowBackground(colour)) return;
+    BrowserWindow.fromWebContents(event.sender)?.setBackgroundColor(colour);
+    setWindowBackground(colour);
+  });
   ipcMain.on("chat:retrieve:reply", (_event, reqId, chunks) =>
     resolveChatRetrieve(reqId, chunks),
   );
@@ -139,7 +142,7 @@ function createMainWindow(): BrowserWindow {
     minHeight: 600,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 18, y: 18 },
-    backgroundColor: nativeTheme.shouldUseDarkColors ? "#020817" : "#ffffff",
+    backgroundColor: getWindowBackground(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
     },

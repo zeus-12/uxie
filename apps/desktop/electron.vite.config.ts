@@ -1,6 +1,7 @@
 import { resolve } from "path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
+import { THEME_BOOTSTRAP_SCRIPT } from "../../shared/lib/theme";
 
 export default defineConfig({
   main: {
@@ -38,7 +39,19 @@ export default defineConfig({
         "@": resolve(__dirname, "src/renderer"),
       },
     },
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: "uxie-theme-bootstrap",
+        transformIndexHtml: () => [
+          {
+            tag: "script",
+            children: THEME_BOOTSTRAP_SCRIPT,
+            injectTo: "head-prepend",
+          },
+        ],
+      },
+    ],
     css: {
       postcss: resolve(__dirname, "postcss.config.mjs"),
     },

@@ -6,38 +6,6 @@
     <title>Uxie</title>
   </head>
   <body>
-    <script>
-      (() => {
-        const themes = [
-          "light",
-          "dark",
-          "system",
-          "tokyo-night",
-          "catppuccin-mocha",
-          "rose-pine",
-          "kanagawa-wave",
-          "ayu-mirage",
-          "everforest",
-          "solarized-dark",
-        ];
-        let stored = null;
-        try {
-          stored = localStorage.getItem("uxie-theme");
-        } catch {}
-        const theme = themes.includes(stored) ? stored : "system";
-        const resolved =
-          theme === "system"
-            ? matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light"
-            : theme === "light"
-            ? "light"
-            : "dark";
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.classList.toggle("dark", resolved === "dark");
-        document.documentElement.style.colorScheme = resolved;
-      })();
-    </script>
     <div id="root"></div>
     <script type="module" src="./main.tsx"></script>
   </body>
