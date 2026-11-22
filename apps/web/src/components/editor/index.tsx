@@ -1,3 +1,7 @@
+import AiPopover, {
+  type AiPopoverPropsRect,
+} from "@/components/editor/custom/ai/popover";
+import { api } from "@/lib/api";
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { useCompletion } from "@ai-sdk/react";
@@ -27,6 +31,11 @@ import {
   useBlockNoteEditor,
   useComponentsContext,
 } from "@blocknote/react";
+import { getBlockNoteTheme } from "@uxie/shared/components/editor/theme";
+import { useSideMenuGate } from "@uxie/shared/components/editor/use-side-menu-gate";
+import { useTheme } from "@uxie/shared/components/theme/theme-provider";
+import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
+import { useRouter } from "next/router";
 import {
   type Dispatch,
   type SetStateAction,
@@ -37,56 +46,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-// import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
-import AiPopover, {
-  type AiPopoverPropsRect,
-} from "@/components/editor/custom/ai/popover";
-import { api } from "@/lib/api";
-import { getBlockNoteTheme } from "@uxie/shared/components/editor/theme";
-import { useSideMenuGate } from "@uxie/shared/components/editor/use-side-menu-gate";
-import { useTheme } from "@uxie/shared/components/theme/theme-provider";
-import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
-import { useRouter } from "next/router";
 import { useDebouncedCallback } from "use-debounce";
-
-// export default function Editor({
-//   canEdit,
-//   username,
-// }: {
-//   canEdit: boolean;
-//   username: string;
-// }) {
-//   const room = useRoom();
-//   const [doc, setDoc] = useState<Y.Doc>();
-//   const [provider, setProvider] = useState<any>();
-
-//   // Set up Liveblocks Yjs provider
-//   useEffect(() => {
-//     const yDoc = new Y.Doc();
-//     const yProvider = new LiveblocksProvider(room, yDoc);
-
-//     setDoc(yDoc);
-//     setProvider(yProvider);
-
-//     return () => {
-//       yDoc?.destroy();
-//       yProvider?.destroy();
-//     };
-//   }, [room]);
-
-//   if (!doc || !provider) {
-//     return null;
-//   }
-
-//   return (
-//     <BlockNoteEditor
-//       canEdit={canEdit}
-//       username={username}
-//       doc={doc}
-//       provider={provider}
-//     />
-//   );
-// }
 
 export default function Editor({
   canEdit,
@@ -209,8 +169,7 @@ export default function Editor({
   useEffect(() => {
     if (!editor) return;
 
-    // if user presses escape or cmd + z and it's loading,
-    // stop the request, delete the completion, and insert back the "++"
+    // Escape or Cmd+Z mid-completion cancels it and restores the "++" trigger.
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
         stop();
@@ -268,7 +227,6 @@ export default function Editor({
               });
               complete(blockText?.slice(-500) ?? "");
             }
-            // this is firing on initial load => store server value in useRef, and display a icon saying "loading" or "saved". and only if its different from current copy run the mutation
             debounced(JSON.stringify(editor.document, null, 2));
           }}
           className="w-full flex-1"
@@ -290,10 +248,6 @@ export default function Editor({
               <FormattingToolbar>
                 <BlockTypeSelect key={"blockTypeSelect"} />
 
-                {/* <CommentFormattingToolbarButton key={"customButton"} /> */}
-
-                {/* <ImageCaptionButton key={"imageCaptionButton"} />
-              <ReplaceImageButton key={"replaceImageButton"} /> */}
                 <FileCaptionButton key="fileCaptionButton" />
 
                 <BasicTextStyleButton
@@ -331,9 +285,6 @@ export default function Editor({
                 />
 
                 <ColorStyleButton key={"colorStyleButton"} />
-
-                {/* <NestBlockButton key={"nestBlockButton"} />
-              <UnnestBlockButton key={"unnestBlockButton"} /> */}
 
                 <CreateLinkButton key={"createLinkButton"} />
               </FormattingToolbar>
@@ -388,19 +339,6 @@ const AiDragHandleMenu = (
         ) as HTMLElement;
 
         if (!blockDiv) return;
-
-        // select the div
-        // const selection = window.getSelection();
-        // const range = document.createRange();
-        // range.selectNodeContents(blockDiv);
-        // selection?.removeAllRanges();
-        // selection?.addRange(range);
-
-        // scroll to the div
-        // blockDiv.scrollIntoView({
-        //   behavior: "smooth",
-        //   block: "center",
-        // });
 
         const rect = blockDiv.getBoundingClientRect();
         const top = rect.top + rect.height;

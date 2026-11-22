@@ -1,6 +1,4 @@
-/* This file holds the shadcn theme tokens + app CSS. The consuming app's CSS
-   entry provides `@import "tailwindcss"` and the @source globs (Tailwind must
-   resolve those from the app, not this package). */
+/* The consuming app's CSS entry provides `@import "tailwindcss"` and @source. */
 @import "./styles/tts-highlight.css";
 @import "./styles/themes.css";
 @import "./styles/pdf-search.css";
@@ -118,11 +116,8 @@
   animation-delay: 0.4s;
 }
 
-/* The highlight layer (z-index 3) sits above text spans (z-index auto)
-   within .textLayer. Without this, opaque annotation rects fully hide
-   reading-highlight backgrounds on the text spans beneath. Applying
-   multiply to the layer itself makes it blend with its backdrop (the
-   text spans), so both annotation and reading colours are visible. */
+/* Opaque annotation rects would otherwise hide TTS/RSVP highlights on the
+   text spans beneath; multiply lets both colours show. */
 .PdfHighlighter__highlight-layer {
   mix-blend-mode: multiply;
 }
@@ -208,9 +203,7 @@ body {
   margin: 0;
 }
 
-/* Electron window drag regions. The frameless macOS window overlays the traffic
-   lights at the top-left, so top bars are draggable and reserve left space; put
-   .app-no-drag on any interactive control inside them. */
+/* Frameless macOS window: top bars drag the window; mark their controls .app-no-drag. */
 .app-drag {
   -webkit-app-region: drag;
 }
@@ -219,8 +212,6 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* Chat message list scrollbar: thin, subtle, sitting flush at the right edge
-   instead of the chunky default that looked out of place. */
 .uxie-chat-scroll {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;

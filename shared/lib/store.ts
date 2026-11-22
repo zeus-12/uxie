@@ -93,6 +93,8 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
     {
       name: "pdf-settings",
       version: 1,
+      // "#FFF" was the default and the only page colour while the app was
+      // light-only, so it maps to "theme", which is still white in light.
       migrate: (persisted, version) => {
         const state = persisted as PdfSettingsStore;
         if (version === 0 && state.pageColour === PDF_BACKGROUND_COLOURS[0]) {
