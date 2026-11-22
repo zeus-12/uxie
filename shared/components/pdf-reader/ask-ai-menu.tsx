@@ -7,12 +7,7 @@ import {
   Type,
   type LucideIcon,
 } from "lucide-react";
-import {
-  Command,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../ui/command";
+import { Command, CommandInput, CommandItem, CommandList } from "../ui/command";
 
 export type SelectionTemplate = {
   id: string;
@@ -111,7 +106,9 @@ export const AskAiMenu = ({
             <span className="min-w-0 flex-1 truncate text-violet-500 dark:text-violet-400">
               {trimmed}
             </span>
-            <span className="shrink-0 text-xs text-muted-foreground">Ask AI</span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              Ask AI
+            </span>
           </CommandItem>
         )}
         {SELECTION_TEMPLATES.map((t) => (

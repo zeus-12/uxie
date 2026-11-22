@@ -178,7 +178,11 @@ const FlashcardQuestion = ({
       value={userResponse}
       onChange={(e) => setUserResponse(e.target.value)}
       onKeyDown={(e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && userResponse.trim()) {
+        if (
+          (e.metaKey || e.ctrlKey) &&
+          e.key === "Enter" &&
+          userResponse.trim()
+        ) {
           e.preventDefault();
           onSubmit();
         }
@@ -217,7 +221,11 @@ const FlashcardQuestion = ({
 // is visible until you deliberately open it, so it can't anchor this answer.
 // An Accordion rather than a boolean — it brings the open/close animation, and
 // the collapsed rows leave the tab order with it.
-const EarlierAttempts = ({ attempts }: { attempts: FlashcardAttemptType[] }) => (
+const EarlierAttempts = ({
+  attempts,
+}: {
+  attempts: FlashcardAttemptType[];
+}) => (
   <Accordion type="single" collapsible className="mt-auto shrink-0 pt-4">
     <AccordionItem value="attempts" className="border-b-0 border-t">
       <AccordionTrigger className="py-2.5 text-xs font-normal text-muted-foreground transition-colors hover:text-foreground">
@@ -369,16 +377,19 @@ const Grading = () => (
   </div>
 );
 
-const UNITS: [limit: number, seconds: number, unit: Intl.RelativeTimeFormatUnit][] =
-  [
-    [60, 1, "second"],
-    [3600, 60, "minute"],
-    [86400, 3600, "hour"],
-    [604800, 86400, "day"],
-    [2592000, 604800, "week"],
-    [31536000, 2592000, "month"],
-    [Infinity, 31536000, "year"],
-  ];
+const UNITS: [
+  limit: number,
+  seconds: number,
+  unit: Intl.RelativeTimeFormatUnit,
+][] = [
+  [60, 1, "second"],
+  [3600, 60, "minute"],
+  [86400, 3600, "hour"],
+  [604800, 86400, "day"],
+  [2592000, 604800, "week"],
+  [31536000, 2592000, "month"],
+  [Infinity, 31536000, "year"],
+];
 
 const RELATIVE = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 

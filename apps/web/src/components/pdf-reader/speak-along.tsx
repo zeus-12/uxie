@@ -1,3 +1,5 @@
+import { useSpeakAlong } from "@/hooks/use-speak-along";
+import { usePdfSettingsStore } from "@/lib/store";
 import {
   FloatingPanel,
   FloatingPanelBody,
@@ -12,8 +14,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@uxie/shared/components/ui/tooltip";
-import { useSpeakAlong } from "@/hooks/use-speak-along";
-import { usePdfSettingsStore } from "@/lib/store";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronLeftIcon,
@@ -174,7 +174,9 @@ export function SpeakAlong({
     };
   }, [speakAlongEnabled]);
 
-  const isActive = status === SPEAK_ALONG_STATUS.LISTENING || status === SPEAK_ALONG_STATUS.PAUSED;
+  const isActive =
+    status === SPEAK_ALONG_STATUS.LISTENING ||
+    status === SPEAK_ALONG_STATUS.PAUSED;
   const isPaused = status === SPEAK_ALONG_STATUS.PAUSED;
 
   const handleClose = () => {
@@ -231,7 +233,12 @@ export function SpeakAlong({
       onClick: handleToggle,
       icon: <MicIcon size={18} />,
       active: isListening,
-      title: status === SPEAK_ALONG_STATUS.LISTENING ? "Pause" : isPaused ? "Resume" : "Start",
+      title:
+        status === SPEAK_ALONG_STATUS.LISTENING
+          ? "Pause"
+          : isPaused
+          ? "Resume"
+          : "Start",
     },
     {
       key: "next",
@@ -334,7 +341,9 @@ export function SpeakAlong({
                       )}
                       {wordDefinition.meanings[0].definitions[0]?.example && (
                         <p className="mt-1 text-xs text-muted-foreground italic">
-                          &ldquo;{wordDefinition.meanings[0].definitions[0].example}&rdquo;
+                          &ldquo;
+                          {wordDefinition.meanings[0].definitions[0].example}
+                          &rdquo;
                         </p>
                       )}
                     </div>

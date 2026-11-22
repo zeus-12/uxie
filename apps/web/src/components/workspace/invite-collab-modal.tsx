@@ -1,3 +1,7 @@
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { createId } from "@paralleldrive/cuid2";
+import { CollaboratorRole } from "@prisma/client";
 import { Badge } from "@uxie/shared/components/ui/badge";
 import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
 import {
@@ -15,10 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@uxie/shared/components/ui/select";
-import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { createId } from "@paralleldrive/cuid2";
-import { CollaboratorRole } from "@prisma/client";
 import { TrashIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";

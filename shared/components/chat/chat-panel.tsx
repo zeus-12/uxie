@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  type ReactNode,
-  type RefObject,
-} from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { ArrowUpIcon, Loader2Icon, SearchIcon, SquareIcon } from "lucide-react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { cn } from "../../lib/utils";
@@ -158,7 +153,11 @@ function RowView({
       ) : row.kind === "tool" ? (
         <ToolChip label={row.label} active={row.active} />
       ) : row.kind === "thinking" ? (
-        <ShimmeringText text={row.label} startOnView={false} className="px-1 text-sm" />
+        <ShimmeringText
+          text={row.label}
+          startOnView={false}
+          className="px-1 text-sm"
+        />
       ) : (
         <p className="px-1 text-sm text-destructive">{row.content}</p>
       )}
@@ -169,7 +168,13 @@ function RowView({
 // ChatGPT-style: tool activity lives OUTSIDE the bubble, on its own line.
 function ToolChip({ label, active }: { label: string; active: boolean }) {
   if (active) {
-    return <ShimmeringText text={label} startOnView={false} className="px-1 text-sm" />;
+    return (
+      <ShimmeringText
+        text={label}
+        startOnView={false}
+        className="px-1 text-sm"
+      />
+    );
   }
   return (
     <div className="flex items-center gap-1.5 px-1 text-sm text-muted-foreground">
@@ -190,7 +195,9 @@ function ChatBubble({
 }) {
   const isUser = role === "user";
   return (
-    <div className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}>
+    <div
+      className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
+    >
       {isUser ? (
         <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm text-white">
           {content}
