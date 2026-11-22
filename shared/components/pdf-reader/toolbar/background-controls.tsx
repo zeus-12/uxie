@@ -1,3 +1,5 @@
+import { PaletteIcon } from "lucide-react";
+
 import { CustomTooltip } from "../../ui/tooltip";
 import { PDF_BACKGROUND_COLOURS } from "../../../lib/constants";
 import { type PageColour } from "../../../lib/store";
@@ -20,11 +22,11 @@ function ThemePageChip({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex items-center justify-center rounded-[5px] bg-background text-[11px] font-semibold leading-none text-foreground ring-1 ring-inset ring-foreground/20",
+        "inline-flex size-6 items-center justify-center rounded-md bg-background text-foreground ring-1 ring-inset ring-foreground/25",
         className,
       )}
     >
-      Aa
+      <PaletteIcon className="size-3.5" strokeWidth={2} />
     </span>
   );
 }
@@ -40,7 +42,7 @@ export const BackgroundControlsContent = ({
     <div
       role="group"
       aria-label="Page colour"
-      className="flex items-center gap-2 px-1.5"
+      className="flex items-center gap-2 px-1.5 py-1"
     >
       {PDF_BACKGROUND_COLOURS.map((colour) => (
         <CustomTooltip key={colour} content={PAGE_TINT_NAMES[colour]} asChild>
@@ -61,20 +63,15 @@ export const BackgroundControlsContent = ({
       <CustomTooltip content="Use the app theme's page colours" asChild>
         <button
           type="button"
+          aria-label="Theme"
           aria-pressed={pageColour === "theme"}
           onClick={() => pageColourChangeHandler("theme")}
           className={cn(
-            "flex h-7 items-center gap-1.5 rounded-md py-0.5 pl-0.5 pr-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            pageColour === "theme" && "bg-muted text-foreground hover:bg-muted",
+            "rounded-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            pageColour === "theme" && SELECTED_RING,
           )}
         >
-          <ThemePageChip
-            className={cn(
-              "size-6",
-              pageColour === "theme" && "ring-2 ring-primary ring-inset",
-            )}
-          />
-          Theme
+          <ThemePageChip />
         </button>
       </CustomTooltip>
     </div>
@@ -95,7 +92,7 @@ export const BackgroundControlsIcon = ({
       className="inline-flex size-6 rounded-[5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {pageColour === "theme" ? (
-        <ThemePageChip className="size-6" />
+        <ThemePageChip className="rounded-[5px]" />
       ) : (
         <span
           className="size-6 rounded-[5px] ring-1 ring-inset ring-black/15"
