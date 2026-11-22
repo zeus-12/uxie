@@ -1,4 +1,5 @@
 import { CHAT_REQUEST_ERRORS, prepareChatMessages } from "@/lib/chat-images";
+import { chatTurnResponse } from "@/lib/chat-turn";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
@@ -11,7 +12,7 @@ import {
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
 } from "@uxie/shared/lib/chat";
-import { convertToModelMessages, stepCountIs, streamText, tool } from "ai";
+import { convertToModelMessages, stepCountIs, tool } from "ai";
 import { getServerSession } from "next-auth";
 
 function getProperty(obj: object, key: string): unknown {
@@ -40,6 +41,7 @@ function isGetInformationOutput(output: unknown): output is {
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+  const receivedAt = new Date();
   try {
     const reqBody = await req.json();
 
@@ -77,23 +79,18 @@ export async function POST(req: Request) {
     const prepared = prepareChatMessages(messages);
     if (!prepared.ok) return new Response(prepared.error, { status: 400 });
 
-    await prisma.message.create({
-      data: {
-        parts: prepared.userParts,
-        documentId: docId,
-        userId: session?.user.id,
+    return chatTurnResponse({
+      options: {
+        model: google("gemini-2.5-flash"),
+        abortSignal: req.signal,
+        messages: await convertToModelMessages(prepared.messages),
+        system: CHAT_SYSTEM_PROMPT,
+        tools: AI_TOOLS({ docId }),
+        toolChoice: "auto",
+        stopWhen: stepCountIs(3),
+        maxOutputTokens: 2000,
       },
-    });
-
-    const result = streamText({
-      model: google("gemini-2.5-flash"),
-      messages: await convertToModelMessages(prepared.messages),
-      system: CHAT_SYSTEM_PROMPT,
-      tools: AI_TOOLS({ docId }),
-      toolChoice: "auto",
-      stopWhen: stepCountIs(3),
-      maxOutputTokens: 2000,
-      onFinish: async ({ steps }) => {
+      saveTurn: async (steps) => {
         const parts: Message["parts"][] = [];
 
         for (const step of steps || []) {
@@ -128,19 +125,30 @@ export async function POST(req: Request) {
           }
         }
 
-        if (parts.length > 0) {
-          await prisma.message.create({
+        await prisma.$transaction([
+          prisma.message.create({
             data: {
-              parts,
-              userId: null,
+              parts: prepared.userParts,
               documentId: docId,
+              userId: session.user.id,
+              createdAt: receivedAt,
             },
-          });
-        }
+          }),
+          ...(parts.length > 0
+            ? [
+                prisma.message.create({
+                  data: {
+                    parts,
+                    userId: null,
+                    documentId: docId,
+                    createdAt: new Date(),
+                  },
+                }),
+              ]
+            : []),
+        ]);
       },
     });
-
-    return result.toUIMessageStreamResponse();
   } catch (error) {
     if (error instanceof Response && error.status === 429) {
       return new Response(CHAT_REQUEST_ERRORS.rateLimited, { status: 429 });

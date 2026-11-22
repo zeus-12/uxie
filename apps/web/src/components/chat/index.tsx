@@ -153,10 +153,10 @@ function ChatView({ docId }: { docId: string }) {
         }),
       }),
     }),
-    onFinish: ({ isError }) => {
+    onFinish: ({ isError, isAbort }) => {
       const turn = turnRef.current;
       turnRef.current = null;
-      if (isError && turn) undoTurnRef.current(turn);
+      if ((isError || isAbort) && turn) undoTurnRef.current(turn);
     },
   });
 
