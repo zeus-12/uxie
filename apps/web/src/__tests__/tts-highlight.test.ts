@@ -1,7 +1,4 @@
-import {
-  useSentenceReader,
-  type SentencePosition,
-} from "@uxie/shared/hooks/use-sentence-reader";
+import { type SentencePosition } from "@uxie/shared/hooks/use-sentence-reader";
 import {
   extractWordsWithPositions,
   findChunkPosition,
@@ -9,11 +6,13 @@ import {
   wordTimingsFromPhonemeDurations,
 } from "@uxie/shared/lib/tts/utils";
 import { TextSplitterStream } from "kokoro-js";
-import React from "react";
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import textlayer from "./fixtures/textlayer.json";
+import {
+  fakeRangeClientRects,
+  mountReader,
+  type ReaderApi,
+} from "./helpers/sentence-reader";
 
 // Real pdf.js spans captured from public/demo.pdf. Re-capture by rendering it
 // with renderTextLayer and dumping each span's text + getBoundingClientRect.
@@ -23,27 +22,7 @@ const ALL_PAGES = Object.keys(FIXTURE)
   .map(Number)
   .sort((a, b) => a - b);
 
-type ReaderApi = ReturnType<typeof useSentenceReader>;
-
-// happy-dom has no layout, so every Range gets one fake rect and the assertions
-// only use data-hl-text. Visual alignment is checked against the live app.
-const FAKE_RECT = {
-  left: 0,
-  top: 0,
-  right: 8,
-  bottom: 8,
-  width: 8,
-  height: 8,
-  x: 0,
-  y: 0,
-  toJSON() {},
-};
-Range.prototype.getClientRects = () =>
-  ({
-    length: 1,
-    0: FAKE_RECT,
-    item: () => FAKE_RECT,
-  }) as unknown as DOMRectList;
+fakeRangeClientRects();
 
 function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
   if (pageNumber === 1) document.body.innerHTML = "";
@@ -73,19 +52,6 @@ function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
 
 const buildPage = (pageNumber: number) =>
   buildPageFromSpans(FIXTURE[String(pageNumber)] ?? []);
-
-function mountReader(pageCount = 1): ReaderApi {
-  const ref: { current: ReaderApi | null } = { current: null };
-  const Host = () => {
-    ref.current = useSentenceReader({ pageCount });
-    return null;
-  };
-  const container = document.createElement("div");
-  document.body.appendChild(container);
-  flushSync(() => createRoot(container).render(React.createElement(Host)));
-  if (!ref.current) throw new Error("reader did not mount");
-  return ref.current;
-}
 
 /** Feeds a sentence through the same char indices onWordBoundary would receive,
  *  returning the text each word's overlay ended up covering. */
@@ -192,24 +158,27 @@ describe("Kokoro model timing boundaries", () => {
       "duːnˌɑːt hˈaɪlaɪt ˈɛvɹɪθˌɪŋ ɐ pˈeɪdʒ dɹˈaʊnd ɪn jˈɛloʊ ɪz æz jˈuːsləs æz ɐ blˈæŋk wˌʌn",
       "dˈuː nˌɑːt hˈaɪlaɪt ˈɛvɹɪθˌɪŋ ɐ pˈeɪdʒ dɹˈaʊnd ɪn jˈɛloʊ ɪz æz jˈuːsləs æz ɐ blˈæŋk wˌʌn",
     ],
-  ])("keeps every source word when eSpeak joins connected speech: %s", (text, contextual, separated) => {
-    const durations = new Float32Array(contextual.length + 2).fill(1);
-    const timings = wordTimingsFromPhonemeDurations(
-      text,
-      contextual,
-      separated,
-      0,
-      0,
-      durations,
-    );
+  ])(
+    "keeps every source word when eSpeak joins connected speech: %s",
+    (text, contextual, separated) => {
+      const durations = new Float32Array(contextual.length + 2).fill(1);
+      const timings = wordTimingsFromPhonemeDurations(
+        text,
+        contextual,
+        separated,
+        0,
+        0,
+        durations,
+      );
 
-    expect(timings?.map((timing) => timing.word)).toEqual(
-      extractWordsWithPositions(text).map((word) => word.word),
-    );
-    expect(timings?.every((timing) => timing.startTime < timing.endTime)).toBe(
-      true,
-    );
-  });
+      expect(timings?.map((timing) => timing.word)).toEqual(
+        extractWordsWithPositions(text).map((word) => word.word),
+      );
+      expect(
+        timings?.every((timing) => timing.startTime < timing.endTime),
+      ).toBe(true);
+    },
+  );
 });
 
 describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () => {
@@ -400,6 +369,42 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
       { text: " ", top: 0, left: 216, width: 6 },
       { text: "real understanding.", top: 0, left: 222, width: 150 },
     ]);
+    const api = mountReader();
+    const pos = api.startFromPage(1);
+    expect(pos).not.toBeNull();
+
+    const covered = Array.from(document.querySelectorAll(".tts-hl-sentence"))
+      .map((el) => el.getAttribute("data-hl-text") ?? "")
+      .join("");
+    expect(normalizeWord(covered)).toBe(normalizeWord(pos!.sentence));
+
+    for (const step of readSentence(api, pos!)) {
+      if (!normalizeWord(step.spoken)) continue;
+      expect(normalizeWord(step.highlighted.join(""))).toBe(
+        normalizeWord(step.spoken),
+      );
+    }
+  });
+
+  it("highlights words inside spans that pdf.js find has split into match fragments", () => {
+    buildPageFromSpans([
+      {
+        text: "Careful readers build real understanding.",
+        top: 0,
+        left: 40,
+        width: 320,
+      },
+    ]);
+    const span = document.querySelector("span[role='presentation']")!;
+    const match = document.createElement("span");
+    match.className = "highlight selected";
+    match.textContent = "build";
+    span.replaceChildren(
+      document.createTextNode("Careful readers "),
+      match,
+      document.createTextNode(" real understanding."),
+    );
+
     const api = mountReader();
     const pos = api.startFromPage(1);
     expect(pos).not.toBeNull();

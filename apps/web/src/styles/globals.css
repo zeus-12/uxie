@@ -1,6 +1,7 @@
 /* Must stay above the @tailwind directives — @import precedes all other rules. */
 @import "@uxie/shared/styles/tts-highlight.css";
 @import "@uxie/shared/styles/themes.css";
+@import "@uxie/shared/styles/pdf-search.css";
 
 @tailwind base;
 @tailwind components;
