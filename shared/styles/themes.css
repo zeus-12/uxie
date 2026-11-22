@@ -35,13 +35,16 @@
   --status-success-subtle: 138.5 76.5% 96.7%;
   --radius: 0.5rem;
   --annotation: #ffe28f;
+  --tts-sentence: #d6f7cd;
+  --tts-word: #74f273;
 }
 
 .dark,
 [data-theme="dark"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
-  --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 240 7% 8.4%;
   --foreground: 240 8.6% 93.1%;
   --card: 240 6.9% 11.4%;
@@ -79,6 +82,8 @@
 [data-theme="tokyo-night"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 235 18.8% 12.5%;
   --foreground: 228.7 72.6% 85.7%;
   --card: 233.3 22.5% 15.7%;
@@ -116,6 +121,8 @@
 [data-theme="catppuccin-mocha"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 240 21.1% 14.9%;
   --foreground: 226.2 63.9% 88%;
   --card: 240 20.9% 17.8%;
@@ -153,6 +160,8 @@
 [data-theme="rose-pine"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 249.2 22% 11.6%;
   --foreground: 245.5 50% 91.4%;
   --card: 247.1 22.7% 14.7%;
@@ -190,6 +199,8 @@
 [data-theme="kanagawa-wave"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 240 12.7% 13.9%;
   --foreground: 51.2 32.7% 79.6%;
   --card: 240 13.3% 16.3%;
@@ -227,6 +238,8 @@
 [data-theme="ayu-mirage"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 222.4 21.5% 15.5%;
   --foreground: 48 8.9% 78%;
   --card: 222 22.2% 17.6%;
@@ -264,6 +277,8 @@
 [data-theme="everforest"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 205.7 13.5% 20.4%;
   --foreground: 41 31.8% 74.7%;
   --card: 200 13% 22.5%;
@@ -301,6 +316,8 @@
 [data-theme="solarized-dark"] {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
+  --tts-sentence: hsl(var(--palette-green) / 0.2);
+  --tts-word: hsl(var(--palette-green) / 0.45);
   --background: 192.2 100% 10.6%;
   --foreground: 180 8% 68%;
   --card: 192.4 90.6% 12.5%;

@@ -95,29 +95,23 @@
   text-decoration-skip: none; /* works in Safari, not in Firefox & Chrome */
 }
 
-/* Make annotation highlights blend with reading highlights (TTS/RSVP).
-   The highlight layer (z-index 3) sits above text spans (z-index auto)
-   within .textLayer. Without this, opaque annotation rects fully hide
-   reading-highlight backgrounds on the text spans beneath. Applying
-   multiply to the layer itself makes it blend with its backdrop (the
-   text spans), so both annotation and reading colours are visible. */
+/* Opaque annotation rects would otherwise hide TTS/RSVP highlights on the
+   text spans beneath; multiply lets both colours show. */
 .PdfHighlighter__highlight-layer {
   mix-blend-mode: multiply;
 }
 
 ::highlight(uxie-article-tts-sentence) {
-  background-color: rgb(214 247 205);
+  background-color: var(--tts-sentence);
 }
 
 ::highlight(uxie-article-tts-word) {
-  background-color: rgb(116 242 115);
+  background-color: var(--tts-word);
 }
 
 @layer utilities {
   .hd-screen {
-    /* 100vh for browsers not supporting dvh */
     height: 100vh;
-    /* the ones that suppport dvh overrides vh */
     height: 100dvh;
   }
 
@@ -147,7 +141,6 @@ textarea {
   font-size: 16px;
 }
 
-/* Smooth transitions for resizable panels */
 [data-panel-group] {
   transition: all 0.3s ease-in-out;
 }
@@ -156,12 +149,10 @@ textarea {
   transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Ensure panels animate smoothly */
 [data-panel-id] {
   transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* PDF links disabled styling */
 .annotationLayer a[href] {
   transition: opacity 0.2s ease-in-out;
 }
@@ -170,7 +161,6 @@ textarea {
   pointer-events: auto;
 }
 
-/* Bionic reading fonts */
 @font-face {
   font-family: "BR Sans";
   src: url("/fonts/br-sans.ttf") format("truetype");
@@ -186,7 +176,6 @@ textarea {
   src: url("/fonts/br-mono.ttf") format("truetype");
 }
 
-/* Bionic reading mode */
 .bionic-reading-active .canvasWrapper {
   visibility: hidden;
 }
