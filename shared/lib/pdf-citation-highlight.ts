@@ -1,4 +1,4 @@
-import { findExactPdfTextRange } from "./pdf-text-layer";
+import { findExactPdfTextRange, mergeRectsByLine } from "./pdf-text-layer";
 
 const LAYER_CLASS = "citation-hl-layer";
 const HIGHLIGHT_CLASS = "citation-hl-source";
@@ -19,7 +19,6 @@ function getLayer(page: Element): HTMLElement {
   return layer;
 }
 
-/** Paints the complete exact chunk and returns the first band for centering. */
 export function paintCitationHighlight(
   pageNumber: number,
   pageContent: string,
@@ -37,8 +36,7 @@ export function paintCitationHighlight(
   const origin = layer.getBoundingClientRect();
   let first: HTMLElement | null = null;
 
-  for (const rect of Array.from(range.getClientRects())) {
-    if (rect.width < 0.5 || rect.height < 0.5) continue;
+  for (const rect of mergeRectsByLine(range.getClientRects())) {
     const highlight = document.createElement("div");
     highlight.className = HIGHLIGHT_CLASS;
     highlight.setAttribute("data-citation-text", range.toString());

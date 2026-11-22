@@ -7,8 +7,10 @@ import {
 } from "../lib/tts/utils";
 import {
   buildPdfTextLayerModel,
+  mergeRectsByLine,
   normalizedRangeToDomRange,
   type PdfTextLayerModel,
+  type Rect,
 } from "../lib/pdf-text-layer";
 import { useCallback, useEffect, useRef } from "react";
 
@@ -119,41 +121,6 @@ function buildPageTextModel(pageElement: Element): PageTextModel {
     sentences,
     sentenceStarts,
   };
-}
-
-type Rect = { left: number; top: number; width: number; height: number };
-
-// getClientRects gives one rect per span, so a line arrives as several. Merging
-// them into one band per line avoids sub-pixel seams and overlap double-darkening.
-function mergeRectsByLine(rects: DOMRectList): Rect[] {
-  const sorted = Array.from(rects)
-    .filter((r) => r.width >= 0.5 && r.height >= 0.5)
-    .sort((a, b) => a.top - b.top || a.left - b.left);
-
-  const lines: { left: number; right: number; top: number; bottom: number }[] =
-    [];
-  for (const r of sorted) {
-    const last = lines[lines.length - 1];
-    if (last && Math.abs(r.top - last.top) <= 4 && r.left <= last.right + 6) {
-      last.left = Math.min(last.left, r.left);
-      last.right = Math.max(last.right, r.right);
-      last.top = Math.min(last.top, r.top);
-      last.bottom = Math.max(last.bottom, r.bottom);
-    } else {
-      lines.push({
-        left: r.left,
-        right: r.right,
-        top: r.top,
-        bottom: r.bottom,
-      });
-    }
-  }
-  return lines.map((l) => ({
-    left: l.left,
-    top: l.top,
-    width: l.right - l.left,
-    height: l.bottom - l.top,
-  }));
 }
 
 type Pad = { x: number; y: number };

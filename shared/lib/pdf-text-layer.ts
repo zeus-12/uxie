@@ -1,5 +1,4 @@
 import { normalizeWhitespace, type NormalizedText } from "./tts/utils";
-import type { PdfPageText } from "./chat";
 
 export type PdfTextLayerModel = {
   pageElement: Element;
@@ -134,19 +133,6 @@ export function normalizePdfText(text: string): string {
   return normalizeWhitespace(text).text.trim();
 }
 
-export function findUniquePdfPageNumber(
-  pageContent: string,
-  pages: PdfPageText[],
-): number | null {
-  const chunk = normalizePdfText(pageContent);
-  if (!chunk) return null;
-  const matches = pages.filter((page) =>
-    normalizePdfText(page.text).includes(chunk),
-  );
-  return matches.length === 1 ? matches[0]!.pageNumber : null;
-}
-
-/** Exact after PDF whitespace normalization. No word-overlap or fuzzy fallback. */
 export function findExactPdfTextRange(
   pageElement: Element,
   text: string,
@@ -158,4 +144,39 @@ export function findExactPdfTextRange(
   const start = model.norm.text.indexOf(query);
   if (start < 0) return null;
   return normalizedRangeToDomRange(model, start, start + query.length);
+}
+
+export type Rect = { left: number; top: number; width: number; height: number };
+
+// getClientRects gives one rect per span, so a line arrives as several. Merging
+// them into one band per line avoids sub-pixel seams and overlap double-darkening.
+export function mergeRectsByLine(rects: DOMRectList): Rect[] {
+  const sorted = Array.from(rects)
+    .filter((r) => r.width >= 0.5 && r.height >= 0.5)
+    .sort((a, b) => a.top - b.top || a.left - b.left);
+
+  const lines: { left: number; right: number; top: number; bottom: number }[] =
+    [];
+  for (const r of sorted) {
+    const last = lines[lines.length - 1];
+    if (last && Math.abs(r.top - last.top) <= 4 && r.left <= last.right + 6) {
+      last.left = Math.min(last.left, r.left);
+      last.right = Math.max(last.right, r.right);
+      last.top = Math.min(last.top, r.top);
+      last.bottom = Math.max(last.bottom, r.bottom);
+    } else {
+      lines.push({
+        left: r.left,
+        right: r.right,
+        top: r.top,
+        bottom: r.bottom,
+      });
+    }
+  }
+  return lines.map((l) => ({
+    left: l.left,
+    top: l.top,
+    width: l.right - l.left,
+    height: l.bottom - l.top,
+  }));
 }
