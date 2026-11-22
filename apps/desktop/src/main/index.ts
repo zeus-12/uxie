@@ -27,6 +27,7 @@ import { getSettings, setSettings } from "./settings";
 import {
   getWindowBackground,
   isWindowBackground,
+  pickWindowBackground,
   setWindowBackground,
 } from "./window-background";
 import { cancelCompletion, streamCompletion } from "./ai/completion";
@@ -123,10 +124,12 @@ function registerIpc() {
     void streamChat(event.sender, streamId, docId, messages);
   });
   ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
-  ipcMain.on("window:setBackground", (event, colour) => {
-    if (!isWindowBackground(colour)) return;
-    BrowserWindow.fromWebContents(event.sender)?.setBackgroundColor(colour);
-    setWindowBackground(colour);
+  ipcMain.on("window:setBackground", (event, background) => {
+    if (!isWindowBackground(background)) return;
+    BrowserWindow.fromWebContents(event.sender)?.setBackgroundColor(
+      pickWindowBackground(background),
+    );
+    setWindowBackground(background);
   });
   ipcMain.on("chat:retrieve:reply", (_event, reqId, chunks) =>
     resolveChatRetrieve(reqId, chunks),
