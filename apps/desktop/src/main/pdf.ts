@@ -226,6 +226,5 @@ export async function storeDocumentImage(
 export async function deleteDocumentWithFile(id: string): Promise<void> {
   deleteVectors(getSqlite(), id);
   await deleteDocument(getDb(), id);
-  // One remove takes the pdf, the cover and every image with it.
   await deleteDocDir(documentsDir(), id);
 }

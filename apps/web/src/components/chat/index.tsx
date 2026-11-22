@@ -1,5 +1,7 @@
 import { api } from "@/lib/api";
 import {
+  chatErrorMessage,
+  chatRequestBody,
   MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
   withoutEarlierImageData,
 } from "@/lib/chat-images";
@@ -14,7 +16,10 @@ import {
   IndexingState,
 } from "@uxie/shared/components/other/indexing-state";
 import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
-import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
+import {
+  useChatImageAttachments,
+  type StagedChatImage,
+} from "@uxie/shared/hooks/use-chat-image-attachments";
 import {
   userMessageRows,
   type ChatImage,
@@ -125,14 +130,34 @@ function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
   return rows;
 }
 
+type Turn = { text: string; images: StagedChatImage[] };
+
+function withoutLastUserMessage<M extends { role: string }>(messages: M[]) {
+  for (let index = messages.length - 1; index >= 0; index--) {
+    if (messages[index]?.role === "user") return messages.slice(0, index);
+  }
+  return messages;
+}
+
 function ChatView({ docId }: { docId: string }) {
-  const { messages, status, error, stop, sendMessage } = useChat({
+  const turnRef = useRef<Turn | null>(null);
+  const undoTurnRef = useRef<(turn: Turn) => void>(() => undefined);
+  const { messages, status, error, stop, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages, body }) => ({
-        body: { ...body, docId, messages: withoutEarlierImageData(messages) },
+        body: chatRequestBody({
+          ...body,
+          docId,
+          messages: withoutEarlierImageData(messages),
+        }),
       }),
     }),
+    onFinish: ({ isError }) => {
+      const turn = turnRef.current;
+      turnRef.current = null;
+      if (isError && turn) undoTurnRef.current(turn);
+    },
   });
 
   const { data: prevChatMessages, isLoading: isChatsLoading } =
@@ -150,6 +175,7 @@ function ChatView({ docId }: { docId: string }) {
     addFiles,
     removeAttachments,
     clearAttachments,
+    restoreAttachments,
   } = useChatImageAttachments({
     maxTotalBytes: MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
   });
@@ -166,10 +192,19 @@ function ChatView({ docId }: { docId: string }) {
       mediaType: attachment.mediaType,
       url: attachment.url,
     }));
+    turnRef.current = { text, images: attachments };
     if (text) void sendMessage({ text, files });
     else void sendMessage({ files });
     setInput("");
     clearAttachments();
+  };
+
+  undoTurnRef.current = (turn) => {
+    setMessages(withoutLastUserMessage);
+    if (turn.text) {
+      setInput((current) => (current ? `${turn.text}\n${current}` : turn.text));
+    }
+    restoreAttachments(turn.images);
   };
 
   const setSendMessage = useChatStore((s) => s.setSendMessage);
@@ -179,7 +214,10 @@ function ChatView({ docId }: { docId: string }) {
   const setFocusInput = useChatStore((s) => s.setFocusInput);
   const tab = useSidebarTabStore((s) => s.tab);
   useEffect(() => {
-    setSendMessage((text: string) => sendMessage({ text }));
+    setSendMessage((text: string) => {
+      turnRef.current = { text: "", images: [] };
+      void sendMessage({ text });
+    });
     return () => setSendMessage(null);
   }, [sendMessage, setSendMessage]);
   useEffect(() => {
@@ -239,7 +277,7 @@ function ChatView({ docId }: { docId: string }) {
   if (status === "error") {
     rows.push({
       kind: "error",
-      content: error?.message || "Something went wrong. Please try again.",
+      content: chatErrorMessage(error),
     });
   }
 

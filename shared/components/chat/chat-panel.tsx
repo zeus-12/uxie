@@ -24,9 +24,6 @@ import {
 
 export type ChatRole = "user" | "assistant";
 
-// A flat, render-agnostic view of the conversation. Both apps translate their
-// native state (desktop: streamText state; web: useChat `parts`) into this, so
-// the whole chat surface looks identical regardless of the data layer.
 export type ChatRow =
   | {
       kind: "message";
@@ -204,15 +201,17 @@ export function ChatPanel({
               }}
               readOnly={sending}
               onPaste={(event) => {
-                const files = Array.from(event.clipboardData.files);
-                if (
-                  !files.length ||
-                  event.clipboardData.types.includes("text/plain")
-                ) {
-                  return;
-                }
+                const { clipboardData } = event;
+                const images = Array.from(clipboardData.files).filter((file) =>
+                  file.type.startsWith("image/"),
+                );
+                // Spreadsheet and document copies carry text/html plus a picture of the selection; the text is what was meant.
+                const documentCopy =
+                  clipboardData.types.includes("text/html") &&
+                  clipboardData.getData("text/plain") !== "";
+                if (!images.length || documentCopy) return;
                 event.preventDefault();
-                onFilesSelected(files);
+                onFilesSelected(images);
               }}
               onKeyDown={(e) => {
                 const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
@@ -300,7 +299,6 @@ function RowView({
   );
 }
 
-// ChatGPT-style: tool activity lives OUTSIDE the bubble, on its own line.
 function ToolChip({ label, active }: { label: string; active: boolean }) {
   if (active) {
     return (

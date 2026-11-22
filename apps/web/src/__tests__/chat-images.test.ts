@@ -1,4 +1,8 @@
 import {
+  CHAT_REQUEST_ERRORS,
+  chatErrorMessage,
+  chatRequestBody,
+  MAX_CHAT_REQUEST_BYTES,
   MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
   prepareChatMessages,
   withoutEarlierImageData,
@@ -132,5 +136,49 @@ describe("sniffImageType", () => {
     expect(sniffImageType(bytes("R0lGODlhAQAB"))).toBe("image/gif");
     expect(sniffImageType(bytes("PHN2ZyB4bWxu"))).toBeNull();
     expect(sniffImageType(new Uint8Array())).toBeNull();
+  });
+});
+
+describe("chat request shaping", () => {
+  it("strips image bytes only from earlier user messages", () => {
+    const assistantFile = {
+      type: "file",
+      mediaType: "image/png",
+      url: "https://example.com/chart.png",
+    };
+    const messages = [
+      user([
+        { type: "file", mediaType: "image/png", filename: "a.png", url: PNG },
+      ]),
+      { id: "a", role: "assistant", parts: [assistantFile] },
+      user([{ type: "text", text: "next" }]),
+    ] as UIMessage[];
+
+    const [earlier, assistant] = withoutEarlierImageData(
+      messages,
+    ) as UIMessage[];
+    expect(earlier?.parts).toEqual([
+      { type: "file", mediaType: "image/png", filename: "a.png" },
+    ]);
+    expect(assistant?.parts).toEqual([assistantFile]);
+  });
+
+  it("refuses to send a body over the request limit", () => {
+    expect(chatRequestBody({ messages: [] })).toEqual({ messages: [] });
+    expect(() =>
+      chatRequestBody({ text: "x".repeat(MAX_CHAT_REQUEST_BYTES) }),
+    ).toThrow(CHAT_REQUEST_ERRORS.requestTooLarge);
+  });
+
+  it("shows only the route's own error texts", () => {
+    expect(chatErrorMessage(new Error(CHAT_REQUEST_ERRORS.imageTooLarge))).toBe(
+      CHAT_REQUEST_ERRORS.imageTooLarge,
+    );
+    expect(chatErrorMessage(new Error("Internal Server Error"))).toBe(
+      "Something went wrong. Please try again.",
+    );
+    expect(chatErrorMessage(undefined)).toBe(
+      "Something went wrong. Please try again.",
+    );
   });
 });

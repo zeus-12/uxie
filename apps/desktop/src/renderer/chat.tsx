@@ -13,7 +13,11 @@ import {
 } from "@uxie/shared/components/chat/chat-panel";
 import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
-import { chatMessageToRows, type ChatMessage } from "../chat-messages";
+import {
+  chatMessageToRows,
+  type ChatMessage,
+  type CreateUserMessageResult,
+} from "../chat-messages";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
@@ -211,9 +215,9 @@ function ChatView({ docId }: { docId: string }) {
     if ((!text && !images.length) || streaming || sending) return;
 
     setSending(true);
-    let userMessage: ChatMessage;
+    let created: CreateUserMessageResult;
     try {
-      userMessage = await window.uxieAPI.createUserMessage(
+      created = await window.uxieAPI.createUserMessage(
         docId,
         text,
         await Promise.all(
@@ -229,8 +233,12 @@ function ChatView({ docId }: { docId: string }) {
     } finally {
       setSending(false);
     }
+    if (!created.ok) {
+      setError(`Couldn't send the message: ${created.error}`);
+      return;
+    }
 
-    const history: ChatMessage[] = [...messages, userMessage];
+    const history: ChatMessage[] = [...messages, created.message];
     setMessages(history);
     if (override === undefined) {
       setInput((current) => (current === submittedInput ? "" : current));

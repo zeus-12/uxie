@@ -1,4 +1,4 @@
-import { prepareChatMessages } from "@/lib/chat-images";
+import { CHAT_REQUEST_ERRORS, prepareChatMessages } from "@/lib/chat-images";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
@@ -143,10 +143,7 @@ export async function POST(req: Request) {
     return result.toUIMessageStreamResponse();
   } catch (error) {
     if (error instanceof Response && error.status === 429) {
-      return new Response(
-        "Rate limit exceeded. Please wait a little and try again soon.",
-        { status: 429 },
-      );
+      return new Response(CHAT_REQUEST_ERRORS.rateLimited, { status: 429 });
     }
     return new Response("Internal Server Error", { status: 500 });
   }

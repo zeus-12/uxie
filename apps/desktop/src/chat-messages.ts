@@ -76,6 +76,10 @@ function fileParts(message: ChatMessage): FilePart[] {
 
 export type ChatImageUpload = { filename: string; bytes: Uint8Array };
 
+export type CreateUserMessageResult =
+  | { ok: true; message: ChatMessage }
+  | { ok: false; error: string };
+
 const newestMessage = (messages: ChatMessage[]) =>
   messages[messages.length - 1];
 

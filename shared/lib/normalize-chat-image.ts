@@ -76,7 +76,7 @@ export async function normalizeChatImage(
 
   let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(blob);
+    bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
   } catch {
     return { kind: "error", message: UNREADABLE };
   }
@@ -86,16 +86,6 @@ export async function normalizeChatImage(
       1,
       MAX_CHAT_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height),
     );
-    if (scale === 1 && sourceType !== "image/gif" && blob.size <= maxBytes) {
-      return {
-        kind: "image",
-        image: {
-          blob: new Blob([blob], { type: sourceType }),
-          mediaType: sourceType,
-        },
-      };
-    }
-
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
     const preferred: ChatImageMediaType =

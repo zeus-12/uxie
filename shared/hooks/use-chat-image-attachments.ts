@@ -37,40 +37,62 @@ type Action =
   | { type: "finish"; results: Processed[]; maxTotalBytes: number | null }
   | { type: "fail"; message: string }
   | { type: "remove"; ids: string[] }
-  | { type: "clear" };
+  | { type: "clear" }
+  | {
+      type: "restore";
+      images: StagedChatImage[];
+      maxTotalBytes: number | null;
+    };
+
+function accept(
+  base: StagedChatImage[],
+  results: Processed[],
+  maxTotalBytes: number | null,
+): { attachments: StagedChatImage[]; error: string | null } {
+  const attachments = [...base];
+  let totalBytes = attachments.reduce((sum, item) => sum + item.blob.size, 0);
+  let error: string | null = null;
+  for (const result of results) {
+    if (result.kind === "error") {
+      error ??= result.message;
+    } else if (attachments.length >= MAX_CHAT_IMAGE_COUNT) {
+      error = CHAT_IMAGE_COUNT_ERROR;
+    } else if (
+      maxTotalBytes !== null &&
+      totalBytes + result.image.blob.size > maxTotalBytes
+    ) {
+      error = `Images in one message can add up to ${formatMegabytes(
+        maxTotalBytes,
+      )}.`;
+    } else {
+      attachments.push(result.image);
+      totalBytes += result.image.blob.size;
+    }
+  }
+  return { attachments, error };
+}
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "start":
       return { ...state, pending: state.pending + action.count };
-    case "finish": {
-      const attachments = [...state.attachments];
-      let totalBytes = attachments.reduce(
-        (sum, item) => sum + item.blob.size,
-        0,
-      );
-      let error: string | null = null;
-      for (const result of action.results) {
-        if (result.kind === "error") {
-          error ??= result.message;
-        } else if (attachments.length >= MAX_CHAT_IMAGE_COUNT) {
-          error = CHAT_IMAGE_COUNT_ERROR;
-        } else if (
-          action.maxTotalBytes !== null &&
-          totalBytes + result.image.blob.size > action.maxTotalBytes
-        ) {
-          error = `Images in one message can add up to ${formatMegabytes(
-            action.maxTotalBytes,
-          )}.`;
-        } else {
-          attachments.push(result.image);
-          totalBytes += result.image.blob.size;
-        }
-      }
+    case "finish":
       return {
-        attachments,
-        error,
+        ...accept(state.attachments, action.results, action.maxTotalBytes),
         pending: state.pending - action.results.length,
+      };
+    case "restore": {
+      const restoredIds = new Set(action.images.map((image) => image.id));
+      return {
+        ...state,
+        ...accept(
+          [],
+          [
+            ...action.images,
+            ...state.attachments.filter((item) => !restoredIds.has(item.id)),
+          ].map((image) => ({ kind: "image" as const, image })),
+          action.maxTotalBytes,
+        ),
       };
     }
     case "fail":
@@ -162,6 +184,11 @@ export function useChatImageAttachments({
     [],
   );
   const clearAttachments = useCallback(() => dispatch({ type: "clear" }), []);
+  const restoreAttachments = useCallback(
+    (images: StagedChatImage[]) =>
+      dispatch({ type: "restore", images, maxTotalBytes }),
+    [maxTotalBytes],
+  );
 
   return {
     attachments: state.attachments,
@@ -171,5 +198,6 @@ export function useChatImageAttachments({
     addDataUrl,
     removeAttachments,
     clearAttachments,
+    restoreAttachments,
   };
 }
