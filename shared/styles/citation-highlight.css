@@ -1,14 +1,20 @@
+/* No z-index here: an isolated group leaves multiply nothing to blend with and the band hides the text. */
 .citation-hl-layer {
   position: absolute;
   inset: 0;
-  z-index: 4;
   pointer-events: none;
 }
 
 .citation-hl-source {
   position: absolute;
-  border-radius: 3px;
-  background-color: #facc15;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
   mix-blend-mode: multiply;
   pointer-events: none;
+}
+
+.citation-hl-source path {
+  fill: rgb(250 204 21 / 45%);
 }

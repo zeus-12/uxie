@@ -2,6 +2,7 @@ import { findExactPdfTextRange, mergeRectsByLine } from "./pdf-text-layer";
 
 const LAYER_CLASS = "citation-hl-layer";
 const HIGHLIGHT_CLASS = "citation-hl-source";
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 export function clearCitationHighlights(): void {
   document
@@ -19,10 +20,12 @@ function getLayer(page: Element): HTMLElement {
   return layer;
 }
 
+// One path for the whole passage: bands of adjacent lines overlap vertically,
+// and as a single nonzero fill every point is painted exactly once.
 export function paintCitationHighlight(
   pageNumber: number,
   pageContent: string,
-): HTMLElement | null {
+): SVGPathElement | null {
   const page = document.querySelector(
     `.page[data-page-number="${pageNumber}"]`,
   );
@@ -31,21 +34,28 @@ export function paintCitationHighlight(
   const range = findExactPdfTextRange(page, pageContent);
   if (!range) return null;
 
+  const bands = mergeRectsByLine(range.getClientRects());
+  if (bands.length === 0) return null;
+
   clearCitationHighlights();
   const layer = getLayer(page);
   const origin = layer.getBoundingClientRect();
-  let first: HTMLElement | null = null;
+  const d = bands
+    .map((band) => {
+      const x = band.left - origin.left - 2;
+      const y = band.top - origin.top;
+      return `M${x} ${y}h${band.width + 4}v${band.height}h${-(
+        band.width + 4
+      )}Z`;
+    })
+    .join("");
 
-  for (const rect of mergeRectsByLine(range.getClientRects())) {
-    const highlight = document.createElement("div");
-    highlight.className = HIGHLIGHT_CLASS;
-    highlight.setAttribute("data-citation-text", range.toString());
-    highlight.style.left = `${rect.left - origin.left - 2}px`;
-    highlight.style.top = `${rect.top - origin.top}px`;
-    highlight.style.width = `${rect.width + 4}px`;
-    highlight.style.height = `${rect.height}px`;
-    layer.appendChild(highlight);
-    first ??= highlight;
-  }
-  return first;
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", HIGHLIGHT_CLASS);
+  svg.setAttribute("data-citation-text", range.toString());
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", d);
+  svg.appendChild(path);
+  layer.appendChild(svg);
+  return path;
 }

@@ -39,7 +39,7 @@ const RECT = {
 
 Range.prototype.getClientRects = () =>
   ({ length: 1, 0: RECT, item: () => RECT }) as unknown as DOMRectList;
-HTMLElement.prototype.scrollIntoView = vi.fn();
+Element.prototype.scrollIntoView = vi.fn();
 
 function buildPage(pageNumber: number, spans: string[]): Element {
   const page = document.createElement("div");
@@ -193,6 +193,9 @@ describe("exact PDF source matching", () => {
     const highlight = paintCitationHighlight(3, "Alpha beta\n gamma.");
     expect(highlight).not.toBeNull();
     expect(document.querySelectorAll(".citation-hl-source")).toHaveLength(1);
+    expect(document.querySelectorAll(".citation-hl-source path")).toHaveLength(
+      1,
+    );
   });
 
   it("fails closed when the complete normalized passage is not on the page", () => {
