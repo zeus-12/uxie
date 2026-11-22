@@ -210,7 +210,7 @@ const InviteCollab = ({
                       className={cn(
                         // && isOwner
                         user.role === CollaboratorRole.OWNER && "invisible",
-                        "hover:cursor-pointer hover:fill-red-400 hover:text-red-400",
+                        "hover:cursor-pointer hover:fill-danger hover:text-danger",
                       )}
                       size={20}
                       onClick={() => removeCollaboratorById(user.id)}

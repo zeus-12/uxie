@@ -4,12 +4,12 @@ const SECTIONS = [
   {
     key: "correctResponse",
     label: "Got right",
-    tone: "text-emerald-700 dark:text-emerald-400",
+    tone: "text-success",
   },
   {
     key: "incorrectResponse",
     label: "Missed",
-    tone: "text-red-700 dark:text-red-400",
+    tone: "text-danger",
   },
   { key: "moreInfo", label: "Context", tone: "text-muted-foreground" },
 ] as const;

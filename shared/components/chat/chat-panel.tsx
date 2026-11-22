@@ -110,7 +110,7 @@ export function ChatPanel({
           <button
             onClick={() => (streaming && onStop ? onStop() : onSubmit())}
             disabled={!streaming && !input.trim()}
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white transition-opacity disabled:opacity-40"
+            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors disabled:bg-muted disabled:text-muted-foreground"
             aria-label={streaming && onStop ? "Stop" : "Send"}
           >
             {streaming ? (
@@ -199,7 +199,7 @@ function ChatBubble({
       className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
     >
       {isUser ? (
-        <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm text-white">
+        <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
           {content}
         </div>
       ) : (

@@ -108,7 +108,7 @@ export function Library({
           </div>
 
           {error && (
-            <div className="mt-4 flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
+            <div className="mt-4 flex items-center justify-between rounded-md border border-danger/30 bg-danger-subtle px-4 py-2 text-sm text-danger">
               <span>{error}</span>
               <button onClick={refresh} className="font-medium underline">
                 Retry

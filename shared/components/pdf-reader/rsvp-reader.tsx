@@ -77,7 +77,9 @@ function WordDisplay({ word }: { word: string | null }) {
         }}
       >
         <span>{before}</span>
-        <span className="text-orange-500 font-bold">{orpChar}</span>
+        <span className="text-[hsl(var(--palette-orange))] font-bold">
+          {orpChar}
+        </span>
         <span>{after}</span>
       </div>
     </div>
@@ -288,7 +290,7 @@ export function RsvpReader({ pageNumber, pageCount }: RsvpReaderProps) {
   return (
     <FloatingPanel open={rsvpOpen} onClose={close}>
       <FloatingPanelBody className="py-8">
-        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-orange-500/20" />
+        <div className="absolute top-0 bottom-0 left-1/2 w-px bg-[hsl(var(--palette-orange)/0.25)]" />
         <WordDisplay word={currentWord} />
       </FloatingPanelBody>
 

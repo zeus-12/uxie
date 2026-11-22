@@ -358,7 +358,7 @@ export function SpeakAlong({
                 <span
                   className={`w-2 h-2 rounded-full ${
                     isListening
-                      ? "bg-red-500 animate-pulse"
+                      ? "bg-danger animate-pulse"
                       : "bg-muted-foreground"
                   }`}
                 />

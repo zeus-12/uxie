@@ -40,7 +40,7 @@ function resultLabel(status: SearchStatus) {
 }
 
 const iconButtonClass =
-  "flex h-7 w-7 items-center justify-center rounded text-stone-600 hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-700 disabled:opacity-30";
+  "flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-30";
 
 export function PdfSearch({
   eventBus,
@@ -162,14 +162,14 @@ export function PdfSearch({
       aria-label="Find in document"
       onSubmit={(event) => event.preventDefault()}
       onKeyDown={handleKeyDown}
-      className="absolute right-3 top-3 z-50 flex h-9 items-center gap-1 rounded-lg border border-stone-200 bg-white p-1 shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+      className="absolute right-3 top-3 z-50 flex h-9 items-center gap-1 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-[0_4px_16px_-4px_rgb(0_0_0/0.18)]"
     >
       <label htmlFor={inputId} className="sr-only">
         Find in document
       </label>
       <SearchIcon
         aria-hidden="true"
-        className="ml-1 h-3.5 w-3.5 text-stone-400"
+        className="ml-1 h-3.5 w-3.5 text-muted-foreground"
       />
       <input
         id={inputId}
@@ -180,19 +180,19 @@ export function PdfSearch({
         placeholder="Find in document"
         autoComplete="off"
         spellCheck={false}
-        className="h-7 w-36 rounded border-0 bg-transparent px-1 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:ring-0"
+        className="h-7 w-36 rounded border-0 bg-transparent px-1 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
       />
       <span
         role="status"
         aria-live="polite"
         className={cn(
-          "min-w-14 whitespace-nowrap px-1 text-right text-[11px] tabular-nums text-stone-500",
+          "min-w-14 whitespace-nowrap px-1 text-right text-[11px] tabular-nums text-muted-foreground",
           label.length === 0 && "sr-only",
         )}
       >
         {label}
       </span>
-      <div className="flex items-center border-l border-stone-200 pl-1">
+      <div className="flex items-center border-l border-border pl-1">
         <button
           type="button"
           onClick={() => move("previous")}

@@ -122,10 +122,8 @@ export const TextSelectionPopover = ({
   ].filter(Boolean);
 
   return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[7px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[7px] border-r-[7px] border-t-[7px] border-solid border-black border-l-transparent border-r-transparent" />
-
-      <div className="flex divide-x divide-gray-800">
+    <div className="rounded-lg border bg-popover shadow-[0_4px_16px_-4px_rgb(0_0_0/0.25)]">
+      <div className="flex divide-x divide-border">
         {OPTIONS.map((option, id) => {
           if (!option) return null;
           return (
@@ -138,8 +136,8 @@ export const TextSelectionPopover = ({
                 <option.icon
                   className={
                     "accent" in option && option.accent
-                      ? "h-5 w-5 text-violet-400 group-hover:text-violet-300"
-                      : "h-5 w-5 text-gray-300 group-hover:text-gray-50"
+                      ? "h-5 w-5 text-primary group-hover:opacity-80"
+                      : "h-5 w-5 text-muted-foreground group-hover:text-foreground"
                   }
                 />
               </CustomTooltip>
@@ -161,10 +159,8 @@ export const HighlightedTextPopover = ({
   hideTip: () => void;
 }) => {
   return (
-    <div className="relative rounded-md bg-black">
-      <div className="absolute -bottom-[10px] left-[50%] h-0 w-0 -translate-x-[50%] border-l-[10px] border-r-[10px] border-t-[10px] border-solid border-black border-l-transparent border-r-transparent" />
-
-      <div className="flex divide-x divide-gray-800">
+    <div className="rounded-lg border bg-popover shadow-[0_4px_16px_-4px_rgb(0_0_0/0.25)]">
+      <div className="flex divide-x divide-border">
         <div
           className="group p-2 hover:cursor-pointer"
           onClick={() => {
@@ -174,7 +170,7 @@ export const HighlightedTextPopover = ({
         >
           <TrashIcon
             size={18}
-            className="rounded-full text-gray-300 group-hover:text-gray-50"
+            className="rounded-full text-muted-foreground group-hover:text-danger"
           />
         </div>
       </div>
