@@ -47,7 +47,7 @@ interface ChatPanelProps {
   attachments: ChatImage[];
   attachmentError?: string | null;
   attachmentsPending: number;
-  attachmentsBusy: boolean;
+  sending?: boolean;
   onInputChange: (value: string) => void;
   onFilesSelected: (files: File[]) => void;
   onRemoveAttachment: (id: string) => void;
@@ -68,7 +68,7 @@ export function ChatPanel({
   attachments,
   attachmentError,
   attachmentsPending,
-  attachmentsBusy,
+  sending = false,
   onInputChange,
   onFilesSelected,
   onRemoveAttachment,
@@ -85,11 +85,11 @@ export function ChatPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const taRef = inputRef ?? internalTaRef;
   const [dragActive, setDragActive] = useState(false);
+  const dragDepthRef = useRef(0);
+  const busy = sending || attachmentsPending > 0;
   const [previewImage, setPreviewImage] = useState<ChatImage | null>(null);
   const canSend =
-    !streaming &&
-    !attachmentsBusy &&
-    (!!input.trim() || attachments.length > 0);
+    !streaming && !busy && (!!input.trim() || attachments.length > 0);
   const submitIfReady = () => {
     if (canSend) onSubmit();
   };
@@ -145,6 +145,7 @@ export function ChatPanel({
           onDragEnter={(event) => {
             if (!event.dataTransfer.types.includes("Files")) return;
             event.preventDefault();
+            dragDepthRef.current += 1;
             setDragActive(true);
           }}
           onDragOver={(event) => {
@@ -152,17 +153,14 @@ export function ChatPanel({
               event.preventDefault();
           }}
           onDragLeave={(event) => {
-            const relatedTarget = event.relatedTarget;
-            if (
-              !(relatedTarget instanceof Node) ||
-              !event.currentTarget.contains(relatedTarget)
-            ) {
-              setDragActive(false);
-            }
+            if (!event.dataTransfer.types.includes("Files")) return;
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (dragDepthRef.current === 0) setDragActive(false);
           }}
           onDrop={(event) => {
             if (!event.dataTransfer.types.includes("Files")) return;
             event.preventDefault();
+            dragDepthRef.current = 0;
             setDragActive(false);
             onFilesSelected(Array.from(event.dataTransfer.files));
           }}
@@ -172,6 +170,7 @@ export function ChatPanel({
             pending={attachmentsPending}
             onOpen={setPreviewImage}
             onRemove={onRemoveAttachment}
+            locked={sending}
           />
 
           <div className="flex items-end gap-1.5 p-2">
@@ -203,9 +202,15 @@ export function ChatPanel({
                 onInputChange(e.target.value);
                 grow();
               }}
+              readOnly={sending}
               onPaste={(event) => {
                 const files = Array.from(event.clipboardData.files);
-                if (!files.length) return;
+                if (
+                  !files.length ||
+                  event.clipboardData.types.includes("text/plain")
+                ) {
+                  return;
+                }
                 event.preventDefault();
                 onFilesSelected(files);
               }}
@@ -233,7 +238,7 @@ export function ChatPanel({
                 ) : (
                   <Loader2Icon className="h-4 w-4 animate-spin" />
                 )
-              ) : attachmentsBusy ? (
+              ) : busy ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
               ) : (
                 <ArrowUpIcon className="h-4 w-4" />

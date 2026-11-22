@@ -12,11 +12,13 @@ export function StagedImageStrip({
   pending,
   onOpen,
   onRemove,
+  locked,
 }: {
   images: ChatImage[];
   pending: number;
   onOpen: (image: ChatImage) => void;
   onRemove: (id: string) => void;
+  locked: boolean;
 }) {
   if (!images.length && !pending) return null;
   return (
@@ -47,9 +49,10 @@ export function StagedImageStrip({
           <button
             type="button"
             onClick={() => onRemove(image.id)}
+            disabled={locked}
             aria-label={`Remove ${image.filename}`}
             className={cn(
-              "absolute right-0 top-0 flex size-5 items-center justify-center rounded-full border border-background bg-foreground text-background shadow-sm transition-transform hover:scale-110",
+              "absolute right-0 top-0 flex size-5 items-center justify-center rounded-full border border-background bg-foreground text-background shadow-sm transition-transform hover:scale-110 disabled:pointer-events-none disabled:opacity-50",
               FOCUS_RING,
             )}
           >

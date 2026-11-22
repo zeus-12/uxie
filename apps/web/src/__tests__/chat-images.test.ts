@@ -3,10 +3,11 @@ import {
   prepareChatMessages,
   withoutEarlierImageData,
 } from "@/lib/chat-images";
+import { sniffImageType } from "@uxie/shared/lib/chat-attachments";
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
 
-const PNG = "data:image/png;base64,aGVsbG8=";
+const PNG = "data:image/png;base64,iVBORw0KGgoAAAAA";
 
 const user = (parts: unknown[]) => ({ id: "u", role: "user", parts });
 
@@ -48,7 +49,7 @@ describe("chat images", () => {
         user([
           {
             type: "text",
-            text: "[The user attached an image here (a.png); it is no longer available.]",
+            text: "[The user attached an image here (a.png); it is not included in this turn.]",
           },
         ]),
         user([
@@ -83,12 +84,22 @@ describe("chat images", () => {
       {
         type: "file",
         mediaType: "image/png",
+        url: "data:image/png;base64,/9j/4AAQSkZJ",
+      },
+      {
+        type: "file",
+        mediaType: "image/gif",
+        url: "data:image/gif;base64,R0lGODlhAQAB",
+      },
+      {
+        type: "file",
+        mediaType: "image/png",
         url: "https://example.com/a.png",
       },
       {
         type: "file",
         mediaType: "image/png",
-        url: `data:image/png;base64,${"A".repeat(
+        url: `data:image/png;base64,iVBORw0KGgoA${"A".repeat(
           Math.ceil(((MAX_WEB_CHAT_IMAGE_TOTAL_BYTES + 3) * 4) / 3 / 4) * 4,
         )}`,
       },
@@ -107,5 +118,19 @@ describe("chat images", () => {
     expect(prepareChatMessages([user([image, image, image, image])]).ok).toBe(
       true,
     );
+  });
+});
+
+describe("sniffImageType", () => {
+  const bytes = (base64: string) =>
+    Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+  it("reads the format from the bytes, not the name", () => {
+    expect(sniffImageType(bytes("iVBORw0KGgoAAAAA"))).toBe("image/png");
+    expect(sniffImageType(bytes("/9j/4AAQSkZJ"))).toBe("image/jpeg");
+    expect(sniffImageType(bytes("UklGRiQAAABXRUJQVlA4"))).toBe("image/webp");
+    expect(sniffImageType(bytes("R0lGODlhAQAB"))).toBe("image/gif");
+    expect(sniffImageType(bytes("PHN2ZyB4bWxu"))).toBeNull();
+    expect(sniffImageType(new Uint8Array())).toBeNull();
   });
 });

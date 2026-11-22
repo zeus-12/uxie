@@ -1,6 +1,6 @@
 import {
   CHAT_IMAGE_TYPE_ERROR,
-  isChatImageMediaType,
+  sniffImageType,
   MAX_CHAT_IMAGE_BYTES,
   MAX_CHAT_IMAGE_EDGE,
   MAX_CHAT_IMAGE_SOURCE_BYTES,
@@ -60,10 +60,6 @@ export async function normalizeChatImage(
   name: string,
   maxBytes = MAX_CHAT_IMAGE_BYTES,
 ): Promise<NormalizeResult> {
-  const sourceType = blob.type;
-  if (!isChatImageMediaType(sourceType)) {
-    return { kind: "error", message: CHAT_IMAGE_TYPE_ERROR };
-  }
   if (blob.size > MAX_CHAT_IMAGE_SOURCE_BYTES) {
     return {
       kind: "error",
@@ -72,6 +68,11 @@ export async function normalizeChatImage(
       )}.`,
     };
   }
+
+  const sourceType = sniffImageType(
+    new Uint8Array(await blob.slice(0, 16).arrayBuffer()),
+  );
+  if (!sourceType) return { kind: "error", message: CHAT_IMAGE_TYPE_ERROR };
 
   let bitmap: ImageBitmap;
   try {
@@ -85,8 +86,14 @@ export async function normalizeChatImage(
       1,
       MAX_CHAT_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height),
     );
-    if (scale === 1 && blob.size <= maxBytes) {
-      return { kind: "image", image: { blob, mediaType: sourceType } };
+    if (scale === 1 && sourceType !== "image/gif" && blob.size <= maxBytes) {
+      return {
+        kind: "image",
+        image: {
+          blob: new Blob([blob], { type: sourceType }),
+          mediaType: sourceType,
+        },
+      };
     }
 
     const width = Math.max(1, Math.round(bitmap.width * scale));

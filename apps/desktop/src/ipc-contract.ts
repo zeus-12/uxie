@@ -28,11 +28,10 @@ import type {
   ReaderStateInput,
   RectInput,
 } from "@uxie/shared/schema";
-import type { ChatMessage, ChatPart } from "./chat-messages";
+import type { ChatImageUpload, ChatMessage, ChatPart } from "./chat-messages";
 
 export type { ChatMessage, ChatPart } from "./chat-messages";
 import type { FlashcardVerdict } from "@uxie/shared/schema/flashcard";
-import type { ChatImageMediaType } from "@uxie/shared/lib/chat-attachments";
 
 export type FlashcardWithAttempts = Flashcard & {
   flashcardAttempts: FlashcardAttempt[];
@@ -93,9 +92,9 @@ export interface IpcInvokeContract {
     result: string;
   };
   "documents:delete": { args: [id: string]; result: void };
-  /** Stores an image under the document and returns its `uxie-pdf://image/...` url. */
+  /** Stores a png under the document and returns its `uxie-pdf://image/...` url. */
   "documents:storeImage": {
-    args: [docId: string, bytes: Uint8Array, mediaType?: ChatImageMediaType];
+    args: [docId: string, png: Uint8Array];
     result: string;
   };
 
@@ -123,6 +122,11 @@ export interface IpcInvokeContract {
   "messages:create": {
     args: [docId: string, role: "user" | "assistant", parts: ChatPart[]];
     result: void;
+  };
+  /** Stores the images and the user message that references them, or neither. */
+  "messages:createUser": {
+    args: [docId: string, text: string, images: ChatImageUpload[]];
+    result: ChatMessage;
   };
 
   // RAG (document-grounded chat)
@@ -202,6 +206,7 @@ export const API_INVOKE = {
 
   getMessages: "messages:getByDocId",
   createMessage: "messages:create",
+  createUserMessage: "messages:createUser",
   getDocumentText: "documents:getText",
   storeEmbeddings: "embeddings:store",
   queryEmbeddings: "embeddings:query",

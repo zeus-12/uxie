@@ -11,7 +11,9 @@ import {
   type RetrievedChunk,
 } from "@uxie/shared/lib/chat";
 import {
+  earlierImagePlaceholder,
   isChatImageMediaType,
+  userMessageRows,
   type ChatImage,
   type ChatImageMediaType,
 } from "@uxie/shared/lib/chat-attachments";
@@ -72,10 +74,16 @@ function fileParts(message: ChatMessage): FilePart[] {
   return message.parts.filter((part): part is FilePart => part.type === "file");
 }
 
+export type ChatImageUpload = { filename: string; bytes: Uint8Array };
+
+const newestMessage = (messages: ChatMessage[]) =>
+  messages[messages.length - 1];
+
 export function chatMessageImageUrls(messages: ChatMessage[]): string[] {
-  return [
-    ...new Set(messages.flatMap((m) => fileParts(m).map((part) => part.url))),
-  ];
+  const newest = newestMessage(messages);
+  return newest?.role === "user"
+    ? fileParts(newest).map((part) => part.url)
+    : [];
 }
 
 export function chatMessageText(message: ChatMessage): string {
@@ -90,24 +98,16 @@ export function chatMessageText(message: ChatMessage): string {
 
 export function chatMessageToRows(message: ChatMessage): ChatDisplayRow[] {
   if (message.role === "user") {
-    const attachments = fileParts(message).map(
-      (part, index): ChatImage => ({
-        id: `${index}-${part.url}`,
-        filename: part.filename,
-        url: part.url,
-      }),
+    return userMessageRows(
+      chatMessageText(message),
+      fileParts(message).map(
+        (part, index): ChatImage => ({
+          id: `${index}-${part.url}`,
+          filename: part.filename,
+          url: part.url,
+        }),
+      ),
     );
-    const content = chatMessageText(message);
-    return content.trim() || attachments.length
-      ? [
-          {
-            kind: "message",
-            role: "user",
-            content,
-            attachments,
-          },
-        ]
-      : [];
   }
 
   const rows: ChatDisplayRow[] = [];
@@ -286,17 +286,28 @@ export function chatMessagesToModelMessages(
   images: ReadonlyMap<string, Uint8Array>,
 ): ModelMessage[] {
   const result: ModelMessage[] = [];
+  const newest = newestMessage(messages);
 
   for (const message of messages) {
     if (message.role === "user") {
       const imageParts = fileParts(message);
+      const text = chatMessageText(message);
+      if (message !== newest) {
+        const placeholders = imageParts.map((part) =>
+          earlierImagePlaceholder(part.filename),
+        );
+        result.push({
+          role: "user",
+          content: [text, ...placeholders].filter(Boolean).join("\n"),
+        });
+        continue;
+      }
       if (!imageParts.length) {
-        result.push({ role: "user", content: chatMessageText(message) });
+        result.push({ role: "user", content: text });
         continue;
       }
 
       const content: UserModelMessage["content"] = [];
-      const text = chatMessageText(message);
       if (text) content.push({ type: "text", text });
       for (const part of imageParts) {
         const data = images.get(part.url);

@@ -13,12 +13,7 @@ import {
 } from "@uxie/shared/components/chat/chat-panel";
 import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
-import {
-  chatMessageToRows,
-  textPart,
-  type ChatMessage,
-  type ChatPart,
-} from "../chat-messages";
+import { chatMessageToRows, type ChatMessage } from "../chat-messages";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
@@ -99,16 +94,14 @@ function ChatView({ docId }: { docId: string }) {
   const [searchedOnce, setSearchedOnce] = useState(false);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [savingImages, setSavingImages] = useState(false);
+  const [sending, setSending] = useState(false);
   const {
     attachments,
     attachmentError,
     attachmentsPending,
     addDataUrl,
     addFiles,
-    removeAttachment,
-    clearAttachments,
-    setAttachmentError,
+    removeAttachments,
   } = useChatImageAttachments();
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -168,7 +161,6 @@ function ChatView({ docId }: { docId: string }) {
       setError(msg);
       finalize();
     });
-    // Main asks us to retrieve (embed in the worker + query the vector store).
     const offRetrieve = window.uxieAPI.onChatRetrieve(
       (reqId, dId, question) => {
         import("./rag")
@@ -187,7 +179,6 @@ function ChatView({ docId }: { docId: string }) {
     };
   }, [docId]);
 
-  // Register a focuser + auto-focus when the chat tab becomes active.
   const setFocusInput = useChatStore((s) => s.setFocusInput);
   const tab = useSidebarTabStore((s) => s.tab);
   useEffect(() => {
@@ -200,8 +191,6 @@ function ChatView({ docId }: { docId: string }) {
   }, [tab]);
 
   const rows: ChatRow[] = messages.flatMap(chatMessageToRows);
-  // The current assistant turn: an optional tool chip (outside the bubble, like
-  // ChatGPT), then either the streaming answer or a "thinking" shimmer.
   if (streaming) {
     if (searchedOnce) {
       rows.push({
@@ -215,47 +204,37 @@ function ChatView({ docId }: { docId: string }) {
   }
   if (error) rows.push({ kind: "error", content: error });
 
-  async function saveImages(): Promise<ChatPart[] | null> {
-    setSavingImages(true);
+  async function send(override?: string) {
+    const submittedInput = input;
+    const text = (override ?? submittedInput).trim();
+    const images = override === undefined ? attachments : [];
+    if ((!text && !images.length) || streaming || sending) return;
+
+    setSending(true);
+    let userMessage: ChatMessage;
     try {
-      return await Promise.all(
-        attachments.map(
-          async (image): Promise<ChatPart> => ({
-            type: "file",
+      userMessage = await window.uxieAPI.createUserMessage(
+        docId,
+        text,
+        await Promise.all(
+          images.map(async (image) => ({
             filename: image.filename,
-            mediaType: image.mediaType,
-            url: await window.uxieAPI.storeDocumentImage(
-              docId,
-              new Uint8Array(await image.blob.arrayBuffer()),
-              image.mediaType,
-            ),
-          }),
+            bytes: new Uint8Array(await image.blob.arrayBuffer()),
+          })),
         ),
       );
     } catch (e) {
-      setAttachmentError(
-        `Couldn't save the image: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
-      );
-      return null;
+      setError(`Couldn't send the message: ${message(e)}`);
+      return;
     } finally {
-      setSavingImages(false);
+      setSending(false);
     }
-  }
 
-  async function send(override?: string) {
-    const text = (override ?? input).trim();
-    const withImages = override === undefined && attachments.length > 0;
-    if ((!text && !withImages) || streaming || savingImages) return;
-    const imageParts = withImages ? await saveImages() : [];
-    if (!imageParts) return;
-    const parts = [...(text ? [textPart(text)] : []), ...imageParts];
-    const history: ChatMessage[] = [...messages, { role: "user", parts }];
+    const history: ChatMessage[] = [...messages, userMessage];
     setMessages(history);
     if (override === undefined) {
-      setInput("");
-      clearAttachments();
+      setInput((current) => (current === submittedInput ? "" : current));
+      removeAttachments(images.map((image) => image.id));
     }
     setError(null);
     setStreaming(true);
@@ -266,7 +245,6 @@ function ChatView({ docId }: { docId: string }) {
 
     const streamId = createId();
     streamIdRef.current = streamId;
-    void window.uxieAPI.createMessage(docId, "user", parts).catch(() => {});
     window.uxieAPI.startChat(streamId, docId, history);
   }
 
@@ -274,8 +252,6 @@ function ChatView({ docId }: { docId: string }) {
     if (streamIdRef.current) window.uxieAPI.cancelChat(streamIdRef.current);
   }
 
-  // Let the highlight popover push a message into this chat. Route through a ref
-  // so the registered handler always uses the latest state (messages/streaming).
   const sendRef = useRef(send);
   sendRef.current = send;
   const setSendMessage = useChatStore((s) => s.setSendMessage);
@@ -301,10 +277,10 @@ function ChatView({ docId }: { docId: string }) {
       attachments={attachments}
       attachmentError={attachmentError}
       attachmentsPending={attachmentsPending}
-      attachmentsBusy={attachmentsPending > 0 || savingImages}
+      sending={sending}
       onInputChange={setInput}
       onFilesSelected={(files) => void addFiles(files)}
-      onRemoveAttachment={removeAttachment}
+      onRemoveAttachment={(id) => removeAttachments([id])}
       onSubmit={() => void send()}
       onStop={stop}
       streaming={streaming}

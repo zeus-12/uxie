@@ -30,6 +30,7 @@ import { getFlashcardsByDocId } from "./db/flashcards";
 import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
 import { extractPdfText } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
+import { createUserMessage } from "./chat-images";
 import { createMessage, getMessagesByDocId } from "./db/messages";
 
 // Without this, app.getName() falls back to package.json's "name" — the
@@ -71,8 +72,7 @@ const invokeHandlers: {
     updateDocumentTitle(getDb(), id, title),
   "documents:setCover": (id, png) => setDocumentCover(id, png),
   "documents:delete": (id) => deleteDocumentWithFile(id),
-  "documents:storeImage": (docId, bytes, mediaType) =>
-    storeDocumentImage(docId, bytes, mediaType),
+  "documents:storeImage": (docId, png) => storeDocumentImage(docId, png),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
   // Deliberately leaves the screenshot on disk: the same image is embedded in
@@ -90,6 +90,8 @@ const invokeHandlers: {
   "flashcards:generate": (docId) => generateFlashcardsForDoc(docId),
 
   "messages:getByDocId": (docId) => getMessagesByDocId(getDb(), docId),
+  "messages:createUser": (docId, text, images) =>
+    createUserMessage(docId, text, images),
   "messages:create": (docId, role, parts) =>
     createMessage(getDb(), docId, role, parts),
 

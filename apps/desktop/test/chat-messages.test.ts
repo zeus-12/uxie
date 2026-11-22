@@ -190,6 +190,41 @@ describe("desktop chat message history", () => {
     );
   });
 
+  it("sends image bytes only for the newest message", () => {
+    const earlier: ChatMessage = {
+      role: "user",
+      parts: [
+        { type: "text", text: "What is this?" },
+        {
+          type: "file",
+          filename: "receipt.png",
+          mediaType: "image/png",
+          url: "uxie-pdf://image/doc1/gone",
+        },
+      ],
+    };
+    const followUp: ChatMessage = {
+      role: "user",
+      parts: [{ type: "text", text: "And the tip?" }],
+    };
+    const history = [
+      earlier,
+      { role: "assistant", parts: [{ type: "text", text: "A receipt." }] },
+      followUp,
+    ] satisfies ChatMessage[];
+
+    expect(chatMessageImageUrls(history)).toEqual([]);
+    expect(chatMessagesToModelMessages(history, new Map())).toEqual([
+      {
+        role: "user",
+        content:
+          "What is this?\n[The user attached an image here (receipt.png); it is not included in this turn.]",
+      },
+      { role: "assistant", content: "A receipt." },
+      { role: "user", content: "And the tip?" },
+    ]);
+  });
+
   it("drops malformed stored image parts at the persistence boundary", () => {
     expect(
       normalizeChatParts([

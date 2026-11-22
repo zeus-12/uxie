@@ -99,7 +99,7 @@ export async function streamChat(
     const images = new Map(
       await Promise.all(
         chatMessageImageUrls(messages).map(
-          async (url) => [url, (await readDocumentImage(url)).bytes] as const,
+          async (url) => [url, await readDocumentImage(url)] as const,
         ),
       ),
     );

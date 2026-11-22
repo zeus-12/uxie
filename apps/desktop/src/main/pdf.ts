@@ -19,6 +19,7 @@ import {
   coverPath,
   countPdfPages,
   deleteDocDir,
+  deleteImage,
   imagePath,
   migrateToDocDirs,
   pdfPath,
@@ -85,9 +86,7 @@ function imageLocation(segments: string[]): ImageLocation | null {
 const imageFilePath = ({ docId, imageId, mediaType }: ImageLocation) =>
   imagePath(documentsDir(), docId, imageId, imageExtension(mediaType));
 
-export async function readDocumentImage(
-  url: string,
-): Promise<{ bytes: Uint8Array; mediaType: ChatImageMediaType }> {
+function documentImageLocation(url: string): ImageLocation {
   const { protocol, host, pathname } = new URL(url);
   const segments = pathname.replace(/^\//, "").split("/");
   const location =
@@ -97,10 +96,16 @@ export async function readDocumentImage(
       ? imageLocation(segments)
       : null;
   if (!location) throw new Error(`Not a document image: ${url}`);
-  return {
-    bytes: await readFile(imageFilePath(location)),
-    mediaType: location.mediaType,
-  };
+  return location;
+}
+
+export async function readDocumentImage(url: string): Promise<Uint8Array> {
+  return readFile(imageFilePath(documentImageLocation(url)));
+}
+
+export async function deleteDocumentImage(url: string): Promise<void> {
+  const { docId, imageId, mediaType } = documentImageLocation(url);
+  await deleteImage(documentsDir(), docId, imageId, imageExtension(mediaType));
 }
 
 export function registerPdfProtocol(): void {

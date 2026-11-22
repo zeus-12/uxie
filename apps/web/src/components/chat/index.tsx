@@ -15,7 +15,10 @@ import {
 } from "@uxie/shared/components/other/indexing-state";
 import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
 import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
-import type { ChatImage } from "@uxie/shared/lib/chat-attachments";
+import {
+  userMessageRows,
+  type ChatImage,
+} from "@uxie/shared/lib/chat-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import { DefaultChatTransport, type FileUIPart } from "ai";
 import { SparklesIcon } from "lucide-react";
@@ -80,8 +83,6 @@ type LoosePart = {
 const partsOf = (m: { parts?: unknown }): LoosePart[] =>
   Array.isArray(m.parts) ? (m.parts as LoosePart[]) : [];
 
-// Fan a message's parts into flat rows: text → a bubble, a tool call → a chip
-// that sits OUTSIDE the bubble (ChatGPT-style). tool-result parts are internal.
 function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
   const displayRole = role === "user" ? "user" : "assistant";
   if (displayRole === "user") {
@@ -100,16 +101,7 @@ function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
           ]
         : [],
     );
-    return content.trim() || attachments.length
-      ? [
-          {
-            kind: "message",
-            role: "user",
-            content,
-            attachments,
-          },
-        ]
-      : [];
+    return userMessageRows(content, attachments);
   }
 
   const rows: ChatRow[] = [];
@@ -134,7 +126,7 @@ function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
 }
 
 function ChatView({ docId }: { docId: string }) {
-  const { messages, status, stop, sendMessage } = useChat({
+  const { messages, status, error, stop, sendMessage } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages, body }) => ({
@@ -156,7 +148,7 @@ function ChatView({ docId }: { docId: string }) {
     attachmentsPending,
     addDataUrl,
     addFiles,
-    removeAttachment,
+    removeAttachments,
     clearAttachments,
   } = useChatImageAttachments({
     maxTotalBytes: MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
@@ -180,8 +172,6 @@ function ChatView({ docId }: { docId: string }) {
     clearAttachments();
   };
 
-  // Register a sender (highlight popover → chat) + a focuser (⌘L) on the shared
-  // store, and focus the input whenever the chat tab becomes active.
   const setSendMessage = useChatStore((s) => s.setSendMessage);
   const setStageImageAttachment = useChatStore(
     (s) => s.setStageImageAttachment,
@@ -207,7 +197,6 @@ function ChatView({ docId }: { docId: string }) {
     if (tab === "chat") inputRef.current?.focus();
   }, [tab]);
 
-  // ⌘1/2/3 switch tabs; ⌘L jumps to chat and focuses its input.
   const setTab = useSidebarTabStore((s) => s.setTab);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -237,8 +226,6 @@ function ChatView({ docId }: { docId: string }) {
   const rows: ChatRow[] = [];
   for (const m of history) rows.push(...messageToRows(m.role, partsOf(m)));
 
-  // Current turn hasn't produced a tool chip or any text yet → a Thinking
-  // shimmer, driven by the real in-flight request status.
   if (streaming) {
     const last = messages[messages.length - 1];
     const lastHasAssistantContent =
@@ -252,7 +239,7 @@ function ChatView({ docId }: { docId: string }) {
   if (status === "error") {
     rows.push({
       kind: "error",
-      content: "Something went wrong. Please try again.",
+      content: error?.message || "Something went wrong. Please try again.",
     });
   }
 
@@ -264,10 +251,9 @@ function ChatView({ docId }: { docId: string }) {
       attachments={attachments}
       attachmentError={attachmentError}
       attachmentsPending={attachmentsPending}
-      attachmentsBusy={attachmentsPending > 0}
       onInputChange={setInput}
       onFilesSelected={(files) => void addFiles(files)}
-      onRemoveAttachment={removeAttachment}
+      onRemoveAttachment={(id) => removeAttachments([id])}
       onSubmit={submit}
       onStop={stop}
       streaming={streaming}

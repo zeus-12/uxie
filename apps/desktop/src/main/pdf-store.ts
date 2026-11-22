@@ -69,8 +69,9 @@ export async function deleteImage(
   root: string,
   docId: string,
   imageId: string,
+  extension = "png",
 ): Promise<void> {
-  await rm(imagePath(root, docId, imageId), { force: true });
+  await rm(imagePath(root, docId, imageId, extension), { force: true });
 }
 
 /** Removes the pdf, the cover and every image in one go. */

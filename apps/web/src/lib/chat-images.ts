@@ -1,7 +1,9 @@
 import {
+  earlierImagePlaceholder,
   isChatImageMediaType,
   MAX_CHAT_IMAGE_BYTES,
   MAX_CHAT_IMAGE_COUNT,
+  sniffImageType,
   type ChatImageMediaType,
 } from "@uxie/shared/lib/chat-attachments";
 import type { UIMessage } from "ai";
@@ -33,9 +35,17 @@ function base64Bytes(data: string): number | null {
   return (data.length / 4) * 3 - padding;
 }
 
-function inlineImageBytes(url: string, mediaType: string): number | null {
+function inlineImageBytes(
+  url: string,
+  mediaType: ChatImageMediaType,
+): number | null {
   const prefix = `data:${mediaType};base64,`;
-  return url.startsWith(prefix) ? base64Bytes(url.slice(prefix.length)) : null;
+  if (!url.startsWith(prefix)) return null;
+  const data = url.slice(prefix.length);
+  const size = base64Bytes(data);
+  if (size === null) return null;
+  const head = Uint8Array.from(atob(data.slice(0, 24)), (c) => c.charCodeAt(0));
+  return sniffImageType(head) === mediaType ? size : null;
 }
 
 const imageName = (filename: unknown) =>
@@ -97,7 +107,10 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
         continue;
       }
       if (part.type !== "file" || !isChatImageMediaType(part.mediaType)) {
-        return { ok: false, error: "Only text and images can be sent." };
+        return {
+          ok: false,
+          error: "Only text and PNG, JPEG or WebP images can be sent.",
+        };
       }
 
       const filename = imageName(part.filename);
@@ -112,7 +125,7 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
         }
         modelParts.push({
           type: "text",
-          text: `[The user attached an image here (${filename}); it is no longer available.]`,
+          text: earlierImagePlaceholder(filename),
         });
         continue;
       }
@@ -122,7 +135,10 @@ export function prepareChatMessages(messages: unknown[]): Prepared {
           ? inlineImageBytes(part.url, part.mediaType)
           : null;
       if (bytes === null) {
-        return { ok: false, error: "Images must be sent inline." };
+        return {
+          ok: false,
+          error: "An image isn't a valid PNG, JPEG or WebP file.",
+        };
       }
       imageCount += 1;
       imageBytes += bytes;

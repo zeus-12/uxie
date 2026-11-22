@@ -36,7 +36,7 @@ type Action =
   | { type: "start"; count: number }
   | { type: "finish"; results: Processed[]; maxTotalBytes: number | null }
   | { type: "fail"; message: string }
-  | { type: "remove"; id: string }
+  | { type: "remove"; ids: string[] }
   | { type: "clear" };
 
 function reducer(state: State, action: Action): State {
@@ -78,7 +78,9 @@ function reducer(state: State, action: Action): State {
     case "remove":
       return {
         ...state,
-        attachments: state.attachments.filter((item) => item.id !== action.id),
+        attachments: state.attachments.filter(
+          (item) => !action.ids.includes(item.id),
+        ),
         error: null,
       };
     case "clear":
@@ -155,15 +157,11 @@ export function useChatImageAttachments({
     [addSources],
   );
 
-  const removeAttachment = useCallback(
-    (id: string) => dispatch({ type: "remove", id }),
+  const removeAttachments = useCallback(
+    (ids: string[]) => dispatch({ type: "remove", ids }),
     [],
   );
   const clearAttachments = useCallback(() => dispatch({ type: "clear" }), []);
-  const setAttachmentError = useCallback(
-    (message: string) => dispatch({ type: "fail", message }),
-    [],
-  );
 
   return {
     attachments: state.attachments,
@@ -171,8 +169,7 @@ export function useChatImageAttachments({
     attachmentsPending: state.pending,
     addFiles,
     addDataUrl,
-    removeAttachment,
+    removeAttachments,
     clearAttachments,
-    setAttachmentError,
   };
 }
