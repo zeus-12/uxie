@@ -132,7 +132,6 @@ export interface IpcInvokeContract {
     result: void;
   };
 
-  // RAG (document-grounded chat)
   "documents:getPages": { args: [docId: string]; result: PdfPageText[] };
   "embeddings:store": {
     args: [docId: string, items: EmbeddedChunk[]];

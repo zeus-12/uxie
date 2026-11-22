@@ -58,7 +58,6 @@ export async function chunkText(text: string): Promise<string[]> {
   return chunks.filter((c) => c.trim().length > 20);
 }
 
-/** Split within each page so every resulting chunk has honest provenance. */
 export async function chunkPdfPages(pages: PdfPageText[]): Promise<PdfChunk[]> {
   const chunks: PdfChunk[] = [];
   for (const page of pages) {

@@ -43,9 +43,17 @@ export function initVectorStore(sqlite: Database.Database): boolean {
   if (schema?.dim === EMBEDDING_DIM && schema.hasPageNumber) return false;
 
   if (schema) {
-    const reason = schema.hasPageNumber
-      ? `embedding dimension changed ${schema.dim} → ${EMBEDDING_DIM}`
-      : "page provenance is missing";
+    const reasons = [
+      ...(schema.dim === EMBEDDING_DIM
+        ? []
+        : [
+            `embedding dimension is ${
+              schema.dim ?? "unreadable"
+            }, expected ${EMBEDDING_DIM}`,
+          ]),
+      ...(schema.hasPageNumber ? [] : ["page provenance is missing"]),
+    ];
+    const reason = reasons.join(" and ");
     console.warn(`[uxie] ${reason}; rebuilding vector store`);
     sqlite.exec("DROP TABLE doc_vectors");
   }
