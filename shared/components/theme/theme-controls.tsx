@@ -196,7 +196,7 @@ function ModePicker({
 }) {
   return (
     <div
-      role="radiogroup"
+      role="group"
       aria-label="Mode"
       className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1"
     >
@@ -207,8 +207,7 @@ function ModePicker({
           <button
             key={option}
             type="button"
-            role="radio"
-            aria-checked={selected}
+            aria-pressed={selected}
             onClick={() => setTheme(option)}
             className={cn(
               "inline-flex h-8 items-center justify-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -236,8 +235,7 @@ function PresetSelect({
 
   return (
     <Select
-      key={preset ?? "none"}
-      value={preset}
+      value={preset ?? ""}
       onValueChange={(value) => setTheme(value as PresetTheme)}
     >
       <SelectTrigger

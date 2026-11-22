@@ -38,7 +38,7 @@ export const BackgroundControlsContent = ({
 }) => {
   return (
     <div
-      role="radiogroup"
+      role="group"
       aria-label="Page colour"
       className="flex items-center gap-2 px-1.5"
     >
@@ -46,8 +46,7 @@ export const BackgroundControlsContent = ({
         <CustomTooltip key={colour} content={PAGE_TINT_NAMES[colour]} asChild>
           <button
             type="button"
-            role="radio"
-            aria-checked={colour === pageColour}
+            aria-pressed={colour === pageColour}
             aria-label={PAGE_TINT_NAMES[colour]}
             onClick={() => pageColourChangeHandler(colour)}
             className={cn(
@@ -62,8 +61,7 @@ export const BackgroundControlsContent = ({
       <CustomTooltip content="Use the app theme's page colours" asChild>
         <button
           type="button"
-          role="radio"
-          aria-checked={pageColour === "theme"}
+          aria-pressed={pageColour === "theme"}
           onClick={() => pageColourChangeHandler("theme")}
           className={cn(
             "flex h-7 items-center gap-1.5 rounded-md py-0.5 pl-0.5 pr-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -88,19 +86,22 @@ export const BackgroundControlsIcon = ({
 }: {
   pageColour: PageColour;
 }) => {
-  if (pageColour === "theme") {
-    return (
-      <span aria-label="Page colour: theme" className="inline-flex size-6">
-        <ThemePageChip className="size-6" />
-      </span>
-    );
-  }
+  const label = pageColour === "theme" ? "Theme" : PAGE_TINT_NAMES[pageColour];
 
   return (
-    <span
-      aria-label={`Page colour: ${PAGE_TINT_NAMES[pageColour]}`}
-      className="inline-flex size-6 rounded-[5px] ring-1 ring-inset ring-black/15"
-      style={{ backgroundColor: pageColour }}
-    />
+    <button
+      type="button"
+      aria-label={`Page colour: ${label}`}
+      className="inline-flex size-6 rounded-[5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {pageColour === "theme" ? (
+        <ThemePageChip className="size-6" />
+      ) : (
+        <span
+          className="size-6 rounded-[5px] ring-1 ring-inset ring-black/15"
+          style={{ backgroundColor: pageColour }}
+        />
+      )}
+    </button>
   );
 };
