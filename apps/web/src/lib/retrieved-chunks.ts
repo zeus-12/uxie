@@ -15,19 +15,11 @@ function positiveInteger(value: unknown): number | null {
     : null;
 }
 
-// Pinecone stores metadata flat, so the PDF loader's nested `loc.pageNumber`
-// comes back under the dotted key on vectors indexed before page provenance.
+// Legacy vectors only carry `loc.pageNumber` from pdf-parse, whose text doesn't match the viewer's text layer.
 export function pageNumberFromMetadata(
   metadata: Record<string, unknown>,
 ): number | null {
-  const location = metadata.loc;
-  return (
-    positiveInteger(metadata.pageNumber) ??
-    positiveInteger(metadata["loc.pageNumber"]) ??
-    (typeof location === "object" && location !== null
-      ? positiveInteger((location as Record<string, unknown>).pageNumber)
-      : null)
-  );
+  return positiveInteger(metadata.pageNumber);
 }
 
 export function toRetrievedChunk(
@@ -40,11 +32,13 @@ export function toRetrievedChunk(
           pageContent: document.pageContent,
           blockId: document.metadata.blockId,
         }
-      : {
-          kind: "pdf",
-          pageContent: document.pageContent,
-          pageNumber: pageNumberFromMetadata(document.metadata),
-        };
+      : document.metadata.kind === "pdf"
+        ? {
+            kind: "pdf",
+            pageContent: document.pageContent,
+            pageNumber: pageNumberFromMetadata(document.metadata),
+          }
+        : null;
   const parsed = retrievedChunkSchema.safeParse(candidate);
   return parsed.success ? parsed.data : null;
 }

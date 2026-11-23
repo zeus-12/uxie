@@ -6,7 +6,7 @@ export const CHAT_SYSTEM_PROMPT = `You are a helpful assistant embedded in a doc
 
 Call 'getInformation' ONLY when answering actually requires the document's contents, such as questions about what it says, its arguments, data, definitions, or specific passages. When you use it, search first, then write a clear answer grounded in the retrieved content.
 
-Citations: every retrieved passage has a numeric 'ref'. Cite a passage inline as [ref] right after a claim it directly supports, e.g. "Traces are compiled to native code [3]." or "[2, 5]" for several. Cite only refs from tool results; a passage without a ref can't be cited, so don't mark it at all. Never mention refs or this citation format to the user. Never add a sources or references list at the end.
+Citations: every retrieved passage has a numeric 'ref'. Cite a passage inline as [ref:N] right after a claim it directly supports, e.g. "Traces are compiled to native code [ref:3]." or "[ref:2, 5]" for several. Plain bracketed numbers are reserved for the document's own references; never use them for passages. Cite only refs from tool results; a passage without a ref can't be cited, so don't mark it at all. Never mention refs or this citation format to the user. Never add a sources or references list at the end.
 
 When the retrieved passages don't contain the answer, say so in one or two sentences and stop. Do not cite anything in that case and do not describe what the passages are about instead. For example: "The document doesn't discuss Python's global interpreter lock."
 
@@ -26,7 +26,6 @@ export const getInformationInputSchema = z.object({
 });
 export type GetInformationInput = z.infer<typeof getInformationInputSchema>;
 
-// Every cited passage carries the provenance needed to open it: a PDF page or an article block.
 export const pdfChunkSchema = z.object({
   kind: z.literal("pdf"),
   pageContent: z.string().min(1),
@@ -93,7 +92,7 @@ export function citablePassagesFromParts(parts: unknown): CitablePassage[] {
   });
 }
 
-// A later passage with the same ref wins: refs restart when a web chat session does.
+// Web chats stored before refs were numbered against history restart at 1, so a later passage with the same ref wins.
 export function withCitablePassages(
   index: CitationIndex,
   parts: unknown,

@@ -23,10 +23,10 @@ describe("toGetInformationOutput", () => {
     });
   });
 
-  it("reads the page of current and legacy PDF vectors", () => {
+  it("reads the page only from vectors indexed with the viewer's text", () => {
     expect(pageNumberFromMetadata({ pageNumber: 3 })).toBe(3);
-    expect(pageNumberFromMetadata({ "loc.pageNumber": 4 })).toBe(4);
-    expect(pageNumberFromMetadata({ loc: { pageNumber: 5 } })).toBe(5);
+    expect(pageNumberFromMetadata({ "loc.pageNumber": 4 })).toBeNull();
+    expect(pageNumberFromMetadata({ loc: { pageNumber: 5 } })).toBeNull();
     expect(pageNumberFromMetadata({ pageNumber: 0 })).toBeNull();
   });
 
@@ -35,11 +35,15 @@ describe("toGetInformationOutput", () => {
       toGetInformationOutput([
         { pageContent: "legacy pdf text", metadata: { fileId: "doc" } },
         { pageContent: "orphan article text", metadata: { kind: "article" } },
-        { pageContent: "located", metadata: { "loc.pageNumber": 2 } },
+        { pageContent: "pdf-parse text", metadata: { "loc.pageNumber": 2 } },
+        {
+          pageContent: "located",
+          metadata: { kind: "pdf", pageNumber: 2 },
+        },
       ]),
     ).toEqual({
       results: [{ kind: "pdf", pageContent: "located", pageNumber: 2 }],
-      unlocated: ["legacy pdf text", "orphan article text"],
+      unlocated: ["legacy pdf text", "orphan article text", "pdf-parse text"],
     });
   });
 });

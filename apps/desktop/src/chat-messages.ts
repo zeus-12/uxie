@@ -21,6 +21,7 @@ import {
   type ChatImage,
   type ChatImageMediaType,
 } from "@uxie/shared/lib/chat-attachments";
+import { z } from "zod";
 
 export type ChatPart =
   | { type: "text"; text: string }
@@ -140,6 +141,24 @@ function isGetInformationOutput(value: unknown): value is GetInformationOutput {
   return getInformationOutputSchema.safeParse(value).success;
 }
 
+const legacyGetInformationOutputSchema = z
+  .object({ results: z.array(z.object({ pageContent: z.string() }).strict()) })
+  .strict();
+
+// Results stored before passages carried their page keep feeding the model but can't be cited.
+function storedGetInformationOutput(
+  value: unknown,
+): GetInformationOutput | null {
+  const current = getInformationOutputSchema.safeParse(value);
+  if (current.success) return current.data;
+  const legacy = legacyGetInformationOutputSchema.safeParse(value);
+  if (!legacy.success) return null;
+  return {
+    results: [],
+    unlocated: legacy.data.results.map((result) => result.pageContent),
+  };
+}
+
 export function normalizeChatParts(parts: unknown): ChatPart[] {
   if (!Array.isArray(parts)) return [];
   return parts.flatMap((part): ChatPart[] => {
@@ -178,18 +197,19 @@ export function normalizeChatParts(parts: unknown): ChatPart[] {
         },
       ];
     }
+    const output =
+      part.type === "tool-result" ? storedGetInformationOutput(part.output) : null;
     if (
-      part.type === "tool-result" &&
+      output &&
       typeof part.toolCallId === "string" &&
-      part.toolName === GET_INFORMATION_TOOL_NAME &&
-      isGetInformationOutput(part.output)
+      part.toolName === GET_INFORMATION_TOOL_NAME
     ) {
       return [
         {
           type: "tool-result",
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          output: part.output,
+          output,
         },
       ];
     }

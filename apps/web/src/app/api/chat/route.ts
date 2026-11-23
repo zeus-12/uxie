@@ -78,6 +78,11 @@ export async function POST(req: Request) {
     const prepared = prepareChatMessages(messages);
     if (!prepared.ok) return chatErrorResponse(prepared.error, 400);
 
+    const storedTurns = await prisma.message.findMany({
+      where: { documentId: docId },
+      select: { parts: true },
+    });
+
     return chatTurnResponse({
       options: {
         model: google("gemini-2.5-flash"),
@@ -86,9 +91,10 @@ export async function POST(req: Request) {
         system: CHAT_SYSTEM_PROMPT,
         tools: AI_TOOLS({
           docId,
-          numberPassages: createCitationNumberer(
-            prepared.messages.map((message) => message.parts),
-          ),
+          numberPassages: createCitationNumberer([
+            ...storedTurns.map((turn) => turn.parts),
+            ...prepared.messages.map((message) => message.parts),
+          ]),
         }),
         toolChoice: "auto",
         stopWhen: stepCountIs(3),

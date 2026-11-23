@@ -220,16 +220,14 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
       const block = articleContentRef.current?.querySelector<HTMLElement>(
         `[data-uxie-block-id="${CSS.escape(source.blockId)}"]`,
       );
-      if (!block) {
+      const range = block && findTextRangeInBlock(block, source.pageContent);
+      if (!block || !range) {
         toast.error("Couldn't find this passage in the article", {
           duration: 3000,
         });
         return;
       }
-      const range = findTextRangeInBlock(block, source.pageContent);
-      const target = range ?? document.createRange();
-      if (!range) target.selectNodeContents(block);
-      CSS.highlights?.set(ARTICLE_CITATION_HIGHLIGHT, new Highlight(target));
+      CSS.highlights?.set(ARTICLE_CITATION_HIGHLIGHT, new Highlight(range));
       block.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
           ? "auto"

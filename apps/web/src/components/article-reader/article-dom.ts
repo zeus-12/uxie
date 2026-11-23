@@ -179,7 +179,6 @@ export const paintArticleHighlights = (
   }
 };
 
-/** Exact after whitespace normalization; null when the passage isn't in the block. */
 export const findTextRangeInBlock = (
   block: Element,
   text: string,

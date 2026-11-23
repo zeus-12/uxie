@@ -16,7 +16,6 @@ const CREATE_VECTOR_TABLE = `CREATE VIRTUAL TABLE doc_vectors USING vec0(
 
 type ExistingSchema = { dim: number | null; hasPageNumber: boolean };
 
-/** The relevant shape of an existing derived vector table, if it exists. */
 function existingSchema(sqlite: Database.Database): ExistingSchema | null {
   const row = sqlite
     .prepare("SELECT sql FROM sqlite_master WHERE name = 'doc_vectors'")

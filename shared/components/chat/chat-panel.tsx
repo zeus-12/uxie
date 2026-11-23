@@ -385,12 +385,12 @@ export function CitedMarkdown({
   citations?: CitationIndex;
   renderMarkdown: RenderMarkdown;
 }) {
-  if (!citations?.size) return <>{renderMarkdown(content)}</>;
+  const index = citations ?? NO_CITATIONS;
   return (
     <TooltipProvider delayDuration={150}>
-      <CitationContext.Provider value={citations}>
+      <CitationContext.Provider value={index}>
         {renderMarkdown(content, {
-          remarkPlugins: [remarkCitations(citations)],
+          remarkPlugins: [remarkCitations(index)],
           components: CITATION_COMPONENTS,
         })}
       </CitationContext.Provider>
@@ -398,7 +398,8 @@ export function CitedMarkdown({
   );
 }
 
-const CitationContext = createContext<CitationIndex>(new Map());
+const NO_CITATIONS: CitationIndex = new Map();
+const CitationContext = createContext<CitationIndex>(NO_CITATIONS);
 
 function useOpenSource() {
   const highlightSource = useCitationHighlightStore(
@@ -457,17 +458,12 @@ function CitationRef({
 }
 
 function CitationGroupTag(
-  props: HTMLAttributes<HTMLElement> & {
-    "data-refs"?: string;
-    "data-labels"?: string;
-  },
+  props: HTMLAttributes<HTMLElement> & { "data-refs"?: string },
 ) {
   const citations = useContext(CitationContext);
-  const labels = (props["data-labels"] ?? "").split(",");
-  const cited = (props["data-refs"] ?? "").split(",").flatMap((ref, index) => {
+  const cited = (props["data-refs"] ?? "").split(",").flatMap((ref) => {
     const source = citations.get(Number(ref));
-    const label = labels[index];
-    return source && label ? [{ source, label }] : [];
+    return source ? [{ source, label: ref }] : [];
   });
   if (!cited.length) return null;
   return (

@@ -9,76 +9,63 @@ type MdNode = {
 
 export const CITATION_GROUP_TAG = "cite";
 
-const CITATION_BRACKET = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
+const CITATION_TOKEN = /\[ref:\s*(\d+(?:\s*,\s*(?:ref:\s*)?\d+)*)\]/g;
 const LITERAL_CONTAINERS = new Set(["link", "linkReference"]);
 
-type CitedRef = { ref: number; label: number };
-
-function citationGroupNode(cited: CitedRef[]): MdNode {
+function citationGroupNode(refs: number[]): MdNode {
   return {
     type: "citationGroup",
     children: [],
     data: {
       hName: CITATION_GROUP_TAG,
-      hProperties: {
-        dataRefs: cited.map(({ ref }) => ref).join(","),
-        dataLabels: cited.map(({ label }) => label).join(","),
-      },
+      hProperties: { dataRefs: refs.join(",") },
     },
   };
 }
 
-function splitCitations(
-  value: string,
-  cite: (ref: number) => CitedRef | null,
-): MdNode[] | null {
+// The token is ours, never document text, so refs naming no retrieved passage are dropped rather than shown.
+function splitCitations(value: string, citations: CitationIndex): MdNode[] {
   const nodes: MdNode[] = [];
-  let group: CitedRef[] = [];
+  let group: number[] = [];
   let groupEnd = -1;
   let last = 0;
-  for (const match of value.matchAll(CITATION_BRACKET)) {
-    const cited = match[1]!
-      .split(",")
-      .flatMap((ref) => cite(Number(ref.trim())) ?? []);
-    if (!cited.length) continue;
-    if (match.index !== groupEnd && group.length) {
-      nodes.push(citationGroupNode(group));
-      group = [];
+  let inRun = false;
+  const flush = () => {
+    if (group.length) nodes.push(citationGroupNode(group));
+    else if (inRun && nodes.at(-1)?.type === "text") {
+      nodes.at(-1)!.value = nodes.at(-1)!.value!.trimEnd();
     }
+    group = [];
+    inRun = false;
+  };
+  for (const match of value.matchAll(CITATION_TOKEN)) {
+    if (match.index !== groupEnd) flush();
     if (match.index > last) {
       nodes.push({ type: "text", value: value.slice(last, match.index) });
     }
-    for (const entry of cited) {
-      if (!group.some(({ ref }) => ref === entry.ref)) group.push(entry);
+    for (const ref of match[1]!.match(/\d+/g)!.map(Number)) {
+      if (citations.has(ref) && !group.includes(ref)) group.push(ref);
     }
+    inRun = true;
     last = groupEnd = match.index + match[0].length;
   }
-  if (group.length) nodes.push(citationGroupNode(group));
-  if (!nodes.length) return null;
+  flush();
   if (last < value.length)
     nodes.push({ type: "text", value: value.slice(last) });
   return nodes;
 }
 
-function transform(node: MdNode, cite: (ref: number) => CitedRef | null) {
+function transform(node: MdNode, citations: CitationIndex) {
   if (!node.children || LITERAL_CONTAINERS.has(node.type)) return;
   node.children = node.children.flatMap((child) => {
     if (child.type === "text" && child.value) {
-      return splitCitations(child.value, cite) ?? [child];
+      return splitCitations(child.value, citations);
     }
-    transform(child, cite);
+    transform(child, citations);
     return [child];
   });
 }
 
-// A bracket naming no retrieved passage at all is ordinary text (e.g. "x[0]"), so it is left alone.
 export function remarkCitations(citations: CitationIndex) {
-  return () => (tree: MdNode) => {
-    const order: number[] = [];
-    transform(tree, (ref) => {
-      if (!citations.has(ref)) return null;
-      if (!order.includes(ref)) order.push(ref);
-      return { ref, label: order.indexOf(ref) + 1 };
-    });
-  };
+  return () => (tree: MdNode) => transform(tree, citations);
 }

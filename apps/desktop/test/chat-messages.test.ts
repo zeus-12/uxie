@@ -144,6 +144,36 @@ describe("desktop chat message history", () => {
     ]);
   });
 
+  it("keeps results stored before page provenance as uncitable context", () => {
+    const parts = normalizeChatParts([
+      {
+        type: "tool-call",
+        toolCallId: "old",
+        toolName: "getInformation",
+        input: { question: "nested loops" },
+      },
+      {
+        type: "tool-result",
+        toolCallId: "old",
+        toolName: "getInformation",
+        output: { results: [{ pageContent: "Inner loops are traced first." }] },
+      },
+      { type: "text", text: "They are traced first." },
+    ]);
+    expect(parts[1]).toEqual({
+      type: "tool-result",
+      toolCallId: "old",
+      toolName: "getInformation",
+      output: { results: [], unlocated: ["Inner loops are traced first."] },
+    });
+    expect(completedChatParts(parts)).toHaveLength(3);
+    expect(
+      chatMessagesToRows([{ role: "assistant", parts }]).some(
+        (row) => row.kind === "message" && row.citations,
+      ),
+    ).toBe(false);
+  });
+
   it("drops an interrupted tool call that has no result", () => {
     expect(
       completedChatParts([

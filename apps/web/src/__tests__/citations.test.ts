@@ -196,39 +196,46 @@ describe("cited answer rendering", () => {
     [12, page9],
   ]);
 
-  it("numbers cited passages in first-cited order as bracketed groups", () => {
+  it("renders ref tokens as bracketed groups labelled by ref", () => {
     const { container, root } = renderCited(
-      "Traces are linear [12]. They nest [7][12], see [7, 40] and [12, 7].",
+      "Traces are linear [ref:12]. They nest [ref:7][ref:12], see [ref:7, 40] and [ref:12, ref:7].",
       citations,
     );
-    const paragraph = container.querySelector("p");
-    expect(paragraph?.textContent).toBe(
-      "Traces are linear [1]. They nest [2, 1], see [2] and [1, 2].",
+    expect(container.querySelector("p")?.textContent).toBe(
+      "Traces are linear [12]. They nest [7, 12], see [7] and [12, 7].",
     );
     expect(
       [...container.querySelectorAll("button")].map((button) =>
         button.getAttribute("aria-label"),
       ),
     ).toEqual([
-      "Source 1, Page 9",
-      "Source 2, Page 4",
-      "Source 1, Page 9",
-      "Source 2, Page 4",
-      "Source 1, Page 9",
-      "Source 2, Page 4",
+      "Source 12, Page 9",
+      "Source 7, Page 4",
+      "Source 12, Page 9",
+      "Source 7, Page 4",
+      "Source 12, Page 9",
+      "Source 7, Page 4",
     ]);
-    expect(container.querySelector("footer")).toBeNull();
     flushSync(() => root.unmount());
   });
 
-  it("leaves code, links and brackets naming no passage as written", () => {
+  it("drops ref tokens that name no retrieved passage", () => {
     const { container, root } = renderCited(
-      "Index x[0] and `arr[7]` and [see [7]](https://example.com) and [99].",
+      "Invented [ref:40]. Mixed [ref:40, 7].",
+      citations,
+    );
+    expect(container.textContent).toBe("Invented. Mixed [7].");
+    flushSync(() => root.unmount());
+  });
+
+  it("leaves the document's own bracketed numbers, code and links as written", () => {
+    const { container, root } = renderCited(
+      "The paper's own [7] and [12], x[0], `[ref:7]` and [see [ref:7]](https://example.com).",
       citations,
     );
     expect(container.querySelectorAll("button")).toHaveLength(0);
     expect(container.textContent).toBe(
-      "Index x[0] and arr[7] and see [7] and [99].",
+      "The paper's own [7] and [12], x[0], [ref:7] and see [ref:7].",
     );
     flushSync(() => root.unmount());
   });
@@ -244,7 +251,7 @@ describe("cited answer rendering", () => {
     const highlightSource = vi.fn();
     useCitationHighlightStore.getState().setHighlightSource(highlightSource);
     useMobileSidebarStore.getState().setDrawerOpen(true);
-    const { container, root } = renderCited("Claim [12].", citations);
+    const { container, root } = renderCited("Claim [ref:12].", citations);
     container.querySelector("button")!.click();
     expect(highlightSource).toHaveBeenCalledWith(page9);
     expect(useMobileSidebarStore.getState().isDrawerOpen).toBe(false);
@@ -276,11 +283,11 @@ describe("exact PDF source matching", () => {
     useMobileSidebarStore.getState().setDrawerOpen(true);
 
     const { container, root } = renderCited(
-      "Grounded claim [3].",
+      "Grounded claim [ref:3].",
       new Map([[3, source]]),
     );
     const button = container.querySelector("p button") as HTMLButtonElement;
-    expect(button.getAttribute("aria-label")).toBe("Source 1, Page 5");
+    expect(button.getAttribute("aria-label")).toBe("Source 3, Page 5");
     button.click();
 
     expect(scrollPageIntoView).toHaveBeenCalledWith({ pageNumber: 5 });
