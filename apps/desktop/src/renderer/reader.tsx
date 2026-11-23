@@ -50,6 +50,8 @@ import type {
   HighlightWithRects,
   RectInput,
 } from "@uxie/shared/schema";
+import { blobToDataUrl } from "@uxie/shared/lib/normalize-chat-image";
+import { isDocumentImageUrl } from "../chat-messages";
 import { Chat } from "./chat";
 import { Notes } from "./notes";
 import { FlashcardsPanel } from "./flashcards";
@@ -126,6 +128,15 @@ function addTextHighlightToNotes(
 
 function addImageHighlightToNotes(url: string) {
   appendNoteBlock({ type: "image", props: { url } });
+}
+
+async function embedDocumentImage(url: string): Promise<string> {
+  if (!isDocumentImageUrl(url)) return url;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Couldn't read an image in the notes (${response.status})`);
+  }
+  return blobToDataUrl(await response.blob());
 }
 
 /** react-pdf-highlighter hands area selections back as a png data url. */
@@ -495,7 +506,10 @@ function ReaderContent({
                 <SidebarSettingsButton className="app-no-drag" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <NotesExportMenuItem onExport={exportNotes} />
+                <NotesExportMenuItem
+                  onExport={exportNotes}
+                  resolveFileUrl={embedDocumentImage}
+                />
                 <AnnotatedPdfExportMenuItem
                   ready
                   isExporting={isExporting}

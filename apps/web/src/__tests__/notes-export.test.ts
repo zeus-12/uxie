@@ -26,6 +26,36 @@ describe("notesToMarkdown", () => {
       "# Chapter one\n\nPlain and **bold**\n\n*   First point\n",
     );
   });
+
+  it("passes every file url through the resolver, nested blocks included", async () => {
+    const editor = BlockNoteEditor.create({
+      schema,
+      initialContent: [
+        {
+          type: "paragraph",
+          content: "Figure",
+          children: [
+            { type: "image", props: { url: "uxie-pdf://image/doc/figure" } },
+          ],
+        },
+        { type: "image", props: { url: "https://example.com/remote.png" } },
+      ],
+    });
+    const resolved: string[] = [];
+
+    const markdown = await notesToMarkdown(editor, async (url) => {
+      resolved.push(url);
+      return url.startsWith("uxie-pdf:") ? "data:image/png;base64,AAAA" : url;
+    });
+
+    expect(resolved.sort()).toEqual([
+      "https://example.com/remote.png",
+      "uxie-pdf://image/doc/figure",
+    ]);
+    expect(markdown).toContain("(data:image/png;base64,AAAA)");
+    expect(markdown).toContain("(https://example.com/remote.png)");
+    expect(markdown).not.toContain("uxie-pdf:");
+  });
 });
 
 describe("notesFilename", () => {
