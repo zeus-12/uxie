@@ -122,7 +122,6 @@ const PdfReader = ({
     zoomLevel,
     pageCount,
     viewer: pdfViewer,
-    reflowed,
     onSaveReaderState: (state) => {
       if (onUpdateReaderState) {
         onUpdateReaderState(docId, state);
@@ -131,6 +130,12 @@ const PdfReader = ({
       void saveReaderState({ docId, ...state });
     },
   });
+
+  // A zoom made while reflowed is a reflow zoom, not the page zoom to reopen at.
+  const handleToolbarZoom = useCallback(
+    (zoom: number) => handleZoomChange(zoom, !reflowed),
+    [handleZoomChange, reflowed],
+  );
 
   return (
     <>
@@ -186,7 +191,7 @@ const PdfReader = ({
         skipSentence={skipSentence}
         skipToPreviousSentence={skipToPreviousSentence}
         totalPages={pageCount}
-        onZoomChange={handleZoomChange}
+        onZoomChange={handleToolbarZoom}
         onPageChange={handlePageChange}
         currentZoom={currentZoom}
         reflowed={reflowed}

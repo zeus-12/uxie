@@ -4,7 +4,6 @@ export type CorpusEntry = { name: string; pageCount: number };
 
 export const corpusUrl = (name: string) => `/reflow-corpus/${encodeURIComponent(name)}.pdf`;
 
-// Test PDFs live only in a developer's git-ignored public/reflow-corpus.
 export const useReflowCorpus = (): CorpusEntry[] | null => {
   const [entries, setEntries] = useState<CorpusEntry[] | null>(null);
   useEffect(() => {

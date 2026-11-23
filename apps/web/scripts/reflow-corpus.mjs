@@ -1,4 +1,3 @@
-// Dev-only: copies local test PDFs into public/reflow-corpus (git-ignored) for /demo?doc=<name>.
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";

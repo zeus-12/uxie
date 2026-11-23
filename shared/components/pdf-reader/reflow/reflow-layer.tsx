@@ -1,4 +1,4 @@
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import type { PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import {
   useCallback,
@@ -76,7 +76,7 @@ const emptyInput = (pageNumber: number, width: number, height: number): PageInpu
 const cropScale = (crop: HTMLElement) => {
   const canvas = crop.querySelector("canvas")?.getBoundingClientRect();
   const width = Number(crop.dataset.cropW);
-  return canvas && width > 0 ? canvas.width / width : null;
+  return canvas && canvas.width > 0 && width > 0 ? canvas.width / width : null;
 };
 
 // Kept pages have no runs; a point on one maps through the page image it shows.
@@ -121,6 +121,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const windowRequest = useRef(0);
   const syncingPage = useRef(false);
   const handledFind = useRef<string | null>(null);
+  const rangeCache = useRef(new WeakMap<PDFPageProxy, { key: string; ranges: ItemRange[] }>());
   const pxPerPt = scale * CSS_PX_PER_PT;
   const livePxPerPt = useRef(pxPerPt);
   const viewTop = useRef<ScreenAnchor | null>(null);
@@ -383,7 +384,12 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         if (page.kind !== "reflow") return [page.pageNumber, []];
         const rects = highlightRects(page.pageNumber, page.width, page.height);
         if (rects.length === 0) return [page.pageNumber, []];
-        return [page.pageNumber, await highlightRanges(pdfPage, rects)];
+        const key = JSON.stringify(rects);
+        const cached = rangeCache.current.get(pdfPage);
+        if (cached?.key === key) return [page.pageNumber, cached.ranges];
+        const ranges = await highlightRanges(pdfPage, rects);
+        rangeCache.current.set(pdfPage, { key, ranges });
+        return [page.pageNumber, ranges];
       }),
     )
       .then((entries) => {

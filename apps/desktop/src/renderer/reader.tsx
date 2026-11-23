@@ -272,11 +272,16 @@ function ReaderContent({
     zoomLevel: doc.zoomLevel,
     pageCount: doc.pageCount,
     viewer: pdfViewer,
-    reflowed,
     onSaveReaderState: (state) => {
       void window.uxieAPI.updateReaderState(docId, state);
     },
   });
+
+  // A zoom made while reflowed is a reflow zoom, not the page zoom to reopen at.
+  const handleToolbarZoom = useCallback(
+    (zoom: number) => handleZoomChange(zoom, !reflowed),
+    [handleZoomChange, reflowed],
+  );
 
   async function addHighlight(
     position: ScaledPosition,
@@ -445,7 +450,7 @@ function ReaderContent({
               skipSentence={skipSentence}
               skipToPreviousSentence={skipToPreviousSentence}
               totalPages={doc.pageCount}
-              onZoomChange={handleZoomChange}
+              onZoomChange={handleToolbarZoom}
               onPageChange={handlePageChange}
               currentZoom={currentZoom}
               reflowed={reflowed}

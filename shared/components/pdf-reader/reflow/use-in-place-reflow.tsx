@@ -86,13 +86,19 @@ export const useInPlaceReflow = ({
     el.style.transformOrigin = "";
   }, [viewer]);
 
+  // A pinch that heads for reflow isn't saved; once the page shows instead, it is.
+  const savePageZoom = useCallback(() => {
+    if (viewer) onZoomChange?.(viewer.currentScale, true);
+  }, [viewer, onZoomChange]);
+
   const exitTo = useCallback(
     (anchor: ScreenAnchor | null) => {
       if (viewer && anchor) scrollCanvasTo(viewer, anchor);
       setReflow(null);
       setPlaced(false);
+      savePageZoom();
     },
-    [viewer],
+    [viewer, savePageZoom],
   );
 
   useEffect(() => {
@@ -128,12 +134,22 @@ export const useInPlaceReflow = ({
             .page(entry.point.pageNumber)
             .then((page) => {
               if (request !== entryRequest.current || modeRef.current !== "page") return;
-              if (page.kind !== "reflow" || viewer.currentScale !== scale) return;
+              const here = canvasAnchorAt(viewer, entry.clientX, entry.clientY);
+              if (
+                page.kind !== "reflow" ||
+                viewer.currentScale !== scale ||
+                here?.point.pageNumber !== entry.point.pageNumber
+              ) {
+                savePageZoom();
+                return;
+              }
               modeRef.current = "reflow";
               setPlaced(false);
-              setReflow({ anchor: entry, scale });
+              setReflow({ anchor: here, scale });
             })
-            .catch(() => undefined);
+            .catch(() => {
+              if (request === entryRequest.current) savePageZoom();
+            });
         } else if (anchor) {
           scrollCanvasTo(viewer, anchor);
         }
@@ -149,7 +165,7 @@ export const useInPlaceReflow = ({
     };
     instance.eventBus.on("scalechanging", onScale);
     return () => instance.eventBus.off("scalechanging", onScale);
-  }, [viewer, instance, enabled, source, exitTo, releaseTransform]);
+  }, [viewer, instance, enabled, source, exitTo, releaseTransform, savePageZoom]);
 
   useEffect(() => {
     const container = instance?.containerNode;

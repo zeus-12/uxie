@@ -31,7 +31,6 @@ const usePdfReader = ({
   docId,
   pageCount,
   viewer,
-  reflowed = false,
   onSaveReaderState,
 }: {
   lastReadPage: number;
@@ -42,7 +41,6 @@ const usePdfReader = ({
   // Passed in rather than read off a global, so opening a second document binds
   // to its viewer instead of the previous, discarded one.
   viewer: PDFViewer | null;
-  reflowed?: boolean;
   onSaveReaderState?: (state: {
     lastReadPage?: number;
     zoomLevel?: number;
@@ -66,8 +64,6 @@ const usePdfReader = ({
 
   const pdfViewerRef = useRef<PDFViewer | null>(null);
   const userScrolledRef = useRef(false);
-  const reflowedRef = useRef(reflowed);
-  reflowedRef.current = reflowed;
   const isReadingRef = useRef(false);
   const shouldStopRef = useRef(false);
   const currentReadingMode = useRef<READING_MODE>(READING_MODE.PAGE);
@@ -127,9 +123,8 @@ const usePdfReader = ({
     2000,
   );
 
-  // Not saved while reflowed: reopening at a reflow zoom shows the page, not reflow.
+  // Coalesces a slider drag into one write.
   const debouncedUpdateZoomLevel = useDebouncedCallback((zoom: number) => {
-    if (reflowedRef.current) return;
     onSaveReaderState?.({ zoomLevel: zoom });
   }, 2000);
 

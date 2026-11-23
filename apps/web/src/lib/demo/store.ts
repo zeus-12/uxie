@@ -91,23 +91,30 @@ export const resetDemo = () => {
 
 const SAVED_DEMO_KEY = "uxie-demo-doc-before-corpus";
 
-// A test document replaces the demo document only while it's open.
+const docOf = (state: DemoDocStore): DemoDoc =>
+  useDemoDocStore.persist.getOptions().partialize!(state) as DemoDoc;
+
 export const openCorpusDoc = (doc: DemoDoc) => {
-  const { id, title, url, note, isVectorised, pageCount, lastReadPage, zoomLevel, highlights } =
-    useDemoDocStore.getState();
-  if (!id.startsWith("corpus:")) {
-    localStorage.setItem(
-      SAVED_DEMO_KEY,
-      JSON.stringify({ id, title, url, note, isVectorised, pageCount, lastReadPage, zoomLevel, highlights }),
-    );
+  const state = useDemoDocStore.getState();
+  if (!state.id.startsWith("corpus:")) {
+    try {
+      localStorage.setItem(SAVED_DEMO_KEY, JSON.stringify(docOf(state)));
+    } catch {
+      return;
+    }
   }
-  useDemoDocStore.getState().openDoc(doc);
+  state.openDoc(doc);
 };
 
 export const closeCorpusDoc = () => {
   if (!useDemoDocStore.getState().id.startsWith("corpus:")) return;
-  const saved = localStorage.getItem(SAVED_DEMO_KEY);
-  localStorage.removeItem(SAVED_DEMO_KEY);
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem(SAVED_DEMO_KEY);
+    localStorage.removeItem(SAVED_DEMO_KEY);
+  } catch {
+    saved = null;
+  }
   if (saved) useDemoDocStore.getState().openDoc(JSON.parse(saved) as DemoDoc);
   else resetDemo();
 };
