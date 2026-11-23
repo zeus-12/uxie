@@ -11,6 +11,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
 import { AnnotatedPdfExportMenuItem } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
@@ -66,10 +67,7 @@ const Sidebar = ({
             <DropdownMenuTrigger asChild>
               <SidebarSettingsButton />
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className={annotatedPdfExport ? "w-64" : "w-52"}
-            >
+            <DropdownMenuContent align="end" className="w-52">
               {isOwner && (
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"
@@ -92,6 +90,8 @@ const Sidebar = ({
               {annotatedPdfExport && (
                 <AnnotatedPdfExportMenuItem {...exportMenuItem} />
               )}
+
+              <DropdownMenuSeparator />
 
               <DropdownMenuItem className="cursor-pointer gap-2" asChild>
                 <Link href="/feedback">

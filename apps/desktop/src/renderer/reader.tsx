@@ -26,6 +26,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
 import { toast } from "@uxie/shared/components/ui/sonner";
@@ -488,12 +489,13 @@ function ReaderContent({
               <DropdownMenuTrigger asChild>
                 <SidebarSettingsButton className="app-no-drag" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuContent align="end" className="w-52">
                 <AnnotatedPdfExportMenuItem
                   ready
                   isExporting={isExporting}
                   onSelect={() => void exportPdf()}
                 />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"
                   onSelect={onSettings}

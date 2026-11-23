@@ -51,7 +51,7 @@ const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
             <DropdownMenuTrigger asChild>
               <SidebarSettingsButton />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem
                 className="cursor-pointer gap-2"
                 disabled={!editor}

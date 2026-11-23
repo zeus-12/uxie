@@ -37,23 +37,16 @@ export function AnnotatedPdfExportMenuItem({
 }) {
   return (
     <DropdownMenuItem
-      className="cursor-pointer items-start gap-2"
+      className="cursor-pointer gap-2"
       disabled={!ready || isExporting}
       onSelect={onSelect}
     >
       {isExporting ? (
-        <LoaderCircle className="mt-0.5 animate-spin" size={16} />
+        <LoaderCircle className="animate-spin" size={16} />
       ) : (
-        <FileDown className="mt-0.5" size={16} />
+        <FileDown size={16} />
       )}
-      <span className="flex flex-col">
-        <span>{isExporting ? "Exporting…" : "Export annotated PDF"}</span>
-        <span className="text-xs font-normal text-muted-foreground">
-          {ready
-            ? "Highlights only. Notes aren't included."
-            : "Available once the PDF has loaded"}
-        </span>
-      </span>
+      {isExporting ? "Exporting…" : "Export annotated PDF"}
     </DropdownMenuItem>
   );
 }
