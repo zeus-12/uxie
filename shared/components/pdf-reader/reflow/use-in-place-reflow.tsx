@@ -1,6 +1,6 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { PdfHighlighter as PdfHighlighterComponent } from "react-pdf-highlighter";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { createReflowSource } from "../../../lib/reflow/source";
 import type { Rect } from "../../../lib/reflow/types";
 import {
@@ -42,12 +42,14 @@ export const useInPlaceReflow = ({
   pdfDocument,
   highlightRects,
   onZoomChange,
+  renderSelection,
 }: {
   enabled: boolean;
   instance: Instance | null;
   pdfDocument: PDFDocumentProxy;
   highlightRects: (pageNumber: number, width: number, height: number) => Rect[];
   onZoomChange?: (scale: number, persist: boolean) => void;
+  renderSelection?: ComponentProps<typeof ReflowLayer>["renderSelection"];
 }) => {
   const source = useMemo(() => createReflowSource(pdfDocument), [pdfDocument]);
   const [reflow, setReflow] = useState<{ anchor: ScreenAnchor; scale: number } | null>(null);
@@ -315,6 +317,7 @@ export const useInPlaceReflow = ({
         onPlaced={onPlaced}
         onFailed={onFailed}
         onResized={onResized}
+        renderSelection={renderSelection}
       />
     ) : null;
 

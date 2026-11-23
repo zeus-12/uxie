@@ -16,6 +16,7 @@ import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Rect as PdfRect } from "../../lib/reflow/types";
 import { useInPlaceReflow } from "./reflow/use-in-place-reflow";
+import type { ReflowSelection } from "./reflow/selection";
 import { useReflowOnZoom } from "../../hooks/use-reflow-on-zoom";
 import {
   AreaHighlight,
@@ -240,7 +241,28 @@ const PdfHighlighter = ({
     [highlights],
   );
 
+  const renderReflowSelection = useCallback(
+    (selection: ReflowSelection, close: () => void, keepVisible: () => void) => {
+      selectionInfoRef.current = selection.start;
+      return (
+        <TextSelectionPopover
+          showAiFeatures={showAiFeatures}
+          sendMessage={sendMessage}
+          stageImageAttachment={stageImageAttachment}
+          content={{ text: selection.text }}
+          hideTipAndSelection={close}
+          addHighlight={() => addHighlight({ content: { text: selection.text }, position: selection.position })}
+          readSelectedText={readSelectedText}
+          selectionInfoRef={selectionInfoRef}
+          transformSelection={keepVisible}
+        />
+      );
+    },
+    [showAiFeatures, sendMessage, stageImageAttachment, addHighlight, readSelectedText],
+  );
+
   const reflow = useInPlaceReflow({
+    renderSelection: renderReflowSelection,
     enabled: reflowOnZoom,
     instance: highlighterInstance,
     pdfDocument,

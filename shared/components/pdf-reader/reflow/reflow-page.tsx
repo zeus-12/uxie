@@ -170,6 +170,7 @@ const TextBlock = ({
           {run.sep}
           <span
             data-run={runKey(pageNumber, run.itemIndex)}
+            data-run-start={run.start}
             className={run.sup ? "reflow-sup" : undefined}
           >
             <RunText str={strings[run.itemIndex] ?? ""} run={run} marks={marks} />

@@ -9,7 +9,9 @@ import {
   useRef,
   useState,
   forwardRef,
+  type ReactNode,
 } from "react";
+import { selectedSlices, selectionToPosition, type ReflowSelection } from "./selection";
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
 import type { ReflowSource } from "../../../lib/reflow/source";
 import type { PageInput, Rect, Run } from "../../../lib/reflow/types";
@@ -54,6 +56,7 @@ type Props = {
   onPlaced: () => void;
   onFailed: () => void;
   onResized: () => void;
+  renderSelection?: (selection: ReflowSelection, close: () => void, keepVisible: () => void) => ReactNode;
 };
 
 type RunEntry = { pageNumber: number; run: Run };
@@ -107,7 +110,7 @@ const sectionAnchorAt = (
 };
 
 export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLayer(
-  { source, pdfDocument, viewer, findController, eventBus, scale, anchor, highlightRects, visible, onPlaced, onFailed, onResized },
+  { source, pdfDocument, viewer, findController, eventBus, scale, anchor, highlightRects, visible, onPlaced, onFailed, onResized, renderSelection },
   ref,
 ) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -401,6 +404,81 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     };
   }, [pages, highlightRects]);
 
+  const [selection, setSelection] = useState<{ value: ReflowSelection; left: number; top: number } | null>(null);
+  const [ghost, setGhost] = useState<ReflowSelection | null>(null);
+
+  const closeSelection = useCallback(() => {
+    setSelection(null);
+    setGhost(null);
+    window.getSelection()?.removeAllRanges();
+  }, []);
+
+  useEffect(() => {
+    const root = scroller();
+    if (!root || !visible || !renderSelection) return;
+    let pointerDown = false;
+    let running = false;
+    let dirty = false;
+    let latest = 0;
+
+    const finish = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      if (!root.contains(range.commonAncestorContainer)) return;
+      if (running) {
+        dirty = true;
+        return;
+      }
+      running = true;
+      const id = ++latest;
+      const box = range.getBoundingClientRect();
+      const rootBox = root.getBoundingClientRect();
+      const half = Math.min(140, rootBox.width / 2);
+      const left = clamp(box.left + box.width / 2 - rootBox.left, half, rootBox.width - half);
+      const top = box.top - rootBox.top + root.scrollTop;
+      void selectionToPosition(selectedSlices(root, range), (n) => pdfDocument.getPage(n), viewer.currentScale)
+        .then((value) => {
+          if (id === latest && value) setSelection({ value, left, top });
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          running = false;
+          if (dirty) {
+            dirty = false;
+            finish();
+          }
+        });
+    };
+    const onDown = (e: PointerEvent) => {
+      if ((e.target as Element | null)?.closest?.("[data-reflow-tip]")) return;
+      pointerDown = true;
+      latest += 1;
+      setSelection(null);
+      setGhost(null);
+    };
+    const onUp = () => {
+      if (!pointerDown) return;
+      pointerDown = false;
+      finish();
+    };
+    const onChange = () => {
+      if (!pointerDown) finish();
+    };
+    root.addEventListener("pointerdown", onDown);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onUp);
+    document.addEventListener("keyup", onChange);
+    document.addEventListener("selectionchange", onChange);
+    return () => {
+      root.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
+      document.removeEventListener("keyup", onChange);
+      document.removeEventListener("selectionchange", onChange);
+    };
+  }, [visible, renderSelection, pdfDocument, viewer]);
+
   const marksByPage = useMemo(() => {
     const fc = findController;
     const marks = new Map<number, PageMarks>();
@@ -412,12 +490,15 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           ? convertMatches(loaded.input.itemStrings, fc.pageMatches[index]!, fc.pageMatchesLength[index]!)
           : [],
         selectedSearch: active && fc.selected.pageIdx === index ? fc.selected.matchIdx : null,
-        highlights: highlightsByPage[loaded.page.pageNumber] ?? [],
+        highlights: [
+          ...(highlightsByPage[loaded.page.pageNumber] ?? []),
+          ...(ghost?.ranges.get(loaded.page.pageNumber) ?? []),
+        ],
       });
     }
     return marks;
     // pdf.js mutates findController in place; findVersion is its change signal.
-  }, [pages, findController, findVersion, highlightsByPage]);
+  }, [pages, findController, findVersion, highlightsByPage, ghost]);
 
   useEffect(() => {
     const fc = findController;
@@ -610,6 +691,11 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           marks={marksByPage.get(loaded.page.pageNumber)!}
         />
       ))}
+      {selection && renderSelection && (
+        <div className="reflow-tip" data-reflow-tip="" style={{ left: selection.left, top: selection.top }}>
+          {renderSelection(selection.value, closeSelection, () => setGhost(selection.value))}
+        </div>
+      )}
     </div>
   );
 });

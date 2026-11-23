@@ -94,3 +94,10 @@ mark.reflow-highlight {
 .uxie-pdf-page[data-page-tone="ink"] .reflow-crop canvas {
   filter: invert(1) hue-rotate(180deg) url(#uxie-ink-page);
 }
+
+.reflow-tip {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, calc(-100% - 8px));
+  touch-action: manipulation;
+}
