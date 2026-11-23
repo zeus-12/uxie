@@ -1,5 +1,6 @@
 import { PaletteIcon } from "lucide-react";
 
+import { Button } from "../../ui/button";
 import { CustomTooltip } from "../../ui/tooltip";
 import { PDF_BACKGROUND_COLOURS } from "../../../lib/constants";
 import { type PageColour } from "../../../lib/store";
@@ -17,16 +18,13 @@ const PAGE_TINT_NAMES: Record<(typeof PDF_BACKGROUND_COLOURS)[number], string> =
 
 const SELECTED_RING = "ring-2 ring-primary ring-offset-2 ring-offset-popover";
 
-function ThemePageChip({ className }: { className?: string }) {
+function ThemePageChip() {
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        "inline-flex size-6 items-center justify-center rounded-md bg-background text-foreground ring-1 ring-inset ring-foreground/25",
-        className,
-      )}
+      className="inline-flex size-6 items-center justify-center rounded-md"
     >
-      <PaletteIcon className="size-3.5" strokeWidth={2} />
+      <PaletteIcon className="h-5 w-5" />
     </span>
   );
 }
@@ -85,20 +83,29 @@ export const BackgroundControlsIcon = ({
 }) => {
   const label = pageColour === "theme" ? "Theme" : PAGE_TINT_NAMES[pageColour];
 
+  if (pageColour === "theme") {
+    return (
+      <Button
+        variant="ghost"
+        size="xs"
+        className="block"
+        aria-label={`Page colour: ${label}`}
+      >
+        <PaletteIcon aria-hidden="true" className="h-5 w-5" />
+      </Button>
+    );
+  }
+
   return (
     <button
       type="button"
       aria-label={`Page colour: ${label}`}
       className="inline-flex size-6 rounded-[5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      {pageColour === "theme" ? (
-        <ThemePageChip className="rounded-[5px]" />
-      ) : (
-        <span
-          className="size-6 rounded-[5px] ring-1 ring-inset ring-black/15"
-          style={{ backgroundColor: pageColour }}
-        />
-      )}
+      <span
+        className="size-6 rounded-[5px] ring-1 ring-inset ring-black/15"
+        style={{ backgroundColor: pageColour }}
+      />
     </button>
   );
 };
