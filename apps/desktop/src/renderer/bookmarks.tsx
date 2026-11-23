@@ -1,36 +1,81 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import {
   Bookmark as BookmarkIcon,
   BookmarkCheck,
-  Check,
+  File,
   List,
-  MoreHorizontal,
+  MapPin,
+  MapPinPlus,
   Pencil,
+  TextQuote,
   Trash2,
-  X,
 } from "lucide-react";
 import type { Bookmark } from "@uxie/shared/schema";
 import { Button } from "@uxie/shared/components/ui/button";
-import { Input } from "@uxie/shared/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@uxie/shared/components/ui/popover";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@uxie/shared/components/ui/dropdown-menu";
+import { cn } from "@uxie/shared/lib/utils";
 
-const passageText = (bookmark: Bookmark): string | null => {
-  const exact = bookmark.location?.exact.replace(/\s+/g, " ").trim();
-  return exact || null;
-};
+type BookmarkKind = "page" | "passage" | "pin";
 
-const bookmarkTitle = (bookmark: Bookmark): string =>
-  bookmark.label || passageText(bookmark) || `Page ${bookmark.pageNumber}`;
+const bookmarkKind = (bookmark: Bookmark): BookmarkKind =>
+  bookmark.location === null
+    ? "page"
+    : bookmark.location.kind === "point"
+    ? "pin"
+    : "passage";
+
+const KIND_ICON = { page: File, passage: TextQuote, pin: MapPin } as const;
+
+const passageText = (bookmark: Bookmark): string | null =>
+  bookmark.location && bookmark.location.kind !== "point"
+    ? bookmark.location.exact.replace(/\s+/g, " ").trim() || null
+    : null;
+
+const defaultTitle = (bookmark: Bookmark): string =>
+  bookmarkKind(bookmark) === "pin"
+    ? `Pin on page ${bookmark.pageNumber}`
+    : passageText(bookmark) ?? `Page ${bookmark.pageNumber}`;
+
+export const bookmarkTitle = (bookmark: Bookmark): string =>
+  bookmark.label || defaultTitle(bookmark);
+
+const titleNamesPage = (bookmark: Bookmark): boolean =>
+  !bookmark.label && bookmarkKind(bookmark) !== "passage";
+
+const ROW_SELECTOR = "[data-bookmark-row]";
+const NAVIGATION_KEYS = ["ArrowDown", "ArrowUp", "Home", "End"];
+
+function moveRowFocus(event: KeyboardEvent<HTMLDivElement>) {
+  if (!NAVIGATION_KEYS.includes(event.key)) return;
+  if (event.target instanceof HTMLInputElement) return;
+  const rows = Array.from(
+    event.currentTarget.querySelectorAll<HTMLElement>(ROW_SELECTOR),
+  );
+  if (!rows.length) return;
+  event.preventDefault();
+  const current = rows.findIndex(
+    (row) => row.parentElement?.contains(document.activeElement),
+  );
+  const next =
+    event.key === "Home"
+      ? 0
+      : event.key === "End"
+      ? rows.length - 1
+      : event.key === "ArrowDown"
+      ? Math.min(rows.length - 1, current + 1)
+      : Math.max(0, current - 1);
+  rows[next]?.focus();
+}
 
 export function BookmarksToolbarIcon({
   active,
@@ -62,6 +107,8 @@ export function BookmarksToolbarContent({
   pageNumber,
   loading,
   savingPage,
+  droppingPin,
+  onTogglePinDrop,
   onAddPage,
   onOpenBookmark,
   onRenameBookmark,
@@ -71,48 +118,19 @@ export function BookmarksToolbarContent({
   pageNumber: number;
   loading: boolean;
   savingPage: boolean;
+  droppingPin: boolean;
+  onTogglePinDrop: () => void;
   onAddPage: (pageNumber: number) => Promise<void>;
   onOpenBookmark: (bookmark: Bookmark) => void;
   onRenameBookmark: (bookmark: Bookmark, label: string | null) => Promise<void>;
   onDeleteBookmark: (bookmark: Bookmark) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draftLabel, setDraftLabel] = useState("");
-  const [savingLabel, setSavingLabel] = useState(false);
-  const renameInputRef = useRef<HTMLInputElement>(null);
 
   const pageIsSaved = bookmarks.some(
     (bookmark) =>
       bookmark.pageNumber === pageNumber && bookmark.location === null,
   );
-
-  useEffect(() => {
-    if (!editingId) return;
-    renameInputRef.current?.focus();
-    renameInputRef.current?.select();
-  }, [editingId]);
-
-  const beginRename = (bookmark: Bookmark) => {
-    setEditingId(bookmark.id);
-    setDraftLabel(bookmark.label ?? "");
-  };
-
-  const submitRename = async (
-    event: FormEvent<HTMLFormElement>,
-    bookmark: Bookmark,
-  ) => {
-    event.preventDefault();
-    setSavingLabel(true);
-    try {
-      await onRenameBookmark(bookmark, draftLabel.trim() || null);
-      setEditingId(null);
-    } catch {
-      renameInputRef.current?.focus();
-    } finally {
-      setSavingLabel(false);
-    }
-  };
 
   return (
     <div className="flex items-center gap-1 pr-1">
@@ -132,13 +150,30 @@ export function BookmarksToolbarContent({
         {pageIsSaved ? `Page ${pageNumber} saved` : `Save page ${pageNumber}`}
       </Button>
 
+      <Button
+        type="button"
+        variant="ghost"
+        size="xs"
+        disabled={loading}
+        aria-pressed={droppingPin}
+        onClick={onTogglePinDrop}
+        className={cn(
+          "gap-1.5 whitespace-nowrap motion-safe:active:scale-[0.96]",
+          droppingPin &&
+            "bg-violet-500/10 text-violet-700 hover:bg-violet-500/15 hover:text-violet-700",
+        )}
+      >
+        <MapPinPlus aria-hidden="true" className="h-4 w-4" />
+        {droppingPin ? "Click the page" : "Drop pin"}
+      </Button>
+
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             type="button"
             variant="ghost"
             size="xs"
-            className="gap-1.5 whitespace-nowrap motion-safe:active:scale-[0.96]"
+            className="gap-1.5 whitespace-nowrap tabular-nums motion-safe:active:scale-[0.96]"
             aria-label={`View ${bookmarks.length} bookmarks`}
           >
             <List aria-hidden="true" className="h-4 w-4" />
@@ -149,149 +184,177 @@ export function BookmarksToolbarContent({
           side="top"
           align="end"
           sideOffset={12}
-          className="w-80 overflow-hidden p-0"
+          className="w-80 p-0"
+          aria-label="Bookmarks"
         >
-          <div className="border-b px-4 py-3">
-            <h2 className="text-sm font-semibold">Bookmarks</h2>
-            <p className="text-xs text-muted-foreground">
-              Saved in this document
-            </p>
-          </div>
-
           {loading ? (
-            <div
-              className="h-24 p-3"
-              aria-label="Loading bookmarks"
-              role="status"
-            >
-              <div className="h-full rounded-md bg-muted" />
+            <div className="p-1" role="status" aria-label="Loading bookmarks">
+              <div className="h-8 animate-pulse rounded-md bg-muted" />
             </div>
           ) : bookmarks.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              No bookmarks yet.
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+              No bookmarks yet
             </p>
           ) : (
-            <div className="max-h-72 divide-y overflow-y-auto overscroll-contain">
-              {bookmarks.map((bookmark) => {
-                const title = bookmarkTitle(bookmark);
-                const preview = passageText(bookmark);
-                const isEditing = editingId === bookmark.id;
-
-                return (
-                  <div key={bookmark.id} className="group px-2 py-2">
-                    {isEditing ? (
-                      <form
-                        className="flex items-center gap-1"
-                        onSubmit={(event) => void submitRename(event, bookmark)}
-                      >
-                        <label
-                          htmlFor={`bookmark-label-${bookmark.id}`}
-                          className="sr-only"
-                        >
-                          Bookmark label
-                        </label>
-                        <Input
-                          ref={renameInputRef}
-                          id={`bookmark-label-${bookmark.id}`}
-                          value={draftLabel}
-                          maxLength={80}
-                          onChange={(event) =>
-                            setDraftLabel(event.target.value)
-                          }
-                          className="h-8 min-w-0"
-                          placeholder={`Page ${bookmark.pageNumber}`}
-                        />
-                        <Button
-                          type="submit"
-                          variant="ghost"
-                          size="xs"
-                          className="h-8 w-8 p-0"
-                          disabled={savingLabel}
-                          aria-label="Save bookmark label"
-                        >
-                          <Check aria-hidden="true" className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="xs"
-                          className="h-8 w-8 p-0"
-                          onClick={() => setEditingId(null)}
-                          aria-label="Cancel renaming bookmark"
-                        >
-                          <X aria-hidden="true" className="h-4 w-4" />
-                        </Button>
-                      </form>
-                    ) : (
-                      <div className="flex items-start gap-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpen(false);
-                            onOpenBookmark(bookmark);
-                          }}
-                          className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-safe:active:scale-[0.96]"
-                          aria-label={`Open ${title}, page ${bookmark.pageNumber}`}
-                        >
-                          <span className="block truncate text-sm font-medium">
-                            {title}
-                          </span>
-                          <span className="mt-0.5 block text-xs tabular-nums text-muted-foreground">
-                            Page {bookmark.pageNumber}
-                          </span>
-                          {bookmark.label && preview ? (
-                            <span className="mt-1 block truncate text-xs text-muted-foreground">
-                              {preview}
-                            </span>
-                          ) : null}
-                        </button>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="xs"
-                              className="h-8 w-8 shrink-0 p-0 opacity-60 focus-visible:opacity-100 group-hover:opacity-100"
-                              aria-label={`Actions for ${title}`}
-                            >
-                              <MoreHorizontal
-                                aria-hidden="true"
-                                className="h-4 w-4"
-                              />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onSelect={() => beginRename(bookmark)}
-                            >
-                              <Pencil
-                                aria-hidden="true"
-                                className="mr-2 h-4 w-4"
-                              />
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onSelect={() => void onDeleteBookmark(bookmark)}
-                            >
-                              <Trash2
-                                aria-hidden="true"
-                                className="mr-2 h-4 w-4"
-                              />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            <div
+              role="list"
+              className="max-h-80 overflow-y-auto overscroll-contain p-1"
+              onKeyDown={moveRowFocus}
+            >
+              {bookmarks.map((bookmark) => (
+                <BookmarkRow
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  onOpen={() => {
+                    setOpen(false);
+                    onOpenBookmark(bookmark);
+                  }}
+                  onRename={(label) => onRenameBookmark(bookmark, label)}
+                  onDelete={() => void onDeleteBookmark(bookmark)}
+                />
+              ))}
             </div>
           )}
         </PopoverContent>
       </Popover>
+    </div>
+  );
+}
+
+function BookmarkRow({
+  bookmark,
+  onOpen,
+  onRename,
+  onDelete,
+}: {
+  bookmark: Bookmark;
+  onOpen: () => void;
+  onRename: (label: string | null) => Promise<void>;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const rowRef = useRef<HTMLButtonElement>(null);
+  const Icon = KIND_ICON[bookmarkKind(bookmark)];
+  const title = bookmarkTitle(bookmark);
+
+  useEffect(() => {
+    if (!editing) return;
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [editing]);
+
+  const startEditing = () => {
+    setDraft(bookmark.label ?? "");
+    setEditing(true);
+  };
+
+  const stopEditing = () => {
+    setEditing(false);
+    requestAnimationFrame(() => rowRef.current?.focus());
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await onRename(draft.trim() || null);
+      stopEditing();
+    } catch {
+      inputRef.current?.focus();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <form
+        role="listitem"
+        className="flex h-8 items-center gap-2.5 rounded-md bg-muted px-2 ring-1 ring-inset ring-ring/40"
+        onSubmit={(event) => void submit(event)}
+      >
+        <Icon
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+        />
+        <input
+          ref={inputRef}
+          aria-label="Bookmark name"
+          value={draft}
+          maxLength={80}
+          disabled={saving}
+          placeholder={defaultTitle(bookmark)}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => {
+            if (!saving) setEditing(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            event.stopPropagation();
+            stopEditing();
+          }}
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+      </form>
+    );
+  }
+
+  return (
+    <div
+      role="listitem"
+      className="group relative flex items-center rounded-md transition-colors duration-100 focus-within:bg-muted hover:bg-muted"
+    >
+      <button
+        ref={rowRef}
+        type="button"
+        data-bookmark-row
+        onClick={onOpen}
+        onKeyDown={(event) => {
+          if (event.key !== "F2") return;
+          event.preventDefault();
+          startEditing();
+        }}
+        aria-label={`${title}, page ${bookmark.pageNumber}`}
+        className="flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left text-sm outline-none"
+      >
+        <Icon
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 text-muted-foreground"
+        />
+        <span className="min-w-0 flex-1 truncate">{title}</span>
+        <span
+          className={cn(
+            "w-[3.25rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground transition-opacity duration-100 group-focus-within:opacity-0 group-hover:opacity-0",
+            titleNamesPage(bookmark) && "invisible",
+          )}
+        >
+          {bookmark.pageNumber}
+        </span>
+      </button>
+      <div className="absolute right-1 flex opacity-0 transition-opacity duration-100 group-focus-within:opacity-100 group-hover:opacity-100">
+        <button
+          type="button"
+          onClick={startEditing}
+          aria-label={`Rename ${title}`}
+          title="Rename"
+          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground outline-none hover:bg-background hover:text-foreground focus-visible:bg-background focus-visible:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label={`Delete ${title}`}
+          title="Delete"
+          className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground outline-none hover:bg-background hover:text-destructive focus-visible:bg-background focus-visible:text-destructive focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   );
 }

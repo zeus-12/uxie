@@ -291,6 +291,29 @@ describe("desktop db layer", () => {
     expect(await listBookmarks(db, secondDoc.id)).toHaveLength(1);
   });
 
+  it("stores several pins on one page beside its page bookmark", async () => {
+    const doc = await makeDoc(db);
+    await createBookmark(db, { documentId: doc.id, pageNumber: 2 });
+    const pins = await Promise.all(
+      [0.25, 0.75].map((x) =>
+        createBookmark(db, {
+          documentId: doc.id,
+          pageNumber: 2,
+          location: { version: 1, kind: "point", x, y: 0.5 },
+        }),
+      ),
+    );
+    expect(new Set(pins.map((pin) => pin.id)).size).toBe(2);
+    const stored = await listBookmarks(db, doc.id);
+    expect(stored).toHaveLength(3);
+    expect(stored.map((bookmark) => bookmark.location)).toContainEqual({
+      version: 1,
+      kind: "point",
+      x: 0.75,
+      y: 0.5,
+    });
+  });
+
   it("keeps one page bookmark when the page is saved concurrently", async () => {
     const doc = await makeDoc(db);
     const saves = await Promise.all(

@@ -78,7 +78,9 @@ export const document = sqliteTable("Document", {
     .$defaultFn(() => new Date())
     .$onUpdate(() => new Date()),
   pageCount: integer("pageCount").notNull(),
-  isUploaded: integer("isUploaded", { mode: "boolean" }).notNull().default(true),
+  isUploaded: integer("isUploaded", { mode: "boolean" })
+    .notNull()
+    .default(true),
   lastReadPage: integer("lastReadPage").notNull().default(1),
   // The pdf.js scale to restore on open. Null means "auto" — the viewer's own
   // fit-to-width default, which is what a document gets until the user zooms.
@@ -139,7 +141,7 @@ export const bookmark = sqliteTable(
       .references(() => document.id, { onDelete: "cascade" }),
     pageNumber: integer("pageNumber").notNull(),
     label: text("label"),
-    location: text("location", { mode: "json" }).$type<PdfPassageAnchor>(),
+    location: text("location", { mode: "json" }).$type<BookmarkLocation>(),
     createdAt: createdAt(),
   },
   (t) => ({
@@ -255,11 +257,21 @@ export type PdfPassageAnchor =
       position: PdfSelectionPosition;
     };
 
+// x and y are fractions of the unrotated page box (PDF user space), measured from its top-left.
+export interface PdfPointAnchor {
+  version: 1;
+  kind: "point";
+  x: number;
+  y: number;
+}
+
+export type BookmarkLocation = PdfPassageAnchor | PdfPointAnchor;
+
 export interface CreateBookmarkInput {
   documentId: string;
   pageNumber: number;
   label?: string | null;
-  location?: PdfPassageAnchor | null;
+  location?: BookmarkLocation | null;
 }
 
 export interface AddHighlightInput {

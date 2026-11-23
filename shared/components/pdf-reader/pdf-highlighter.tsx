@@ -28,7 +28,8 @@ import {
   Popup,
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
-import type { PdfPassageAnchor, RectInput } from "../../schema";
+import { cn } from "../../lib/utils";
+import type { BookmarkLocation, RectInput } from "../../schema";
 
 type Rect = {
   x1?: number;
@@ -58,8 +59,62 @@ export type HighlighterInstance = InstanceType<typeof PdfHighlighterComponent>;
 
 export interface PdfSourceFocus {
   requestId: string;
+  bookmarkId: string;
   pageNumber: number;
-  location: PdfPassageAnchor | null;
+  location: BookmarkLocation | null;
+}
+
+export interface PagePin {
+  id: string;
+  pageNumber: number;
+  x: number;
+  y: number;
+  title: string;
+}
+
+const PIN_ID_PREFIX = "pin-";
+
+function pinHighlight(pin: PagePin): IHighlight {
+  const point = {
+    x1: pin.x,
+    y1: pin.y,
+    x2: pin.x,
+    y2: pin.y,
+    width: 1,
+    height: 1,
+    pageNumber: pin.pageNumber,
+  };
+  return {
+    id: `${PIN_ID_PREFIX}${pin.id}`,
+    position: { boundingRect: point, rects: [], pageNumber: pin.pageNumber },
+    content: { text: pin.title },
+    comment: { text: "", emoji: "" },
+  };
+}
+
+function pagePointFromEvent(
+  event: MouseEvent,
+  viewer: HighlighterInstance["viewer"],
+): { pageNumber: number; x: number; y: number } | null {
+  if (!(event.target instanceof Element)) return null;
+  const pageElement = event.target.closest<HTMLElement>(
+    ".page[data-page-number]",
+  );
+  const pageNumber = Number(pageElement?.dataset.pageNumber);
+  if (!pageElement || !Number.isInteger(pageNumber)) return null;
+  const pageView = viewer.getPageView(pageNumber - 1);
+  if (!pageView?.pdfPage) return null;
+
+  const box = pageElement.getBoundingClientRect();
+  const [pdfX, pdfY] = pageView.viewport.convertToPdfPoint(
+    event.clientX - box.left - pageElement.clientLeft,
+    event.clientY - box.top - pageElement.clientTop,
+  ) as [number, number];
+  const [left, bottom, right, top] = pageView.pdfPage.view as number[];
+  const x = (pdfX - left!) / (right! - left!);
+  const y = (top! - pdfY) / (top! - bottom!);
+  if (!(x >= 0 && x <= 1 && y >= 0 && y <= 1)) return null;
+  return { pageNumber, x, y };
 }
 
 function sourceHighlightFromFocus(focus: PdfSourceFocus): IHighlight | null {
@@ -95,6 +150,10 @@ const PdfHighlighter = ({
   addBookmark,
   focusedSource,
   onSourceFocusEnd,
+  pins = [],
+  pinDropActive = false,
+  onPinDrop,
+  onPinDropCancel,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
@@ -121,6 +180,10 @@ const PdfHighlighter = ({
   }) => void;
   focusedSource?: PdfSourceFocus | null;
   onSourceFocusEnd?: () => void;
+  pins?: PagePin[];
+  pinDropActive?: boolean;
+  onPinDrop?: (point: { pageNumber: number; x: number; y: number }) => void;
+  onPinDropCancel?: () => void;
   // Whether the document is indexed — the AI actions are hidden until it is.
   showAiFeatures: boolean;
 }) => {
@@ -135,9 +198,24 @@ const PdfHighlighter = ({
     () => (focusedSource ? sourceHighlightFromFocus(focusedSource) : null),
     [focusedSource],
   );
+  const pinHighlights = useMemo(() => pins.map(pinHighlight), [pins]);
+  const focusedPinHighlight = useMemo(
+    () =>
+      focusedSource?.location?.kind === "point"
+        ? pinHighlights.find(
+            (pin) => pin.id === `${PIN_ID_PREFIX}${focusedSource.bookmarkId}`,
+          ) ?? null
+        : null,
+    [focusedSource, pinHighlights],
+  );
+  // react-pdf-highlighter only repaints its layers when this array changes, so a pin's focus must change it too.
   const renderedHighlights = useMemo(
-    () => (sourceHighlight ? [...highlights, sourceHighlight] : highlights),
-    [highlights, sourceHighlight],
+    () => [
+      ...highlights,
+      ...pinHighlights,
+      ...(sourceHighlight ? [sourceHighlight] : []),
+    ],
+    [highlights, pinHighlights, sourceHighlight, focusedPinHighlight],
   );
 
   // Handed to us by the viewer once the document is ready.
@@ -205,15 +283,22 @@ const PdfHighlighter = ({
   useEffect(() => {
     if (!focusedSource || !viewerReady) return;
 
-    if (sourceHighlight && scrollToHighlightRef.current) {
-      scrollToHighlightRef.current(sourceHighlight);
+    const scrollToHighlight = scrollToHighlightRef.current;
+    if (sourceHighlight && scrollToHighlight) {
+      scrollToHighlight(sourceHighlight);
+      return;
+    }
+    const container = highlighterInstanceRef.current?.viewer.container;
+    if (focusedPinHighlight && scrollToHighlight && container) {
+      scrollToHighlight(focusedPinHighlight);
+      container.scrollTop -= container.clientHeight / 2;
       return;
     }
 
     highlighterInstanceRef.current?.viewer.scrollPageIntoView({
       pageNumber: focusedSource.pageNumber,
     });
-  }, [focusedSource, sourceHighlight, viewerReady]);
+  }, [focusedSource, sourceHighlight, focusedPinHighlight, viewerReady]);
 
   const viewerContainer = highlighterInstance?.containerNode ?? null;
   useEffect(() => {
@@ -224,6 +309,55 @@ const PdfHighlighter = ({
     return () =>
       viewerContainer.removeEventListener("pointerdown", onSourceFocusEnd);
   }, [sourceHighlight, viewerContainer, onSourceFocusEnd]);
+
+  useEffect(() => {
+    if (!focusedPinHighlight || !viewerContainer || !onSourceFocusEnd) return;
+    const endFocus = (event: AnimationEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.classList.contains("uxie-pin-focus")
+      ) {
+        onSourceFocusEnd();
+      }
+    };
+    viewerContainer.addEventListener("animationend", endFocus);
+    return () => viewerContainer.removeEventListener("animationend", endFocus);
+  }, [focusedPinHighlight, viewerContainer, onSourceFocusEnd]);
+
+  useEffect(() => {
+    if (!pinDropActive || !viewerContainer) return;
+    const viewer = highlighterInstanceRef.current?.viewer;
+    if (!viewer) return;
+
+    const swallow = (event: Event) => {
+      if (!(event.target instanceof Element)) return;
+      if (!event.target.closest(".page[data-page-number]")) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const drop = (event: PointerEvent) => {
+      const point = pagePointFromEvent(event, viewer);
+      if (!point) return;
+      swallow(event);
+      onPinDrop?.(point);
+    };
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onPinDropCancel?.();
+    };
+
+    viewerContainer.classList.add("uxie-pin-drop");
+    viewerContainer.addEventListener("pointerdown", drop, true);
+    viewerContainer.addEventListener("mousedown", swallow, true);
+    viewerContainer.addEventListener("click", swallow, true);
+    document.addEventListener("keydown", cancel);
+    return () => {
+      viewerContainer.classList.remove("uxie-pin-drop");
+      viewerContainer.removeEventListener("pointerdown", drop, true);
+      viewerContainer.removeEventListener("mousedown", swallow, true);
+      viewerContainer.removeEventListener("click", swallow, true);
+      document.removeEventListener("keydown", cancel);
+    };
+  }, [pinDropActive, viewerContainer, onPinDrop, onPinDropCancel]);
 
   // Remember where in the text layer the selection started, so "Read the text"
   // can begin at that word rather than at the top of the selection.
@@ -323,9 +457,7 @@ const PdfHighlighter = ({
             hideTipAndSelection={hideTipAndSelection}
             addHighlight={() => addHighlight({ content, position })}
             addBookmark={
-              addBookmark
-                ? () => addBookmark({ content, position })
-                : undefined
+              addBookmark ? () => addBookmark({ content, position }) : undefined
             }
             readSelectedText={readSelectedText}
             selectionInfoRef={selectionInfoRef}
@@ -341,6 +473,28 @@ const PdfHighlighter = ({
           _screenshot,
           isScrolledTo,
         ) => {
+          if (highlight.id.startsWith(PIN_ID_PREFIX)) {
+            const focused = highlight.id === focusedPinHighlight?.id;
+            return (
+              <div
+                key={
+                  focused
+                    ? `${highlight.id}-${focusedSource?.requestId}`
+                    : index
+                }
+                id={highlight.id}
+                role="img"
+                aria-label={highlight.content.text}
+                title={highlight.content.text}
+                className={cn("uxie-pin", focused && "uxie-pin-focus")}
+                style={{
+                  left: highlight.position.boundingRect.left,
+                  top: highlight.position.boundingRect.top,
+                }}
+              />
+            );
+          }
+
           const isTextHighlight = highlight.position.rects?.length !== 0;
           const isFocusedSource = highlight.id === sourceHighlight?.id;
 

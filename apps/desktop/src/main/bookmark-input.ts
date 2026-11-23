@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { MAX_BOOKMARK_PASSAGE_LENGTH } from "@uxie/shared/lib/bookmarks";
 import type {
+  BookmarkLocation,
   CreateBookmarkInput,
-  PdfPassageAnchor,
 } from "@uxie/shared/schema";
 
 const idSchema = z.string().trim().min(1);
@@ -17,11 +17,23 @@ const rectSchema = z.object({
   pageNumber: z.number().int().positive().nullable().optional(),
 });
 
-const exactTextSchema = z.string().trim().min(1).max(MAX_BOOKMARK_PASSAGE_LENGTH);
+const exactTextSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(MAX_BOOKMARK_PASSAGE_LENGTH);
 
-const passageAnchorSchema: z.ZodType<PdfPassageAnchor> = z.discriminatedUnion(
+const pageFraction = z.number().finite().min(0).max(1);
+
+const locationSchema: z.ZodType<BookmarkLocation> = z.discriminatedUnion(
   "kind",
   [
+    z.object({
+      version: z.literal(1),
+      kind: z.literal("point"),
+      x: pageFraction,
+      y: pageFraction,
+    }),
     z.object({
       version: z.literal(1),
       kind: z.literal("quote"),
@@ -48,7 +60,7 @@ const createBookmarkInputSchema: z.ZodType<CreateBookmarkInput> = z
     documentId: idSchema,
     pageNumber: z.number().int().positive(),
     label: labelSchema.optional(),
-    location: passageAnchorSchema.nullable().optional(),
+    location: locationSchema.nullable().optional(),
   })
   .superRefine((bookmark, context) => {
     if (bookmark.location?.kind !== "selection") return;

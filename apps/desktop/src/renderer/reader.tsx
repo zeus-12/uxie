@@ -29,6 +29,7 @@ import { Spinner, SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import BottomToolbar from "@uxie/shared/components/pdf-reader/toolbar";
 import PdfHighlighter, {
   type HighlighterInstance,
+  type PagePin,
   type PdfSourceFocus,
 } from "@uxie/shared/components/pdf-reader/pdf-highlighter";
 import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
@@ -44,7 +45,11 @@ import { MAX_BOOKMARK_PASSAGE_LENGTH } from "@uxie/shared/lib/bookmarks";
 import { Chat } from "./chat";
 import { Notes } from "./notes";
 import { FlashcardsPanel } from "./flashcards";
-import { BookmarksToolbarContent, BookmarksToolbarIcon } from "./bookmarks";
+import {
+  BookmarksToolbarContent,
+  BookmarksToolbarIcon,
+  bookmarkTitle,
+} from "./bookmarks";
 
 type PdfViewerInstance = HighlighterInstance["viewer"];
 
@@ -139,7 +144,8 @@ type NotesEditor = {
 // linked quote for text, the screenshot for an area selection. No-op if the
 // notes tab hasn't mounted the editor yet.
 function appendNoteBlock(block: unknown) {
-  const editor = useBlocknoteEditorStore.getState().editor as NotesEditor | null;
+  const editor = useBlocknoteEditorStore.getState()
+    .editor as NotesEditor | null;
   if (!editor) return;
   try {
     editor.insertBlocks([block], editor.document[editor.document.length - 1]);
@@ -267,9 +273,10 @@ function ReaderContent({
     id: string;
     message: string;
   } | null>(null);
-  const [focusedBookmark, setFocusedBookmark] = useState<
-    (PdfSourceFocus & { bookmarkId: string }) | null
-  >(null);
+  const [focusedBookmark, setFocusedBookmark] = useState<PdfSourceFocus | null>(
+    null,
+  );
+  const [droppingPin, setDroppingPin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -429,7 +436,10 @@ function ReaderContent({
       setSavingPageBookmark(true);
       try {
         rememberBookmark(
-          await window.uxieAPI.createBookmark({ documentId: docId, pageNumber }),
+          await window.uxieAPI.createBookmark({
+            documentId: docId,
+            pageNumber,
+          }),
         );
         setBookmarkAnnouncement({
           id: createId(),
@@ -468,7 +478,10 @@ function ReaderContent({
           location: passageAnchorFromSelection({ text, position, pageNumber }),
         }),
       );
-      setBookmarkAnnouncement({ id: createId(), message: "Passage bookmarked" });
+      setBookmarkAnnouncement({
+        id: createId(),
+        message: "Passage bookmarked",
+      });
     } catch (cause) {
       setError(message(cause));
     }
@@ -485,6 +498,55 @@ function ReaderContent({
 
   const endBookmarkFocus = useCallback(() => setFocusedBookmark(null), []);
 
+  const pins = useMemo(
+    () =>
+      bookmarks.flatMap((bookmark): PagePin[] =>
+        bookmark.location?.kind === "point"
+          ? [
+              {
+                id: bookmark.id,
+                pageNumber: bookmark.pageNumber,
+                x: bookmark.location.x,
+                y: bookmark.location.y,
+                title: bookmarkTitle(bookmark),
+              },
+            ]
+          : [],
+      ),
+    [bookmarks],
+  );
+
+  const dropPin = useCallback(
+    async ({
+      pageNumber,
+      x,
+      y,
+    }: {
+      pageNumber: number;
+      x: number;
+      y: number;
+    }) => {
+      setDroppingPin(false);
+      try {
+        rememberBookmark(
+          await window.uxieAPI.createBookmark({
+            documentId: docId,
+            pageNumber,
+            location: { version: 1, kind: "point", x, y },
+          }),
+        );
+        setBookmarkAnnouncement({
+          id: createId(),
+          message: `Pin dropped on page ${pageNumber}`,
+        });
+      } catch (cause) {
+        setError(message(cause));
+      }
+    },
+    [docId, rememberBookmark],
+  );
+  const cancelPinDrop = useCallback(() => setDroppingPin(false), []);
+
   const renameBookmark = useCallback(
     async (bookmark: Bookmark, label: string | null) => {
       try {
@@ -494,7 +556,9 @@ function ReaderContent({
         );
         setBookmarkAnnouncement({
           id: createId(),
-          message: renamed.label ? "Bookmark renamed" : "Bookmark label removed",
+          message: renamed.label
+            ? "Bookmark renamed"
+            : "Bookmark label removed",
         });
       } catch (cause) {
         setError(message(cause));
@@ -538,6 +602,8 @@ function ReaderContent({
           pageNumber={pageNumberInView}
           loading={bookmarksLoading}
           savingPage={savingPageBookmark}
+          droppingPin={droppingPin}
+          onTogglePinDrop={() => setDroppingPin((active) => !active)}
           onAddPage={addPageBookmark}
           onOpenBookmark={openBookmark}
           onRenameBookmark={renameBookmark}
@@ -553,6 +619,7 @@ function ReaderContent({
       pageNumberInView,
       bookmarksLoading,
       savingPageBookmark,
+      droppingPin,
       addPageBookmark,
       openBookmark,
       renameBookmark,
@@ -671,6 +738,10 @@ function ReaderContent({
                   }
                   focusedSource={focusedBookmark}
                   onSourceFocusEnd={endBookmarkFocus}
+                  pins={pins}
+                  pinDropActive={droppingPin}
+                  onPinDrop={dropPin}
+                  onPinDropCancel={cancelPinDrop}
                 />
               )}
             </PdfLoader>
