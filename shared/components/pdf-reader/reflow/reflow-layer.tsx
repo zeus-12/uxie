@@ -22,7 +22,8 @@ export type HighlightRegion = { id: string; rects: Rect[] };
 import type { PdfPoint, ScreenAnchor } from "./canvas-anchor";
 import { caretAt, charRect, offsetWithin } from "./caret";
 import { highlightRanges } from "./highlight-ranges";
-import { ReflowPageView, runKey, type LoadedPage, type PageMarks } from "./reflow-page";
+import { ReflowPageView, runKey, type LoadedPage, type PageMarks, type ReflowLink } from "./reflow-page";
+import { usePdfSettingsStore } from "../../../lib/store";
 
 export const CSS_PX_PER_PT = 96 / 72;
 const WINDOW_RADIUS = 3;
@@ -79,6 +80,7 @@ const emptyInput = (pageNumber: number, width: number, height: number): PageInpu
   paths: [],
   formWidgetCount: 0,
   structRoles: {},
+  links: [],
 });
 
 // Crops follow the text scale and kept pages fit the width, so measure the image.
@@ -130,7 +132,29 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const windowRequest = useRef(0);
   const syncingPage = useRef(false);
   const handledFind = useRef<string | null>(null);
-  const rangeCache = useRef(new WeakMap<PDFPageProxy, { key: string; ranges: Array<ItemRange & { id: string }> }>());
+  const [linksByPage, setLinksByPage] = useState<Record<number, PageMarks["links"]>>({});
+  const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
+  const rangeCache = useRef(
+    new WeakMap<PDFPageProxy, { key: string; ranges: Array<ItemRange & { id: string }>; links: PageMarks["links"] }>(),
+  );
+
+  // Only a destination that resolves to a page in this document becomes a link.
+  const resolveDest = useCallback(
+    async (dest: string | unknown[]): Promise<ReflowLink | null> => {
+      const explicit = (typeof dest === "string" ? await pdfDocument.getDestination(dest) : dest) as unknown[] | null;
+      const ref = explicit?.[0];
+      if (!explicit || ref === undefined || ref === null) return null;
+      const pageIndex =
+        typeof ref === "number" ? ref : await pdfDocument.getPageIndex(ref as Parameters<PDFDocumentProxy["getPageIndex"]>[0]);
+      const page = await pdfDocument.getPage(pageIndex + 1);
+      const viewport = page.getViewport({ scale: 1 });
+      const kind = (explicit[1] as { name?: string } | undefined)?.name;
+      const top = kind === "XYZ" ? explicit[3] : kind === "FitH" || kind === "FitBH" ? explicit[2] : null;
+      const fy = typeof top === "number" ? (viewport.convertToViewportPoint(0, top) as number[])[1]! / viewport.height : 0;
+      return { pageNumber: pageIndex + 1, fy: clamp(fy, 0, 1) };
+    },
+    [pdfDocument],
+  );
   const pxPerPt = scale * CSS_PX_PER_PT;
   const livePxPerPt = useRef(pxPerPt);
   const viewTop = useRef<ScreenAnchor | null>(null);
@@ -395,27 +419,44 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   useEffect(() => {
     let cancelled = false;
     void Promise.all(
-      pages.map(async ({ page, pdfPage }): Promise<[number, Array<ItemRange & { id: string }>]> => {
-        if (page.kind !== "reflow") return [page.pageNumber, []];
+      pages.map(async ({ page, pdfPage, input }) => {
+        const none = { pageNumber: page.pageNumber, ranges: [] as Array<ItemRange & { id: string }>, links: [] as PageMarks["links"] };
+        if (page.kind !== "reflow") return none;
         const regions = highlightRects(page.pageNumber, page.width, page.height);
-        if (regions.length === 0) return [page.pageNumber, []];
+        if (regions.length === 0 && input.links.length === 0) return none;
         const key = JSON.stringify(regions);
         const cached = rangeCache.current.get(pdfPage);
-        if (cached?.key === key) return [page.pageNumber, cached.ranges];
-        const grouped = await highlightRanges(pdfPage, regions.map((r) => r.rects));
-        const ranges = grouped.flatMap((list, i) => list.map((range) => ({ ...range, id: regions[i]!.id })));
-        rangeCache.current.set(pdfPage, { key, ranges });
-        return [page.pageNumber, ranges];
+        if (cached?.key === key) return { pageNumber: page.pageNumber, ranges: cached.ranges, links: cached.links };
+        const targets = await Promise.all(
+          input.links.map((l) =>
+            l.url ? Promise.resolve<ReflowLink>({ url: l.url }) : l.dest ? resolveDest(l.dest).catch(() => null) : Promise.resolve(null),
+          ),
+        );
+        const grouped = await highlightRanges(pdfPage, [
+          ...regions.map((r) => r.rects),
+          ...input.links.map((l) => [l.rect]),
+        ]);
+        const ranges = grouped
+          .slice(0, regions.length)
+          .flatMap((list, i) => list.map((range) => ({ ...range, id: regions[i]!.id })));
+        const links = grouped.slice(regions.length).flatMap((list, i) => {
+          const link = targets[i];
+          return link ? list.map((range) => ({ ...range, link })) : [];
+        });
+        rangeCache.current.set(pdfPage, { key, ranges, links });
+        return { pageNumber: page.pageNumber, ranges, links };
       }),
     )
       .then((entries) => {
-        if (!cancelled) setHighlightsByPage(Object.fromEntries(entries));
+        if (cancelled) return;
+        setHighlightsByPage(Object.fromEntries(entries.map((e) => [e.pageNumber, e.ranges])));
+        setLinksByPage(Object.fromEntries(entries.map((e) => [e.pageNumber, e.links])));
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [pages, highlightRects]);
+  }, [pages, highlightRects, resolveDest]);
 
   const [selection, setSelection] = useState<{ value: ReflowSelection; left: number; top: number } | null>(null);
   const [ghost, setGhost] = useState<ReflowSelection | null>(null);
@@ -527,11 +568,12 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           ...(highlightsByPage[loaded.page.pageNumber] ?? []),
           ...(ghost?.ranges.get(loaded.page.pageNumber) ?? []),
         ],
+        links: linksDisabled ? [] : (linksByPage[loaded.page.pageNumber] ?? []),
       });
     }
     return marks;
     // pdf.js mutates findController in place; findVersion is its change signal.
-  }, [pages, findController, findVersion, highlightsByPage, ghost]);
+  }, [pages, findController, findVersion, highlightsByPage, ghost, linksByPage, linksDisabled]);
 
   useEffect(() => {
     const fc = findController;
@@ -673,26 +715,44 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     return anchorAt(r.left + r.width / 2, r.top + 8);
   }, [anchorAt]);
 
+  const showPagePoint = useCallback(
+    (pageNumber: number, fx: number, fy: number) => {
+      void source.page(pageNumber).then((page) => {
+        const root = scroller();
+        if (!root) return;
+        const r = root.getBoundingClientRect();
+        const target: ScreenAnchor = {
+          point: { pageNumber, x: fx * page.width, y: fy * page.height },
+          clientX: r.left,
+          clientY: r.top + r.height / 3,
+        };
+        const inWindow = pagesRef.current.some((p) => p.page.pageNumber === pageNumber);
+        if (inWindow && placeAnchor(target, livePxPerPt.current)) return;
+        void openWindow(pageNumber, target);
+      }).catch(() => openAtPageTop(pageNumber));
+    },
+    [source, placeAnchor, openWindow, openAtPageTop],
+  );
+
+  useEffect(() => {
+    const root = scroller();
+    if (!root || !visible) return;
+    const onClick = (e: MouseEvent) => {
+      const link = (e.target as Element | null)?.closest?.<HTMLElement>("a[data-link-page]");
+      if (!link || !root.contains(link)) return;
+      e.preventDefault();
+      showPagePoint(Number(link.dataset.linkPage), 0, Number(link.dataset.linkY));
+    };
+    root.addEventListener("click", onClick);
+    return () => root.removeEventListener("click", onClick);
+  }, [visible, showPagePoint]);
+
   useImperativeHandle(
     ref,
     () => ({
       anchorAt,
       topAnchor,
-      showPagePoint: (pageNumber, fx, fy) => {
-        void source.page(pageNumber).then((page) => {
-          const root = scroller();
-          if (!root) return;
-          const r = root.getBoundingClientRect();
-          const target: ScreenAnchor = {
-            point: { pageNumber, x: fx * page.width, y: fy * page.height },
-            clientX: r.left,
-            clientY: r.top + r.height / 3,
-          };
-          const inWindow = pagesRef.current.some((p) => p.page.pageNumber === pageNumber);
-          if (inWindow && placeAnchor(target, livePxPerPt.current)) return;
-          void openWindow(pageNumber, target);
-        }).catch(() => openAtPageTop(pageNumber));
-      },
+      showPagePoint,
       previewScale: (next, keep) => {
         const root = scroller();
         if (!root) return;
@@ -702,7 +762,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         placeAnchor(keep, ppt);
       },
     }),
-    [anchorAt, placeAnchor, topAnchor, source, openWindow, openAtPageTop],
+    [anchorAt, placeAnchor, topAnchor, showPagePoint],
   );
 
   useLayoutEffect(() => {

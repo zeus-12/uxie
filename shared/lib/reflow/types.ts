@@ -17,6 +17,8 @@ export type SourceItem = {
   artifact: boolean;
 };
 
+export type PageLink = { rect: Rect; url: string | null; dest: string | unknown[] | null };
+
 export type PageInput = {
   pageNumber: number;
   width: number;
@@ -26,6 +28,7 @@ export type PageInput = {
   images: Rect[];
   paths: Rect[];
   formWidgetCount: number;
+  links: PageLink[];
   structRoles: Record<string, string>;
 };
 

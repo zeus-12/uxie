@@ -107,3 +107,9 @@ mark.reflow-highlight {
 mark.reflow-highlight[data-highlight-id] {
   cursor: pointer;
 }
+
+a.reflow-link {
+  color: hsl(var(--palette-blue));
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

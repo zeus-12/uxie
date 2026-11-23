@@ -17,9 +17,34 @@ import {
   transformBox,
   type Matrix,
 } from "./geometry";
-import type { PageInput, Rect, SourceItem } from "./types";
+import type { PageInput, PageLink, Rect, SourceItem } from "./types";
 
 const WIDGET_ANNOTATION = 20;
+const LINK_ANNOTATION = 2;
+
+type LinkAnnotation = {
+  annotationType?: number;
+  rect?: number[];
+  url?: string;
+  dest?: string | unknown[];
+};
+
+const readLinks = (
+  annotations: LinkAnnotation[],
+  viewport: { convertToViewportRectangle: (rect: number[]) => number[] },
+): PageLink[] =>
+  annotations.flatMap((a) => {
+    if (a.annotationType !== LINK_ANNOTATION || a.rect?.length !== 4) return [];
+    const url = typeof a.url === "string" ? a.url : null;
+    const dest = a.dest ?? null;
+    if (!url && !dest) return [];
+    const [x1, y1, x2, y2] = viewport.convertToViewportRectangle(a.rect) as [number, number, number, number];
+    return [{
+      rect: { x: Math.min(x1, x2), y: Math.min(y1, y2), width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) },
+      url,
+      dest,
+    }];
+  });
 
 const isMarked = (entry: TextItem | TextMarkedContent): entry is TextMarkedContent =>
   !("str" in entry);
@@ -266,6 +291,7 @@ export const extractPageInput = async (page: PDFPageProxy): Promise<PageInput> =
     paths: graphics.paths
       .map((r) => clampTo({ ...r, width: Math.max(r.width, 0.01), height: Math.max(r.height, 0.01) }, viewport.width, viewport.height))
       .filter((r): r is Rect => r !== null),
+    links: readLinks(annotations as LinkAnnotation[], viewport),
     formWidgetCount: (annotations as Array<{ annotationType?: number }>).filter(
       (a) => a.annotationType === WIDGET_ANNOTATION,
     ).length,
@@ -285,6 +311,7 @@ export const extractTextOnly = async (page: PDFPageProxy): Promise<PageInput> =>
     images: [],
     paths: [],
     formWidgetCount: 0,
+    links: [],
     structRoles: {},
   };
 };

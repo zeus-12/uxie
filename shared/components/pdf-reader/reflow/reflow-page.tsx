@@ -9,7 +9,10 @@ export type PageMarks = {
   search: ItemRange[];
   selectedSearch: number | null;
   highlights: Array<ItemRange & { id?: string }>;
+  links: Array<ItemRange & { link: ReflowLink }>;
 };
+
+export type ReflowLink = { url: string } | { pageNumber: number; fy: number };
 
 const MAX_CANVAS_PIXELS = 4_000_000;
 const MAX_HEADING_SCALE = 1.8;
@@ -101,11 +104,18 @@ type Slice = {
   selected: boolean;
   highlight: boolean;
   highlightId: string | undefined;
+  link: ReflowLink | undefined;
 };
 
 const runSlices = (run: Run, marks: PageMarks): Slice[] => {
   const cuts = new Set<number>([run.start, run.end]);
-  const tagged: Array<{ from: number; to: number; kind: "search" | "selected" | "highlight"; id?: string }> = [];
+  const tagged: Array<{
+    from: number;
+    to: number;
+    kind: "search" | "selected" | "highlight" | "link";
+    id?: string;
+    link?: ReflowLink;
+  }> = [];
   marks.search.forEach((range, i) => {
     const s = sliceOfRun(run, range);
     if (!s) return;
@@ -114,6 +124,10 @@ const runSlices = (run: Run, marks: PageMarks): Slice[] => {
   for (const range of marks.highlights) {
     const s = sliceOfRun(run, range);
     if (s) tagged.push({ ...s, kind: "highlight", id: range.id });
+  }
+  for (const range of marks.links) {
+    const s = sliceOfRun(run, range);
+    if (s) tagged.push({ ...s, kind: "link", link: range.link });
   }
   for (const t of tagged) {
     cuts.add(t.from);
@@ -132,6 +146,7 @@ const runSlices = (run: Run, marks: PageMarks): Slice[] => {
       selected: covering.some((t) => t.kind === "selected"),
       highlight: covering.some((t) => t.kind === "highlight"),
       highlightId: covering.find((t) => t.kind === "highlight" && t.id)?.id,
+      link: covering.find((t) => t.kind === "link")?.link,
     });
   }
   return out;
@@ -156,6 +171,24 @@ const RunText = ({ str, run, marks }: { str: string; run: Run; marks: PageMarks 
             <mark className="reflow-highlight" data-highlight-id={s.highlightId}>
               {node}
             </mark>
+          );
+        }
+        if (s.link && "url" in s.link) {
+          node = (
+            <a className="reflow-link" href={s.link.url} target="_blank" rel="noopener noreferrer">
+              {node}
+            </a>
+          );
+        } else if (s.link) {
+          node = (
+            <a
+              className="reflow-link"
+              href={`#page=${s.link.pageNumber}`}
+              data-link-page={s.link.pageNumber}
+              data-link-y={s.link.fy}
+            >
+              {node}
+            </a>
           );
         }
         return <Fragment key={s.from}>{node}</Fragment>;

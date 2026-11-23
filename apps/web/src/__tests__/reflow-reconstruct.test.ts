@@ -171,6 +171,13 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
     expect(reconstructPage({ ...input, items }, profile)).toMatchObject({ kind: "keep", reason: "no-reflowable-text" });
   });
 
+  it("reads the page's link annotations with their real targets", async () => {
+    const input = await convnext.source.pageInput(1);
+    const github = input.links.find((l) => l.url === "https://github.com/facebookresearch/ConvNeXt");
+    expect(github?.rect.width).toBeGreaterThan(0);
+    expect(input.links.some((l) => l.dest === "cite.LeCun1989")).toBe(true);
+  });
+
   it("refuses pages it cannot reflow faithfully", async () => {
     const arabic = await load("rtl-arabic-wikipedia.pdf");
     expect(await arabic.source.page(1)).toMatchObject({ kind: "keep", reason: "right-to-left" });
