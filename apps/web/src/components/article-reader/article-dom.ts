@@ -1,4 +1,5 @@
 import type { ArticleDocumentData } from "@/types/reader";
+import { normalizeWhitespace } from "@uxie/shared/lib/tts/utils";
 
 export type ArticleTextSelection = {
   blockId: string;
@@ -176,4 +177,44 @@ export const paintArticleHighlights = (
     mark.append(range.extractContents());
     range.insertNode(mark);
   }
+};
+
+export const findTextRangeInBlock = (
+  block: Element,
+  text: string,
+): Range | null => {
+  const query = normalizeWhitespace(text).text.trim();
+  if (!query) return null;
+
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  let raw = "";
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    nodes.push(node as Text);
+    raw += (node as Text).data;
+  }
+  const norm = normalizeWhitespace(raw);
+  const start = norm.text.indexOf(query);
+  if (start < 0) return null;
+  const rawStart = norm.toRaw[start]!;
+  const rawEnd = norm.toRaw[start + query.length - 1]! + 1;
+
+  const pointAt = (offset: number, atEnd: boolean) => {
+    let remaining = offset;
+    for (const node of nodes) {
+      const length = node.data.length;
+      if (atEnd ? remaining <= length : remaining < length) {
+        return { node, offset: remaining };
+      }
+      remaining -= length;
+    }
+    return null;
+  };
+  const from = pointAt(rawStart, false);
+  const to = pointAt(rawEnd, true);
+  if (!from || !to) return null;
+  const range = document.createRange();
+  range.setStart(from.node, from.offset);
+  range.setEnd(to.node, to.offset);
+  return range;
 };

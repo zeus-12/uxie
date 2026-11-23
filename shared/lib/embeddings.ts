@@ -4,6 +4,7 @@ import {
 } from "@huggingface/transformers";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { DESKTOP_EMBEDDING } from "./embedding-models";
+import type { PdfChunk, PdfPageText } from "./chat";
 
 // This module is the desktop's local embedder; the web app embeds via the HF API.
 export const EMBEDDING_MODEL = DESKTOP_EMBEDDING.model;
@@ -55,4 +56,19 @@ export async function chunkText(text: string): Promise<string[]> {
   });
   const chunks = await splitter.splitText(text);
   return chunks.filter((c) => c.trim().length > 20);
+}
+
+export async function chunkPdfPages(pages: PdfPageText[]): Promise<PdfChunk[]> {
+  const chunks: PdfChunk[] = [];
+  for (const page of pages) {
+    const pageChunks = await chunkText(page.text);
+    chunks.push(
+      ...pageChunks.map((pageContent) => ({
+        kind: "pdf" as const,
+        pageContent,
+        pageNumber: page.pageNumber,
+      })),
+    );
+  }
+  return chunks;
 }

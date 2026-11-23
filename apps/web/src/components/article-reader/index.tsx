@@ -5,9 +5,11 @@ import { useBlocknoteEditorStore } from "@/lib/store";
 import { HighlightContentType } from "@/types/highlight";
 import type { ArticleDocumentData } from "@/types/reader";
 import { createId } from "@paralleldrive/cuid2";
+import { CITATION_HIGHLIGHT_DURATION_MS } from "@uxie/shared/lib/citation-navigation";
 import {
   useArticleSettingsStore,
   useChatStore,
+  useCitationHighlightStore,
   useHighlightJumpStore,
   useSidebarTabStore,
 } from "@uxie/shared/lib/store";
@@ -15,6 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
 import {
+  findTextRangeInBlock,
   getArticleTextSelection,
   paintArticleHighlights,
   type ArticleTextSelection,
@@ -25,6 +28,8 @@ import {
 } from "./selection-popover";
 import { ArticleBottomToolbar } from "./tts-toolbar";
 import { useArticleTts } from "./use-article-tts";
+
+const ARTICLE_CITATION_HIGHLIGHT = "uxie-article-citation";
 
 const readingMinutes = (wordCount: number) =>
   Math.max(1, Math.ceil(wordCount / 225));
@@ -192,6 +197,50 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
     });
     return () => setJumpToHighlight(null);
   }, [setJumpToHighlight]);
+
+  const setHighlightSource = useCitationHighlightStore(
+    (state) => state.setHighlightSource,
+  );
+  useEffect(() => {
+    let clearTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearCitation = () => {
+      if (clearTimer) clearTimeout(clearTimer);
+      clearTimer = null;
+      CSS.highlights?.delete(ARTICLE_CITATION_HIGHLIGHT);
+    };
+
+    setHighlightSource((source) => {
+      clearCitation();
+      if (source.kind !== "article") {
+        toast.error("That source isn't part of this article", {
+          duration: 3000,
+        });
+        return;
+      }
+      const block = articleContentRef.current?.querySelector<HTMLElement>(
+        `[data-uxie-block-id="${CSS.escape(source.blockId)}"]`,
+      );
+      const range = block && findTextRangeInBlock(block, source.pageContent);
+      if (!block || !range) {
+        toast.error("Couldn't find this passage in the article", {
+          duration: 3000,
+        });
+        return;
+      }
+      CSS.highlights?.set(ARTICLE_CITATION_HIGHLIGHT, new Highlight(range));
+      block.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        block: "center",
+      });
+      clearTimer = setTimeout(clearCitation, CITATION_HIGHLIGHT_DURATION_MS);
+    });
+    return () => {
+      setHighlightSource(null);
+      clearCitation();
+    };
+  }, [setHighlightSource]);
 
   const saveProgress = useDebouncedCallback(() => {
     const root = scrollRootRef.current;

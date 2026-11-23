@@ -35,10 +35,12 @@ import { cancelCompletion, streamCompletion } from "./ai/completion";
 import { cancelChat, resolveChatRetrieve, streamChat } from "./ai/chat";
 import { getFlashcardsByDocId } from "./db/flashcards";
 import { evaluateFlashcard, generateFlashcardsForDoc } from "./ai/flashcards";
-import { extractPdfText } from "./pdf-text";
+import { extractPdfPages } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
 import { createUserMessage } from "./chat-images";
 import { createMessage, getMessagesByDocId } from "./db/messages";
+import { exportNotes } from "./notes-export";
+import { exportAnnotatedPdf } from "./pdf-export";
 
 // Without this, app.getName() falls back to package.json's "name" — the
 // workspace's "@uxie/desktop" — and userData lands in a nested "@uxie/desktop"
@@ -81,6 +83,8 @@ const invokeHandlers: {
   "documents:setCover": (id, png) => setDocumentCover(id, png),
   "documents:delete": (id) => deleteDocumentWithFile(id),
   "documents:storeImage": (docId, png) => storeDocumentImage(docId, png),
+  "documents:exportAnnotatedPdf": (docId) => exportAnnotatedPdf(docId),
+  "documents:exportNotes": (docId, markdown) => exportNotes(docId, markdown),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
   // Deliberately leaves the screenshot on disk: the same image is embedded in
@@ -103,7 +107,7 @@ const invokeHandlers: {
   "messages:create": (docId, role, parts) =>
     createMessage(getDb(), docId, role, parts),
 
-  "documents:getText": (docId) => extractPdfText(docId),
+  "documents:getPages": (docId) => extractPdfPages(docId),
   "embeddings:store": (docId, items) => storeEmbeddings(docId, items),
   "embeddings:query": (docId, embedding, k) =>
     queryEmbeddings(docId, embedding, k),

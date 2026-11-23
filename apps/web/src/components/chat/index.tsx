@@ -9,6 +9,7 @@ import { useChat } from "@ai-sdk/react";
 import {
   ChatPanel,
   type ChatRow,
+  type RenderMarkdown,
 } from "@uxie/shared/components/chat/chat-panel";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
 import {
@@ -20,10 +21,13 @@ import {
   useChatImageAttachments,
   type StagedChatImage,
 } from "@uxie/shared/hooks/use-chat-image-attachments";
+import { withCitablePassages, type CitationIndex } from "@uxie/shared/lib/chat";
 import {
   userMessageRows,
   type ChatImage,
 } from "@uxie/shared/lib/chat-attachments";
+import { chatPartsToRows } from "@uxie/shared/lib/chat-rows";
+import { withoutPartialCitation } from "@uxie/shared/lib/citation-markdown";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import { DefaultChatTransport, type FileUIPart } from "ai";
 import { SparklesIcon } from "lucide-react";
@@ -31,7 +35,14 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
-const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
+const renderMarkdown: RenderMarkdown = (text, citations) => (
+  <ReactMarkdown
+    remarkPlugins={citations?.remarkPlugins}
+    components={citations?.components}
+  >
+    {text}
+  </ReactMarkdown>
+);
 
 export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { query } = useRouter();
@@ -75,59 +86,46 @@ function VectoriseGate({ docId }: { docId: string }) {
   );
 }
 
-// A stored/streamed message part, loosely typed — the same shape flows from the
-// live `useChat` stream and from persisted DB messages (trpc JSON).
-type LoosePart = {
-  type: string;
-  text?: string;
-  state?: string;
-  filename?: string;
-  mediaType?: string;
-  url?: string;
-};
-const partsOf = (m: { parts?: unknown }): LoosePart[] =>
-  Array.isArray(m.parts) ? (m.parts as LoosePart[]) : [];
+type LoosePart = Record<string, unknown> & { type: string };
+function partsOf(message: { parts?: unknown }): LoosePart[] {
+  if (!Array.isArray(message.parts)) return [];
+  return message.parts.flatMap((part): LoosePart[] =>
+    typeof part === "object" &&
+    part !== null &&
+    "type" in part &&
+    typeof part.type === "string"
+      ? [part as LoosePart]
+      : [],
+  );
+}
 
-function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
-  const displayRole = role === "user" ? "user" : "assistant";
-  if (displayRole === "user") {
-    const content = parts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text ?? "")
-      .join("");
-    const attachments = parts.flatMap((part, index): ChatImage[] =>
-      part.type === "file"
-        ? [
-            {
-              id: String(index),
-              filename: part.filename ?? "image",
-              url: part.url?.startsWith("data:image/") ? part.url : null,
-            },
-          ]
-        : [],
-    );
-    return userMessageRows(content, attachments);
-  }
-
-  const rows: ChatRow[] = [];
-  for (const p of parts) {
-    if (p.type === "text") {
-      if (p.text?.trim()) {
-        rows.push({ kind: "message", role: displayRole, content: p.text });
-      }
-    } else if (p.type.startsWith("tool-") && p.type !== "tool-result") {
-      const active =
-        p.state !== undefined &&
-        p.state !== "output-available" &&
-        p.state !== "output-error";
-      rows.push({
-        kind: "tool",
-        label: active ? "Searching the document…" : "Searched the document",
-        active,
-      });
-    }
-  }
-  return rows;
+function messageToRows(
+  role: string,
+  parts: LoosePart[],
+  citations?: CitationIndex,
+): ChatRow[] {
+  if (role !== "user") return chatPartsToRows(role, parts, citations);
+  const content = parts
+    .flatMap((part) =>
+      part.type === "text" && typeof part.text === "string" ? [part.text] : [],
+    )
+    .join("");
+  const attachments = parts.flatMap((part, index): ChatImage[] =>
+    part.type === "file"
+      ? [
+          {
+            id: String(index),
+            filename:
+              typeof part.filename === "string" ? part.filename : "image",
+            url:
+              typeof part.url === "string" && part.url.startsWith("data:image/")
+                ? part.url
+                : null,
+          },
+        ]
+      : [],
+  );
+  return userMessageRows(content, attachments);
 }
 
 type Turn = { text: string; images: StagedChatImage[] };
@@ -282,7 +280,22 @@ function ChatView({ docId }: { docId: string }) {
 
   const history = [...(prevChatMessages ?? []), ...messages];
   const rows: ChatRow[] = [];
-  for (const m of history) rows.push(...messageToRows(m.role, partsOf(m)));
+  const streamingMessage = streaming ? messages[messages.length - 1] : null;
+  let citations: CitationIndex = new Map();
+  for (const m of history) {
+    const parts = partsOf(m);
+    citations = withCitablePassages(citations, parts);
+    const messageRows = messageToRows(m.role, parts, citations);
+    rows.push(
+      ...(m === streamingMessage
+        ? messageRows.map((row) =>
+            row.kind === "message" && row.role === "assistant"
+              ? { ...row, content: withoutPartialCitation(row.content) }
+              : row,
+          )
+        : messageRows),
+    );
+  }
 
   if (streaming) {
     const last = messages[messages.length - 1];

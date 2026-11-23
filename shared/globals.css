@@ -1,5 +1,6 @@
 /* The consuming app's CSS entry provides `@import "tailwindcss"` and @source. */
 @import "./styles/tts-highlight.css";
+@import "./styles/citation-highlight.css";
 @import "./styles/themes.css";
 @import "./styles/pdf-search.css";
 @import "./styles/reflow.css";

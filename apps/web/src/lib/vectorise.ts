@@ -1,12 +1,15 @@
 import { env } from "@/env.mjs";
 import { getPineconeClient } from "@/lib/pinecone";
-import { toRetrievedChunks } from "@/lib/retrieved-chunks";
+import {
+  pageNumberFromMetadata,
+  toGetInformationOutput,
+} from "@/lib/retrieved-chunks";
 import { fetchPublicResource } from "@/server/article/safe-fetch";
 import { prisma } from "@/server/db";
 import { InferenceClient } from "@huggingface/inference";
+import { extractPdfPages } from "@uxie/shared/lib/pdf-pages";
 import { JSDOM } from "jsdom";
 import { Document as LangChainDocument } from "langchain/document";
-import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 import { Embeddings } from "langchain/embeddings/base";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
@@ -124,16 +127,19 @@ export const vectoriseDocument = async ({
         resource.body.byteOffset,
         resource.body.byteOffset + resource.body.byteLength,
       );
-      const loader = new PDFLoader(
-        new Blob([arrayBuffer], { type: "application/pdf" }),
-      );
-      sourceDocuments = await loader.load();
-
-      if (sourceDocuments.length > maxPagesAllowed) {
+      const pages = await extractPdfPages(new Uint8Array(arrayBuffer));
+      if (pages.length > maxPagesAllowed) {
         throw new Error(
           `Document to be vectorised can have at max ${maxPagesAllowed} pages. Upgrade to use larger documents.`,
         );
       }
+      sourceDocuments = pages.map(
+        ({ pageNumber, text }) =>
+          new LangChainDocument({
+            pageContent: text,
+            metadata: { pageNumber },
+          }),
+      );
     }
 
     const pineconeIndex = getPineconeIndex();
@@ -146,13 +152,23 @@ export const vectoriseDocument = async ({
     const splitDocs = await textSplitter.splitDocuments(sourceDocuments);
 
     const combinedData = splitDocs.map((document) => {
+      if (kind === "ARTICLE") {
+        return {
+          ...document,
+          metadata: {
+            ...document.metadata,
+            fileId: documentId,
+            kind: "article",
+          },
+        };
+      }
+      const pageNumber = pageNumberFromMetadata(document.metadata);
+      if (!pageNumber) {
+        throw new Error("PDF loader returned a chunk without a page number");
+      }
       return {
         ...document,
-        metadata: {
-          ...document.metadata,
-          fileId: documentId,
-          kind: kind === "ARTICLE" ? "article" : "pdf",
-        },
+        metadata: { fileId: documentId, kind: "pdf", pageNumber },
       };
     });
 
@@ -195,5 +211,5 @@ export const retrieveRelevantDocumentContent = async (
   });
 
   const results = await vectorStore.similaritySearch(question, 4);
-  return toRetrievedChunks(results);
+  return toGetInformationOutput(results);
 };
