@@ -292,7 +292,11 @@ const PdfHighlighter = ({
           stageImageAttachment={stageImageAttachment}
           content={{ text: selection.text }}
           hideTipAndSelection={close}
-          addHighlight={() => addHighlight({ content: { text: selection.text }, position: selection.position })}
+          addHighlight={() => {
+            void selection.resolvePosition().then((position) => {
+              if (position) addHighlight({ content: { text: selection.text }, position });
+            });
+          }}
           readSelectedText={readSelectedText}
           selectionInfoRef={selectionInfoRef}
           transformSelection={keepVisible}

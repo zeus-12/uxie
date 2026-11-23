@@ -11,7 +11,7 @@ import {
   forwardRef,
   type ReactNode,
 } from "react";
-import { selectedSlices, selectionToPosition, type ReflowSelection } from "./selection";
+import { describeSelection, selectedSlices, type ReflowSelection } from "./selection";
 import { beginProgrammaticScroll } from "../../../hooks/use-sentence-reader";
 import { REFLOW_REVEAL_EVENT, announceReflowLayout } from "../../../lib/reflow/reveal";
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
@@ -428,43 +428,32 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     const root = scroller();
     if (!root || !visible || !selectable) return;
     let pointerDown = false;
-    let running = false;
-    let dirty = false;
-    let latest = 0;
 
+    // Cheap on purpose: it runs on every selectionchange while a selection is
+    // dragged, so nothing here may lay out text or touch the DOM.
     const finish = () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
       const range = sel.getRangeAt(0);
       if (!root.contains(range.commonAncestorContainer)) return;
-      if (running) {
-        dirty = true;
-        return;
-      }
-      running = true;
-      const id = ++latest;
+      const inputs = new Map(pagesRef.current.map((p) => [p.page.pageNumber, p.input]));
+      const value = describeSelection(
+        selectedSlices(root, range),
+        (n) => inputs.get(n),
+        (n) => pdfDocument.getPage(n),
+        viewer.currentScale,
+      );
+      if (!value) return;
       const box = range.getBoundingClientRect();
       const rootBox = root.getBoundingClientRect();
       const half = Math.min(140, rootBox.width / 2);
       const left = clamp(box.left + box.width / 2 - rootBox.left, half, rootBox.width - half);
       const top = box.top - rootBox.top + root.scrollTop;
-      void selectionToPosition(selectedSlices(root, range), (n) => pdfDocument.getPage(n), viewer.currentScale)
-        .then((value) => {
-          if (id === latest && value) setSelection({ value, left, top });
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          running = false;
-          if (dirty) {
-            dirty = false;
-            finish();
-          }
-        });
+      setSelection({ value, left, top });
     };
     const onDown = (e: PointerEvent) => {
       if ((e.target as Element | null)?.closest?.("[data-reflow-tip]")) return;
       pointerDown = true;
-      latest += 1;
       setSelection(null);
       setGhost(null);
     };
