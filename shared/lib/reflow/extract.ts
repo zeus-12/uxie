@@ -1,4 +1,4 @@
-import { OPS } from "pdfjs-dist";
+import { OPS } from "pdfjs-dist/legacy/build/pdf";
 import type { PDFPageProxy } from "pdfjs-dist";
 import type {
   PDFOperatorList,

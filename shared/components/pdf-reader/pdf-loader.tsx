@@ -14,5 +14,5 @@ const Loader = LibraryPdfLoader as unknown as ComponentType<
 
 export const PdfLoader = (props: Props) => {
   const { available } = useReflowOnZoom();
-  return <Loader {...props} fontExtraProperties={available} />;
+  return <Loader key={String(available)} {...props} fontExtraProperties={available} />;
 };

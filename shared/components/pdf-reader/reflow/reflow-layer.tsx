@@ -11,7 +11,8 @@ import {
   forwardRef,
 } from "react";
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
-import { REFLOW_REVEAL_EVENT } from "../../../lib/reflow/reveal";
+import { REFLOW_REVEAL_EVENT, announceReflowLayout } from "../../../lib/reflow/reveal";
+import { beginProgrammaticScroll } from "../../../hooks/use-sentence-reader";
 import { usePdfSettingsStore } from "../../../lib/store";
 import type { ReflowSource } from "../../../lib/reflow/source";
 import type { Rect, Run } from "../../../lib/reflow/types";
@@ -60,6 +61,30 @@ type Props = {
 type RunEntry = { pageNumber: number; run: Run };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+// Kept pages have no runs; a point on one maps through the page image it shows.
+const sectionAnchorAt = (
+  root: HTMLElement,
+  clientX: number,
+  clientY: number,
+  pxPerPt: number,
+): ScreenAnchor | null => {
+  let best: { section: HTMLElement; d: number } | null = null;
+  for (const section of root.querySelectorAll<HTMLElement>("[data-reflow-page]")) {
+    const r = section.getBoundingClientRect();
+    const d = clientY < r.top ? r.top - clientY : clientY > r.bottom ? clientY - r.bottom : 0;
+    if (!best || d < best.d) best = { section, d };
+  }
+  if (!best) return null;
+  const kept = best.section.classList.contains("reflow-kept");
+  const image = ((kept && best.section.querySelector("canvas")) || best.section).getBoundingClientRect();
+  const y = Math.min(Math.max(clientY, image.top), image.bottom);
+  return {
+    point: { pageNumber: Number(best.section.dataset.reflowPage), x: 0, y: (y - image.top) / pxPerPt },
+    clientX: image.left,
+    clientY: y,
+  };
+};
 
 export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLayer(
   { source, pdfDocument, viewer, findController, eventBus, scale, anchor, highlightRects, visible, onPlaced, onFailed },
@@ -170,6 +195,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           const el = section.querySelector<HTMLElement>(`[data-run="${runKey(pageNumber, run.itemIndex)}"]`);
           const glyph = el ? charRect(el, Math.min(char.offset, run.end - 1) - run.start) : null;
           if (glyph) {
+            beginProgrammaticScroll();
             root.scrollTop += glyph.top + glyph.height / 2 - target.clientY;
             return true;
           }
@@ -183,6 +209,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
             if (y >= r.y && y <= r.y + r.height && target.point.x >= r.x && target.point.x <= r.x + r.width) {
               const el = section.querySelector<HTMLElement>(`[data-crop="${index}"]`);
               if (el) {
+                beginProgrammaticScroll();
                 root.scrollTop += el.getBoundingClientRect().top + (y - r.y) * ppt - target.clientY;
                 return true;
               }
@@ -208,8 +235,10 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         }
       }
       if (elementTop === null) {
-        elementTop = section.getBoundingClientRect().top + y * ppt;
+        const image = loaded.page.kind === "keep" ? section.querySelector("canvas") : null;
+        elementTop = (image ?? section).getBoundingClientRect().top + y * ppt;
       }
+      beginProgrammaticScroll();
       root.scrollTop += elementTop - target.clientY;
       return true;
     },
@@ -222,7 +251,10 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     const kept = keepInPlace.current;
     if (kept) {
       const section = root.querySelector<HTMLElement>(`[data-reflow-page="${kept.pageNumber}"]`);
-      if (section) root.scrollTop += section.getBoundingClientRect().top - kept.top;
+      if (section) {
+        beginProgrammaticScroll();
+        root.scrollTop += section.getBoundingClientRect().top - kept.top;
+      }
       keepInPlace.current = null;
     }
     const target = pendingAnchor.current;
@@ -364,6 +396,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     const selected = root?.querySelector<HTMLElement>("mark[data-selected]");
     if (selected) {
       handledFind.current = key;
+      beginProgrammaticScroll();
       selected.scrollIntoView({ block: "center" });
       return;
     }
@@ -453,7 +486,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         };
         return { point, clientX: r.left, clientY };
       }
-      if (!span) return null;
+      if (!span) return sectionAnchorAt(root, clientX, clientY, pxPerPt);
       const entry = runIndex.get(span.dataset.run ?? "");
       if (!entry) return null;
       const caret = caretAt(clientX, clientY);
@@ -499,6 +532,23 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   useLayoutEffect(() => {
     scroller()?.style.setProperty("--reflow-pt", `${pxPerPt}px`);
   }, [pxPerPt]);
+
+  useEffect(() => {
+    if (visible) announceReflowLayout();
+  }, [visible, pages, pxPerPt]);
+
+  useEffect(() => {
+    const root = scroller();
+    if (!root || !visible) return;
+    let width = root.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (root.clientWidth === width) return;
+      width = root.clientWidth;
+      announceReflowLayout();
+    });
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [visible]);
 
   useEffect(() => {
     const root = scroller();

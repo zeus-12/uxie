@@ -1,4 +1,5 @@
-import { renderTextLayer, type PDFPageProxy } from "pdfjs-dist";
+import type { PDFPageProxy } from "pdfjs-dist";
+import { renderTextLayer } from "pdfjs-dist/legacy/build/pdf";
 import type { ItemRange } from "../../../lib/reflow/anchors";
 import type { Rect } from "../../../lib/reflow/types";
 

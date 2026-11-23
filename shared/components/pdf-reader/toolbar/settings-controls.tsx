@@ -176,9 +176,8 @@ export const SettingsControls = ({
               duration: 0.2,
               ease: [0.16, 1, 0.3, 1],
             }}
-            // Icon-anchored on desktop; below md that overflows the right edge.
-            // `fixed` resolves against the toolbar, not the viewport, because
-            // the toolbar is translated — so this spans the toolbar's width.
+            // Below md, `fixed` resolves against the translated toolbar, not the
+            // viewport, so the panel spans the toolbar's width.
             className="absolute bottom-full left-0 z-[99] mb-3 max-md:fixed max-md:inset-x-2 max-md:bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)] max-md:mb-0"
             ref={containerRef}
             role="dialog"

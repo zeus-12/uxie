@@ -85,7 +85,6 @@ type NotesEditor = {
   document: unknown[];
 };
 
-// No-op until the notes tab has mounted the editor.
 function appendNoteBlock(block: unknown) {
   const editor = useBlocknoteEditorStore.getState().editor as NotesEditor | null;
   if (!editor) return;
@@ -112,7 +111,6 @@ function addImageHighlightToNotes(url: string) {
   appendNoteBlock({ type: "image", props: { url } });
 }
 
-/** react-pdf-highlighter hands area selections back as a png data url. */
 function dataUrlToBytes(dataUrl: string): Uint8Array | null {
   const base64 = dataUrl.split(",")[1];
   if (!base64) return null;

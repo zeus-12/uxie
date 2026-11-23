@@ -301,6 +301,7 @@ const usePdfReader = ({
     return () => {
       container.removeEventListener("scroll", handleScroll);
       clearTimeout(timeout);
+      userScrolledRef.current = false;
     };
   }, [viewer, reflowed]);
 

@@ -1,4 +1,4 @@
-import { requestReflowPage } from "../lib/reflow/reveal";
+import { REFLOW_LAYOUT_EVENT, requestReflowPage } from "../lib/reflow/reveal";
 import {
   buildWordMap,
   extractWordsWithPositions,
@@ -297,10 +297,7 @@ function itemElementAt(
 
 // Canvas text spans and reflowed runs read the same pdf.js items, so a reading
 // position carries across the switch by item and character, not by text.
-function sentenceIndexAt(
-  model: PageTextModel,
-  point: ItemPoint,
-): number | null {
+function normPosAt(model: PageTextModel, point: ItemPoint): number | null {
   const target = itemElementAt(model, point);
   if (!target) return null;
   const blockIndex = model.blocks.findIndex((b) => b.contains(target.el));
@@ -311,12 +308,41 @@ function sentenceIndexAt(
     model.blockStarts[blockIndex]! +
     (inEl ? textOffsetWithin(block, inEl.node, inEl.offset) : 0);
   const normPos = model.norm.toRaw.findIndex((raw) => raw >= rawPos);
-  if (normPos < 0) return null;
-  let index: number | null = null;
+  return normPos < 0 ? null : normPos;
+}
+
+function sentenceIndexContaining(model: PageTextModel, normPos: number): number {
+  let index = 0;
   model.sentenceStarts.forEach((start, i) => {
     if (start >= 0 && start <= normPos) index = i;
   });
-  return index ?? 0;
+  return index;
+}
+
+type Remap = { current: number; resume: number | null };
+
+// Shows the sentence holding the spoken sentence's start, and resumes after its
+// end: re-reading the tail of a sentence the new surface merged, never skipping.
+function remapPosition(
+  from: PageTextModel,
+  sentenceIndex: number,
+  to: PageTextModel,
+): Remap {
+  const start = from.sentenceStarts[sentenceIndex];
+  const sentence = from.sentences[sentenceIndex];
+  if (start === undefined || start < 0 || !sentence) return { current: 0, resume: null };
+  const startPoint = itemPointAt(from, start);
+  const endPoint = itemPointAt(from, start + sentence.length - 1);
+  const startPos = startPoint ? normPosAt(to, startPoint) : null;
+  const endPos = endPoint ? normPosAt(to, endPoint) : null;
+  if (startPos === null && startPoint) {
+    return { current: Math.max(0, to.sentences.length - 1), resume: to.sentences.length };
+  }
+  const current = startPos === null ? 0 : sentenceIndexContaining(to, startPos);
+  if (endPos === null) return { current, resume: null };
+  const last = sentenceIndexContaining(to, endPos);
+  const lastEnd = to.sentenceStarts[last]! + (to.sentences[last]?.length ?? 0) - 1;
+  return { current, resume: endPos >= lastEnd ? last + 1 : last };
 }
 
 function rawRangeToRange(
@@ -505,7 +531,7 @@ const SCROLL_SETTLE_MS = 800;
 let programmaticScrollUntil = 0;
 let scrollEndWatcher: (() => void) | null = null;
 
-function beginProgrammaticScroll() {
+export function beginProgrammaticScroll() {
   programmaticScrollUntil =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) +
     SCROLL_SETTLE_MS;
@@ -533,13 +559,12 @@ export function isProgrammaticScroll(): boolean {
 
 // The reading page is outside the reflowed window: its overlays sit on the hidden
 // canvas, so ask the reflow layer to show that page before following along.
-function revealReflowedPage(pageElement: Element | undefined): boolean {
+function revealReflowedPage(pageNumber: number): boolean {
   const layer = document.querySelector(".reflow-layer[data-active]");
-  const pageNumber = pageElement?.getAttribute("data-page-number");
-  if (!layer || !pageNumber || layer.querySelector(`[data-reflow-page="${pageNumber}"]`)) {
+  if (!layer || layer.querySelector(`[data-reflow-page="${pageNumber}"]`)) {
     return false;
   }
-  requestReflowPage(Number(pageNumber));
+  requestReflowPage(pageNumber);
   return true;
 }
 
@@ -551,6 +576,7 @@ function scrollIntoCentre(el: Element) {
 export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const currentPageRef = useRef(1);
   const currentSentenceIndexRef = useRef(0);
+  const resumeIndexRef = useRef<number | null>(null);
   const modelRef = useRef<PageTextModel | null>(null);
   const wordMapRef = useRef<{ map: WordMapEntry[]; spoken: string } | null>(
     null,
@@ -569,6 +595,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     const model = buildPageTextModel(pageElement);
     modelRef.current = model;
     currentPageRef.current = pageNumber;
+    resumeIndexRef.current = null;
 
     return model.sentences;
   }, []);
@@ -585,18 +612,15 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     if (model.pageElement !== page) {
       // A re-rendering text layer has no spans yet; textlayerrendered retries.
       if (textBlocks(page).length === 0) return false;
-      const start = model.sentenceStarts[currentSentenceIndexRef.current];
-      const point =
-        start === undefined || start < 0 ? null : itemPointAt(model, start);
       const fresh = buildPageTextModel(page);
       modelRef.current = fresh;
       wordMapRef.current = null;
       repaintWordRef.current = null;
       removeHighlightsByType("word");
       removeHighlightsByType("sentence");
-      const index = point ? sentenceIndexAt(fresh, point) : null;
-      currentSentenceIndexRef.current =
-        index ?? (point ? Math.max(0, fresh.sentences.length - 1) : 0);
+      const remap = remapPosition(model, currentSentenceIndexRef.current, fresh);
+      currentSentenceIndexRef.current = remap.current;
+      resumeIndexRef.current = remap.resume;
       return true;
     }
     const liveSpans = textBlocks(page);
@@ -730,7 +754,8 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   }, []);
 
   const advanceToNextSentence = useCallback((): SentencePosition | null => {
-    const nextIdx = currentSentenceIndexRef.current + 1;
+    const nextIdx = resumeIndexRef.current ?? currentSentenceIndexRef.current + 1;
+    resumeIndexRef.current = null;
 
     if (nextIdx < (modelRef.current?.sentences.length ?? 0)) {
       currentSentenceIndexRef.current = nextIdx;
@@ -758,6 +783,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   ]);
 
   const goToPreviousSentence = useCallback((): SentencePosition | null => {
+    resumeIndexRef.current = null;
     const prevIdx = currentSentenceIndexRef.current - 1;
 
     if (prevIdx < 0) {
@@ -869,6 +895,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
       if (bestIdx === -1) bestIdx = 0;
 
+      resumeIndexRef.current = null;
       currentSentenceIndexRef.current = bestIdx;
       highlightCurrentSentence();
       return getCurrentSentence();
@@ -878,6 +905,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
   const reset = useCallback(() => {
     currentPageRef.current = 1;
+    resumeIndexRef.current = null;
     currentSentenceIndexRef.current = 0;
     modelRef.current = null;
     wordMapRef.current = null;
@@ -888,7 +916,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     const highlight =
       document.querySelector(`.${OVERLAY_CLASS.sentence.tts}`) ??
       document.querySelector(`.${OVERLAY_CLASS.sentence.rsvp}`);
-    if (revealReflowedPage(modelRef.current?.pageElement)) return;
+    if (revealReflowedPage(currentPageRef.current)) return;
     if (highlight) scrollIntoCentre(highlight);
   }, []);
 
@@ -900,7 +928,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       document.querySelector(`.${OVERLAY_CLASS.word.rsvp}`);
     const container = getReaderScrollContainer();
     if (!word || !container) return;
-    if (revealReflowedPage(modelRef.current?.pageElement)) return;
+    if (revealReflowedPage(currentPageRef.current)) return;
 
     const view = container.getBoundingClientRect();
     const rect = word.getBoundingClientRect();
@@ -970,8 +998,9 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
           );
         }
       };
+      const surface = modelRef.current;
       paint();
-      repaintWordRef.current = paint;
+      if (modelRef.current === surface) repaintWordRef.current = paint;
     },
     [highlightWordInSentence],
   );
@@ -1021,7 +1050,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     };
 
     document.addEventListener("pdf:textlayerrendered", handler);
-    return () => document.removeEventListener("pdf:textlayerrendered", handler);
+    document.addEventListener(REFLOW_LAYOUT_EVENT, handler);
+    return () => {
+      document.removeEventListener("pdf:textlayerrendered", handler);
+      document.removeEventListener(REFLOW_LAYOUT_EVENT, handler);
+    };
   }, [refreshHighlights]);
 
   // Continues onto following pages so a page turn has audio ready. Pages pdf.js

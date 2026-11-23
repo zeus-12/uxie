@@ -54,6 +54,7 @@ export const useInPlaceReflow = ({
   const [placed, setPlaced] = useState(false);
   const layerRef = useRef<ReflowLayerApi | null>(null);
   const pendingAnchor = useRef<ScreenAnchor | null>(null);
+  const pendingZoomIn = useRef(false);
   const modeRef = useRef<"page" | "reflow">("page");
   const pinchRef = useRef<Pinch | null>(null);
   const entryRequest = useRef(0);
@@ -69,6 +70,7 @@ export const useInPlaceReflow = ({
       modeRef.current = "page";
       pinchRef.current = null;
       pendingAnchor.current = null;
+      pendingZoomIn.current = false;
       setReflow(null);
       setPlaced(false);
     },
@@ -96,6 +98,7 @@ export const useInPlaceReflow = ({
     entryRequest.current += 1;
     pinchRef.current = null;
     pendingAnchor.current = null;
+    pendingZoomIn.current = false;
     releaseTransform();
     if (modeRef.current !== "reflow") return;
     modeRef.current = "page";
@@ -110,10 +113,12 @@ export const useInPlaceReflow = ({
       const scale = viewer.currentScale;
       const fit = fitWidthScale(viewer);
       const anchor = pendingAnchor.current;
+      const zoomedIn = pendingZoomIn.current;
       pendingAnchor.current = null;
+      pendingZoomIn.current = false;
       if (!fit) return;
       if (modeRef.current === "page") {
-        if (anchor && scale > fit * ENTER_RATIO) {
+        if (anchor && zoomedIn && scale > fit * ENTER_RATIO) {
           const entry = anchor;
           scrollCanvasTo(viewer, anchor);
           const request = entryRequest.current;
@@ -157,6 +162,7 @@ export const useInPlaceReflow = ({
         releaseTransform();
         const anchor = pendingAnchor.current;
         pendingAnchor.current = null;
+        pendingZoomIn.current = false;
         if (modeRef.current === "reflow" && anchor) {
           setReflow((current) => (current ? { anchor, scale: current.scale } : current));
         } else if (anchor) scrollCanvasTo(viewer, anchor);
@@ -220,6 +226,7 @@ export const useInPlaceReflow = ({
         if (!pinch || e.touches.length >= 2) return;
         pinchRef.current = null;
         const scale = pinch.startScale * pinch.ratio;
+        pendingZoomIn.current = pinch.ratio > 1;
         pendingAnchor.current =
           pinch.mode === "reflow"
             ? (layerRef.current?.anchorAt(pinch.fingerX, pinch.anchor.clientY) ?? pinch.anchor)

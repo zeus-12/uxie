@@ -35,11 +35,6 @@ type Rect = {
   pageNumber?: number | null;
 };
 
-/**
- * The geometry is treated opaquely — it goes straight to react-pdf-highlighter
- * — so this is loose enough for both web's DB-shaped highlights and desktop's
- * already-mapped ones.
- */
 export type ReaderHighlight = {
   id: string;
   position: {
@@ -67,11 +62,7 @@ const PdfHighlighter = ({
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
   pdfScaleValue: string;
-  // Hands the mounted PdfHighlighter instance (and so its pdf.js PDFViewer) to
-  // the caller, which needs it to track the page in view and apply zoom.
   highlighterRef?: (instance: HighlighterInstance | null) => void;
-  // Persistence is the caller's business: web writes through tRPC, desktop
-  // through IPC, the demo into local state.
   addHighlight: (args: {
     content: { text?: string; image?: string };
     position: IHighlight["position"];
@@ -83,7 +74,6 @@ const PdfHighlighter = ({
     pageNumber?: number,
   ) => void;
   readSelectedText: ReadSelectedText;
-  // Whether the document is indexed — the AI actions are hidden until it is.
   showAiFeatures: boolean;
   onZoomChange?: (scale: number) => void;
   onReflowChange?: (reflowed: boolean) => void;
@@ -97,7 +87,6 @@ const PdfHighlighter = ({
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
 
-  // Handed to us by the viewer once the document is ready.
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
     null,
   );
@@ -105,8 +94,6 @@ const PdfHighlighter = ({
     (state) => state.setJumpToHighlight,
   );
 
-  // Keep the mounted instance locally (for the jump fallback below) as well as
-  // handing it to the caller.
   const highlighterInstanceRef = useRef<HighlighterInstance | null>(null);
   const [highlighterInstance, setHighlighterInstance] =
     useState<HighlighterInstance | null>(null);
@@ -119,9 +106,8 @@ const PdfHighlighter = ({
     [highlighterRef],
   );
 
-  // The highlight blocks in the notes editor jump through here. It goes by page
-  // number rather than by element id: pdf.js only keeps nearby pages rendered,
-  // so a highlight's DOM node doesn't exist until its page is scrolled into view.
+  // Jumps by page, not element id: pdf.js only keeps nearby pages rendered, so
+  // a highlight's DOM node doesn't exist until its page is in view.
   useEffect(() => {
     setJumpToHighlight((highlightId, fallbackPageNumber) => {
       const highlight = highlights.find((h) => h.id === highlightId);
@@ -202,9 +188,8 @@ const PdfHighlighter = ({
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
-  // Backs the "disable links" toggle in the settings menu: pdf.js renders real
-  // anchors in its annotation layer, so suppressing them means swallowing the
-  // click before it navigates.
+  // pdf.js renders real anchors in its annotation layer, so disabling links
+  // means swallowing the click before it navigates.
   useEffect(() => {
     const handleLinkClick = (event: MouseEvent) => {
       if (!linksDisabled) return;
@@ -263,9 +248,8 @@ const PdfHighlighter = ({
   const [pinchSurface, setPinchSurface] = useState<HTMLDivElement | null>(null);
   useEffect(() => bindPinch(pinchSurface), [bindPinch, pinchSurface]);
 
-  // react-pdf-highlighter reuses its viewer and find controller when the
-  // document changes, and pdf.js hands the find controller the new document
-  // asynchronously, so a search in that gap would run against the old one.
+  // The library reuses its find controller across documents and pdf.js hands it
+  // the new one asynchronously, so a search in that gap hits the old document.
   const documentKey = pdfDocument.loadingTask.docId;
 
   return (
