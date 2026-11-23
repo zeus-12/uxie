@@ -4,7 +4,6 @@ import { ChevronLeftIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
-  PdfLoader,
   type IHighlight,
   type ScaledPosition,
 } from "react-pdf-highlighter";
@@ -17,6 +16,7 @@ import {
   Sidebar,
   SidebarSettingsButton,
 } from "@uxie/shared/components/workspace/sidebar";
+import { PdfLoader } from "@uxie/shared/components/pdf-reader/pdf-loader";
 import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
 import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { cn } from "@uxie/shared/lib/utils";

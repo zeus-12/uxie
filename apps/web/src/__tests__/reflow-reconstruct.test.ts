@@ -1,8 +1,10 @@
-import { regionText } from "@uxie/shared/lib/reflow/reconstruct";
+import { fontDataFromObject } from "@uxie/shared/lib/reflow/extract";
+import { reconstructPage, regionText } from "@uxie/shared/lib/reflow/reconstruct";
 import { createReflowSource, type ReflowSource } from "@uxie/shared/lib/reflow/source";
 import type { ReflowPage, TextRegion } from "@uxie/shared/lib/reflow/types";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -12,7 +14,7 @@ const fixture = (name: string) =>
 type Loaded = { source: ReflowSource; text: (page: number) => Promise<string[]> };
 
 const load = async (name: string): Promise<Loaded> => {
-  const doc = await getDocument({ data: fixture(name), verbosity: 0 }).promise;
+  const doc = await getDocument({ data: fixture(name), verbosity: 0, fontExtraProperties: true }).promise;
   const source = createReflowSource(doc);
   const text = async (pageNumber: number) => {
     const [page, input] = await Promise.all([source.page(pageNumber), source.pageInput(pageNumber)]);
@@ -137,10 +139,62 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
     }
   });
 
+  it("detects code only from the font's FixedPitch flag", async () => {
+    const pages = await Promise.all([1, 2, 3, 4, 5].map((n) => tracemonkey.source.page(n)));
+    const code = pages.flatMap((p) => (p.kind === "reflow" ? p.regions.filter((r) => r.kind === "crop" && r.role === "code") : []));
+    expect(code.length).toBeGreaterThan(0);
+    const inputs = await Promise.all([1, 2, 3, 4, 5].map((n) => tracemonkey.source.pageInput(n)));
+    for (const input of inputs) for (const item of input.items) expect(item.monospace).not.toBeNull();
+  });
+
+  it("keeps a page whose text has no real font extent instead of guessing one", async () => {
+    const [input, profile] = await Promise.all([nist.source.pageInput(2), nist.source.profile()]);
+    expect(reconstructPage(input, profile).kind).toBe("reflow");
+    const target = input.items.findIndex((i) => i.horizontal && !i.artifact && i.direction !== "ttb" && i.str.trim());
+    const items = input.items.map((item, i) => (i === target ? { ...item, metricsKnown: false } : item));
+    expect(reconstructPage({ ...input, items }, profile)).toMatchObject({ kind: "keep", reason: "unknown-font-metrics" });
+  });
+
   it("refuses pages it cannot reflow faithfully", async () => {
     const arabic = await load("rtl-arabic-wikipedia.pdf");
     expect(await arabic.source.page(1)).toMatchObject({ kind: "keep", reason: "right-to-left" });
     const scan = await load("scan-ocr-nasa.pdf");
     expect(await scan.source.page(1)).toMatchObject({ kind: "keep", reason: "scanned" });
+  });
+});
+
+describe("font data from pdf.js font objects", () => {
+  it("takes the vertical extent from the declared FontBBox", () => {
+    const data = fontDataFromObject({ isMonospace: false, bbox: [0, -213, 479, 693], fontMatrix: [0.001, 0, 0, 0.001, 0, 0] });
+    expect(data.monospace).toBe(false);
+    expect(data.extent?.ascent).toBeCloseTo(0.693);
+    expect(data.extent?.descent).toBeCloseTo(-0.213);
+  });
+
+  it("reports unknown when the data is missing rather than inventing it", () => {
+    expect(fontDataFromObject(undefined)).toEqual({ monospace: null, extent: null });
+    expect(fontDataFromObject({ name: "Times-Roman", fontMatrix: [0.001, 0, 0, 0.001, 0, 0] })).toEqual({
+      monospace: null,
+      extent: null,
+    });
+    expect(
+      fontDataFromObject({ isType3Font: true, isMonospace: true, bbox: [34, 120, 966, -880], fontMatrix: [0.001, 0, 0, -0.001, 0, 0] }),
+    ).toEqual({ monospace: true, extent: null });
+  });
+});
+
+describe("reflow profile", { timeout: 60_000 }, () => {
+  it("builds from the sample pages that load and retries after a total failure", async () => {
+    const doc = await getDocument({ data: fixture("udhr-french.pdf"), verbosity: 0, fontExtraProperties: true }).promise;
+    let failAll = true;
+    const flaky = {
+      numPages: doc.numPages,
+      getPage: (n: number) =>
+        failAll || n === 2 ? Promise.reject(new Error(`page ${n} unreadable`)) : doc.getPage(n),
+    } as unknown as PDFDocumentProxy;
+    const source = createReflowSource(flaky);
+    await expect(source.profile()).rejects.toThrow();
+    failAll = false;
+    expect((await source.profile()).bodyFontSize).toBeGreaterThan(0);
   });
 });

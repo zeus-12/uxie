@@ -373,17 +373,48 @@ function mergeRectsByLine(rects: DOMRectList): Rect[] {
 
 type Pad = { x: number; y: number };
 
+type Surface = { host: Element; place: (r: Rect) => Rect };
+
+// A page reflow keeps as an image is read from the hidden canvas page's text
+// layer; both are renders of the same page, so its rects scale onto the image.
+function visibleSurface(page: Element): Surface {
+  const pageNumber = page.getAttribute("data-page-number");
+  const kept = pageNumber
+    ? document.querySelector(
+        `.reflow-layer[data-active] .reflow-kept[data-reflow-page="${pageNumber}"]`,
+      )
+    : null;
+  const target = kept?.querySelector("canvas")?.getBoundingClientRect();
+  const source = (
+    page.querySelector(".canvasWrapper") ?? page
+  ).getBoundingClientRect();
+  if (!kept || !target || source.width === 0) {
+    return { host: page, place: (r) => r };
+  }
+  const k = target.width / source.width;
+  return {
+    host: kept,
+    place: (r) => ({
+      left: target.left + (r.left - source.left) * k,
+      top: target.top + (r.top - source.top) * k,
+      width: r.width * k,
+      height: r.height * k,
+    }),
+  };
+}
+
 function paintOverlays(
   range: Range,
   page: Element,
   className: string,
   pad: Pad,
 ): HTMLElement[] {
-  const layer = getOverlayLayer(page);
+  const { host, place } = visibleSurface(page);
+  const layer = getOverlayLayer(host);
   const origin = layer.getBoundingClientRect();
   const text = range.toString();
   const out: HTMLElement[] = [];
-  for (const r of mergeRectsByLine(range.getClientRects())) {
+  for (const r of mergeRectsByLine(range.getClientRects()).map(place)) {
     const el = document.createElement("div");
     el.className = className;
     el.setAttribute("data-hl-text", text);
@@ -409,9 +440,10 @@ function paintWordOverlay(
   className: string,
   glideMs: number,
 ) {
-  const layer = getOverlayLayer(page);
+  const { host, place } = visibleSurface(page);
+  const layer = getOverlayLayer(host);
   const origin = layer.getBoundingClientRect();
-  const rects = mergeRectsByLine(range.getClientRects());
+  const rects = mergeRectsByLine(range.getClientRects()).map(place);
   const pad = OVERLAY_PAD.word;
 
   layer
@@ -543,6 +575,9 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
         start === undefined || start < 0 ? null : itemPointAt(model, start);
       const fresh = buildPageTextModel(page);
       modelRef.current = fresh;
+      wordMapRef.current = null;
+      repaintWordRef.current = null;
+      removeHighlightsByType("word");
       const index = point ? sentenceIndexAt(fresh, point) : null;
       if (index !== null) currentSentenceIndexRef.current = index;
       return;

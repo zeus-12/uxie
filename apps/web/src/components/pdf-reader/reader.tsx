@@ -7,11 +7,11 @@ import {
 import { type ReaderDoc } from "@/types/reader";
 import { HighlightTypeEnum } from "@prisma/client";
 import PdfHighlighter from "@uxie/shared/components/pdf-reader/pdf-highlighter";
+import { PdfLoader } from "@uxie/shared/components/pdf-reader/pdf-loader";
 import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import { type PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
 import { useCallback, useMemo, useState } from "react";
-import { PdfLoader } from "react-pdf-highlighter";
 import { toast } from "sonner";
 
 const PdfReader = ({

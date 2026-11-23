@@ -28,9 +28,6 @@ type Pinch = {
   ratio: number;
 };
 
-const coarsePointer = () =>
-  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-
 const touchDistance = (t: TouchList) =>
   Math.hypot(t[0]!.clientX - t[1]!.clientX, t[0]!.clientY - t[1]!.clientY);
 
@@ -123,18 +120,21 @@ export const useInPlaceReflow = ({
       pendingAnchor.current = null;
       if (!fit) return;
       if (modeRef.current === "page") {
-        if (coarsePointer() && scale > fit * ENTER_RATIO) {
+        if (scale > fit * ENTER_RATIO) {
           const entry = anchor ?? canvasTopAnchor();
           if (!entry) return;
           if (anchor) scrollCanvasTo(viewer, anchor);
           const request = entryRequest.current;
-          void source.page(entry.point.pageNumber).then((page) => {
-            if (request !== entryRequest.current || modeRef.current !== "page") return;
-            if (page.kind !== "reflow" || viewer.currentScale !== scale) return;
-            modeRef.current = "reflow";
-            setPlaced(false);
-            setReflow({ anchor: entry, scale });
-          });
+          source
+            .page(entry.point.pageNumber)
+            .then((page) => {
+              if (request !== entryRequest.current || modeRef.current !== "page") return;
+              if (page.kind !== "reflow" || viewer.currentScale !== scale) return;
+              modeRef.current = "reflow";
+              setPlaced(false);
+              setReflow({ anchor: entry, scale });
+            })
+            .catch(() => undefined);
         } else if (anchor) {
           scrollCanvasTo(viewer, anchor);
         }

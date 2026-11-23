@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from "../../ui/tooltip";
 import { usePdfSettingsStore } from "../../../lib/store";
+import { useReflowOnZoom } from "../../../hooks/use-reflow-on-zoom";
 import { getEngineFromVoice, type TTSVoiceId } from "../../../lib/tts";
 import { BROWSER_VOICES } from "../../../lib/tts/providers/browser-provider";
 import { KOKORO_VOICES } from "../../../lib/tts/providers/kokoro-provider";
@@ -72,6 +73,7 @@ export const SettingsControls = ({
   const setSpeakAlongEnabled = usePdfSettingsStore(
     (state) => state.setSpeakAlongEnabled,
   );
+  const { available: reflowAvailable } = useReflowOnZoom();
   const reflowOnZoom = usePdfSettingsStore((state) => state.reflowOnZoom);
   const setReflowOnZoom = usePdfSettingsStore((state) => state.setReflowOnZoom);
 
@@ -103,13 +105,17 @@ export const SettingsControls = ({
             enabled: linksDisabled,
             onToggle: toggleLinksDisabled,
           },
-          {
-            id: "reflow-on-zoom",
-            label: "Reflow on zoom",
-            description: "Rewrap text to the screen when zooming in",
-            enabled: reflowOnZoom,
-            onToggle: () => setReflowOnZoom(!reflowOnZoom),
-          },
+          ...(reflowAvailable
+            ? [
+                {
+                  id: "reflow-on-zoom",
+                  label: "Reflow on zoom",
+                  description: "Rewrap text to the screen when zooming in",
+                  enabled: reflowOnZoom,
+                  onToggle: () => setReflowOnZoom(!reflowOnZoom),
+                },
+              ]
+            : []),
           {
             id: "bionic-reading",
             label: "Bionic reading (BETA)",

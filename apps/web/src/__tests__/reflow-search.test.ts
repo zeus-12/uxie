@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 const searchPage = async (file: string, pageNumber: number, query: string) => {
   const data = new Uint8Array(readFileSync(resolve(__dirname, file)));
-  const pdfDocument = await getDocument({ data, verbosity: 0 }).promise;
+  const pdfDocument = await getDocument({ data, verbosity: 0, fontExtraProperties: true }).promise;
   const pdfPage = await pdfDocument.getPage(pageNumber);
   const container = document.createElement("div");
   document.body.appendChild(container);

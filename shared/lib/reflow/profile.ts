@@ -74,7 +74,11 @@ export const buildProfile = (pages: PageInput[]): DocumentProfile => {
   const linePitch = weightedMode(pitches, 0.25) ?? bodyFontSize * 1.2;
   const lineHeight = median(
     allLines
-      .filter((l) => Math.abs(l.fontSize - bodyFontSize) < 0.15 * bodyFontSize)
+      .filter(
+        (l) =>
+          Math.abs(l.fontSize - bodyFontSize) < 0.15 * bodyFontSize &&
+          l.items.every((i) => i.metricsKnown),
+      )
       .map((l) => l.rect.height),
   ) || bodyFontSize;
 

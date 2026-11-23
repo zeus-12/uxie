@@ -45,19 +45,47 @@ const PAINT_OPS = new Set<number>([
   OPS.closeEOFillStroke,
 ]);
 
-const readFontFace = (page: PDFPageProxy, fontName: string): string | null => {
-  try {
-    const font = page.commonObjs.get(fontName) as { name?: unknown } | undefined;
-    return typeof font?.name === "string" ? font.name : null;
-  } catch {
-    return null;
+export type FontData = {
+  monospace: boolean | null;
+  extent: { ascent: number; descent: number } | null;
+};
+
+const UNKNOWN_FONT: FontData = { monospace: null, extent: null };
+
+// FontBBox and the FixedPitch flag come from the PDF's own font descriptor; pdf.js
+// exposes the flag only when the document is opened with fontExtraProperties.
+export const fontDataFromObject = (font: unknown): FontData => {
+  if (!font || typeof font !== "object") return UNKNOWN_FONT;
+  const f = font as { isMonospace?: unknown; isType3Font?: unknown; bbox?: unknown; fontMatrix?: unknown };
+  const monospace = typeof f.isMonospace === "boolean" ? f.isMonospace : null;
+  const bbox = Array.isArray(f.bbox) && f.bbox.length === 4 ? (f.bbox as number[]) : null;
+  const fm = Array.isArray(f.fontMatrix) && f.fontMatrix.length === 6 ? (f.fontMatrix as number[]) : null;
+  if (f.isType3Font === true || !bbox || !fm || fm[1] !== 0 || fm[2] !== 0 || !bbox.every(Number.isFinite)) {
+    return { monospace, extent: null };
   }
+  const ys = [bbox[1]! * fm[3]! + fm[5]!, bbox[3]! * fm[3]! + fm[5]!];
+  const ascent = Math.max(...ys);
+  const descent = Math.min(...ys);
+  return { monospace, extent: ascent > descent ? { ascent, descent } : null };
+};
+
+const readFontData = (page: PDFPageProxy, fontName: string): FontData => {
+  if (!page.commonObjs.has(fontName)) return UNKNOWN_FONT;
+  return fontDataFromObject(page.commonObjs.get(fontName));
+};
+
+const styleExtent = (style: { ascent?: number; descent?: number } | undefined) => {
+  const ascent = style?.ascent;
+  const descent = style?.descent;
+  return Number.isFinite(ascent) && Number.isFinite(descent) && ascent! > descent!
+    ? { ascent: ascent!, descent: descent! }
+    : null;
 };
 
 export const readItems = (
   content: TextContent,
   viewportTransform: Matrix,
-  fontFace: (fontName: string) => string | null,
+  fontData: (fontName: string) => FontData,
 ): SourceItem[] => {
   const items: SourceItem[] = [];
   const marks: Array<{ tag: string | null; id: string | null }> = [];
@@ -80,13 +108,10 @@ export const readItems = (
     const m = multiply(viewportTransform, itemMatrix);
     const hScale = Math.hypot(m[0], m[1]) || 1;
     const vScale = Math.hypot(m[2], m[3]) || hScale;
-    const style = content.styles[entry.fontName];
-    const metricsKnown =
-      Number.isFinite(style?.ascent) &&
-      Number.isFinite(style?.descent) &&
-      style!.ascent - style!.descent > 0.5;
-    const ascent = metricsKnown ? style!.ascent : 0.8;
-    const descent = metricsKnown ? style!.descent : -0.2;
+    const font = fontData(entry.fontName);
+    const extent = styleExtent(content.styles[entry.fontName]) ?? font.extent;
+    const ascent = extent?.ascent ?? 0;
+    const descent = extent?.descent ?? 0;
     const ux = m[0] / hScale;
     const uy = m[1] / hScale;
     const vx = m[2] / vScale;
@@ -111,7 +136,8 @@ export const readItems = (
       baseline: m[5],
       fontSize: vScale,
       fontName: entry.fontName,
-      fontFace: fontFace(entry.fontName),
+      monospace: font.monospace,
+      metricsKnown: extent !== null,
       horizontal,
       direction: entry.dir,
       hasEOL: entry.hasEOL,
@@ -220,7 +246,7 @@ export const extractPageInput = async (page: PDFPageProxy): Promise<PageInput> =
     pageNumber: page.pageNumber,
     width: viewport.width,
     height: viewport.height,
-    items: readItems(content, matrix, (name) => readFontFace(page, name)),
+    items: readItems(content, matrix, (name) => readFontData(page, name)),
     itemStrings: itemStringsOf(content),
     images: graphics.images.map(clamp).filter((r): r is Rect => r !== null),
     paths: graphics.paths
@@ -240,7 +266,7 @@ export const extractTextOnly = async (page: PDFPageProxy): Promise<PageInput> =>
     pageNumber: page.pageNumber,
     width: viewport.width,
     height: viewport.height,
-    items: readItems(content, matrix, () => null),
+    items: readItems(content, matrix, () => UNKNOWN_FONT),
     itemStrings: itemStringsOf(content),
     images: [],
     paths: [],

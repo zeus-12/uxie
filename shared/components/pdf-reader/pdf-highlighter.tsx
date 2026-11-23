@@ -15,6 +15,7 @@ import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Rect as PdfRect } from "../../lib/reflow/types";
 import { useInPlaceReflow } from "./reflow/use-in-place-reflow";
+import { useReflowOnZoom } from "../../hooks/use-reflow-on-zoom";
 import {
   AreaHighlight,
   Highlight,
@@ -92,7 +93,7 @@ const PdfHighlighter = ({
     (state) => state.stageImageAttachment,
   );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
-  const reflowOnZoom = usePdfSettingsStore((state) => state.reflowOnZoom);
+  const { enabled: reflowOnZoom } = useReflowOnZoom();
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
 

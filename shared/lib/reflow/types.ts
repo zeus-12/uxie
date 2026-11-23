@@ -7,7 +7,8 @@ export type SourceItem = {
   baseline: number;
   fontSize: number;
   fontName: string;
-  fontFace: string | null;
+  monospace: boolean | null;
+  metricsKnown: boolean;
   horizontal: boolean;
   direction: string;
   hasEOL: boolean;
@@ -73,7 +74,8 @@ export type KeepReason =
   | "landscape"
   | "form"
   | "scanned"
-  | "graphics-heavy";
+  | "graphics-heavy"
+  | "unknown-font-metrics";
 
 export type HyphenDecision = "soft-hyphen" | "word-evidence" | "kept";
 

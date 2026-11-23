@@ -11,6 +11,7 @@ import {
   forwardRef,
 } from "react";
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
+import { usePdfSettingsStore } from "../../../lib/store";
 import type { ReflowSource } from "../../../lib/reflow/source";
 import type { Rect, Run } from "../../../lib/reflow/types";
 import type { PdfPoint, ScreenAnchor } from "./canvas-anchor";
@@ -20,6 +21,7 @@ import { ReflowPageView, runKey, type LoadedPage, type PageMarks } from "./reflo
 
 export const CSS_PX_PER_PT = 96 / 72;
 const WINDOW_RADIUS = 3;
+const PRELOAD_MARGIN_PX = 800;
 
 export type ReflowLayerApi = {
   anchorAt: (clientX: number, clientY: number) => ScreenAnchor | null;
@@ -63,6 +65,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   ref,
 ) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const pageColour = usePdfSettingsStore((state) => state.pageColour);
   const [pages, setPages] = useState<LoadedPage[]>([]);
   const pagesRef = useRef<LoadedPage[]>([]);
   const [findVersion, setFindVersion] = useState(0);
@@ -227,6 +230,16 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     }
   }, [pages, placeAnchor, pxPerPt, onPlaced]);
 
+  // Trimming a page the observer still sees would make it extend straight back.
+  const withinPreload = (pageNumber: number) => {
+    const root = scroller();
+    const section = root?.querySelector<HTMLElement>(`[data-reflow-page="${pageNumber}"]`);
+    if (!root || !section) return false;
+    const r = root.getBoundingClientRect();
+    const s = section.getBoundingClientRect();
+    return s.bottom > r.top - PRELOAD_MARGIN_PX && s.top < r.bottom + PRELOAD_MARGIN_PX;
+  };
+
   const extend = useCallback(
     async (direction: -1 | 1) => {
       const first = pages[0]?.page.pageNumber;
@@ -256,8 +269,9 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           }
         }
         const merged = direction === 1 ? [...current, loaded] : [loaded, ...current];
+        const far = direction === 1 ? merged[0] : merged[merged.length - 1];
         const trimmed =
-          merged.length <= WINDOW_RADIUS * 2 + 1
+          merged.length <= WINDOW_RADIUS * 2 + 1 || (far && withinPreload(far.page.pageNumber))
             ? merged
             : direction === 1
               ? merged.slice(1)
@@ -286,7 +300,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           if (e.target === last) void extend(1);
         }
       },
-      { root, rootMargin: "800px 0px" },
+      { root, rootMargin: `${PRELOAD_MARGIN_PX}px 0px` },
     );
     observer.observe(first);
     if (last !== first) observer.observe(last);
@@ -351,8 +365,25 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       selected.scrollIntoView({ block: "center" });
       return;
     }
-    if (!pages.some((p) => p.page.pageNumber === pageIdx + 1)) openAtPageTop(pageIdx + 1);
-  }, [findVersion, visible, findController, pages, openAtPageTop]);
+    const loaded = pages.find((p) => p.page.pageNumber === pageIdx + 1);
+    if (!loaded) {
+      openAtPageTop(pageIdx + 1);
+      return;
+    }
+    const matches = fc.pageMatches?.[pageIdx];
+    const lengths = fc.pageMatchesLength?.[pageIdx];
+    if (!root || !matches || !lengths) return;
+    const range = convertMatches(loaded.input.itemStrings, matches, lengths)[fc.selected.matchIdx];
+    const item = range ? loaded.input.items.find((i) => i.index === range.begin.itemIndex) : undefined;
+    if (!item) return;
+    const r = root.getBoundingClientRect();
+    const target: ScreenAnchor = {
+      point: { pageNumber: pageIdx + 1, x: item.rect.x, y: item.rect.y + item.rect.height / 2 },
+      clientX: r.left,
+      clientY: r.top + r.height / 2,
+    };
+    if (placeAnchor(target, pxPerPt)) handledFind.current = key;
+  }, [findVersion, visible, findController, pages, openAtPageTop, placeAnchor, pxPerPt]);
 
   useEffect(() => {
     if (!visible) return;
@@ -475,7 +506,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       ref={scrollerRef}
       className="reflow-layer"
       data-active={visible ? "" : undefined}
-      style={{ visibility: visible ? "visible" : "hidden" }}
+      style={{ visibility: visible ? "visible" : "hidden", backgroundColor: pageColour }}
     >
       {pages.map((loaded) => (
         <ReflowPageView

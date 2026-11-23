@@ -27,10 +27,6 @@ import type {
 } from "./types";
 
 const RTL_SCRIPT = /[֐-ࣿיִ-﷿ﹰ-﻿]/g;
-const MATH_FACE =
-  /^(?:[A-Z]{6}\+)?(?:CMMI|CMSY|CMEX|CMBSY|CMMIB|MSAM|MSBM|EUFM|EUSM|EUEX|RSFS|LMMath|LatinModernMath|CambriaMath|Cambria-Math|STIXMath|STIXTwoMath|XITSMath|Asana|TXMI|TXSY|TXEX|PXMI|PXSY|PXEX|Symbol|MT-Extra|MTExtra|Euclid|ESINT)/i;
-const BOLD_FACE = /(?:bold|black|heavy|semibold|demibold|medi(?:um)?\b|-medi|CMBX|CMB\d|\bBX\d)/i;
-const MONO_FACE = /(?:mono|courier|CMTT|consol|menlo|inconsolata|SFMono|Typewriter|Code)/i;
 const BULLET_START = /^\s*[•●○◦▪■□‣⁃∙·*\uE000-\uF8FF]\s/;
 const DASH_START = /^\s*[–—-]\s/;
 const ENUM_START = /^\s*(?:\[\d{1,3}\]|\(?\d{1,3}[.)]|\(?[a-z][.)]|\(?(?:i|ii|iii|iv|v|vi|vii|viii|ix|x)[.)])\s/;
@@ -43,7 +39,6 @@ type Ctx = {
   profile: DocumentProfile;
   body: number;
   pitch: number;
-  mono: Set<string>;
   words: Set<string>;
   hyphens: HyphenJoin[];
 };
@@ -54,55 +49,13 @@ type Atom =
 
 const charCount = (line: Line) => line.text.replace(/\s+/g, "").length;
 
-const measuredMonospace = (page: PageInput): Set<string> => {
-  const ratios = new Map<string, number[]>();
-  const letters = new Map<string, Set<string>>();
-  for (const item of page.items) {
-    const s = item.str;
-    if (!item.horizontal || (s.match(/\p{L}/gu) ?? []).length < 4 || item.fontSize <= 0) continue;
-    const list = ratios.get(item.fontName) ?? [];
-    list.push(item.rect.width / (s.length * item.fontSize));
-    ratios.set(item.fontName, list);
-    const set = letters.get(item.fontName) ?? new Set<string>();
-    for (const ch of s.match(/\p{L}/gu) ?? []) set.add(ch);
-    letters.set(item.fontName, set);
-  }
-  const mono = new Set<string>();
-  for (const [font, list] of ratios) {
-    const face = page.items.find((i) => i.fontName === font)?.fontFace ?? "";
-    if (MONO_FACE.test(face)) {
-      mono.add(font);
-      continue;
-    }
-    if (list.length < 3 || (letters.get(font)?.size ?? 0) < 12) continue;
-    const m = list.reduce((a, b) => a + b, 0) / list.length;
-    const sd = Math.sqrt(list.reduce((a, b) => a + (b - m) ** 2, 0) / list.length);
-    if (m > 0 && sd / m < 0.03) mono.add(font);
-  }
-  return mono;
-};
-
-const isBoldLine = (line: Line) =>
-  line.items.every((i) => !i.str.trim() || BOLD_FACE.test(i.fontFace ?? ""));
-
-const mathShare = (line: Line) => {
-  let math = 0;
-  let total = 0;
-  for (const item of line.items) {
-    const n = item.str.replace(/\s+/g, "").length;
-    total += n;
-    if (MATH_FACE.test(item.fontFace ?? "")) math += n;
-  }
-  return total === 0 ? 0 : math / total;
-};
-
-const monoShare = (line: Line, mono: Set<string>) => {
+const monoShare = (line: Line) => {
   let m = 0;
   let total = 0;
   for (const item of line.items) {
     const n = item.str.replace(/\s+/g, "").length;
     total += n;
-    if (mono.has(item.fontName)) m += n;
+    if (item.monospace === true) m += n;
   }
   return total === 0 ? 0 : m / total;
 };
@@ -260,14 +213,9 @@ const groupAdjacent = (lines: Line[], pitch: number): Line[][] => {
 
 const detectFlowCrops = (lines: Line[], ctx: Ctx): CropRegion[] => {
   const crops: CropRegion[] = [];
-  const math = lines.filter((l) => mathShare(l) >= 0.5);
-  for (const g of groupAdjacent(math, ctx.pitch)) {
-    const rect = union(g.map((l) => l.rect));
-    crops.push({ kind: "crop", role: "equation", rect });
-  }
-  const code = lines.filter((l) => monoShare(l, ctx.mono) >= 0.8);
+  const code = lines.filter((l) => monoShare(l) >= 0.8);
   for (const g of groupAdjacent(code, ctx.pitch)) {
-    if (g.length < 2 && !g.every((l) => monoShare(l, ctx.mono) === 1 && isolated(l, lines, ctx))) continue;
+    if (g.length < 2 && !g.every((l) => monoShare(l) === 1 && isolated(l, lines, ctx))) continue;
     crops.push({ kind: "crop", role: "code", rect: union(g.map((l) => l.rect)) });
   }
   const rules = ctx.page.paths.filter((r) => r.height < 1.5 && r.width >= 60);
@@ -425,7 +373,6 @@ const splitParagraphs = (lines: Line[], ctx: Ctx): Line[][] => {
       const inItem = startsItem(first) && line.rect.x >= first.rect.x + 0.5 * em;
       if (!sizeClose(line.fontSize, prev.fontSize)) brk = true;
       else if (line.baseline - prev.baseline > 1.3 * pitch) brk = true;
-      else if (isBoldLine(line) !== isBoldLine(prev) && (isBoldLine(prev) ? charCount(prev) < 120 : false)) brk = true;
       else if (startsWithBullet(line)) brk = true;
       else if (
         (ENUM_START.test(line.text) || DASH_START.test(line.text)) &&
@@ -543,9 +490,6 @@ const geometryRole = (
   if (scale >= 1.15 && lines.length <= 4 && chars <= 250) {
     return { role: "heading", level: scale >= 1.6 ? 1 : scale >= 1.25 ? 2 : 3 };
   }
-  if (lines.every(isBoldLine) && lines.length <= 2 && chars <= 120 && scale >= 0.95 && !/[.,;]\s*$/.test(text)) {
-    return { role: "heading", level: 3 };
-  }
   const first = lines[0]!;
   const second = lines[1];
   if (startsWithBullet(first)) return { role: "list-item", level: null };
@@ -579,11 +523,13 @@ export const reconstructPage = (page: PageInput, profile: DocumentProfile): Refl
     profile,
     body: profile.bodyFontSize,
     pitch: profile.linePitch,
-    mono: measuredMonospace(page),
     words,
     hyphens: [],
   };
   const usable = page.items.filter((i) => i.horizontal && !i.artifact && i.direction !== "ttb");
+  if (usable.some((i) => !i.metricsKnown && i.str.trim())) {
+    return { kind: "keep", ...base, reason: "unknown-font-metrics" };
+  }
   const allLines = buildLines(usable);
   for (const l of allLines) for (const w of l.text.toLowerCase().match(WORD_PATTERN) ?? []) words.add(w);
   const margins = marginLines(allLines, ctx);

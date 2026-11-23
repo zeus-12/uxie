@@ -26,9 +26,16 @@ const memo = <K, V>(fn: (key: K) => Promise<V>) => {
 export const createReflowSource = (doc: PDFDocumentProxy): ReflowSource => {
   let profilePromise: Promise<DocumentProfile> | null = null;
   const profile = () => {
-    profilePromise ??= Promise.all(
+    profilePromise ??= Promise.allSettled(
       samplePageNumbers(doc.numPages).map(async (n) => extractTextOnly(await doc.getPage(n))),
-    ).then(buildProfile);
+    ).then((results) => {
+      const pages = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+      if (pages.length === 0) throw new Error("No sample page could be read for the reflow profile");
+      return buildProfile(pages);
+    });
+    profilePromise.catch(() => {
+      profilePromise = null;
+    });
     return profilePromise;
   };
   const pageInput = memo(async (n: number) => extractPageInput(await doc.getPage(n)));
