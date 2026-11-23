@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createId } from "@paralleldrive/cuid2";
-import { ChevronLeftIcon } from "lucide-react";
+import { ChevronLeftIcon, SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
@@ -18,6 +18,19 @@ import {
   SidebarSettingsButton,
 } from "@uxie/shared/components/workspace/sidebar";
 import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
+import {
+  AnnotatedPdfExportMenuItem,
+  useAnnotatedPdfExport,
+} from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
+import { NotesExportMenuItem } from "@uxie/shared/components/workspace/notes-export-menu-item";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@uxie/shared/components/ui/dropdown-menu";
+import { toast } from "@uxie/shared/components/ui/sonner";
 import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { cn } from "@uxie/shared/lib/utils";
 import {
@@ -37,6 +50,8 @@ import type {
   HighlightWithRects,
   RectInput,
 } from "@uxie/shared/schema";
+import { blobToDataUrl } from "@uxie/shared/lib/normalize-chat-image";
+import { isDocumentImageUrl } from "../chat-messages";
 import { Chat } from "./chat";
 import { Notes } from "./notes";
 import { FlashcardsPanel } from "./flashcards";
@@ -113,6 +128,15 @@ function addTextHighlightToNotes(
 
 function addImageHighlightToNotes(url: string) {
   appendNoteBlock({ type: "image", props: { url } });
+}
+
+async function embedDocumentImage(url: string): Promise<string> {
+  if (!isDocumentImageUrl(url)) return url;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Couldn't read an image in the notes (${response.status})`);
+  }
+  return blobToDataUrl(await response.blob());
 }
 
 /** react-pdf-highlighter hands area selections back as a png data url. */
@@ -225,6 +249,18 @@ function ReaderContent({
   );
 
   const setSidebarTab = useSidebarTabStore((s) => s.setTab);
+
+  const { isExporting, exportPdf } = useAnnotatedPdfExport(async () => {
+    const result = await window.uxieAPI.exportAnnotatedPdf(docId);
+    if (result.status === "failed") throw new Error(result.message);
+    if (result.status === "exported") toast.success("Annotated PDF saved");
+  });
+
+  const exportNotes = async (markdown: string) => {
+    const result = await window.uxieAPI.exportNotes(docId, markdown);
+    if (result.status === "failed") throw new Error(result.message);
+    if (result.status === "exported") toast.success("Notes saved");
+  };
 
   // ⌘1/2/3 switch tabs; ⌘L jumps to chat and focuses its input. Kept out of the
   // UI — just shortcuts.
@@ -465,11 +501,30 @@ function ReaderContent({
           headerClassName="app-drag"
           tabsClassName="app-no-drag"
           headerActions={
-            <SidebarSettingsButton
-              onClick={onSettings}
-              aria-label="Settings"
-              className="app-no-drag"
-            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarSettingsButton className="app-no-drag" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <NotesExportMenuItem
+                  onExport={exportNotes}
+                  resolveFileUrl={embedDocumentImage}
+                />
+                <AnnotatedPdfExportMenuItem
+                  ready
+                  isExporting={isExporting}
+                  onSelect={() => void exportPdf()}
+                />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer gap-2"
+                  onSelect={onSettings}
+                >
+                  <SettingsIcon size={16} />
+                  Settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           }
           notes={<Notes docId={docId} note={doc.note} />}
           chat={<Chat docId={docId} isVectorised={doc.isVectorised} />}
