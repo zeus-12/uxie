@@ -306,7 +306,7 @@ function BookmarkRow({
   return (
     <div
       role="listitem"
-      className="group relative flex items-center rounded-md transition-colors duration-100 focus-within:bg-muted hover:bg-muted"
+      className="group relative flex items-center rounded-md transition-colors duration-100 hover:bg-muted has-[:focus-visible]:bg-muted"
     >
       <button
         ref={rowRef}
@@ -328,14 +328,14 @@ function BookmarkRow({
         <span className="min-w-0 flex-1 truncate">{title}</span>
         <span
           className={cn(
-            "w-[3.25rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground transition-opacity duration-100 group-focus-within:opacity-0 group-hover:opacity-0",
+            "w-[3.25rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground transition-opacity duration-100 group-hover:opacity-0 group-has-[:focus-visible]:opacity-0",
             titleNamesPage(bookmark) && "invisible",
           )}
         >
           {bookmark.pageNumber}
         </span>
       </button>
-      <div className="absolute right-1 flex opacity-0 transition-opacity duration-100 group-focus-within:opacity-100 group-hover:opacity-100">
+      <div className="absolute right-1 flex opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100">
         <button
           type="button"
           onClick={startEditing}
