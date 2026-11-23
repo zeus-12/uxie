@@ -69,6 +69,11 @@ export interface Settings {
   llm: LlmSettings;
 }
 
+export type FileExportResult =
+  | { status: "cancelled" }
+  | { status: "exported" }
+  | { status: "failed"; message: string };
+
 export interface PickedPdf {
   name: string;
   bytes: Uint8Array;
@@ -111,6 +116,14 @@ export interface IpcInvokeContract {
   "documents:storeImage": {
     args: [docId: string, png: Uint8Array];
     result: string;
+  };
+  "documents:exportAnnotatedPdf": {
+    args: [docId: string];
+    result: FileExportResult;
+  };
+  "documents:exportNotes": {
+    args: [docId: string, markdown: string];
+    result: FileExportResult;
   };
 
   "highlights:add": { args: [input: AddHighlightInput]; result: void };
@@ -201,6 +214,8 @@ export const API_INVOKE = {
   setDocumentCover: "documents:setCover",
   deleteDocument: "documents:delete",
   storeDocumentImage: "documents:storeImage",
+  exportAnnotatedPdf: "documents:exportAnnotatedPdf",
+  exportNotes: "documents:exportNotes",
 
   addHighlight: "highlights:add",
   deleteHighlight: "highlights:delete",

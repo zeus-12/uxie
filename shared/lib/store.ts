@@ -9,11 +9,14 @@ import { BROWSER_VOICES } from "./tts/providers/browser-provider";
 type EditorStore = {
   editor: BlockNoteEditorType | null;
   setEditor: (editor: BlockNoteEditorType) => void;
+  releaseEditor: (editor: BlockNoteEditorType) => void;
 };
 
 export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
   editor: null,
   setEditor: (editor) => set({ editor }),
+  releaseEditor: (editor) =>
+    set((state) => (state.editor === editor ? { editor: null } : state)),
 }));
 
 interface ChatMessageStore {
