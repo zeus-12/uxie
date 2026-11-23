@@ -49,8 +49,12 @@ const defaultTitle = (bookmark: Bookmark): string =>
 export const bookmarkTitle = (bookmark: Bookmark): string =>
   bookmark.label || defaultTitle(bookmark);
 
-const rowDefaultTitle = (bookmark: Bookmark): string =>
-  bookmarkKind(bookmark) === "pin" ? "Pin" : defaultTitle(bookmark);
+const ROW_KIND_TITLE = { page: "Page", pin: "Pin" } as const;
+
+const rowDefaultTitle = (bookmark: Bookmark): string => {
+  const kind = bookmarkKind(bookmark);
+  return kind === "passage" ? defaultTitle(bookmark) : ROW_KIND_TITLE[kind];
+};
 
 const rowTitle = (bookmark: Bookmark): string =>
   bookmark.label || rowDefaultTitle(bookmark);
@@ -58,13 +62,8 @@ const rowTitle = (bookmark: Bookmark): string =>
 const isQuietTitle = (bookmark: Bookmark): boolean =>
   !bookmark.label && bookmarkKind(bookmark) !== "passage";
 
-const showsPageNumber = (bookmark: Bookmark): boolean =>
-  !!bookmark.label || bookmarkKind(bookmark) !== "page";
-
 const rowAccessibleName = (bookmark: Bookmark): string =>
-  showsPageNumber(bookmark)
-    ? `${rowTitle(bookmark)}, page ${bookmark.pageNumber}`
-    : rowTitle(bookmark);
+  `${rowTitle(bookmark)}, page ${bookmark.pageNumber}`;
 
 const ROW_SELECTOR = "[data-bookmark-row]";
 const NAVIGATION_KEYS = ["ArrowDown", "ArrowUp", "Home", "End"];
@@ -347,12 +346,7 @@ function BookmarkRow({
         >
           {rowTitle(bookmark)}
         </span>
-        <span
-          className={cn(
-            "w-[3.25rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground transition-opacity duration-100 group-hover:opacity-0 group-has-[:focus-visible]:opacity-0",
-            !showsPageNumber(bookmark) && "invisible",
-          )}
-        >
+        <span className="w-[3.25rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground transition-opacity duration-100 group-hover:opacity-0 group-has-[:focus-visible]:opacity-0">
           {bookmark.pageNumber}
         </span>
       </button>
