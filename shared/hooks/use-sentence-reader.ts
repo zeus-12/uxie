@@ -229,6 +229,95 @@ function rawPosToDom(
   return null;
 }
 
+type ItemPoint = { ordinal: number; offset: number };
+
+function textOffsetWithin(container: Element, node: Node, offset: number): number {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  let total = 0;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n === node) return total + offset;
+    total += (n as Text).data.length;
+  }
+  return total;
+}
+
+const isReflowModel = (model: PageTextModel) =>
+  model.pageElement.matches("[data-reflow-page]");
+
+function itemPointAt(model: PageTextModel, normPos: number): ItemPoint | null {
+  const rawPos = model.norm.toRaw[normPos];
+  if (rawPos === undefined) return null;
+  const dom = rawPosToDom(model, rawPos, false);
+  const parent = dom?.node.parentElement;
+  if (!dom || !parent) return null;
+  if (isReflowModel(model)) {
+    const run = parent.closest<HTMLElement>("[data-item-ordinal]");
+    if (!run) return null;
+    return {
+      ordinal: Number(run.dataset.itemOrdinal),
+      offset:
+        Number(run.dataset.runStart) +
+        textOffsetWithin(run, dom.node, dom.offset),
+    };
+  }
+  const span = parent.closest("span[role='presentation']");
+  const ordinal = span ? model.blocks.indexOf(span) : -1;
+  if (!span || ordinal < 0) return null;
+  return { ordinal, offset: textOffsetWithin(span, dom.node, dom.offset) };
+}
+
+function itemElementAt(
+  model: PageTextModel,
+  point: ItemPoint,
+): { el: Element; offset: number } | null {
+  if (!isReflowModel(model)) {
+    const el = model.blocks[point.ordinal];
+    return el ? { el, offset: point.offset } : null;
+  }
+  let next: { el: HTMLElement; ordinal: number } | null = null;
+  for (const el of model.pageElement.querySelectorAll<HTMLElement>(
+    "[data-item-ordinal]",
+  )) {
+    const ordinal = Number(el.dataset.itemOrdinal);
+    if (ordinal === point.ordinal) {
+      const start = Number(el.dataset.runStart);
+      const length = el.textContent?.length ?? 0;
+      return {
+        el,
+        offset: Math.min(Math.max(point.offset - start, 0), length),
+      };
+    }
+    if (ordinal > point.ordinal && (!next || ordinal < next.ordinal)) {
+      next = { el, ordinal };
+    }
+  }
+  return next ? { el: next.el, offset: 0 } : null;
+}
+
+// Canvas text spans and reflowed runs read the same pdf.js items, so a reading
+// position carries across the switch by item and character, not by text.
+function sentenceIndexAt(
+  model: PageTextModel,
+  point: ItemPoint,
+): number | null {
+  const target = itemElementAt(model, point);
+  if (!target) return null;
+  const blockIndex = model.blocks.findIndex((b) => b.contains(target.el));
+  const block = model.blocks[blockIndex];
+  if (!block) return null;
+  const inEl = textPointInBlock(target.el, target.offset, true);
+  const rawPos =
+    model.blockStarts[blockIndex]! +
+    (inEl ? textOffsetWithin(block, inEl.node, inEl.offset) : 0);
+  const normPos = model.norm.toRaw.findIndex((raw) => raw >= rawPos);
+  if (normPos < 0) return null;
+  let index: number | null = null;
+  model.sentenceStarts.forEach((start, i) => {
+    if (start >= 0 && start <= normPos) index = i;
+  });
+  return index ?? 0;
+}
+
 function rawRangeToRange(
   model: PageTextModel,
   rawStart: number,
@@ -446,6 +535,16 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     const page = readerPageElement(currentPageRef.current);
     if (!model || !page) {
       loadPageSentences(currentPageRef.current);
+      return;
+    }
+    if (model.pageElement !== page) {
+      const start = model.sentenceStarts[currentSentenceIndexRef.current];
+      const point =
+        start === undefined || start < 0 ? null : itemPointAt(model, start);
+      const fresh = buildPageTextModel(page);
+      modelRef.current = fresh;
+      const index = point ? sentenceIndexAt(fresh, point) : null;
+      if (index !== null) currentSentenceIndexRef.current = index;
       return;
     }
     const liveSpans = textBlocks(page);
@@ -839,19 +938,18 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       if (!modelRef.current) return;
 
       const modeToUse = mode ?? lastHighlightModeRef.current;
-      const savedSentenceIdx = currentSentenceIndexRef.current;
-
-      const sentences = loadPageSentences(currentPageRef.current);
+      ensureFreshModel();
+      const sentences = modelRef.current?.sentences ?? [];
       if (sentences.length === 0) return;
 
       currentSentenceIndexRef.current = Math.min(
-        savedSentenceIdx,
+        currentSentenceIndexRef.current,
         sentences.length - 1,
       );
       highlightCurrentSentence(modeToUse);
       repaintWordRef.current?.();
     },
-    [loadPageSentences, highlightCurrentSentence],
+    [ensureFreshModel, highlightCurrentSentence],
   );
 
   useEffect(() => {

@@ -278,6 +278,7 @@ function ReaderContent({
     zoomLevel: doc.zoomLevel,
     pageCount: doc.pageCount,
     viewer: pdfViewer,
+    reflowed,
     onSaveReaderState: (state) => {
       void window.uxieAPI.updateReaderState(docId, state);
     },

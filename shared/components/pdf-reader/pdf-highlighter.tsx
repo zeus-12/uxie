@@ -227,8 +227,11 @@ const PdfHighlighter = ({
   const highlightRects = useCallback(
     (pageNumber: number, pageWidth: number, pageHeight: number): PdfRect[] =>
       highlights
-        .filter((h) => getHighlightPageNumber(h.position) === pageNumber)
-        .flatMap((h) => h.position.rects)
+        .flatMap((h) =>
+          h.position.rects.filter(
+            (r) => (r.pageNumber ?? getHighlightPageNumber(h.position)) === pageNumber,
+          ),
+        )
         .flatMap((r) => {
           const { x1, y1, x2, y2, width, height } = r;
           if (

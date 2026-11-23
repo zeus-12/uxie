@@ -66,6 +66,18 @@ export const useInPlaceReflow = ({
     modeRef.current = reflow ? "reflow" : "page";
   }, [reflow]);
 
+  useEffect(
+    () => () => {
+      entryRequest.current += 1;
+      modeRef.current = "page";
+      pinchRef.current = null;
+      pendingAnchor.current = null;
+      setReflow(null);
+      setPlaced(false);
+    },
+    [pdfDocument, viewer],
+  );
+
   const releaseTransform = useCallback(() => {
     const el = viewer?.viewer as HTMLElement | null | undefined;
     if (!el) return;
@@ -237,6 +249,10 @@ export const useInPlaceReflow = ({
   );
 
   const onPlaced = useCallback(() => setPlaced(true), []);
+  const onFailed = useCallback(() => {
+    modeRef.current = "page";
+    exitTo(null);
+  }, [exitTo]);
 
   const layer =
     reflow && viewer && instance ? (
@@ -252,6 +268,7 @@ export const useInPlaceReflow = ({
         highlightRects={highlightRects}
         visible={placed}
         onPlaced={onPlaced}
+        onFailed={onFailed}
       />
     ) : null;
 

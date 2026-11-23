@@ -31,6 +31,7 @@ const usePdfReader = ({
   docId,
   pageCount,
   viewer,
+  reflowed = false,
   onSaveReaderState,
 }: {
   lastReadPage: number;
@@ -41,6 +42,7 @@ const usePdfReader = ({
   // Passed in rather than read off a global, so opening a second document binds
   // to its viewer instead of the previous, discarded one.
   viewer: PDFViewer | null;
+  reflowed?: boolean;
   onSaveReaderState?: (state: {
     lastReadPage?: number;
     zoomLevel?: number;
@@ -77,6 +79,14 @@ const usePdfReader = ({
   const keepWordVisibleRef = useRef<() => void>(() => {});
 
   const sentenceReader = useSentenceReader({ pageCount });
+  const { refreshHighlights } = sentenceReader;
+
+  useEffect(() => {
+    if (readingStatus === READING_STATUS.IDLE) return;
+    refreshHighlights();
+    // Only a reflow switch: the sentence moves between the canvas and reflowed text.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reflowed]);
 
   const ttsParams = {
     onWordBoundary: (
@@ -269,7 +279,8 @@ const usePdfReader = ({
     }
   }, [pdfScaleValue, viewer]);
 
-  // Keyed on `viewer`: the scroll container mounts after this hook does.
+  // The scroll container mounts after this hook does, and the reflow layer
+  // replaces it while a page is reflowed.
   useEffect(() => {
     const container = getReaderScrollContainer();
     if (!container) return;
@@ -291,7 +302,7 @@ const usePdfReader = ({
       container.removeEventListener("scroll", handleScroll);
       clearTimeout(timeout);
     };
-  }, [viewer]);
+  }, [viewer, reflowed]);
 
   useEffect(() => {
     const apply = () => {

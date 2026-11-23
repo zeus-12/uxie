@@ -124,6 +124,7 @@ const PdfReader = ({
     zoomLevel,
     pageCount,
     viewer: pdfViewer,
+    reflowed,
     onSaveReaderState: (state) => {
       if (onUpdateReaderState) {
         onUpdateReaderState(docId, state);
