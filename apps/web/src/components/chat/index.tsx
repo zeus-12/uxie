@@ -9,6 +9,7 @@ import { useChat } from "@ai-sdk/react";
 import {
   ChatPanel,
   type ChatRow,
+  type RenderMarkdown,
 } from "@uxie/shared/components/chat/chat-panel";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
 import {
@@ -20,6 +21,7 @@ import {
   useChatImageAttachments,
   type StagedChatImage,
 } from "@uxie/shared/hooks/use-chat-image-attachments";
+import { withCitablePassages, type CitationIndex } from "@uxie/shared/lib/chat";
 import {
   userMessageRows,
   type ChatImage,
@@ -32,7 +34,14 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
-const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
+const renderMarkdown: RenderMarkdown = (text, citations) => (
+  <ReactMarkdown
+    remarkPlugins={citations?.remarkPlugins}
+    components={citations?.components}
+  >
+    {text}
+  </ReactMarkdown>
+);
 
 export default function Chat({ isVectorised }: { isVectorised: boolean }) {
   const { query } = useRouter();
@@ -91,8 +100,12 @@ function partsOf(message: { parts?: unknown }): LoosePart[] {
   );
 }
 
-function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
-  if (role !== "user") return chatPartsToRows(role, parts);
+function messageToRows(
+  role: string,
+  parts: LoosePart[],
+  citations?: CitationIndex,
+): ChatRow[] {
+  if (role !== "user") return chatPartsToRows(role, parts, citations);
   const content = parts
     .flatMap((part) =>
       part.type === "text" && typeof part.text === "string" ? [part.text] : [],
@@ -268,7 +281,12 @@ function ChatView({ docId }: { docId: string }) {
 
   const history = [...(prevChatMessages ?? []), ...messages];
   const rows: ChatRow[] = [];
-  for (const m of history) rows.push(...messageToRows(m.role, partsOf(m)));
+  let citations: CitationIndex = new Map();
+  for (const m of history) {
+    const parts = partsOf(m);
+    citations = withCitablePassages(citations, parts);
+    rows.push(...messageToRows(m.role, parts, citations));
+  }
 
   if (streaming) {
     const last = messages[messages.length - 1];

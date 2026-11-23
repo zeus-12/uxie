@@ -3,6 +3,7 @@ import { smoothStream, stepCountIs, streamText, tool } from "ai";
 import type { WebContents } from "electron";
 import {
   CHAT_SYSTEM_PROMPT,
+  createCitationNumberer,
   GET_INFORMATION_TOOL_DESCRIPTION,
   getInformationInputSchema,
   type RetrievedChunk,
@@ -104,6 +105,9 @@ export async function streamChat(
         ),
       ),
     );
+    const numberPassages = createCitationNumberer(
+      messages.map((message) => message.parts),
+    );
     const result = streamText({
       model: provider(llm.model),
       system: CHAT_SYSTEM_PROMPT,
@@ -121,7 +125,7 @@ export async function streamChat(
           execute: async ({ question }) => {
             send("chat:retrieving", streamId);
             const chunks = await retrieveViaRenderer(wc, docId, question);
-            return { results: chunks };
+            return { results: numberPassages(chunks) };
           },
         }),
       },
@@ -145,7 +149,10 @@ export async function streamChat(
           toolName: part.toolName,
           output: part.output,
         });
-        if (chatPart) responseParts.push(chatPart);
+        if (chatPart) {
+          responseParts.push(chatPart);
+          send("chat:tool-result", streamId, chatPart);
+        }
       } else if (part.type === "error") {
         throw part.error instanceof Error
           ? part.error

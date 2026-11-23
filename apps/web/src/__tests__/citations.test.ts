@@ -1,7 +1,11 @@
-import { CitationSources } from "@uxie/shared/components/chat/chat-panel";
+import { CitedMarkdown } from "@uxie/shared/components/chat/chat-panel";
+import { TooltipProvider } from "@uxie/shared/components/ui/tooltip";
 import {
+  citablePassagesFromParts,
+  createCitationNumberer,
   getInformationOutputSchema,
-  retrievedChunksFromParts,
+  withCitablePassages,
+  type RetrievedChunk,
 } from "@uxie/shared/lib/chat";
 import { chatPartsToRows } from "@uxie/shared/lib/chat-rows";
 import {
@@ -23,6 +27,7 @@ import {
 import { createElement } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
+import ReactMarkdown from "react-markdown";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const RECT = {
@@ -64,86 +69,192 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("citation source boundaries", () => {
-  const source = {
+describe("numbered citations", () => {
+  const page4 = {
     kind: "pdf" as const,
     pageContent: "The exact retrieved passage.",
     pageNumber: 4,
   };
-  const articleSource = {
+  const page9 = {
+    kind: "pdf" as const,
+    pageContent: "Another passage.",
+    pageNumber: 9,
+  };
+  const article = {
     kind: "article" as const,
     pageContent: "A passage from the article.",
     blockId: "block-7",
   };
 
-  it("keeps PDF and article sources apart, even with identical text", () => {
-    const sameText = { ...articleSource, pageContent: source.pageContent };
-    expect(
-      retrievedChunksFromParts([
+  it("numbers new passages after every ref already in the conversation", () => {
+    const history = [
+      [
         {
           type: "tool-result",
-          result: { results: [source, sameText, articleSource] },
+          result: {
+            results: [
+              { ...page4, ref: 1 },
+              { ...page9, ref: 2 },
+            ],
+          },
         },
-      ]),
-    ).toEqual([source, sameText, articleSource]);
+      ],
+      [{ type: "text", text: "no tools here" }],
+    ];
+    const numberPassages = createCitationNumberer(history);
+    expect(numberPassages([article])).toEqual([{ ...article, ref: 3 }]);
+    expect(numberPassages([page4])).toEqual([{ ...page4, ref: 4 }]);
   });
 
-  it("parses live and persisted tool outputs and deduplicates them", () => {
-    expect(
-      retrievedChunksFromParts([
-        {
-          type: "tool-getInformation",
-          state: "output-available",
-          output: { results: [source] },
-        },
-        { type: "tool-result", result: { results: [source] } },
-      ]),
-    ).toEqual([source]);
-  });
-
-  it("attaches live and stored sources to the assistant answer", () => {
-    const live = chatPartsToRows("assistant", [
+  it("reads live and stored outputs and lets a later passage reuse a ref", () => {
+    const first = withCitablePassages(new Map(), [
       {
         type: "tool-getInformation",
         state: "output-available",
-        output: { results: [source] },
+        output: { results: [{ ...page4, ref: 1 }] },
       },
-      { type: "text", text: "Grounded answer" },
     ]);
-    const stored = chatPartsToRows("assistant", [
-      { type: "tool-getInformation", args: { question: "why" } },
-      { type: "tool-result", result: { results: [source] } },
-      { type: "text", text: "Grounded answer" },
+    const second = withCitablePassages(first, [
+      { type: "tool-result", result: { results: [{ ...article, ref: 1 }] } },
     ]);
-
-    expect(live.at(-1)).toMatchObject({ kind: "message", sources: [source] });
-    expect(stored.at(-1)).toMatchObject({ kind: "message", sources: [source] });
+    expect(first.get(1)).toEqual(page4);
+    expect(second.get(1)).toEqual(article);
   });
 
-  it("rejects chunks without provenance instead of constructing a false citation", () => {
+  it("keeps passages without a ref or provenance out of the citable set", () => {
+    expect(
+      citablePassagesFromParts([
+        { type: "tool-result", result: { results: [page4] } },
+      ]),
+    ).toEqual([]);
     for (const chunk of [
       { pageContent: "Legacy text with no page" },
-      { pageContent: "Legacy main shape", metadata: { blockId: "b1" } },
-      { kind: "pdf", pageContent: "No page number" },
-      { kind: "article", pageContent: "No block id" },
+      { kind: "pdf", pageContent: "No page number", ref: 1 },
+      { kind: "article", pageContent: "No block id", ref: 1 },
     ]) {
       expect(
         getInformationOutputSchema.safeParse({ results: [chunk] }).success,
       ).toBe(false);
     }
+  });
+
+  it("gives the citations index only to assistant text", () => {
+    const citations = new Map([[1, page4]]);
     expect(
-      retrievedChunksFromParts([
-        {
-          type: "tool-result",
-          result: { results: [{ pageContent: "Legacy text with no page" }] },
-        },
-      ]),
-    ).toEqual([]);
+      chatPartsToRows(
+        "assistant",
+        [{ type: "text", text: "A [1]" }],
+        citations,
+      ),
+    ).toEqual([
+      { kind: "message", role: "assistant", content: "A [1]", citations },
+    ]);
+    expect(
+      chatPartsToRows("user", [{ type: "text", text: "Q [1]" }], citations),
+    ).toEqual([{ kind: "message", role: "user", content: "Q [1]" }]);
+  });
+});
+
+function renderCited(content: string, citations: Map<number, RetrievedChunk>) {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  flushSync(() =>
+    root.render(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(CitedMarkdown, {
+          content,
+          citations,
+          renderMarkdown: (text, options) =>
+            createElement(ReactMarkdown, {
+              children: text,
+              remarkPlugins: options?.remarkPlugins,
+              components: options?.components,
+            }),
+        }),
+      ),
+    ),
+  );
+  return { container, root };
+}
+
+describe("cited answer rendering", () => {
+  const page4 = {
+    kind: "pdf" as const,
+    pageContent: "Passage on page four.",
+    pageNumber: 4,
+  };
+  const page9 = {
+    kind: "pdf" as const,
+    pageContent: "Passage on page nine.",
+    pageNumber: 9,
+  };
+  const citations = new Map<number, RetrievedChunk>([
+    [7, page4],
+    [12, page9],
+  ]);
+
+  it("numbers cited passages in first-cited order and lists only those", () => {
+    const { container, root } = renderCited(
+      "Traces are linear [12]. They nest [7][12], see [7, 40].",
+      citations,
+    );
+    const inline = [...container.querySelectorAll("p button")];
+    expect(inline.map((button) => button.textContent)).toEqual([
+      "1",
+      "2",
+      "1",
+      "2",
+    ]);
+    expect(container.querySelector("p")?.textContent).toBe(
+      "Traces are linear 1. They nest 21, see 2.",
+    );
+    const sources = container.querySelector("footer, .not-prose");
+    expect(sources?.textContent).toBe("Sources12");
+    expect(
+      [...(sources?.querySelectorAll("button") ?? [])].map((button) =>
+        button.getAttribute("aria-label"),
+      ),
+    ).toEqual(["Source 1, Page 9", "Source 2, Page 4"]);
+    flushSync(() => root.unmount());
+  });
+
+  it("leaves code, links and brackets naming no passage as written", () => {
+    const { container, root } = renderCited(
+      "Index x[0] and `arr[7]` and [see [7]](https://example.com) and [99].",
+      citations,
+    );
+    expect(container.querySelectorAll("button")).toHaveLength(0);
+    expect(container.textContent).toBe(
+      "Index x[0] and arr[7] and see [7] and [99].",
+    );
+    flushSync(() => root.unmount());
+  });
+
+  it("shows no sources row when the answer cites nothing", () => {
+    const { container, root } = renderCited("Not in the document.", citations);
+    expect(container.querySelector("button")).toBeNull();
+    expect(container.textContent).toBe("Not in the document.");
+    flushSync(() => root.unmount());
+  });
+
+  it("opens the cited passage from a sources ref", () => {
+    const highlightSource = vi.fn();
+    useCitationHighlightStore.getState().setHighlightSource(highlightSource);
+    useMobileSidebarStore.getState().setDrawerOpen(true);
+    const { container, root } = renderCited("Claim [12].", citations);
+    const buttons = container.querySelectorAll("button");
+    (buttons[buttons.length - 1] as HTMLButtonElement).click();
+    expect(highlightSource).toHaveBeenCalledWith(page9);
+    expect(useMobileSidebarStore.getState().isDrawerOpen).toBe(false);
+    flushSync(() => root.unmount());
   });
 });
 
 describe("exact PDF source matching", () => {
-  it("connects the rendered source button to page navigation and exact highlighting", () => {
+  it("connects an inline ref to page navigation and exact highlighting", () => {
     vi.useFakeTimers();
     const source = {
       kind: "pdf" as const,
@@ -165,17 +276,13 @@ describe("exact PDF source matching", () => {
     });
     useMobileSidebarStore.getState().setDrawerOpen(true);
 
-    const container = document.createElement("div");
-    document.body.appendChild(container);
-    const root = createRoot(container);
-    flushSync(() =>
-      root.render(createElement(CitationSources, { sources: [source] })),
+    const { container, root } = renderCited(
+      "Grounded claim [3].",
+      new Map([[3, source]]),
     );
-
-    const button = container.querySelector("button");
-    expect(button?.textContent).toContain("Page 5");
-    expect(button?.textContent).toContain(source.pageContent);
-    button?.click();
+    const button = container.querySelector("p button") as HTMLButtonElement;
+    expect(button.getAttribute("aria-label")).toBe("Source 1, Page 5");
+    button.click();
 
     expect(scrollPageIntoView).toHaveBeenCalledWith({ pageNumber: 5 });
     expect(document.querySelector(".citation-hl-source")).not.toBeNull();

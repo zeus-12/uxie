@@ -178,6 +178,7 @@ export interface IpcEventContract {
   "flashcard:evaluate:error": [streamId: string, message: string];
   "chat:delta": [streamId: string, delta: string];
   "chat:retrieving": [streamId: string];
+  "chat:tool-result": [streamId: string, part: ChatPart];
   "chat:done": [streamId: string, parts: ChatPart[]];
   "chat:error": [streamId: string, message: string];
   "chat:retrieve": [reqId: string, docId: string, question: string];
@@ -234,6 +235,7 @@ export const API_EVENTS = {
   onFlashcardEvalError: "flashcard:evaluate:error",
   onChatDelta: "chat:delta",
   onChatRetrieving: "chat:retrieving",
+  onChatToolResult: "chat:tool-result",
   onChatDone: "chat:done",
   onChatError: "chat:error",
   onChatRetrieve: "chat:retrieve",

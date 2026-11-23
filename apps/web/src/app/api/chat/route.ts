@@ -8,6 +8,7 @@ import { google } from "@ai-sdk/google";
 import { type Message } from "@prisma/client";
 import {
   CHAT_SYSTEM_PROMPT,
+  createCitationNumberer,
   GET_INFORMATION_TOOL_DESCRIPTION,
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
@@ -83,7 +84,12 @@ export async function POST(req: Request) {
         abortSignal: req.signal,
         messages: await convertToModelMessages(prepared.messages),
         system: CHAT_SYSTEM_PROMPT,
-        tools: AI_TOOLS({ docId }),
+        tools: AI_TOOLS({
+          docId,
+          numberPassages: createCitationNumberer(
+            prepared.messages.map((message) => message.parts),
+          ),
+        }),
         toolChoice: "auto",
         stopWhen: stepCountIs(3),
         maxOutputTokens: 2000,
@@ -158,11 +164,25 @@ export async function POST(req: Request) {
   }
 }
 
-const AI_TOOLS = ({ docId }: { docId: string }) => ({
+const AI_TOOLS = ({
+  docId,
+  numberPassages,
+}: {
+  docId: string;
+  numberPassages: ReturnType<typeof createCitationNumberer>;
+}) => ({
   [GET_INFORMATION_TOOL_NAME]: tool({
     description: GET_INFORMATION_TOOL_DESCRIPTION,
     inputSchema: getInformationInputSchema,
-    execute: async ({ question }) =>
-      retrieveRelevantDocumentContent(docId, question),
+    execute: async ({ question }): Promise<GetInformationOutput> => {
+      const { results, unlocated } = await retrieveRelevantDocumentContent(
+        docId,
+        question,
+      );
+      return {
+        results: numberPassages(results),
+        ...(unlocated ? { unlocated } : {}),
+      };
+    },
   }),
 });

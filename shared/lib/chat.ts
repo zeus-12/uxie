@@ -4,7 +4,11 @@ import { z } from "zod";
 // `ai` import) so it's usable regardless of which AI SDK major each app is on.
 export const CHAT_SYSTEM_PROMPT = `You are a helpful assistant embedded in a document reader, helping the user with the document they are currently reading. You have a 'getInformation' tool that searches that document.
 
-Call 'getInformation' ONLY when answering actually requires the document's contents, such as questions about what it says, its arguments, data, definitions, or specific passages. When you use it, search first, then write a clear answer grounded in the retrieved content. The reader attaches the exact retrieved passages (and their page numbers for PDFs) to your answer, so do not invent citation numbers or source links. If the answer isn't in the retrieved content, say so plainly.
+Call 'getInformation' ONLY when answering actually requires the document's contents, such as questions about what it says, its arguments, data, definitions, or specific passages. When you use it, search first, then write a clear answer grounded in the retrieved content.
+
+Citations: every retrieved passage has a numeric 'ref'. Cite a passage inline as [ref] right after a claim it directly supports, e.g. "Traces are compiled to native code [3]." or "[2][5]" for several. Cite only refs from tool results; a passage without a ref can't be cited, so don't mark it at all. Never mention refs or this citation format to the user. Never add a sources or references list at the end; the reader builds it from your inline citations.
+
+When the retrieved passages don't contain the answer, say so in one or two sentences and stop. Do not cite anything in that case and do not describe what the passages are about instead. For example: "The document doesn't discuss Python's global interpreter lock."
 
 Do NOT call the tool for messages that don't need the document — greetings, small talk, thanks, or meta questions about you. Just reply directly and briefly.
 
@@ -37,21 +41,20 @@ export const retrievedChunkSchema = z.discriminatedUnion("kind", [
   pdfChunkSchema,
   articleChunkSchema,
 ]);
+const citationRefSchema = z.number().int().positive();
+const resultChunkSchema = z.discriminatedUnion("kind", [
+  pdfChunkSchema.extend({ ref: citationRefSchema.optional() }),
+  articleChunkSchema.extend({ ref: citationRefSchema.optional() }),
+]);
 export type PdfChunk = z.infer<typeof pdfChunkSchema>;
 export type ArticleChunk = z.infer<typeof articleChunkSchema>;
 export type RetrievedChunk = z.infer<typeof retrievedChunkSchema>;
 
-export function retrievedChunkKey(chunk: RetrievedChunk): string {
-  const location =
-    chunk.kind === "pdf"
-      ? `page:${chunk.pageNumber}`
-      : `block:${chunk.blockId}`;
-  return `${location}\u0000${chunk.pageContent}`;
-}
+export type CitablePassage = RetrievedChunk & { ref: number };
 
 // Passages from vectors indexed before provenance existed: the model reads them, the UI can't open them.
 export const getInformationOutputSchema = z.object({
-  results: z.array(retrievedChunkSchema),
+  results: z.array(resultChunkSchema),
   unlocated: z.array(z.string()).optional(),
 });
 export type GetInformationOutput = z.infer<typeof getInformationOutputSchema>;
@@ -76,22 +79,41 @@ function outputFromPart(part: Record<string, unknown>): unknown {
   return undefined;
 }
 
-export function retrievedChunksFromParts(parts: unknown): RetrievedChunk[] {
+export type CitationIndex = ReadonlyMap<number, RetrievedChunk>;
+
+export function citablePassagesFromParts(parts: unknown): CitablePassage[] {
   if (!Array.isArray(parts)) return [];
-
-  const seen = new Set<string>();
-  const chunks: RetrievedChunk[] = [];
-  for (const part of parts) {
-    if (!isRecord(part)) continue;
+  return parts.flatMap((part): CitablePassage[] => {
+    if (!isRecord(part)) return [];
     const parsed = getInformationOutputSchema.safeParse(outputFromPart(part));
-    if (!parsed.success) continue;
+    if (!parsed.success) return [];
+    return parsed.data.results.flatMap(({ ref, ...chunk }) =>
+      ref === undefined ? [] : [{ ...chunk, ref }],
+    );
+  });
+}
 
-    for (const chunk of parsed.data.results) {
-      const key = retrievedChunkKey(chunk);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      chunks.push(chunk);
-    }
-  }
-  return chunks;
+// A later passage with the same ref wins: refs restart when a web chat session does.
+export function withCitablePassages(
+  index: CitationIndex,
+  parts: unknown,
+): CitationIndex {
+  const passages = citablePassagesFromParts(parts);
+  if (!passages.length) return index;
+  const next = new Map(index);
+  for (const { ref, ...chunk } of passages) next.set(ref, chunk);
+  return next;
+}
+
+export function createCitationNumberer(
+  history: readonly unknown[],
+): (chunks: readonly RetrievedChunk[]) => CitablePassage[] {
+  let nextRef =
+    Math.max(
+      0,
+      ...history.flatMap((parts) =>
+        citablePassagesFromParts(parts).map((passage) => passage.ref),
+      ),
+    ) + 1;
+  return (chunks) => chunks.map((chunk) => ({ ...chunk, ref: nextRef++ }));
 }

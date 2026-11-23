@@ -8,6 +8,8 @@ import {
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
   getInformationOutputSchema,
+  withCitablePassages,
+  type CitationIndex,
   type GetInformationInput,
   type GetInformationOutput,
 } from "@uxie/shared/lib/chat";
@@ -91,9 +93,24 @@ export function chatMessageText(message: ChatMessage): string {
     .join("");
 }
 
-export function chatMessageToRows(message: ChatMessage): ChatRow[] {
+export function chatCitationIndex(parts: ChatPart[][]): CitationIndex {
+  return parts.reduce<CitationIndex>(withCitablePassages, new Map());
+}
+
+export function chatMessagesToRows(messages: ChatMessage[]): ChatRow[] {
+  let citations: CitationIndex = new Map();
+  return messages.flatMap((message) => {
+    citations = withCitablePassages(citations, message.parts);
+    return chatMessageToRows(message, citations);
+  });
+}
+
+function chatMessageToRows(
+  message: ChatMessage,
+  citations: CitationIndex,
+): ChatRow[] {
   if (message.role !== "user") {
-    return chatPartsToRows(message.role, message.parts);
+    return chatPartsToRows(message.role, message.parts, citations);
   }
   return userMessageRows(
     chatMessageText(message),

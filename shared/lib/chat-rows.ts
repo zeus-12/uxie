@@ -1,8 +1,4 @@
-import {
-  GET_INFORMATION_TOOL_NAME,
-  retrievedChunksFromParts,
-  type RetrievedChunk,
-} from "./chat";
+import { GET_INFORMATION_TOOL_NAME, type CitationIndex } from "./chat";
 import type { ChatImage } from "./chat-attachments";
 
 export type ChatRole = "user" | "assistant";
@@ -13,9 +9,9 @@ export type ChatRow =
       role: ChatRole;
       content: string;
       attachments?: ChatImage[];
-      sources?: RetrievedChunk[];
+      citations?: CitationIndex;
     }
-  | { kind: "streaming"; content: string }
+  | { kind: "streaming"; content: string; citations?: CitationIndex }
   | { kind: "tool"; label: string; active: boolean }
   | { kind: "thinking"; label: string }
   | { kind: "error"; content: string };
@@ -24,7 +20,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-export function chatPartsToRows(role: string, parts: unknown): ChatRow[] {
+export function chatPartsToRows(
+  role: string,
+  parts: unknown,
+  citations?: CitationIndex,
+): ChatRow[] {
   if (!Array.isArray(parts)) return [];
   const displayRole: ChatRole = role === "user" ? "user" : "assistant";
   const rows: ChatRow[] = [];
@@ -37,6 +37,9 @@ export function chatPartsToRows(role: string, parts: unknown): ChatRow[] {
           kind: "message",
           role: displayRole,
           content: part.text,
+          ...(displayRole === "assistant" && citations?.size
+            ? { citations }
+            : {}),
         });
       }
       continue;
@@ -62,14 +65,5 @@ export function chatPartsToRows(role: string, parts: unknown): ChatRow[] {
     });
   }
 
-  const sources = retrievedChunksFromParts(parts);
-  if (displayRole === "assistant" && sources.length > 0) {
-    for (let index = rows.length - 1; index >= 0; index--) {
-      const row = rows[index];
-      if (row?.kind !== "message") continue;
-      rows[index] = { ...row, sources };
-      break;
-    }
-  }
   return rows;
 }
