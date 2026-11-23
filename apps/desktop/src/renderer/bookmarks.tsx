@@ -66,6 +66,7 @@ const rowAccessibleName = (bookmark: Bookmark): string =>
   `${rowTitle(bookmark)}, page ${bookmark.pageNumber}`;
 
 const ROW_SELECTOR = "[data-bookmark-row]";
+const RENAME_INPUT_SELECTOR = "[data-bookmark-rename]";
 const NAVIGATION_KEYS = ["ArrowDown", "ArrowUp", "Home", "End"];
 
 function moveRowFocus(event: KeyboardEvent<HTMLDivElement>) {
@@ -199,6 +200,14 @@ export function BookmarksToolbarContent({
           sideOffset={12}
           className="w-80 p-0"
           aria-label="Bookmarks"
+          onEscapeKeyDown={(event) => {
+            if (
+              event.target instanceof Element &&
+              event.target.matches(RENAME_INPUT_SELECTOR)
+            ) {
+              event.preventDefault();
+            }
+          }}
         >
           {loading ? (
             <div className="p-1" role="status" aria-label="Loading bookmarks">
@@ -296,6 +305,7 @@ function BookmarkRow({
         <input
           ref={inputRef}
           aria-label="Bookmark name"
+          data-bookmark-rename
           value={draft}
           maxLength={80}
           disabled={saving}
