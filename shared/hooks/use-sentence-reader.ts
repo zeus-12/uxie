@@ -270,10 +270,10 @@ function itemPointAt(model: PageTextModel, normPos: number): ItemPoint | null {
 function itemElementAt(
   model: PageTextModel,
   point: ItemPoint,
-): { el: Element; offset: number } | null {
+): { el: Element; offset: number; exact: boolean } | null {
   if (!isReflowModel(model)) {
     const el = model.blocks[point.ordinal];
-    return el ? { el, offset: point.offset } : null;
+    return el ? { el, offset: point.offset, exact: true } : null;
   }
   let next: { el: HTMLElement; ordinal: number } | null = null;
   for (const el of model.pageElement.querySelectorAll<HTMLElement>(
@@ -286,18 +286,22 @@ function itemElementAt(
       return {
         el,
         offset: Math.min(Math.max(point.offset - start, 0), length),
+        exact: true,
       };
     }
     if (ordinal > point.ordinal && (!next || ordinal < next.ordinal)) {
       next = { el, ordinal };
     }
   }
-  return next ? { el: next.el, offset: 0 } : null;
+  return next ? { el: next.el, offset: 0, exact: false } : null;
 }
 
 // Canvas text spans and reflowed runs read the same pdf.js items, so a reading
 // position carries across the switch by item and character, not by text.
-function normPosAt(model: PageTextModel, point: ItemPoint): number | null {
+function normPosAt(
+  model: PageTextModel,
+  point: ItemPoint,
+): { pos: number; exact: boolean } | null {
   const target = itemElementAt(model, point);
   if (!target) return null;
   const blockIndex = model.blocks.findIndex((b) => b.contains(target.el));
@@ -308,7 +312,7 @@ function normPosAt(model: PageTextModel, point: ItemPoint): number | null {
     model.blockStarts[blockIndex]! +
     (inEl ? textOffsetWithin(block, inEl.node, inEl.offset) : 0);
   const normPos = model.norm.toRaw.findIndex((raw) => raw >= rawPos);
-  return normPos < 0 ? null : normPos;
+  return normPos < 0 ? null : { pos: normPos, exact: target.exact };
 }
 
 function sentenceIndexContaining(model: PageTextModel, normPos: number): number {
@@ -319,10 +323,10 @@ function sentenceIndexContaining(model: PageTextModel, normPos: number): number 
   return index;
 }
 
-type Remap = { current: number; resume: number | null };
+type Remap = { current: number; resume: number | null; shown: boolean };
 
-// Shows the sentence holding the spoken sentence's start, and resumes after its
-// end: re-reading the tail of a sentence the new surface merged, never skipping.
+// Shows the sentence holding the spoken sentence's start only if that text is on
+// the new surface; resumes after its end, re-reading a merged tail, never skipping.
 function remapPosition(
   from: PageTextModel,
   sentenceIndex: number,
@@ -330,19 +334,29 @@ function remapPosition(
 ): Remap {
   const start = from.sentenceStarts[sentenceIndex];
   const sentence = from.sentences[sentenceIndex];
-  if (start === undefined || start < 0 || !sentence) return { current: 0, resume: null };
+  if (start === undefined || start < 0 || !sentence) {
+    return { current: 0, resume: null, shown: false };
+  }
   const startPoint = itemPointAt(from, start);
   const endPoint = itemPointAt(from, start + sentence.length - 1);
-  const startPos = startPoint ? normPosAt(to, startPoint) : null;
-  const endPos = endPoint ? normPosAt(to, endPoint) : null;
-  if (startPos === null && startPoint) {
-    return { current: Math.max(0, to.sentences.length - 1), resume: to.sentences.length };
+  const startAt = startPoint ? normPosAt(to, startPoint) : null;
+  const endAt = endPoint ? normPosAt(to, endPoint) : null;
+  let resume: number;
+  if (!endAt) {
+    resume = to.sentences.length;
+  } else {
+    const last = sentenceIndexContaining(to, endAt.pos);
+    const lastEnd = to.sentenceStarts[last]! + (to.sentences[last]?.length ?? 0) - 1;
+    resume = endAt.exact && endAt.pos >= lastEnd ? last + 1 : last;
   }
-  const current = startPos === null ? 0 : sentenceIndexContaining(to, startPos);
-  if (endPos === null) return { current, resume: null };
-  const last = sentenceIndexContaining(to, endPos);
-  const lastEnd = to.sentenceStarts[last]! + (to.sentences[last]?.length ?? 0) - 1;
-  return { current, resume: endPos >= lastEnd ? last + 1 : last };
+  if (startAt?.exact) {
+    return { current: sentenceIndexContaining(to, startAt.pos), resume, shown: true };
+  }
+  return {
+    current: Math.max(0, Math.min(resume, to.sentences.length - 1)),
+    resume,
+    shown: false,
+  };
 }
 
 function rawRangeToRange(
@@ -529,25 +543,28 @@ export function getReaderScrollContainer(): HTMLElement | null {
 // otherwise. scrollend is exact; the window is the fallback (Safari < 18.2).
 const SCROLL_SETTLE_MS = 800;
 let programmaticScrollUntil = 0;
-let scrollEndWatcher: (() => void) | null = null;
+let scrollEndWatcher: { container: HTMLElement; stop: () => void } | null = null;
 
-export function beginProgrammaticScroll() {
+export function beginProgrammaticScroll(
+  container: HTMLElement | null = getReaderScrollContainer(),
+) {
   programmaticScrollUntil =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) +
     SCROLL_SETTLE_MS;
 
-  if (scrollEndWatcher || typeof window === "undefined") return;
-  if (!("onscrollend" in window)) return;
-
-  const container = getReaderScrollContainer();
-  if (!container) return;
+  if (typeof window === "undefined" || !("onscrollend" in window)) return;
+  if (!container || scrollEndWatcher?.container === container) return;
+  scrollEndWatcher?.stop();
 
   const onScrollEnd = () => {
     programmaticScrollUntil = 0;
-    container.removeEventListener("scrollend", onScrollEnd);
-    scrollEndWatcher = null;
+    stop();
   };
-  scrollEndWatcher = onScrollEnd;
+  const stop = () => {
+    container.removeEventListener("scrollend", onScrollEnd);
+    if (scrollEndWatcher?.container === container) scrollEndWatcher = null;
+  };
+  scrollEndWatcher = { container, stop };
   container.addEventListener("scrollend", onScrollEnd);
 }
 
@@ -578,6 +595,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const currentSentenceIndexRef = useRef(0);
   const resumeIndexRef = useRef<number | null>(null);
   const wordsSuspendedRef = useRef(false);
+  const sentenceHiddenRef = useRef(false);
   const modelRef = useRef<PageTextModel | null>(null);
   const wordMapRef = useRef<{ map: WordMapEntry[]; spoken: string } | null>(
     null,
@@ -597,6 +615,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     modelRef.current = model;
     currentPageRef.current = pageNumber;
     resumeIndexRef.current = null;
+    sentenceHiddenRef.current = false;
 
     return model.sentences;
   }, []);
@@ -623,6 +642,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const remap = remapPosition(model, currentSentenceIndexRef.current, fresh);
       currentSentenceIndexRef.current = remap.current;
       resumeIndexRef.current = remap.resume;
+      sentenceHiddenRef.current = !remap.shown;
       return true;
     }
     const liveSpans = textBlocks(page);
@@ -639,6 +659,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     (mode: HighlightMode = "tts") => {
       lastHighlightModeRef.current = mode;
       ensureFreshModel();
+      if (sentenceHiddenRef.current) {
+        removeHighlightsByType("sentence", mode);
+        return;
+      }
       const model = modelRef.current;
       const idx = currentSentenceIndexRef.current;
       const sentence = model?.sentences[idx];
@@ -758,6 +782,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const advanceToNextSentence = useCallback((): SentencePosition | null => {
     const nextIdx = resumeIndexRef.current ?? currentSentenceIndexRef.current + 1;
     resumeIndexRef.current = null;
+    sentenceHiddenRef.current = false;
 
     if (nextIdx < (modelRef.current?.sentences.length ?? 0)) {
       currentSentenceIndexRef.current = nextIdx;
@@ -786,6 +811,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
   const goToPreviousSentence = useCallback((): SentencePosition | null => {
     resumeIndexRef.current = null;
+    sentenceHiddenRef.current = false;
     const prevIdx = currentSentenceIndexRef.current - 1;
 
     if (prevIdx < 0) {
@@ -898,6 +924,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       if (bestIdx === -1) bestIdx = 0;
 
       resumeIndexRef.current = null;
+      sentenceHiddenRef.current = false;
       currentSentenceIndexRef.current = bestIdx;
       highlightCurrentSentence();
       return getCurrentSentence();
@@ -908,6 +935,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const reset = useCallback(() => {
     currentPageRef.current = 1;
     resumeIndexRef.current = null;
+    sentenceHiddenRef.current = false;
     currentSentenceIndexRef.current = 0;
     modelRef.current = null;
     wordMapRef.current = null;

@@ -66,6 +66,9 @@ const usePdfReader = ({
 
   const pdfViewerRef = useRef<PDFViewer | null>(null);
   const userScrolledRef = useRef(false);
+  const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const reflowedRef = useRef(reflowed);
+  reflowedRef.current = reflowed;
   const isReadingRef = useRef(false);
   const shouldStopRef = useRef(false);
   const currentReadingMode = useRef<READING_MODE>(READING_MODE.PAGE);
@@ -133,8 +136,9 @@ const usePdfReader = ({
     2000,
   );
 
-  // Coalesces a slider drag into one write.
+  // Not saved while reflowed: reopening at a reflow zoom shows the page, not reflow.
   const debouncedUpdateZoomLevel = useDebouncedCallback((zoom: number) => {
+    if (reflowedRef.current) return;
     onSaveReaderState?.({ zoomLevel: zoom });
   }, 2000);
 
@@ -284,25 +288,22 @@ const usePdfReader = ({
     const container = getReaderScrollContainer();
     if (!container) return;
 
-    let timeout: NodeJS.Timeout;
     const handleScroll = () => {
       // Without this the reader reads its own follow-along scroll as the user
       // taking over and stops following.
       if (isProgrammaticScroll()) return;
       userScrolledRef.current = true;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
+      clearTimeout(userScrollTimeoutRef.current);
+      userScrollTimeoutRef.current = setTimeout(() => {
         userScrolledRef.current = false;
       }, 2000);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      clearTimeout(timeout);
-      userScrolledRef.current = false;
-    };
+    return () => container.removeEventListener("scroll", handleScroll);
   }, [viewer, reflowed]);
+
+  useEffect(() => () => clearTimeout(userScrollTimeoutRef.current), []);
 
   useEffect(() => {
     const apply = () => {

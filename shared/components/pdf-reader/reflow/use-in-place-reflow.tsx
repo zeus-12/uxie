@@ -257,6 +257,13 @@ export const useInPlaceReflow = ({
   );
 
   const onPlaced = useCallback(() => setPlaced(true), []);
+  const onResized = useCallback(() => {
+    if (!viewer || modeRef.current !== "reflow") return;
+    const fit = fitWidthScale(viewer);
+    if (!fit || viewer.currentScale >= fit * EXIT_RATIO) return;
+    modeRef.current = "page";
+    exitTo(layerRef.current?.topAnchor() ?? null);
+  }, [viewer, exitTo]);
   const onFailed = useCallback(() => {
     modeRef.current = "page";
     exitTo(null);
@@ -277,6 +284,7 @@ export const useInPlaceReflow = ({
         visible={placed}
         onPlaced={onPlaced}
         onFailed={onFailed}
+        onResized={onResized}
       />
     ) : null;
 
