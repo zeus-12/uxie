@@ -1,5 +1,6 @@
 import { chatErrorResponse, prepareChatMessages } from "@/lib/chat-images";
 import { chatTurnResponse } from "@/lib/chat-turn";
+import { numberPassagesForDocument } from "@/lib/citation-refs";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
@@ -11,6 +12,8 @@ import {
   GET_INFORMATION_TOOL_DESCRIPTION,
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
+  getInformationOutputSchema,
+  type GetInformationOutput,
 } from "@uxie/shared/lib/chat";
 import { convertToModelMessages, stepCountIs, tool } from "ai";
 import { getServerSession } from "next-auth";
@@ -28,14 +31,10 @@ function isGetInformationInput(input: unknown): input is { question: string } {
   );
 }
 
-function isGetInformationOutput(output: unknown): output is {
-  results: Array<{
-    pageContent: string;
-    metadata: Record<string, string | number>;
-  }>;
-} {
-  if (typeof output !== "object" || output === null) return false;
-  return "results" in output && Array.isArray(getProperty(output, "results"));
+function isGetInformationOutput(
+  output: unknown,
+): output is GetInformationOutput {
+  return getInformationOutputSchema.safeParse(output).success;
 }
 
 export const maxDuration = 30;
@@ -85,7 +84,7 @@ export async function POST(req: Request) {
         abortSignal: req.signal,
         messages: await convertToModelMessages(prepared.messages),
         system: CHAT_SYSTEM_PROMPT,
-        tools: AI_TOOLS({ docId }),
+        tools: AI_TOOLS(docId),
         toolChoice: "auto",
         stopWhen: stepCountIs(3),
         maxOutputTokens: 2000,
@@ -95,7 +94,7 @@ export async function POST(req: Request) {
 
         for (const step of steps || []) {
           if (step.toolCalls && step.toolCalls.length > 0) {
-            step.toolCalls.forEach((toolCall, index) => {
+            step.toolCalls.forEach((toolCall) => {
               if (isGetInformationInput(toolCall.input)) {
                 parts.push({
                   type: `tool-${toolCall.toolName}`,
@@ -105,7 +104,9 @@ export async function POST(req: Request) {
                 });
               }
 
-              const toolResult = step.toolResults?.[index];
+              const toolResult = step.toolResults?.find(
+                (result) => result.toolCallId === toolCall.toolCallId,
+              );
               if (toolResult && isGetInformationOutput(toolResult.output)) {
                 parts.push({
                   type: "tool-result",
@@ -158,15 +159,18 @@ export async function POST(req: Request) {
   }
 }
 
-const AI_TOOLS = ({ docId }: { docId: string }) => ({
+const AI_TOOLS = (docId: string) => ({
   [GET_INFORMATION_TOOL_NAME]: tool({
     description: GET_INFORMATION_TOOL_DESCRIPTION,
     inputSchema: getInformationInputSchema,
-    execute: async ({ question }) => {
-      const results = await retrieveRelevantDocumentContent(docId, question);
-
+    execute: async ({ question }): Promise<GetInformationOutput> => {
+      const { results, unlocated } = await retrieveRelevantDocumentContent(
+        docId,
+        question,
+      );
       return {
-        results,
+        results: await numberPassagesForDocument(docId, results),
+        ...(unlocated ? { unlocated } : {}),
       };
     },
   }),

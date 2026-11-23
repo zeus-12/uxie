@@ -13,6 +13,7 @@
   --hl-annotation-focus: hsl(var(--palette-orange) / 0.45);
   --hl-selection: hsl(var(--palette-blue) / 0.4);
   --hl-search: hsl(var(--palette-yellow) / 0.35);
+  --hl-citation: hsl(var(--palette-yellow) / 0.38);
   --hl-search-active: hsl(var(--palette-orange) / 0.6);
   --hl-search-active-ring: hsl(var(--palette-orange));
   --hl-tts-sentence: hsl(var(--palette-green) / 0.16);

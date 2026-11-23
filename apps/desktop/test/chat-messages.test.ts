@@ -2,7 +2,7 @@ import { join } from "path";
 import { describe, expect, it } from "vitest";
 import {
   chatMessageImageUrls,
-  chatMessageToRows,
+  chatMessagesToRows,
   chatMessagesToModelMessages,
   completedChatParts,
   normalizeChatParts,
@@ -32,10 +32,17 @@ const assistantTurn: ChatMessage = {
       toolCallId: "call-1",
       toolName: "getInformation",
       output: {
-        results: [{ pageContent: "Figure 10.1 shows a replicated log." }],
+        results: [
+          {
+            kind: "pdf",
+            pageContent: "Figure 10.1 shows a replicated log.",
+            pageNumber: 10,
+            ref: 1,
+          },
+        ],
       },
     },
-    { type: "text", text: "It shows a replicated operation log." },
+    { type: "text", text: "It shows a replicated operation log [1]." },
   ],
 };
 
@@ -60,12 +67,22 @@ describe("desktop chat message history", () => {
 
     const [stored] = await getMessagesByDocId(db, document.id);
     expect(stored).toMatchObject(assistantTurn);
-    expect(chatMessageToRows(stored)).toEqual([
+    expect(chatMessagesToRows([stored])).toEqual([
       { kind: "tool", label: "Searched the document", active: false },
       {
         kind: "message",
         role: "assistant",
-        content: "It shows a replicated operation log.",
+        content: "It shows a replicated operation log [1].",
+        citations: new Map([
+          [
+            1,
+            {
+              kind: "pdf",
+              pageContent: "Figure 10.1 shows a replicated log.",
+              pageNumber: 10,
+            },
+          ],
+        ]),
       },
     ]);
   });
@@ -107,7 +124,12 @@ describe("desktop chat message history", () => {
               type: "json",
               value: {
                 results: [
-                  { pageContent: "Figure 10.1 shows a replicated log." },
+                  {
+                    kind: "pdf",
+                    pageContent: "Figure 10.1 shows a replicated log.",
+                    pageNumber: 10,
+                    ref: 1,
+                  },
                 ],
               },
             },
@@ -116,10 +138,40 @@ describe("desktop chat message history", () => {
       },
       {
         role: "assistant",
-        content: "It shows a replicated operation log.",
+        content: "It shows a replicated operation log [1].",
       },
       { role: "user", content: "Did you search the document?" },
     ]);
+  });
+
+  it("keeps results stored before page provenance as uncitable context", () => {
+    const parts = normalizeChatParts([
+      {
+        type: "tool-call",
+        toolCallId: "old",
+        toolName: "getInformation",
+        input: { question: "nested loops" },
+      },
+      {
+        type: "tool-result",
+        toolCallId: "old",
+        toolName: "getInformation",
+        output: { results: [{ pageContent: "Inner loops are traced first." }] },
+      },
+      { type: "text", text: "They are traced first." },
+    ]);
+    expect(parts[1]).toEqual({
+      type: "tool-result",
+      toolCallId: "old",
+      toolName: "getInformation",
+      output: { results: [], unlocated: ["Inner loops are traced first."] },
+    });
+    expect(completedChatParts(parts)).toHaveLength(3);
+    expect(
+      chatMessagesToRows([{ role: "assistant", parts }]).some(
+        (row) => row.kind === "message" && row.citations,
+      ),
+    ).toBe(false);
   });
 
   it("drops an interrupted tool call that has no result", () => {
@@ -165,7 +217,7 @@ describe("desktop chat message history", () => {
 
     const [stored] = await getMessagesByDocId(db, document.id);
     expect(stored).toMatchObject(message);
-    expect(chatMessageToRows(stored)).toMatchObject([
+    expect(chatMessagesToRows([stored])).toMatchObject([
       {
         kind: "message",
         role: "user",

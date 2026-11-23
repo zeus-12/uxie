@@ -27,6 +27,11 @@ import type {
   RectInput,
 } from "@uxie/shared/schema";
 import type {
+  PdfChunk,
+  PdfPageText,
+  RetrievedChunk,
+} from "@uxie/shared/lib/chat";
+import type {
   ChatImageUpload,
   ChatMessage,
   ChatPart,
@@ -74,8 +79,7 @@ export interface PickedPdf {
   bytes: Uint8Array;
 }
 
-export interface EmbeddedChunk {
-  chunk: string;
+export interface EmbeddedChunk extends PdfChunk {
   embedding: number[];
 }
 
@@ -148,14 +152,14 @@ export interface IpcInvokeContract {
     result: CreateUserMessageResult;
   };
 
-  "documents:getText": { args: [docId: string]; result: string };
+  "documents:getPages": { args: [docId: string]; result: PdfPageText[] };
   "embeddings:store": {
     args: [docId: string, items: EmbeddedChunk[]];
     result: void;
   };
   "embeddings:query": {
     args: [docId: string, embedding: number[], k: number];
-    result: string[];
+    result: RetrievedChunk[];
   };
 }
 
@@ -173,7 +177,7 @@ export interface IpcSendContract {
   // AI feature). Retrieval stays in the renderer worker via the reply channel.
   "chat:start": [streamId: string, docId: string, messages: ChatMessage[]];
   "chat:cancel": [streamId: string];
-  "chat:retrieve:reply": [reqId: string, chunks: string[] | null];
+  "chat:retrieve:reply": [reqId: string, chunks: RetrievedChunk[] | null];
   "window:setBackground": [background: WindowBackground];
 }
 
@@ -190,6 +194,7 @@ export interface IpcEventContract {
   "flashcard:evaluate:error": [streamId: string, message: string];
   "chat:delta": [streamId: string, delta: string];
   "chat:retrieving": [streamId: string];
+  "chat:tool-result": [streamId: string, part: ChatPart];
   "chat:done": [streamId: string, parts: ChatPart[]];
   "chat:error": [streamId: string, message: string];
   "chat:retrieve": [reqId: string, docId: string, question: string];
@@ -225,7 +230,7 @@ export const API_INVOKE = {
   getMessages: "messages:getByDocId",
   createMessage: "messages:create",
   createUserMessage: "messages:createUser",
-  getDocumentText: "documents:getText",
+  getDocumentPages: "documents:getPages",
   storeEmbeddings: "embeddings:store",
   queryEmbeddings: "embeddings:query",
 } as const satisfies Record<string, keyof IpcInvokeContract>;
@@ -249,6 +254,7 @@ export const API_EVENTS = {
   onFlashcardEvalError: "flashcard:evaluate:error",
   onChatDelta: "chat:delta",
   onChatRetrieving: "chat:retrieving",
+  onChatToolResult: "chat:tool-result",
   onChatDone: "chat:done",
   onChatError: "chat:error",
   onChatRetrieve: "chat:retrieve",

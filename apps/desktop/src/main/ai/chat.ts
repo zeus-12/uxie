@@ -3,8 +3,10 @@ import { smoothStream, stepCountIs, streamText, tool } from "ai";
 import type { WebContents } from "electron";
 import {
   CHAT_SYSTEM_PROMPT,
+  createCitationNumberer,
   GET_INFORMATION_TOOL_DESCRIPTION,
   getInformationInputSchema,
+  type RetrievedChunk,
 } from "@uxie/shared/lib/chat";
 import type { ChatMessage } from "../../ipc-contract";
 import {
@@ -27,12 +29,12 @@ import { getSettings } from "../settings";
 
 const controllers = new Map<string, AbortController>();
 
-const retrievePending = new Map<string, (chunks: string[]) => void>();
+const retrievePending = new Map<string, (chunks: RetrievedChunk[]) => void>();
 let reqCounter = 0;
 
 export function resolveChatRetrieve(
   reqId: string,
-  chunks: string[] | null,
+  chunks: RetrievedChunk[] | null,
 ): void {
   const resolve = retrievePending.get(reqId);
   if (resolve) {
@@ -45,7 +47,7 @@ function retrieveViaRenderer(
   wc: WebContents,
   docId: string,
   question: string,
-): Promise<string[]> {
+): Promise<RetrievedChunk[]> {
   return new Promise((resolve) => {
     if (wc.isDestroyed()) return resolve([]);
     const reqId = `chat-retrieve-${++reqCounter}`;
@@ -103,6 +105,9 @@ export async function streamChat(
         ),
       ),
     );
+    const numberPassages = createCitationNumberer(
+      messages.map((message) => message.parts),
+    );
     const result = streamText({
       model: provider(llm.model),
       system: CHAT_SYSTEM_PROMPT,
@@ -120,7 +125,7 @@ export async function streamChat(
           execute: async ({ question }) => {
             send("chat:retrieving", streamId);
             const chunks = await retrieveViaRenderer(wc, docId, question);
-            return { results: chunks.map((pageContent) => ({ pageContent })) };
+            return { results: numberPassages(chunks) };
           },
         }),
       },
@@ -144,7 +149,10 @@ export async function streamChat(
           toolName: part.toolName,
           output: part.output,
         });
-        if (chatPart) responseParts.push(chatPart);
+        if (chatPart) {
+          responseParts.push(chatPart);
+          send("chat:tool-result", streamId, chatPart);
+        }
       } else if (part.type === "error") {
         throw part.error instanceof Error
           ? part.error

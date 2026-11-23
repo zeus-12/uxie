@@ -1,5 +1,6 @@
 import { PDF_BACKGROUND_COLOURS } from "./constants";
 import { type BlockNoteEditorType } from "../types/editor";
+import { type RetrievedChunk } from "./chat";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { getEngineFromVoice, type TTSEngineType, type TTSVoiceId } from "./tts";
@@ -171,9 +172,11 @@ export const useHighlightJumpStore = create<HighlightJumpStore>((set) => ({
   setJumpToHighlight: (jumpToHighlight) => set({ jumpToHighlight }),
 }));
 
+type ShowSource = (source: RetrievedChunk) => void;
+
 interface CitationHighlightStore {
-  highlightSource: ((pageNumber: number, text: string) => void) | null;
-  setHighlightSource: (fn: (pageNumber: number, text: string) => void) => void;
+  highlightSource: ShowSource | null;
+  setHighlightSource: (fn: ShowSource | null) => void;
 }
 
 export const useCitationHighlightStore = create<CitationHighlightStore>(

@@ -2,11 +2,16 @@ import {
   buildWordMap,
   extractWordsWithPositions,
   LINE_BREAK_HYPHEN_JOIN,
-  normalizeWhitespace,
   splitSentences,
-  type NormalizedText,
   type WordMapEntry,
 } from "../lib/tts/utils";
+import {
+  buildPdfTextLayerModel,
+  mergeRectsByLine,
+  normalizedRangeToDomRange,
+  type PdfTextLayerModel,
+  type Rect,
+} from "../lib/pdf-text-layer";
 import { useCallback, useEffect, useRef } from "react";
 
 export type HighlightMode = "tts" | "rsvp";
@@ -87,45 +92,20 @@ export function cleanSentenceForTts(text: string): string {
 
 // Offsets are normalized (whitespace runs collapsed) — what sbd and the TTS
 // engines see — and mapped back to raw DOM offsets only when highlighting.
-type PageTextModel = {
-  pageElement: Element;
-  blocks: Element[];
-  // 0 for whitespace-only blocks; excludes the separator space between blocks.
-  blockRawLens: number[];
-  blockStarts: number[];
-  norm: NormalizedText;
+type PageTextModel = PdfTextLayerModel & {
   sentences: string[];
   sentenceStarts: number[];
 };
 
 function buildPageTextModel(pageElement: Element): PageTextModel {
-  const blocks = Array.from(
-    pageElement.querySelectorAll("span[role='presentation']"),
-  );
-
-  const blockRawLens: number[] = [];
-  const blockStarts: number[] = [];
-  let rawText = "";
-
-  for (const block of blocks) {
-    const text = block.textContent ?? "";
-    blockStarts.push(rawText.length);
-    if (text.trim().length === 0) {
-      blockRawLens.push(0);
-      continue;
-    }
-    blockRawLens.push(text.length);
-    rawText += /\s$/.test(text) ? text : `${text} `;
-  }
-
-  const norm = normalizeWhitespace(rawText);
+  const base = buildPdfTextLayerModel(pageElement);
 
   const sentences: string[] = [];
   const sentenceStarts: number[] = [];
   let searchStart = 0;
 
-  for (const sentence of splitSentences(norm.text)) {
-    const pos = norm.text.indexOf(sentence, searchStart);
+  for (const sentence of splitSentences(base.norm.text)) {
+    const pos = base.norm.text.indexOf(sentence, searchStart);
     if (pos !== -1) searchStart = pos + sentence.length;
 
     const cleaned = cleanSentenceForTts(sentence);
@@ -137,133 +117,10 @@ function buildPageTextModel(pageElement: Element): PageTextModel {
   }
 
   return {
-    pageElement,
-    blocks,
-    blockRawLens,
-    blockStarts,
-    norm,
+    ...base,
     sentences,
     sentenceStarts,
   };
-}
-
-function normRangeToRaw(
-  norm: NormalizedText,
-  normStart: number,
-  normEnd: number,
-): [number, number] | null {
-  if (normStart < 0 || normEnd <= normStart || normEnd > norm.toRaw.length) {
-    return null;
-  }
-  return [norm.toRaw[normStart]!, norm.toRaw[normEnd - 1]! + 1];
-}
-
-// pdf.js find splits a block into text and match <span>s, so an offset into the
-// block's text has to be resolved against its text nodes, not its first child.
-function textPointInBlock(
-  block: Element,
-  offset: number,
-  atEnd: boolean,
-): { node: Node; offset: number } | null {
-  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
-  let remaining = offset;
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    const length = (node as Text).data.length;
-    if (atEnd ? remaining <= length : remaining < length) {
-      return { node, offset: remaining };
-    }
-    remaining -= length;
-  }
-  return null;
-}
-
-// Whitespace-only blocks and the synthetic inter-block separators occupy no
-// real DOM, so a position landing on one snaps to the nearest content block.
-function rawPosToDom(
-  model: PageTextModel,
-  rawPos: number,
-  atEnd: boolean,
-): { node: Node; offset: number } | null {
-  for (let i = 0; i < model.blocks.length; i++) {
-    const len = model.blockRawLens[i]!;
-    if (len === 0) continue;
-    const bs = model.blockStarts[i]!;
-    const be = bs + len;
-    const inside = atEnd
-      ? rawPos > bs && rawPos <= be
-      : rawPos >= bs && rawPos < be;
-    if (inside) return textPointInBlock(model.blocks[i]!, rawPos - bs, atEnd);
-  }
-  if (atEnd) {
-    for (let i = model.blocks.length - 1; i >= 0; i--) {
-      const len = model.blockRawLens[i]!;
-      if (len === 0) continue;
-      const be = model.blockStarts[i]! + len;
-      if (be <= rawPos) return textPointInBlock(model.blocks[i]!, len, true);
-    }
-  } else {
-    for (let i = 0; i < model.blocks.length; i++) {
-      const len = model.blockRawLens[i]!;
-      if (len === 0) continue;
-      if (model.blockStarts[i]! >= rawPos) {
-        return textPointInBlock(model.blocks[i]!, 0, false);
-      }
-    }
-  }
-  return null;
-}
-
-function rawRangeToRange(
-  model: PageTextModel,
-  rawStart: number,
-  rawEnd: number,
-): Range | null {
-  const s = rawPosToDom(model, rawStart, false);
-  const e = rawPosToDom(model, rawEnd, true);
-  if (!s || !e) return null;
-  const range = document.createRange();
-  try {
-    range.setStart(s.node, s.offset);
-    range.setEnd(e.node, e.offset);
-  } catch {
-    return null;
-  }
-  return range.collapsed ? null : range;
-}
-
-type Rect = { left: number; top: number; width: number; height: number };
-
-// getClientRects gives one rect per span, so a line arrives as several. Merging
-// them into one band per line avoids sub-pixel seams and overlap double-darkening.
-function mergeRectsByLine(rects: DOMRectList): Rect[] {
-  const sorted = Array.from(rects)
-    .filter((r) => r.width >= 0.5 && r.height >= 0.5)
-    .sort((a, b) => a.top - b.top || a.left - b.left);
-
-  const lines: { left: number; right: number; top: number; bottom: number }[] =
-    [];
-  for (const r of sorted) {
-    const last = lines[lines.length - 1];
-    if (last && Math.abs(r.top - last.top) <= 4 && r.left <= last.right + 6) {
-      last.left = Math.min(last.left, r.left);
-      last.right = Math.max(last.right, r.right);
-      last.top = Math.min(last.top, r.top);
-      last.bottom = Math.max(last.bottom, r.bottom);
-    } else {
-      lines.push({
-        left: r.left,
-        right: r.right,
-        top: r.top,
-        bottom: r.bottom,
-      });
-    }
-  }
-  return lines.map((l) => ({
-    left: l.left,
-    top: l.top,
-    width: l.right - l.left,
-    height: l.bottom - l.top,
-  }));
 }
 
 type Pad = { x: number; y: number };
@@ -458,10 +315,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const start = model.sentenceStarts[idx] ?? -1;
       if (start < 0) return;
 
-      const raw = normRangeToRaw(model.norm, start, start + sentence.length);
-      if (!raw) return;
-
-      const range = rawRangeToRange(model, raw[0], raw[1]);
+      const range = normalizedRangeToDomRange(
+        model,
+        start,
+        start + sentence.length,
+      );
       if (!range) return;
       paintOverlays(
         range,
@@ -494,14 +352,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
       const end = Math.min(charOffsetInSentence + wordLength, sentence.length);
 
-      const raw = normRangeToRaw(
-        model.norm,
+      const range = normalizedRangeToDomRange(
+        model,
         sentenceStart + charOffsetInSentence,
         sentenceStart + end,
       );
-      if (!raw) return;
-
-      const range = rawRangeToRange(model, raw[0], raw[1]);
       if (!range) return;
 
       const className = getHighlightClass("word", mode);

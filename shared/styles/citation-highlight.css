@@ -1,0 +1,20 @@
+/* No z-index here: an isolated group leaves multiply nothing to blend with and the band hides the text. */
+.citation-hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.citation-hl-source {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  mix-blend-mode: var(--hl-blend, multiply);
+  pointer-events: none;
+}
+
+.citation-hl-source path {
+  fill: var(--hl-citation, hsl(var(--palette-yellow) / 0.45));
+}

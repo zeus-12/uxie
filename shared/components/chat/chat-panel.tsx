@@ -1,7 +1,11 @@
 import {
+  createContext,
+  Fragment,
+  useContext,
   useEffect,
   useRef,
   useState,
+  type HTMLAttributes,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -13,28 +17,45 @@ import {
   SquareIcon,
 } from "lucide-react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import { toast } from "sonner";
+import type { CitationIndex, RetrievedChunk } from "../../lib/chat";
+import {
+  CITATION_GROUP_TAG,
+  remarkCitations,
+  withoutPartialCitation,
+} from "../../lib/citation-markdown";
+import type { ChatRole, ChatRow } from "../../lib/chat-rows";
+import {
+  useCitationHighlightStore,
+  useMobileSidebarStore,
+} from "../../lib/store";
 import type { ChatImage } from "../../lib/chat-attachments";
 import { cn } from "../../lib/utils";
 import { ShimmeringText } from "../ui/shimmering-text";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import {
   ImageLightbox,
   MessageImageGrid,
   StagedImageStrip,
 } from "./chat-images";
 
-export type ChatRole = "user" | "assistant";
+export type { ChatRole, ChatRow } from "../../lib/chat-rows";
 
-export type ChatRow =
-  | {
-      kind: "message";
-      role: ChatRole;
-      content: string;
-      attachments?: ChatImage[];
-    }
-  | { kind: "streaming"; content: string }
-  | { kind: "tool"; label: string; active: boolean }
-  | { kind: "thinking"; label: string }
-  | { kind: "error"; content: string };
+export type MarkdownCitations = {
+  remarkPlugins: ReturnType<typeof remarkCitations>[];
+  components: {
+    [CITATION_GROUP_TAG]: typeof CitationGroupTag;
+  };
+};
+export type RenderMarkdown = (
+  text: string,
+  citations?: MarkdownCitations,
+) => ReactNode;
 
 interface ChatPanelProps {
   rows: ChatRow[];
@@ -53,7 +74,7 @@ interface ChatPanelProps {
   streaming: boolean;
   placeholder?: string;
   /** Each app supplies its own markdown renderer (avoids a shared dep). */
-  renderMarkdown: (text: string) => ReactNode;
+  renderMarkdown: RenderMarkdown;
   /** Focused by the ⌘L shortcut / on switching to the chat tab. */
   inputRef?: RefObject<HTMLTextAreaElement>;
 }
@@ -258,7 +279,7 @@ function RowView({
   onOpenImage,
 }: {
   row: ChatRow;
-  renderMarkdown: (text: string) => ReactNode;
+  renderMarkdown: RenderMarkdown;
   onOpenImage: (image: ChatImage) => void;
 }) {
   return (
@@ -267,6 +288,7 @@ function RowView({
         <ChatBubble
           role={row.role}
           content={row.content}
+          citations={row.citations}
           attachments={row.attachments}
           renderMarkdown={renderMarkdown}
           onOpenImage={onOpenImage}
@@ -274,7 +296,8 @@ function RowView({
       ) : row.kind === "streaming" ? (
         <ChatBubble
           role="assistant"
-          content={row.content}
+          content={withoutPartialCitation(row.content)}
+          citations={row.citations}
           renderMarkdown={renderMarkdown}
         />
       ) : row.kind === "tool" ? (
@@ -313,14 +336,16 @@ function ToolChip({ label, active }: { label: string; active: boolean }) {
 function ChatBubble({
   role,
   content,
+  citations,
   attachments = [],
   renderMarkdown,
   onOpenImage,
 }: {
   role: ChatRole;
   content: string;
+  citations?: CitationIndex;
   attachments?: ChatImage[];
-  renderMarkdown: (text: string) => ReactNode;
+  renderMarkdown: RenderMarkdown;
   onOpenImage?: (image: ChatImage) => void;
 }) {
   const isUser = role === "user";
@@ -340,10 +365,122 @@ function ChatBubble({
           )}
         </div>
       ) : (
-        <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mt-2 prose-headings:mb-1">
-          {renderMarkdown(content)}
+        <div className="prose prose-sm max-w-full rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mb-1 prose-headings:mt-2">
+          <CitedMarkdown
+            content={content}
+            citations={citations}
+            renderMarkdown={renderMarkdown}
+          />
         </div>
       )}
     </div>
   );
 }
+
+export function CitedMarkdown({
+  content,
+  citations,
+  renderMarkdown,
+}: {
+  content: string;
+  citations?: CitationIndex;
+  renderMarkdown: RenderMarkdown;
+}) {
+  const index = citations ?? NO_CITATIONS;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <CitationContext.Provider value={index}>
+        {renderMarkdown(content, {
+          remarkPlugins: [remarkCitations(index)],
+          components: CITATION_COMPONENTS,
+        })}
+      </CitationContext.Provider>
+    </TooltipProvider>
+  );
+}
+
+const NO_CITATIONS: CitationIndex = new Map();
+const CitationContext = createContext<CitationIndex>(NO_CITATIONS);
+
+function useOpenSource() {
+  const highlightSource = useCitationHighlightStore(
+    (state) => state.highlightSource,
+  );
+  const setDrawerOpen = useMobileSidebarStore((state) => state.setDrawerOpen);
+  return (source: RetrievedChunk) => {
+    setDrawerOpen(false);
+    if (!highlightSource) {
+      toast.error("The document is still loading", { duration: 3000 });
+      return;
+    }
+    highlightSource(source);
+  };
+}
+
+function sourceLocation(source: RetrievedChunk) {
+  return source.kind === "pdf" ? `Page ${source.pageNumber}` : "Article";
+}
+
+function CitationRef({
+  label,
+  source,
+}: {
+  label: string;
+  source: RetrievedChunk;
+}) {
+  const openSource = useOpenSource();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={() => openSource(source)}
+          aria-label={`Source ${label}, ${sourceLocation(source)}`}
+          className="rounded-sm font-medium text-info tabular-nums underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {label}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        className={cn(
+          "px-2 py-1 text-xs",
+          source.kind === "article" && "max-w-64 leading-snug",
+        )}
+      >
+        {source.kind === "pdf" ? (
+          sourceLocation(source)
+        ) : (
+          <p className="line-clamp-3">{source.pageContent}</p>
+        )}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function CitationGroupTag(
+  props: HTMLAttributes<HTMLElement> & { "data-refs"?: string },
+) {
+  const citations = useContext(CitationContext);
+  const cited = (props["data-refs"] ?? "").split(",").flatMap((ref) => {
+    const source = citations.get(Number(ref));
+    return source ? [{ source, label: ref }] : [];
+  });
+  if (!cited.length) return null;
+  return (
+    <span className="whitespace-nowrap not-italic text-muted-foreground">
+      [
+      {cited.map(({ source, label }, index) => (
+        <Fragment key={label}>
+          {index > 0 && ", "}
+          <CitationRef label={label} source={source} />
+        </Fragment>
+      ))}
+      ]
+    </span>
+  );
+}
+
+const CITATION_COMPONENTS: MarkdownCitations["components"] = {
+  [CITATION_GROUP_TAG]: CitationGroupTag,
+};
