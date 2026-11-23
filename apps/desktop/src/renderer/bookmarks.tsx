@@ -160,7 +160,7 @@ export function BookmarksToolbarContent({
         className={cn(
           "gap-1.5 whitespace-nowrap motion-safe:active:scale-[0.96]",
           droppingPin &&
-            "bg-violet-500/10 text-violet-700 hover:bg-violet-500/15 hover:text-violet-700",
+            "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
         )}
       >
         <MapPinPlus aria-hidden="true" className="h-4 w-4" />

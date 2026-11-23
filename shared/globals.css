@@ -129,8 +129,8 @@
   height: 14px;
   margin: -7px 0 0 -7px;
   border-radius: 9999px;
-  border: 2px solid #fff;
-  background: rgb(139 92 246);
+  border: 2px solid hsl(var(--background));
+  background: hsl(var(--primary));
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
   pointer-events: auto;
 }
@@ -143,19 +143,19 @@
   from {
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.35),
-      0 0 0 0 rgb(139 92 246 / 0.55);
+      0 0 0 0 hsl(var(--primary) / 0.55);
   }
   to {
     box-shadow:
       0 1px 3px rgb(0 0 0 / 0.35),
-      0 0 0 14px rgb(139 92 246 / 0);
+      0 0 0 14px hsl(var(--primary) / 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .uxie-pin-focus {
     animation: none;
-    outline: 2px solid rgb(139 92 246 / 0.6);
+    outline: 2px solid hsl(var(--primary) / 0.6);
     outline-offset: 3px;
   }
 }
@@ -170,8 +170,8 @@
 }
 
 .uxie-source-focus .Highlight__part {
-  background: rgba(139, 92, 246, 0.32) !important;
-  outline: 1px solid rgba(109, 40, 217, 0.24);
+  background: hsl(var(--primary) / 0.32) !important;
+  outline: 1px solid hsl(var(--primary) / 0.24);
 }
 
 @layer utilities {
