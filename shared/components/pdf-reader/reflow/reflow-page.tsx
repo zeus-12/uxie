@@ -1,5 +1,5 @@
 import type { PDFPageProxy, RenderTask } from "pdfjs-dist";
-import { Fragment, memo, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { Fragment, memo, useEffect, useRef, type ReactNode } from "react";
 import { sliceOfRun, type ItemRange } from "../../../lib/reflow/anchors";
 import type { PageInput, Rect, ReflowPage, Run, TextRegion } from "../../../lib/reflow/types";
 
@@ -13,13 +13,6 @@ export type PageMarks = {
 
 const MAX_CANVAS_PIXELS = 4_000_000;
 const MAX_HEADING_SCALE = 1.8;
-
-// pdf.js's text layer only appends a span for a non-empty item, so this is the
-// item's index among the canvas page's text spans.
-const textItemOrdinals = (strings: string[]) => {
-  let next = 0;
-  return strings.map((str) => (str === "" ? -1 : next++));
-};
 
 export const runKey = (pageNumber: number, itemIndex: number) => `${pageNumber}:${itemIndex}`;
 
@@ -130,13 +123,11 @@ const TextBlock = ({
   pageNumber,
   bodyPt,
   strings,
-  ordinals,
   marks,
 }: {
   region: TextRegion;
   pageNumber: number;
   bodyPt: number;
-  ordinals: number[];
   strings: string[];
   marks: PageMarks;
 }) => {
@@ -153,8 +144,6 @@ const TextBlock = ({
           {run.sep}
           <span
             data-run={runKey(pageNumber, run.itemIndex)}
-            data-item-ordinal={ordinals[run.itemIndex]}
-            data-run-start={run.start}
             className={run.sup ? "reflow-sup" : undefined}
           >
             <RunText str={strings[run.itemIndex] ?? ""} run={run} marks={marks} />
@@ -175,7 +164,6 @@ export const ReflowPageView = memo(function ReflowPageView({
   marks: PageMarks;
 }) {
   const { page, input, pdfPage } = loaded;
-  const ordinals = useMemo(() => textItemOrdinals(input.itemStrings), [input.itemStrings]);
   if (page.kind === "keep") {
     return (
       <section className="reflow-page reflow-kept" data-reflow-page={page.pageNumber}>
@@ -200,7 +188,6 @@ export const ReflowPageView = memo(function ReflowPageView({
             pageNumber={page.pageNumber}
             bodyPt={page.bodyFontSize}
             strings={input.itemStrings}
-            ordinals={ordinals}
             marks={marks}
           />
         ),

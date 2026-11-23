@@ -66,7 +66,6 @@ const usePdfReader = ({
 
   const pdfViewerRef = useRef<PDFViewer | null>(null);
   const userScrolledRef = useRef(false);
-  const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const reflowedRef = useRef(reflowed);
   reflowedRef.current = reflowed;
   const isReadingRef = useRef(false);
@@ -82,14 +81,6 @@ const usePdfReader = ({
   const keepWordVisibleRef = useRef<() => void>(() => {});
 
   const sentenceReader = useSentenceReader({ pageCount });
-  const { refreshHighlights } = sentenceReader;
-
-  useEffect(() => {
-    if (readingStatus === READING_STATUS.IDLE) return;
-    refreshHighlights();
-    // Only a reflow switch: the sentence moves between the canvas and reflowed text.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reflowed]);
 
   const ttsParams = {
     onWordBoundary: (
@@ -273,8 +264,9 @@ const usePdfReader = ({
     };
   }, [viewer, debouncedUpdateLastReadPage, lastReadPage]);
 
-  // Gated on page views: applied earlier, pdf.js records the scale without
-  // using it and its own `pagesinit` apply then skips as a no-op.
+  // The library re-applies pdfScaleValue on resize but never on prop change.
+  // Gated on page views existing: applying earlier makes pdf.js record the scale
+  // without using it, so its own `pagesinit` apply then skips as a no-op.
   useEffect(() => {
     const currentViewer = pdfViewerRef.current;
     if (currentViewer && currentViewer.pagesCount > 0) {
@@ -282,28 +274,29 @@ const usePdfReader = ({
     }
   }, [pdfScaleValue, viewer]);
 
-  // The scroll container mounts after this hook does, and the reflow layer
-  // replaces it while a page is reflowed.
+  // Keyed on `viewer`: the scroll container mounts after this hook does.
   useEffect(() => {
     const container = getReaderScrollContainer();
     if (!container) return;
 
+    let timeout: NodeJS.Timeout;
     const handleScroll = () => {
       // Without this the reader reads its own follow-along scroll as the user
       // taking over and stops following.
       if (isProgrammaticScroll()) return;
       userScrolledRef.current = true;
-      clearTimeout(userScrollTimeoutRef.current);
-      userScrollTimeoutRef.current = setTimeout(() => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
         userScrolledRef.current = false;
       }, 2000);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, [viewer, reflowed]);
-
-  useEffect(() => () => clearTimeout(userScrollTimeoutRef.current), []);
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      clearTimeout(timeout);
+    };
+  }, [viewer]);
 
   useEffect(() => {
     const apply = () => {

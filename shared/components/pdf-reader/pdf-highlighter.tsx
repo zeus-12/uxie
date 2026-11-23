@@ -59,6 +59,7 @@ const PdfHighlighter = ({
   showAiFeatures,
   onZoomChange,
   onReflowChange,
+  readingAloud = false,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
@@ -78,13 +79,17 @@ const PdfHighlighter = ({
   showAiFeatures: boolean;
   onZoomChange?: (scale: number) => void;
   onReflowChange?: (reflowed: boolean) => void;
+  readingAloud?: boolean;
 }) => {
   const sendMessage = useChatStore((state) => state.sendMessage);
   const stageImageAttachment = useChatStore(
     (state) => state.stageImageAttachment,
   );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
-  const { enabled: reflowOnZoom } = useReflowOnZoom();
+  const { enabled: reflowSetting } = useReflowOnZoom();
+  const speedReading = usePdfSettingsStore((state) => state.rsvpOpen);
+  // Read-aloud and speed-read follow the page text, so reflow steps aside for them.
+  const reflowOnZoom = reflowSetting && !readingAloud && !speedReading;
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
 
