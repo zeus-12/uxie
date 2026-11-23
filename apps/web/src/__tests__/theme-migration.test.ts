@@ -1,4 +1,5 @@
 import {
+  isRetiredTheme,
   LIGHT_PRESET_THEMES,
   parseTheme,
   PRESET_THEMES,
@@ -30,6 +31,12 @@ describe("theme migration", () => {
       expect(parseTheme(retired)).toBe("dark");
       expect(bootstrap(retired)).toEqual({ theme: "dark", dark: true });
     }
+  });
+
+  it("only treats the three removed presets as retired", () => {
+    expect(isRetiredTheme("everforest")).toBe(true);
+    expect(isRetiredTheme("some-future-preset")).toBe(false);
+    expect(isRetiredTheme("hasOwnProperty")).toBe(false);
   });
 
   it("falls back to system for unknown values", () => {

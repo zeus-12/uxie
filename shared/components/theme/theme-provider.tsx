@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   isLightTheme,
+  isRetiredTheme,
   parseTheme,
   THEME_STORAGE_KEY,
   type ResolvedTheme,
@@ -61,7 +62,7 @@ function readStoredTheme(): Theme {
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     const theme = parseTheme(stored);
-    if (stored !== null && stored !== theme) storeTheme(theme);
+    if (stored !== null && isRetiredTheme(stored)) storeTheme(theme);
     return theme;
   } catch {
     return "system";

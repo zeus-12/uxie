@@ -34,6 +34,10 @@ export function isTheme(value: unknown): value is Theme {
   return (THEMES as readonly unknown[]).includes(value);
 }
 
+export function isRetiredTheme(value: string): boolean {
+  return RETIRED_THEMES.has(value);
+}
+
 export function parseTheme(value: unknown): Theme {
   if (isTheme(value)) return value;
   return (typeof value === "string" && RETIRED_THEMES.get(value)) || "system";
@@ -62,7 +66,9 @@ export const THEME_BOOTSTRAP_SCRIPT = `(() => {
   } catch {}
   const theme = themes.includes(stored)
     ? stored
-    : Object.hasOwn(retired, stored) ? retired[stored] : "system";
+    : Object.prototype.hasOwnProperty.call(retired, stored)
+      ? retired[stored]
+      : "system";
   const dark = theme === "system"
     ? matchMedia("(prefers-color-scheme: dark)").matches
     : !lightThemes.includes(theme);

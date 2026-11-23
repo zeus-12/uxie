@@ -65,8 +65,8 @@ const PRESET_LABELS = {
 } satisfies Record<PresetTheme, string>;
 
 const PRESET_GROUPS = [
-  { label: "Dark", themes: DARK_PRESET_THEMES },
-  { label: "Light", themes: LIGHT_PRESET_THEMES },
+  { label: "Dark presets", themes: DARK_PRESET_THEMES },
+  { label: "Light presets", themes: LIGHT_PRESET_THEMES },
 ] satisfies { label: string; themes: readonly PresetTheme[] }[];
 
 export function ThemeSwatch({
