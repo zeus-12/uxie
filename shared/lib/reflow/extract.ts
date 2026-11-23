@@ -69,6 +69,19 @@ export const fontDataFromObject = (font: unknown): FontData => {
   return { monospace, extent: ascent > descent ? { ascent, descent } : null };
 };
 
+// Fonts resolve into commonObjs asynchronously after the operator list returns;
+// every font a setFont op names is guaranteed to arrive there.
+const fontsReady = (page: PDFPageProxy, list: PDFOperatorList) => {
+  const names = new Set<string>();
+  list.fnArray.forEach((fn, i) => {
+    const name = (list.argsArray[i] as unknown[] | null)?.[0];
+    if (fn === OPS.setFont && typeof name === "string") names.add(name);
+  });
+  return Promise.all(
+    [...names].map((name) => new Promise<void>((resolve) => page.commonObjs.get(name, () => resolve()))),
+  );
+};
+
 const readFontData = (page: PDFPageProxy, fontName: string): FontData => {
   if (!page.commonObjs.has(fontName)) return UNKNOWN_FONT;
   return fontDataFromObject(page.commonObjs.get(fontName));
@@ -235,6 +248,7 @@ export const viewportMatrix = (page: PDFPageProxy) => {
 export const extractPageInput = async (page: PDFPageProxy): Promise<PageInput> => {
   const { viewport, matrix } = viewportMatrix(page);
   const operatorList = await page.getOperatorList();
+  await fontsReady(page, operatorList);
   const [content, annotations, structTree] = await Promise.all([
     page.getTextContent({ includeMarkedContent: true, disableCombineTextItems: false }),
     page.getAnnotations({ intent: "display" }),

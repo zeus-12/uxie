@@ -85,9 +85,7 @@ type NotesEditor = {
   document: unknown[];
 };
 
-// Mirror the web: a highlight also drops a block into the notes editor — a
-// linked quote for text, the screenshot for an area selection. No-op if the
-// notes tab hasn't mounted the editor yet.
+// No-op until the notes tab has mounted the editor.
 function appendNoteBlock(block: unknown) {
   const editor = useBlocknoteEditorStore.getState().editor as NotesEditor | null;
   if (!editor) return;
@@ -211,10 +209,6 @@ function ReaderContent({
   );
   const [error, setError] = useState<string | null>(null);
 
-  // PdfHighlighter owns the pdf.js PDFViewer. Capture it here (stable callback
-  // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
-  // needs the live instance to track the page in view and apply zoom. The ref
-  // mirrors it for callbacks that shouldn't re-subscribe when it arrives.
   const [pdfViewer, setPdfViewer] = useState<PdfViewerInstance | null>(null);
   const [reflowed, setReflowed] = useState(false);
   const handleHighlighterRef = useCallback(
@@ -295,9 +289,8 @@ function ReaderContent({
       { id: hlId, position, content, comment: { text: "", emoji: "" } },
     ]);
 
-    // An area selection is a screenshot: write it into the document's folder
-    // first, so the note holds a url rather than half a megabyte of base64 that
-    // would be re-serialised on every autosave.
+    // Stored as a file so the note holds a url, not base64 that every autosave
+    // would re-serialise.
     let imageUrl: string | null = null;
     if (!isText && content.image) {
       const bytes = dataUrlToBytes(content.image);

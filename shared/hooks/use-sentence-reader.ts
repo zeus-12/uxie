@@ -1,3 +1,4 @@
+import { requestReflowPage } from "../lib/reflow/reveal";
 import {
   buildWordMap,
   extractWordsWithPositions,
@@ -530,6 +531,18 @@ export function isProgrammaticScroll(): boolean {
   return now < programmaticScrollUntil;
 }
 
+// The reading page is outside the reflowed window: its overlays sit on the hidden
+// canvas, so ask the reflow layer to show that page before following along.
+function revealReflowedPage(pageElement: Element | undefined): boolean {
+  const layer = document.querySelector(".reflow-layer[data-active]");
+  const pageNumber = pageElement?.getAttribute("data-page-number");
+  if (!layer || !pageNumber || layer.querySelector(`[data-reflow-page="${pageNumber}"]`)) {
+    return false;
+  }
+  requestReflowPage(Number(pageNumber));
+  return true;
+}
+
 function scrollIntoCentre(el: Element) {
   beginProgrammaticScroll();
   el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -562,14 +575,16 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
   // pdf.js re-renders the text layer by replacing the spans, so a model holding
   // the old ones yields stale rects. Different count or identity => re-rendered.
-  const ensureFreshModel = useCallback(() => {
+  const ensureFreshModel = useCallback((): boolean => {
     const model = modelRef.current;
     const page = readerPageElement(currentPageRef.current);
     if (!model || !page) {
       loadPageSentences(currentPageRef.current);
-      return;
+      return false;
     }
     if (model.pageElement !== page) {
+      // A re-rendering text layer has no spans yet; textlayerrendered retries.
+      if (textBlocks(page).length === 0) return false;
       const start = model.sentenceStarts[currentSentenceIndexRef.current];
       const point =
         start === undefined || start < 0 ? null : itemPointAt(model, start);
@@ -578,9 +593,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       wordMapRef.current = null;
       repaintWordRef.current = null;
       removeHighlightsByType("word");
+      removeHighlightsByType("sentence");
       const index = point ? sentenceIndexAt(fresh, point) : null;
-      if (index !== null) currentSentenceIndexRef.current = index;
-      return;
+      currentSentenceIndexRef.current =
+        index ?? (point ? Math.max(0, fresh.sentences.length - 1) : 0);
+      return true;
     }
     const liveSpans = textBlocks(page);
     if (
@@ -589,6 +606,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     ) {
       loadPageSentences(currentPageRef.current);
     }
+    return false;
   }, [loadPageSentences]);
 
   const highlightCurrentSentence = useCallback(
@@ -627,7 +645,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       mode: HighlightMode = "rsvp",
       removePreviousHighlights = true,
     ) => {
-      ensureFreshModel();
+      // Offsets are into the sentence as the old surface split it.
+      if (ensureFreshModel()) {
+        highlightCurrentSentence(lastHighlightModeRef.current);
+        return;
+      }
       const model = modelRef.current;
       const idx = currentSentenceIndexRef.current;
       const sentence = model?.sentences[idx];
@@ -677,7 +699,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
           removePreviousHighlights,
         );
     },
-    [ensureFreshModel],
+    [ensureFreshModel, highlightCurrentSentence],
   );
 
   const highlightWordByIndex = useCallback(
@@ -866,6 +888,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     const highlight =
       document.querySelector(`.${OVERLAY_CLASS.sentence.tts}`) ??
       document.querySelector(`.${OVERLAY_CLASS.sentence.rsvp}`);
+    if (revealReflowedPage(modelRef.current?.pageElement)) return;
     if (highlight) scrollIntoCentre(highlight);
   }, []);
 
@@ -877,6 +900,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       document.querySelector(`.${OVERLAY_CLASS.word.rsvp}`);
     const container = getReaderScrollContainer();
     if (!word || !container) return;
+    if (revealReflowedPage(modelRef.current?.pageElement)) return;
 
     const view = container.getBoundingClientRect();
     const rect = word.getBoundingClientRect();

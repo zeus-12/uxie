@@ -258,6 +258,7 @@ const PdfHighlighter = ({
   const { bindPinch, active: reflowed } = reflow;
   useEffect(() => {
     onReflowChange?.(reflowed);
+    return () => onReflowChange?.(false);
   }, [onReflowChange, reflowed]);
   const [pinchSurface, setPinchSurface] = useState<HTMLDivElement | null>(null);
   useEffect(() => bindPinch(pinchSurface), [bindPinch, pinchSurface]);

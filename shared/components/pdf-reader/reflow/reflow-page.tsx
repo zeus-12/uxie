@@ -55,7 +55,7 @@ const CropCanvas = ({
     return () => task?.cancel();
   }, [pdfPage, x, y, width, height, pxPerPt]);
   return (
-    <div className="reflow-crop" data-crop={index} data-crop-y={rect.y}>
+    <div className="reflow-crop" data-crop={index} data-crop-x={rect.x} data-crop-y={rect.y}>
       <canvas
         ref={canvasRef}
         style={{

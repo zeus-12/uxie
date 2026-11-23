@@ -5,7 +5,6 @@ import { createReflowSource } from "../../../lib/reflow/source";
 import type { Rect } from "../../../lib/reflow/types";
 import {
   canvasAnchorAt,
-  canvasPointAt,
   fitWidthScale,
   scrollCanvasTo,
   type ScreenAnchor,
@@ -25,6 +24,7 @@ type Pinch = {
   mode: "page" | "reflow";
   anchor: ScreenAnchor;
   origin: { x: number; y: number };
+  fingerX: number;
   ratio: number;
 };
 
@@ -82,13 +82,6 @@ export const useInPlaceReflow = ({
     el.style.transformOrigin = "";
   }, [viewer]);
 
-  const canvasTopAnchor = useCallback((): ScreenAnchor | null => {
-    if (!viewer) return null;
-    const r = viewer.container.getBoundingClientRect();
-    const point = canvasPointAt(viewer, r.left + 1, r.top + 1);
-    return point ? { point, clientX: r.left + 1, clientY: r.top + 1 } : null;
-  }, [viewer]);
-
   const exitTo = useCallback(
     (anchor: ScreenAnchor | null) => {
       if (viewer && anchor) scrollCanvasTo(viewer, anchor);
@@ -120,10 +113,9 @@ export const useInPlaceReflow = ({
       pendingAnchor.current = null;
       if (!fit) return;
       if (modeRef.current === "page") {
-        if (scale > fit * ENTER_RATIO) {
-          const entry = anchor ?? canvasTopAnchor();
-          if (!entry) return;
-          if (anchor) scrollCanvasTo(viewer, anchor);
+        if (anchor && scale > fit * ENTER_RATIO) {
+          const entry = anchor;
+          scrollCanvasTo(viewer, anchor);
           const request = entryRequest.current;
           source
             .page(entry.point.pageNumber)
@@ -150,7 +142,7 @@ export const useInPlaceReflow = ({
     };
     instance.eventBus.on("scalechanging", onScale);
     return () => instance.eventBus.off("scalechanging", onScale);
-  }, [viewer, instance, enabled, source, canvasTopAnchor, exitTo, releaseTransform]);
+  }, [viewer, instance, enabled, source, exitTo, releaseTransform]);
 
   useEffect(() => {
     const container = instance?.containerNode;
@@ -204,6 +196,7 @@ export const useInPlaceReflow = ({
           mode,
           anchor,
           origin,
+          fingerX: mid.x,
           ratio: 1,
         };
       };
@@ -229,23 +222,31 @@ export const useInPlaceReflow = ({
         const scale = pinch.startScale * pinch.ratio;
         pendingAnchor.current =
           pinch.mode === "reflow"
-            ? (layerRef.current?.anchorAt(pinch.anchor.clientX, pinch.anchor.clientY) ?? pinch.anchor)
+            ? (layerRef.current?.anchorAt(pinch.fingerX, pinch.anchor.clientY) ?? pinch.anchor)
             : pinch.anchor;
         commitScale(scale);
+      };
+
+      const cancel = () => {
+        const pinch = pinchRef.current;
+        if (!pinch) return;
+        pinchRef.current = null;
+        releaseTransform();
+        if (pinch.mode === "reflow") layerRef.current?.previewScale(pinch.startScale, pinch.anchor);
       };
 
       wrapper.addEventListener("touchstart", start, { passive: false });
       wrapper.addEventListener("touchmove", move, { passive: false });
       wrapper.addEventListener("touchend", end);
-      wrapper.addEventListener("touchcancel", end);
+      wrapper.addEventListener("touchcancel", cancel);
       return () => {
         wrapper.removeEventListener("touchstart", start);
         wrapper.removeEventListener("touchmove", move);
         wrapper.removeEventListener("touchend", end);
-        wrapper.removeEventListener("touchcancel", end);
+        wrapper.removeEventListener("touchcancel", cancel);
       };
     },
-    [viewer, enabled, commitScale],
+    [viewer, enabled, commitScale, releaseTransform],
   );
 
   const onPlaced = useCallback(() => setPlaced(true), []);

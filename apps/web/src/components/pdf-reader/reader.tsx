@@ -38,9 +38,6 @@ const PdfReader = ({
 }) => {
   const { url: docUrl, pageCount, id: docId, lastReadPage, zoomLevel } = doc;
 
-  // PdfHighlighter owns the pdf.js PDFViewer. Capture it here (stable callback
-  // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
-  // needs the live instance to track the page in view and apply zoom.
   const [pdfViewer, setPdfViewer] = useState<PDFViewer | null>(null);
   const [reflowed, setReflowed] = useState(false);
   const handleHighlighterRef = useCallback(

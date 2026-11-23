@@ -11,6 +11,7 @@ import {
   forwardRef,
 } from "react";
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
+import { REFLOW_REVEAL_EVENT } from "../../../lib/reflow/reveal";
 import { usePdfSettingsStore } from "../../../lib/store";
 import type { ReflowSource } from "../../../lib/reflow/source";
 import type { Rect, Run } from "../../../lib/reflow/types";
@@ -76,6 +77,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const windowRequest = useRef(0);
   const syncingPage = useRef(false);
   const handledFind = useRef<string | null>(null);
+  const revealing = useRef<number | null>(null);
   const pxPerPt = scale * CSS_PX_PER_PT;
 
   const load = useCallback(
@@ -406,6 +408,22 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     return () => eventBus.off("pagechanging", onPageChanging);
   }, [eventBus, visible, findController, openAtPageTop]);
 
+  useEffect(() => {
+    revealing.current = null;
+  }, [pages]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const onReveal = (e: Event) => {
+      const pageNumber = (e as CustomEvent<{ pageNumber: number }>).detail.pageNumber;
+      if (revealing.current === pageNumber || pagesRef.current.some((p) => p.page.pageNumber === pageNumber)) return;
+      revealing.current = pageNumber;
+      openAtPageTop(pageNumber);
+    };
+    document.addEventListener(REFLOW_REVEAL_EVENT, onReveal);
+    return () => document.removeEventListener(REFLOW_REVEAL_EVENT, onReveal);
+  }, [visible, openAtPageTop]);
+
   const anchorAt = useCallback(
     (clientX: number, clientY: number): ScreenAnchor | null => {
       const root = scroller();
@@ -428,9 +446,12 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       const pageNumber = Number(section?.dataset.reflowPage);
       if (crop && section && root.contains(crop)) {
         const r = crop.getBoundingClientRect();
-        const cropY = Number(crop.dataset.cropY);
-        const point: PdfPoint = { pageNumber, x: 0, y: cropY + (clientY - r.top) / pxPerPt };
-        return { point, clientX, clientY };
+        const point: PdfPoint = {
+          pageNumber,
+          x: Number(crop.dataset.cropX),
+          y: Number(crop.dataset.cropY) + (clientY - r.top) / pxPerPt,
+        };
+        return { point, clientX: r.left, clientY };
       }
       if (!span) return null;
       const entry = runIndex.get(span.dataset.run ?? "");
@@ -439,13 +460,14 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       const inSpan = caret ? offsetWithin(span, caret) : null;
       const offset = entry.run.start + (inSpan ?? 0);
       const glyph = charRect(span, inSpan ?? 0) ?? span.getBoundingClientRect();
+      const block = span.closest("[data-reflow-block]") ?? span;
       return {
         point: {
           pageNumber: entry.pageNumber,
           x: entry.run.rect.x,
           y: entry.run.rect.y + entry.run.rect.height / 2,
         },
-        clientX,
+        clientX: block.getBoundingClientRect().left,
         clientY: glyph.top + glyph.height / 2,
         char: { itemIndex: entry.run.itemIndex, offset },
       };
