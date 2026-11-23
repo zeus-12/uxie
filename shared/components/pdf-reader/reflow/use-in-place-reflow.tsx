@@ -288,6 +288,27 @@ export const useInPlaceReflow = ({
     [viewer, enabled, commitScale, releaseTransform],
   );
 
+  // The reader owns pinch while reflow is on: a pinch that starts outside the PDF
+  // (or WebKit's own gesture events) would otherwise zoom the whole page natively.
+  useEffect(() => {
+    if (!enabled) return;
+    const root = document.documentElement;
+    const blockMultiTouch = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    const blockGesture = (e: Event) => e.preventDefault();
+    root.setAttribute("data-reflow-on-zoom", "");
+    document.addEventListener("touchmove", blockMultiTouch, { passive: false });
+    document.addEventListener("gesturestart", blockGesture);
+    document.addEventListener("gesturechange", blockGesture);
+    return () => {
+      root.removeAttribute("data-reflow-on-zoom");
+      document.removeEventListener("touchmove", blockMultiTouch);
+      document.removeEventListener("gesturestart", blockGesture);
+      document.removeEventListener("gesturechange", blockGesture);
+    };
+  }, [enabled]);
+
   const onPlaced = useCallback(() => setPlaced(true), []);
   const onResized = useCallback(() => {
     if (!viewer || modeRef.current !== "reflow") return;
