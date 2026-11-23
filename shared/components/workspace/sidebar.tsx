@@ -89,9 +89,7 @@ export function SidebarHeader({
   );
 }
 
-// The gear on the right of the header. Desktop wires it straight to onClick,
-// web and the demo wrap it in a dropdown — so it stays a plain forwardRef
-// button that Radix can use as `asChild`.
+// A plain forwardRef button so Radix's DropdownMenuTrigger can use it via `asChild`.
 export const SidebarSettingsButton = forwardRef<
   HTMLButtonElement,
   ComponentPropsWithoutRef<"button">

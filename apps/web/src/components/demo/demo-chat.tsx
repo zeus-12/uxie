@@ -5,6 +5,7 @@ import { createId } from "@paralleldrive/cuid2";
 import {
   ChatPanel,
   type ChatRow,
+  type RenderMarkdown,
 } from "@uxie/shared/components/chat/chat-panel";
 import { EmptyStatePrompt } from "@uxie/shared/components/other/empty-state-prompt";
 import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
@@ -17,7 +18,14 @@ import { SparklesIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
-const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
+const renderMarkdown: RenderMarkdown = (text, citations) => (
+  <ReactMarkdown
+    remarkPlugins={citations?.remarkPlugins}
+    components={citations?.components}
+  >
+    {text}
+  </ReactMarkdown>
+);
 
 interface DemoMessage {
   id: string;

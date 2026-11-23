@@ -1,27 +1,24 @@
 import DemoBanner from "@/components/demo/demo-banner";
 import DemoDocViewer from "@/components/demo/demo-doc-viewer";
 import DemoSidebar from "@/components/demo/demo-sidebar";
+import { SidebarDrawerContent } from "@/components/workspace/sidebar-drawer";
+import { type LoadedPdfForExport } from "@/lib/annotated-pdf-export";
+import { useDemoDocStore } from "@/lib/demo/store";
+import { usePdfSettingsStore } from "@/lib/store";
+import { cn, stripTextFromEnd } from "@/lib/utils";
+import { type ReaderDoc } from "@/types/reader";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@uxie/shared/components/ui/resizable";
-import { SidebarDrawerContent } from "@/components/workspace/sidebar-drawer";
-import { useDemoDocStore } from "@/lib/demo/store";
-import { type ReaderDoc } from "@/types/reader";
-import { usePdfSettingsStore } from "@/lib/store";
-import { cn, stripTextFromEnd } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { type ImperativePanelHandle } from "react-resizable-panels";
 import { useMediaQuery } from "usehooks-ts";
 import { useShallow } from "zustand/react/shallow";
 
 const DemoWorkspace = () => {
-  // One shallow-compared subscription to the document fields, so the component
-  // only re-renders when a field it uses actually changes.
-  // One shallow-compared subscription to just the fields the reader renders.
-  // `note` is deliberately excluded — it's owned by the sidebar, so leaving it
-  // out keeps notes autosaves from re-rendering the (heavy) PDF reader.
+  // `note` is left out so notes autosaves don't re-render the PDF reader.
   const docFields = useDemoDocStore(
     useShallow((s) => ({
       id: s.id,
@@ -45,6 +42,9 @@ const DemoWorkspace = () => {
   const sidebarHidden = usePdfSettingsStore((state) => state.sidebarHidden);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [pdfDocument, setPdfDocument] = useState<LoadedPdfForExport | null>(
+    null,
+  );
 
   useEffect(() => {
     document.title = stripTextFromEnd(docFields.title, ".pdf");
@@ -60,7 +60,9 @@ const DemoWorkspace = () => {
     }
   }, [sidebarHidden]);
 
-  const sidebar = <DemoSidebar />;
+  const sidebar = (
+    <DemoSidebar pdfDocument={pdfDocument} readerDocument={doc} />
+  );
 
   return (
     <div className="flex h-screen flex-col">
@@ -73,7 +75,7 @@ const DemoWorkspace = () => {
         >
           <ResizablePanel defaultSize={50} minSize={30}>
             <div className="h-full min-w-[25vw] border-border bg-background sm:rounded-lg sm:border-r sm:shadow-lg">
-              <DemoDocViewer doc={doc} />
+              <DemoDocViewer doc={doc} onPdfDocumentChange={setPdfDocument} />
             </div>
           </ResizablePanel>
           <div

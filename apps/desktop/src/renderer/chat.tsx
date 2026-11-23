@@ -10,17 +10,27 @@ import {
 import {
   ChatPanel,
   type ChatRow,
+  type RenderMarkdown,
 } from "@uxie/shared/components/chat/chat-panel";
 import { useChatImageAttachments } from "@uxie/shared/hooks/use-chat-image-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import {
-  chatMessageToRows,
+  chatCitationIndex,
+  chatMessagesToRows,
   type ChatMessage,
+  type ChatPart,
   type CreateUserMessageResult,
 } from "../chat-messages";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const renderMarkdown = (text: string) => <ReactMarkdown>{text}</ReactMarkdown>;
+const renderMarkdown: RenderMarkdown = (text, citations) => (
+  <ReactMarkdown
+    remarkPlugins={citations?.remarkPlugins}
+    components={citations?.components}
+  >
+    {text}
+  </ReactMarkdown>
+);
 
 export function Chat({
   docId,
@@ -93,6 +103,9 @@ function ChatView({ docId }: { docId: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [streamingToolResults, setStreamingToolResults] = useState<ChatPart[]>(
+    [],
+  );
   const [streaming, setStreaming] = useState(false);
   const [retrieving, setRetrieving] = useState(false);
   const [searchedOnce, setSearchedOnce] = useState(false);
@@ -137,6 +150,7 @@ function ChatView({ docId }: { docId: string }) {
       setStreaming(false);
       setRetrieving(false);
       setStreamingText("");
+      setStreamingToolResults([]);
     }
 
     const offDelta = window.uxieAPI.onChatDelta((sid, delta) => {
@@ -149,6 +163,10 @@ function ChatView({ docId }: { docId: string }) {
       if (sid !== streamIdRef.current) return;
       setRetrieving(true);
       setSearchedOnce(true);
+    });
+    const offToolResult = window.uxieAPI.onChatToolResult((sid, part) => {
+      if (sid !== streamIdRef.current) return;
+      setStreamingToolResults((parts) => [...parts, part]);
     });
     const offDone = window.uxieAPI.onChatDone((sid, parts) => {
       if (sid !== streamIdRef.current) return;
@@ -177,6 +195,7 @@ function ChatView({ docId }: { docId: string }) {
     return () => {
       offDelta();
       offRetrieving();
+      offToolResult();
       offDone();
       offError();
       offRetrieve();
@@ -194,7 +213,7 @@ function ChatView({ docId }: { docId: string }) {
     if (tab === "chat") inputRef.current?.focus();
   }, [tab]);
 
-  const rows: ChatRow[] = messages.flatMap(chatMessageToRows);
+  const rows: ChatRow[] = chatMessagesToRows(messages);
   if (streaming) {
     if (searchedOnce) {
       rows.push({
@@ -203,8 +222,16 @@ function ChatView({ docId }: { docId: string }) {
         active: retrieving,
       });
     }
-    if (streamingText) rows.push({ kind: "streaming", content: streamingText });
-    else if (!retrieving) rows.push({ kind: "thinking", label: "Thinking…" });
+    if (streamingText) {
+      rows.push({
+        kind: "streaming",
+        content: streamingText,
+        citations: chatCitationIndex([
+          ...messages.map((m) => m.parts),
+          streamingToolResults,
+        ]),
+      });
+    } else if (!retrieving) rows.push({ kind: "thinking", label: "Thinking…" });
   }
   if (error) rows.push({ kind: "error", content: error });
 
@@ -249,6 +276,7 @@ function ChatView({ docId }: { docId: string }) {
     setRetrieving(false);
     setSearchedOnce(false);
     setStreamingText("");
+    setStreamingToolResults([]);
     accRef.current = "";
 
     const streamId = createId();

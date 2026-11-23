@@ -1,5 +1,6 @@
 /* Must stay above the @tailwind directives — @import precedes all other rules. */
 @import "@uxie/shared/styles/tts-highlight.css";
+@import "@uxie/shared/styles/citation-highlight.css";
 @import "@uxie/shared/styles/themes.css";
 @import "@uxie/shared/styles/pdf-search.css";
 @import "@uxie/shared/styles/reader-page.css";
@@ -99,6 +100,10 @@
    text spans beneath; multiply lets both colours show. */
 .PdfHighlighter__highlight-layer {
   mix-blend-mode: multiply;
+}
+
+::highlight(uxie-article-citation) {
+  background-color: hsl(var(--palette-yellow) / 0.4);
 }
 
 ::highlight(uxie-article-tts-sentence) {

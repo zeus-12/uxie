@@ -1,5 +1,6 @@
 import { PDF_BACKGROUND_COLOURS } from "./constants";
 import { type BlockNoteEditorType } from "../types/editor";
+import { type RetrievedChunk } from "./chat";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { getEngineFromVoice, type TTSEngineType, type TTSVoiceId } from "./tts";
@@ -8,11 +9,14 @@ import { BROWSER_VOICES } from "./tts/providers/browser-provider";
 type EditorStore = {
   editor: BlockNoteEditorType | null;
   setEditor: (editor: BlockNoteEditorType) => void;
+  releaseEditor: (editor: BlockNoteEditorType) => void;
 };
 
 export const useBlocknoteEditorStore = create<EditorStore>((set) => ({
   editor: null,
   setEditor: (editor) => set({ editor }),
+  releaseEditor: (editor) =>
+    set((state) => (state.editor === editor ? { editor: null } : state)),
 }));
 
 interface ChatMessageStore {
@@ -168,9 +172,11 @@ export const useHighlightJumpStore = create<HighlightJumpStore>((set) => ({
   setJumpToHighlight: (jumpToHighlight) => set({ jumpToHighlight }),
 }));
 
+type ShowSource = (source: RetrievedChunk) => void;
+
 interface CitationHighlightStore {
-  highlightSource: ((pageNumber: number, text: string) => void) | null;
-  setHighlightSource: (fn: (pageNumber: number, text: string) => void) => void;
+  highlightSource: ShowSource | null;
+  setHighlightSource: (fn: ShowSource | null) => void;
 }
 
 export const useCitationHighlightStore = create<CitationHighlightStore>(

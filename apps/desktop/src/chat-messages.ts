@@ -7,9 +7,13 @@ import type {
 import {
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
+  getInformationOutputSchema,
+  withCitablePassages,
+  type CitationIndex,
   type GetInformationInput,
-  type RetrievedChunk,
+  type GetInformationOutput,
 } from "@uxie/shared/lib/chat";
+import { chatPartsToRows, type ChatRow } from "@uxie/shared/lib/chat-rows";
 import {
   earlierImagePlaceholder,
   isChatImageMediaType,
@@ -17,8 +21,7 @@ import {
   type ChatImage,
   type ChatImageMediaType,
 } from "@uxie/shared/lib/chat-attachments";
-
-type GetInformationOutput = { results: RetrievedChunk[] };
+import { z } from "zod";
 
 export type ChatPart =
   | { type: "text"; text: string }
@@ -45,15 +48,6 @@ export interface ChatMessage {
   role: "user" | "assistant";
   parts: ChatPart[];
 }
-
-export type ChatDisplayRow =
-  | {
-      kind: "message";
-      role: "user" | "assistant";
-      content: string;
-      attachments?: ChatImage[];
-    }
-  | { kind: "tool"; label: string; active: false };
 
 export function textPart(text: string): ChatPart {
   return { type: "text", text };
@@ -100,37 +94,35 @@ export function chatMessageText(message: ChatMessage): string {
     .join("");
 }
 
-export function chatMessageToRows(message: ChatMessage): ChatDisplayRow[] {
-  if (message.role === "user") {
-    return userMessageRows(
-      chatMessageText(message),
-      fileParts(message).map(
-        (part, index): ChatImage => ({
-          id: `${index}-${part.url}`,
-          filename: part.filename,
-          url: part.url,
-        }),
-      ),
-    );
-  }
+export function chatCitationIndex(parts: ChatPart[][]): CitationIndex {
+  return parts.reduce<CitationIndex>(withCitablePassages, new Map());
+}
 
-  const rows: ChatDisplayRow[] = [];
-  for (const part of message.parts) {
-    if (part.type === "tool-call") {
-      rows.push({
-        kind: "tool",
-        label: "Searched the document",
-        active: false,
-      });
-    } else if (part.type === "text" && part.text.trim()) {
-      rows.push({
-        kind: "message",
-        role: message.role,
-        content: part.text,
-      });
-    }
+export function chatMessagesToRows(messages: ChatMessage[]): ChatRow[] {
+  let citations: CitationIndex = new Map();
+  return messages.flatMap((message) => {
+    citations = withCitablePassages(citations, message.parts);
+    return chatMessageToRows(message, citations);
+  });
+}
+
+function chatMessageToRows(
+  message: ChatMessage,
+  citations: CitationIndex,
+): ChatRow[] {
+  if (message.role !== "user") {
+    return chatPartsToRows(message.role, message.parts, citations);
   }
-  return rows;
+  return userMessageRows(
+    chatMessageText(message),
+    fileParts(message).map(
+      (part, index): ChatImage => ({
+        id: `${index}-${part.url}`,
+        filename: part.filename,
+        url: part.url,
+      }),
+    ),
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -145,23 +137,26 @@ function isGetInformationInput(value: unknown): value is GetInformationInput {
   );
 }
 
-function isRetrievedChunk(value: unknown): value is RetrievedChunk {
-  if (!isRecord(value) || typeof value.pageContent !== "string") return false;
-  if (value.metadata === undefined) return true;
-  return (
-    isRecord(value.metadata) &&
-    Object.values(value.metadata).every(
-      (item) => typeof item === "string" || typeof item === "number",
-    )
-  );
+function isGetInformationOutput(value: unknown): value is GetInformationOutput {
+  return getInformationOutputSchema.safeParse(value).success;
 }
 
-function isGetInformationOutput(value: unknown): value is GetInformationOutput {
-  return (
-    isRecord(value) &&
-    Array.isArray(value.results) &&
-    value.results.every(isRetrievedChunk)
-  );
+const legacyGetInformationOutputSchema = z
+  .object({ results: z.array(z.object({ pageContent: z.string() }).strict()) })
+  .strict();
+
+// Results stored before passages carried their page keep feeding the model but can't be cited.
+function storedGetInformationOutput(
+  value: unknown,
+): GetInformationOutput | null {
+  const current = getInformationOutputSchema.safeParse(value);
+  if (current.success) return current.data;
+  const legacy = legacyGetInformationOutputSchema.safeParse(value);
+  if (!legacy.success) return null;
+  return {
+    results: [],
+    unlocated: legacy.data.results.map((result) => result.pageContent),
+  };
 }
 
 export function normalizeChatParts(parts: unknown): ChatPart[] {
@@ -202,18 +197,19 @@ export function normalizeChatParts(parts: unknown): ChatPart[] {
         },
       ];
     }
+    const output =
+      part.type === "tool-result" ? storedGetInformationOutput(part.output) : null;
     if (
-      part.type === "tool-result" &&
+      output &&
       typeof part.toolCallId === "string" &&
-      part.toolName === GET_INFORMATION_TOOL_NAME &&
-      isGetInformationOutput(part.output)
+      part.toolName === GET_INFORMATION_TOOL_NAME
     ) {
       return [
         {
           type: "tool-result",
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          output: part.output,
+          output,
         },
       ];
     }

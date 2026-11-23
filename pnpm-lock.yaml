@@ -42,9 +42,6 @@ importers:
       pdf-lib:
         specifier: ^1.17.1
         version: 1.17.1
-      pdf-parse:
-        specifier: ^1.1.1
-        version: 1.1.1
       pdfjs-dist:
         specifier: 2.16.105
         version: 2.16.105
@@ -82,9 +79,6 @@ importers:
       '@types/node':
         specifier: ^22
         version: 22.20.1
-      '@types/pdf-parse':
-        specifier: ^1.1.4
-        version: 1.1.4
       '@types/react':
         specifier: ^18.3.12
         version: 18.3.31
@@ -554,6 +548,9 @@ importers:
       lucide-react:
         specifier: ^0.563.0
         version: 0.563.0(react@18.3.1)
+      pdf-lib:
+        specifier: ^1.17.1
+        version: 1.17.1
       pdfjs-dist:
         specifier: 2.16.105
         version: 2.16.105

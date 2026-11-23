@@ -8,15 +8,18 @@ import type { PdfDocumentData } from "@/types/reader";
 import { createId } from "@paralleldrive/cuid2";
 import { HighlightTypeEnum } from "@prisma/client";
 import { useRouter } from "next/router";
+import { type PDFDocumentProxy } from "pdfjs-dist";
 
 import { toast } from "sonner";
 
 const DocViewer = ({
   canEdit,
   doc,
+  onPdfDocumentChange,
 }: {
   canEdit: boolean;
   doc: PdfDocumentData;
+  onPdfDocumentChange?: (pdfDocument: PDFDocumentProxy | null) => void;
 }) => {
   const { query, isReady } = useRouter();
 
@@ -164,6 +167,7 @@ const DocViewer = ({
           deleteHighlight={deleteHighlight}
           doc={doc}
           addHighlight={addHighlight}
+          onPdfDocumentChange={onPdfDocumentChange}
         />
       </div>
     </div>

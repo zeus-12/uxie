@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import {
+  isLightTheme,
+  isRetiredTheme,
   parseTheme,
   THEME_STORAGE_KEY,
   type ResolvedTheme,
@@ -34,7 +36,7 @@ function resolveTheme(theme: Theme): ResolvedTheme {
   if (theme === "system") {
     return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
   }
-  return theme === "light" ? "light" : "dark";
+  return isLightTheme(theme) ? "light" : "dark";
 }
 
 function applyTheme(theme: Theme): ResolvedTheme {
@@ -58,7 +60,10 @@ function withoutTransitions(change: () => void) {
 
 function readStoredTheme(): Theme {
   try {
-    return parseTheme(localStorage.getItem(THEME_STORAGE_KEY));
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    const theme = parseTheme(stored);
+    if (stored !== null && isRetiredTheme(stored)) storeTheme(theme);
+    return theme;
   } catch {
     return "system";
   }
