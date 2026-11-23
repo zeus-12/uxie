@@ -54,6 +54,22 @@ export default withUt({
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--status-success-solid) / <alpha-value>)",
+          subtle: "hsl(var(--status-success-subtle) / <alpha-value>)",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--status-warning-solid) / <alpha-value>)",
+          subtle: "hsl(var(--status-warning-subtle) / <alpha-value>)",
+        },
+        info: {
+          DEFAULT: "hsl(var(--status-info-solid) / <alpha-value>)",
+          subtle: "hsl(var(--status-info-subtle) / <alpha-value>)",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--status-error-solid) / <alpha-value>)",
+          subtle: "hsl(var(--status-error-subtle) / <alpha-value>)",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",

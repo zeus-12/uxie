@@ -252,7 +252,7 @@ const VoiceSelector = ({
             className={cn(
               "transition-colors w-12",
               selectedVoice === voice.id
-                ? "text-gray-800"
+                ? "text-foreground"
                 : "text-muted-foreground",
             )}
           >
@@ -265,7 +265,7 @@ const VoiceSelector = ({
                   className={cn(
                     "flex w-4 items-center justify-center",
                     selectedVoice === voice.id
-                      ? "text-gray-800"
+                      ? "text-foreground"
                       : "text-muted-foreground",
                   )}
                 >

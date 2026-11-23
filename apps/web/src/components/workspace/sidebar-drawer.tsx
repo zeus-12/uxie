@@ -67,7 +67,7 @@ export const SidebarDrawerContent = ({ children }: { children: ReactNode }) => {
           transform: isOpen ? `translateY(${dragY}px)` : "translateY(100%)",
         }}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 h-5/6 bg-gray-50 rounded-t-xl shadow-2xl",
+          "fixed inset-x-0 bottom-0 z-50 h-5/6 rounded-t-xl bg-muted/40 shadow-2xl",
           !isDragging && "transition-transform duration-300 ease-out",
         )}
       >
@@ -77,7 +77,7 @@ export const SidebarDrawerContent = ({ children }: { children: ReactNode }) => {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div className="h-1.5 w-12 rounded-full bg-gray-300" />
+          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
         </div>
 
         {/* Content */}

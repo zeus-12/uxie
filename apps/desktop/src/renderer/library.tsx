@@ -96,7 +96,7 @@ export function Library({
               <button
                 onClick={onSettings}
                 aria-label="Settings"
-                className="rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground active:scale-90"
+                className="rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-90"
               >
                 <SettingsIcon
                   size={18}
@@ -107,7 +107,7 @@ export function Library({
           </div>
 
           {error && (
-            <div className="mt-4 flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            <div className="mt-4 flex items-center justify-between rounded-md border border-danger/30 bg-danger-subtle px-4 py-2 text-sm text-danger">
               <span>{error}</span>
               <button onClick={refresh} className="font-medium underline">
                 Retry
@@ -130,7 +130,7 @@ export function Library({
                     <div className="relative mb-4">
                       <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        className="border-gray-200 pl-9"
+                        className="border-border pl-9"
                         type="search"
                         placeholder="Search for a document"
                         value={search}
@@ -191,7 +191,7 @@ function LibrarySkeleton() {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col overflow-hidden rounded-md border border-gray-200"
+            className="flex flex-col overflow-hidden rounded-md border border-border"
           >
             <Skeleton className="aspect-[3/4] w-full" />
             <div className="flex flex-col gap-1 p-2.5">

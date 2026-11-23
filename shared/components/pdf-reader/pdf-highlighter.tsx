@@ -4,6 +4,7 @@ import {
   type ReadSelectedText,
   type SelectionInfo,
 } from "./highlight-popover";
+import { PdfPageTone } from "./page-tone";
 import { PdfSearch } from "./pdf-search";
 import { getHighlightPageNumber } from "../../lib/highlights";
 import {
@@ -253,8 +254,8 @@ const PdfHighlighter = ({
   const documentKey = pdfDocument.loadingTask.docId;
 
   return (
+    <PdfPageTone key={documentKey}>
     <div
-      key={documentKey}
       ref={setPinchSurface}
       className="absolute inset-0"
       data-reflow-on-zoom={reflowOnZoom || undefined}
@@ -348,6 +349,7 @@ const PdfHighlighter = ({
         viewerContainer={highlighterInstance?.containerNode ?? null}
       />
     </div>
+    </PdfPageTone>
   );
 };
 

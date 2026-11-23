@@ -307,38 +307,6 @@ const usePdfReader = ({
 
   useEffect(() => {
     const apply = () => {
-      const target = document.querySelector(".pdfViewer.removePageBorders");
-      if (!target) return false;
-      applyBackgroundColour(pageColour);
-      return true;
-    };
-
-    if (apply()) {
-      const observer = new MutationObserver(() =>
-        applyBackgroundColour(pageColour),
-      );
-      const target = document.querySelector(".pdfViewer.removePageBorders");
-      if (target) observer.observe(target, { childList: true, subtree: true });
-      return () => observer.disconnect();
-    }
-
-    const intervalId = setInterval(() => {
-      if (apply()) {
-        clearInterval(intervalId);
-        const observer = new MutationObserver(() =>
-          applyBackgroundColour(pageColour),
-        );
-        const target = document.querySelector(".pdfViewer.removePageBorders");
-        if (target)
-          observer.observe(target, { childList: true, subtree: true });
-      }
-    }, 100);
-
-    return () => clearInterval(intervalId);
-  }, [pageColour]);
-
-  useEffect(() => {
-    const apply = () => {
       const viewer = document.querySelector(".pdfViewer");
       if (!viewer) return false;
       viewer.classList.toggle("bionic-reading-active", bionicReadingEnabled);
@@ -593,13 +561,7 @@ const usePdfReader = ({
     }
   }, []);
 
-  const pageColourChangeHandler = useCallback(
-    (colour: string) => {
-      setPageColour(colour);
-      applyBackgroundColour(colour);
-    },
-    [setPageColour],
-  );
+  const pageColourChangeHandler = setPageColour;
 
   const readSelectedText = useCallback(
     async ({
@@ -728,17 +690,5 @@ const usePdfReader = ({
     toggleFollowAlong,
   };
 };
-
-function applyBackgroundColour(colour: string) {
-  document.querySelectorAll(".textLayer").forEach((layer) => {
-    if (layer instanceof HTMLElement) {
-      layer.style.backgroundColor = colour;
-    }
-  });
-  const viewer = document.querySelector(".pdfViewer.removePageBorders");
-  if (viewer instanceof HTMLElement) {
-    viewer.style.backgroundColor = colour;
-  }
-}
 
 export default usePdfReader;

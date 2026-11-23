@@ -9,7 +9,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   overflow-anchor: none;
-  background: #fff;
+  background: var(--page-tint, #fff);
   color: #1f2328;
   padding: 0 16px;
   font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
@@ -65,15 +65,32 @@ h4.reflow-block {
 }
 
 mark.reflow-search {
-  background: rgba(255, 196, 0, 0.45);
+  background: var(--hl-search, rgb(250 204 21 / 45%));
   color: inherit;
 }
 
 mark.reflow-search[data-selected] {
-  background: rgba(255, 140, 0, 0.75);
+  background: var(--hl-search-active, rgb(249 115 22 / 72%));
 }
 
 mark.reflow-highlight {
-  background: rgba(255, 226, 143, 0.9);
+  background: var(--hl-annotation, rgb(255 226 143 / 90%));
   color: inherit;
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-layer {
+  color: hsl(var(--foreground));
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-page {
+  border-bottom-color: hsl(var(--border));
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-caption,
+.uxie-pdf-page[data-page-tone="ink"] .reflow-footnote {
+  color: hsl(var(--muted-foreground));
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-crop canvas {
+  filter: invert(1) hue-rotate(180deg) url(#uxie-ink-page);
 }

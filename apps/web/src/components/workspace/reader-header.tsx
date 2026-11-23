@@ -41,7 +41,7 @@ export function ReaderHeader({
   });
 
   return (
-    <header className="flex h-10 shrink-0 items-center gap-1 border-b border-stone-200 bg-white px-1">
+    <header className="flex h-10 shrink-0 items-center gap-1 border-b border-border bg-background px-1">
       <Link
         href="/f"
         aria-label="Back to library"

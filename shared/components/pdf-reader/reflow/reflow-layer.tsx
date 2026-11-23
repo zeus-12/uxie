@@ -13,7 +13,6 @@ import {
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
 import { REFLOW_REVEAL_EVENT, announceReflowLayout } from "../../../lib/reflow/reveal";
 import { beginProgrammaticScroll } from "../../../hooks/use-sentence-reader";
-import { usePdfSettingsStore } from "../../../lib/store";
 import type { ReflowSource } from "../../../lib/reflow/source";
 import type { Rect, Run } from "../../../lib/reflow/types";
 import type { PdfPoint, ScreenAnchor } from "./canvas-anchor";
@@ -92,7 +91,6 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   ref,
 ) {
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const pageColour = usePdfSettingsStore((state) => state.pageColour);
   const [pages, setPages] = useState<LoadedPage[]>([]);
   const pagesRef = useRef<LoadedPage[]>([]);
   const [findVersion, setFindVersion] = useState(0);
@@ -592,7 +590,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       ref={scrollerRef}
       className="reflow-layer"
       data-active={visible ? "" : undefined}
-      style={{ visibility: visible ? "visible" : "hidden", backgroundColor: pageColour }}
+      style={{ visibility: visible ? "visible" : "hidden" }}
     >
       {pages.map((loaded) => (
         <ReflowPageView

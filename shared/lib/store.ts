@@ -1,4 +1,4 @@
-import { PDF_BACKGROUND_COLOURS, READER_BACKGROUND_COLOURS } from "./constants";
+import { PDF_BACKGROUND_COLOURS } from "./constants";
 import { type BlockNoteEditorType } from "../types/editor";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -35,6 +35,17 @@ export const useChatStore = create<ChatMessageStore>((set) => ({
   setFocusInput: (focusInput) => set({ focusInput }),
 }));
 
+export type PageColour = (typeof PDF_BACKGROUND_COLOURS)[number] | "theme";
+
+// "#FFF" was the only page colour while the app was light-only; "theme" is still white in light.
+function migratePageColour(stored: unknown): PageColour {
+  return (
+    PDF_BACKGROUND_COLOURS.find(
+      (colour) => colour === stored && colour !== PDF_BACKGROUND_COLOURS[0],
+    ) ?? "theme"
+  );
+}
+
 interface PdfSettingsStore {
   linksDisabled: boolean;
   toggleLinksDisabled: () => void;
@@ -58,8 +69,8 @@ interface PdfSettingsStore {
   rsvpWpm: number;
   setRsvpWpm: (wpm: number) => void;
 
-  pageColour: string;
-  setPageColour: (colour: string) => void;
+  pageColour: PageColour;
+  setPageColour: (colour: PageColour) => void;
 
   reflowOnZoom: boolean;
   setReflowOnZoom: (enabled: boolean) => void;
@@ -93,20 +104,26 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
       rsvpWpm: 300,
       setRsvpWpm: (wpm) => set({ rsvpWpm: wpm }),
 
-      pageColour: PDF_BACKGROUND_COLOURS[0],
+      pageColour: "theme",
       setPageColour: (colour) => set({ pageColour: colour }),
 
       reflowOnZoom: false,
       setReflowOnZoom: (enabled) => set({ reflowOnZoom: enabled }),
     }),
-    { name: "pdf-settings" },
+    {
+      name: "pdf-settings",
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as PdfSettingsStore;
+        return { ...state, pageColour: migratePageColour(state.pageColour) };
+      },
+    },
   ),
 );
 
 export type ArticleFontFamily = "sans" | "serif" | "mono";
 export type ArticleFontSize = 16 | 18 | 20 | 22;
-export type ArticleBackgroundColour =
-  (typeof READER_BACKGROUND_COLOURS)[number];
+export type ArticleBackgroundColour = PageColour;
 
 interface ArticleSettingsStore {
   fontFamily: ArticleFontFamily;
@@ -124,10 +141,20 @@ export const useArticleSettingsStore = create<ArticleSettingsStore>()(
       setFontFamily: (fontFamily) => set({ fontFamily }),
       fontSize: 18,
       setFontSize: (fontSize) => set({ fontSize }),
-      backgroundColour: READER_BACKGROUND_COLOURS[0],
+      backgroundColour: "theme",
       setBackgroundColour: (backgroundColour) => set({ backgroundColour }),
     }),
-    { name: "article-settings" },
+    {
+      name: "article-settings",
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as ArticleSettingsStore;
+        return {
+          ...state,
+          backgroundColour: migratePageColour(state.backgroundColour),
+        };
+      },
+    },
   ),
 );
 

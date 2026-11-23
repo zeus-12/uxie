@@ -24,6 +24,7 @@ import {
   ExpandableTabs,
   type Tab,
 } from "@uxie/shared/components/ui/expandable-tabs";
+import { type PageColour } from "@uxie/shared/lib/store";
 import { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { useMediaQuery } from "usehooks-ts";
@@ -64,8 +65,8 @@ const BottomToolbar = ({
   onPageChange: (page: number) => void;
   currentZoom: number | null;
   reflowed: boolean;
-  pageColour: string;
-  pageColourChangeHandler: (colour: string) => void;
+  pageColour: PageColour;
+  pageColourChangeHandler: (colour: PageColour) => void;
   followAlongEnabled: boolean;
   toggleFollowAlong: () => void;
 }) => {

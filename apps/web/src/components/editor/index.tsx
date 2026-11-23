@@ -1,3 +1,7 @@
+import AiPopover, {
+  type AiPopoverPropsRect,
+} from "@/components/editor/custom/ai/popover";
+import { api } from "@/lib/api";
 import { getSlashMenuItems, schema } from "@/lib/editor-utils";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { useCompletion } from "@ai-sdk/react";
@@ -10,6 +14,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import {
   BasicTextStyleButton,
   BlockColorsItem,
+  BlockNoteContext,
   BlockTypeSelect,
   ColorStyleButton,
   CreateLinkButton,
@@ -26,6 +31,11 @@ import {
   useBlockNoteEditor,
   useComponentsContext,
 } from "@blocknote/react";
+import { getBlockNoteTheme } from "@uxie/shared/components/editor/theme";
+import { useSideMenuGate } from "@uxie/shared/components/editor/use-side-menu-gate";
+import { useTheme } from "@uxie/shared/components/theme/theme-provider";
+import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
+import { useRouter } from "next/router";
 import {
   type Dispatch,
   type SetStateAction,
@@ -36,54 +46,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-// import { CommentFormattingToolbarButton } from "@/components/Editor/CustomBlocks/Comment";
-import AiPopover, {
-  type AiPopoverPropsRect,
-} from "@/components/editor/custom/ai/popover";
-import { api } from "@/lib/api";
-import { useSideMenuGate } from "@uxie/shared/components/editor/use-side-menu-gate";
-import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
-import { useRouter } from "next/router";
 import { useDebouncedCallback } from "use-debounce";
-
-// export default function Editor({
-//   canEdit,
-//   username,
-// }: {
-//   canEdit: boolean;
-//   username: string;
-// }) {
-//   const room = useRoom();
-//   const [doc, setDoc] = useState<Y.Doc>();
-//   const [provider, setProvider] = useState<any>();
-
-//   // Set up Liveblocks Yjs provider
-//   useEffect(() => {
-//     const yDoc = new Y.Doc();
-//     const yProvider = new LiveblocksProvider(room, yDoc);
-
-//     setDoc(yDoc);
-//     setProvider(yProvider);
-
-//     return () => {
-//       yDoc?.destroy();
-//       yProvider?.destroy();
-//     };
-//   }, [room]);
-
-//   if (!doc || !provider) {
-//     return null;
-//   }
-
-//   return (
-//     <BlockNoteEditor
-//       canEdit={canEdit}
-//       username={username}
-//       doc={doc}
-//       provider={provider}
-//     />
-//   );
-// }
 
 export default function Editor({
   canEdit,
@@ -99,6 +62,7 @@ export default function Editor({
   // Disables the AI autocomplete / rewrite features, which require a backend.
   enableAi?: boolean;
 }) {
+  const { resolvedTheme } = useTheme();
   const { mutate: updateNotesMutation } =
     api.document.updateNotes.useMutation();
 
@@ -205,8 +169,6 @@ export default function Editor({
   useEffect(() => {
     if (!editor) return;
 
-    // if user presses escape or cmd + z and it's loading,
-    // stop the request, delete the completion, and insert back the "++"
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
         stop();
@@ -245,121 +207,117 @@ export default function Editor({
 
   return (
     <div ref={containerRef}>
-      <BlockNoteView
-        sideMenu={false}
-        onChange={async () => {
-          const block = editor.getTextCursorPosition().block;
-          const blockText = (
-            await editor.blocksToMarkdownLossy([block])
-          ).trim();
-
-          const lastTwo = blockText?.slice(-2);
-          if (enableAi && lastTwo === "++" && !isLoading) {
-            editor.updateBlock(block, {
-              id: block.id,
-              content: blockText?.slice(0, -2),
-            });
-            complete(blockText?.slice(-500) ?? "");
-          }
-          // this is firing on initial load => store server value in useRef, and display a icon saying "loading" or "saved". and only if its different from current copy run the mutation
-          debounced(JSON.stringify(editor.document, null, 2));
-        }}
-        className="w-full flex-1"
-        theme={"light"}
-        editor={editor}
-        slashMenu={false}
-        editable={canEdit}
-        formattingToolbar={false}
+      <BlockNoteContext.Provider
+        value={{ colorSchemePreference: resolvedTheme }}
       >
-        <SuggestionMenuController
-          triggerCharacter={"/"}
-          getItems={async (query) =>
-            filterSuggestionItems(getSlashMenuItems(editor), query)
-          }
-        />
+        <BlockNoteView
+          sideMenu={false}
+          onChange={async () => {
+            const block = editor.getTextCursorPosition().block;
+            const blockText = (
+              await editor.blocksToMarkdownLossy([block])
+            ).trim();
 
-        <FormattingToolbarController
-          formattingToolbar={() => (
-            <FormattingToolbar>
-              <BlockTypeSelect key={"blockTypeSelect"} />
+            const lastTwo = blockText?.slice(-2);
+            if (enableAi && lastTwo === "++" && !isLoading) {
+              editor.updateBlock(block, {
+                id: block.id,
+                content: blockText?.slice(0, -2),
+              });
+              complete(blockText?.slice(-500) ?? "");
+            }
+            debounced(JSON.stringify(editor.document, null, 2));
+          }}
+          className="w-full flex-1"
+          theme={getBlockNoteTheme(resolvedTheme)}
+          editor={editor}
+          slashMenu={false}
+          editable={canEdit}
+          formattingToolbar={false}
+        >
+          <SuggestionMenuController
+            triggerCharacter={"/"}
+            getItems={async (query) =>
+              filterSuggestionItems(getSlashMenuItems(editor), query)
+            }
+          />
 
-              {/* <CommentFormattingToolbarButton key={"customButton"} /> */}
+          <FormattingToolbarController
+            formattingToolbar={() => (
+              <FormattingToolbar>
+                <BlockTypeSelect key={"blockTypeSelect"} />
 
-              {/* <ImageCaptionButton key={"imageCaptionButton"} />
-              <ReplaceImageButton key={"replaceImageButton"} /> */}
-              <FileCaptionButton key="fileCaptionButton" />
+                <FileCaptionButton key="fileCaptionButton" />
 
-              <BasicTextStyleButton
-                basicTextStyle={"bold"}
-                key={"boldStyleButton"}
+                <BasicTextStyleButton
+                  basicTextStyle={"bold"}
+                  key={"boldStyleButton"}
+                />
+                <BasicTextStyleButton
+                  basicTextStyle={"italic"}
+                  key={"italicStyleButton"}
+                />
+                <BasicTextStyleButton
+                  basicTextStyle={"underline"}
+                  key={"underlineStyleButton"}
+                />
+                <BasicTextStyleButton
+                  basicTextStyle={"strike"}
+                  key={"strikeStyleButton"}
+                />
+                <BasicTextStyleButton
+                  key={"codeStyleButton"}
+                  basicTextStyle={"code"}
+                />
+
+                <TextAlignButton
+                  textAlignment={"left"}
+                  key={"textAlignLeftButton"}
+                />
+                <TextAlignButton
+                  textAlignment={"center"}
+                  key={"textAlignCenterButton"}
+                />
+                <TextAlignButton
+                  textAlignment={"right"}
+                  key={"textAlignRightButton"}
+                />
+
+                <ColorStyleButton key={"colorStyleButton"} />
+
+                <CreateLinkButton key={"createLinkButton"} />
+              </FormattingToolbar>
+            )}
+          />
+
+          <SideMenuController
+            sideMenu={(props) => (
+              <SideMenu
+                {...props}
+                freezeMenu={() => {
+                  onDragHandleMenuOpen();
+                  return props.freezeMenu();
+                }}
+                unfreezeMenu={() => {
+                  onDragHandleMenuClose();
+                  return props.unfreezeMenu();
+                }}
+                dragHandleMenu={(props) => (
+                  <DragHandleMenu {...props}>
+                    <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
+                    {enableAi && (
+                      <AiDragHandleMenu {...props} setRect={setRect} />
+                    )}
+
+                    <BlockColorsItem {...props}>Colors</BlockColorsItem>
+                  </DragHandleMenu>
+                )}
               />
-              <BasicTextStyleButton
-                basicTextStyle={"italic"}
-                key={"italicStyleButton"}
-              />
-              <BasicTextStyleButton
-                basicTextStyle={"underline"}
-                key={"underlineStyleButton"}
-              />
-              <BasicTextStyleButton
-                basicTextStyle={"strike"}
-                key={"strikeStyleButton"}
-              />
-              <BasicTextStyleButton
-                key={"codeStyleButton"}
-                basicTextStyle={"code"}
-              />
-
-              <TextAlignButton
-                textAlignment={"left"}
-                key={"textAlignLeftButton"}
-              />
-              <TextAlignButton
-                textAlignment={"center"}
-                key={"textAlignCenterButton"}
-              />
-              <TextAlignButton
-                textAlignment={"right"}
-                key={"textAlignRightButton"}
-              />
-
-              <ColorStyleButton key={"colorStyleButton"} />
-
-              {/* <NestBlockButton key={"nestBlockButton"} />
-              <UnnestBlockButton key={"unnestBlockButton"} /> */}
-
-              <CreateLinkButton key={"createLinkButton"} />
-            </FormattingToolbar>
-          )}
-        />
-
-        <SideMenuController
-          sideMenu={(props) => (
-            <SideMenu
-              {...props}
-              freezeMenu={() => {
-                onDragHandleMenuOpen();
-                return props.freezeMenu();
-              }}
-              unfreezeMenu={() => {
-                onDragHandleMenuClose();
-                return props.unfreezeMenu();
-              }}
-              dragHandleMenu={(props) => (
-                <DragHandleMenu {...props}>
-                  <RemoveBlockItem {...props}>Delete</RemoveBlockItem>
-                  {enableAi && (
-                    <AiDragHandleMenu {...props} setRect={setRect} />
-                  )}
-
-                  <BlockColorsItem {...props}>Colors</BlockColorsItem>
-                </DragHandleMenu>
-              )}
-            />
-          )}
-        />
-        {enableAi && rect && <AiPopover rect={rect} setRect={setRect} />}
-      </BlockNoteView>
+            )}
+          />
+          {enableAi && rect && <AiPopover rect={rect} setRect={setRect} />}
+        </BlockNoteView>
+      </BlockNoteContext.Provider>
     </div>
   );
 }
@@ -380,19 +338,6 @@ const AiDragHandleMenu = (
         ) as HTMLElement;
 
         if (!blockDiv) return;
-
-        // select the div
-        // const selection = window.getSelection();
-        // const range = document.createRange();
-        // range.selectNodeContents(blockDiv);
-        // selection?.removeAllRanges();
-        // selection?.addRange(range);
-
-        // scroll to the div
-        // blockDiv.scrollIntoView({
-        //   behavior: "smooth",
-        //   block: "center",
-        // });
 
         const rect = blockDiv.getBoundingClientRect();
         const top = rect.top + rect.height;

@@ -50,7 +50,7 @@ const Feedback = () => {
       <h1 className="mt-4 text-2xl font-semibold tracking-tight">
         Submit Feedback!
       </h1>
-      <p className="mb-4 text-sm text-gray-400">
+      <p className="mb-4 text-sm text-muted-foreground">
         Help us make the app even better 🥳
       </p>
 

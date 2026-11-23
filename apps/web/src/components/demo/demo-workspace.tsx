@@ -66,17 +66,17 @@ const DemoWorkspace = () => {
           direction="horizontal"
         >
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full min-w-[25vw] border-stone-200 bg-white sm:rounded-lg sm:border-r sm:shadow-lg">
+            <div className="h-full min-w-[25vw] border-border bg-background sm:rounded-lg sm:border-r sm:shadow-lg">
               <DemoDocViewer doc={doc} />
             </div>
           </ResizablePanel>
           <div
             className={cn(
-              "group hidden items-center justify-center rounded-md bg-gray-50 transition-all duration-200 md:flex",
+              "group hidden items-center justify-center rounded-md bg-muted/40 transition-all duration-200 md:flex",
               sidebarHidden ? "w-0 opacity-0" : "w-2",
             )}
           >
-            <ResizableHandle className="h-12 w-1 rounded-full bg-neutral-400 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24" />
+            <ResizableHandle className="h-12 w-1 rounded-full bg-muted-foreground/60 duration-300 group-hover:bg-primary group-active:bg-primary group-active:duration-75 lg:h-24" />
           </div>
 
           <ResizablePanel
