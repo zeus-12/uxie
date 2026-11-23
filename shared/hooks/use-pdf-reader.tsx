@@ -31,6 +31,7 @@ const usePdfReader = ({
   docId,
   pageCount,
   viewer,
+  reflowed = false,
   onSaveReaderState,
 }: {
   lastReadPage: number;
@@ -41,6 +42,7 @@ const usePdfReader = ({
   // Passed in rather than read off a global, so opening a second document binds
   // to its viewer instead of the previous, discarded one.
   viewer: PDFViewer | null;
+  reflowed?: boolean;
   onSaveReaderState?: (state: {
     lastReadPage?: number;
     zoomLevel?: number;
@@ -64,6 +66,7 @@ const usePdfReader = ({
 
   const pdfViewerRef = useRef<PDFViewer | null>(null);
   const userScrolledRef = useRef(false);
+  const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isReadingRef = useRef(false);
   const shouldStopRef = useRef(false);
   const currentReadingMode = useRef<READING_MODE>(READING_MODE.PAGE);
@@ -269,29 +272,28 @@ const usePdfReader = ({
     }
   }, [pdfScaleValue, viewer]);
 
-  // Keyed on `viewer`: the scroll container mounts after this hook does.
+  // The scroll container mounts after this hook does, and the reflow layer
+  // takes over scrolling while it shows; the hold outlives the switch.
   useEffect(() => {
     const container = getReaderScrollContainer();
     if (!container) return;
 
-    let timeout: NodeJS.Timeout;
     const handleScroll = () => {
       // Without this the reader reads its own follow-along scroll as the user
       // taking over and stops following.
       if (isProgrammaticScroll()) return;
       userScrolledRef.current = true;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
+      clearTimeout(userScrollTimeoutRef.current);
+      userScrollTimeoutRef.current = setTimeout(() => {
         userScrolledRef.current = false;
       }, 2000);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      clearTimeout(timeout);
-    };
-  }, [viewer]);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [viewer, reflowed]);
+
+  useEffect(() => () => clearTimeout(userScrollTimeoutRef.current), []);
 
   useEffect(() => {
     const apply = () => {

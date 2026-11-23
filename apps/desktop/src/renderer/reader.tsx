@@ -16,7 +16,6 @@ import {
   Sidebar,
   SidebarSettingsButton,
 } from "@uxie/shared/components/workspace/sidebar";
-import { READING_STATUS } from "@uxie/shared/components/pdf-reader/constants";
 import { PdfLoader } from "@uxie/shared/components/pdf-reader/pdf-loader";
 import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
 import { buttonVariants } from "@uxie/shared/components/ui/button";
@@ -272,6 +271,7 @@ function ReaderContent({
     zoomLevel: doc.zoomLevel,
     pageCount: doc.pageCount,
     viewer: pdfViewer,
+    reflowed,
     onSaveReaderState: (state) => {
       void window.uxieAPI.updateReaderState(docId, state);
     },
@@ -433,7 +433,6 @@ function ReaderContent({
                   readSelectedText={readSelectedText}
                   onZoomChange={handleZoomChange}
                   onReflowChange={setReflowed}
-                  readingAloud={readingStatus !== READING_STATUS.IDLE}
                 />
               )}
             </PdfLoader>

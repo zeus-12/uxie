@@ -1,5 +1,5 @@
 import type { PDFPageProxy, RenderTask } from "pdfjs-dist";
-import { Fragment, memo, useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sliceOfRun, type ItemRange } from "../../../lib/reflow/anchors";
 import type { PageInput, Rect, ReflowPage, Run, TextRegion } from "../../../lib/reflow/types";
 
@@ -13,6 +13,13 @@ export type PageMarks = {
 
 const MAX_CANVAS_PIXELS = 4_000_000;
 const MAX_HEADING_SCALE = 1.8;
+
+// pdf.js's text layer only appends a span for a non-empty item, so this is the
+// item's index among a page's text-layer spans: the read-aloud model's block.
+const textItemOrdinals = (strings: string[]) => {
+  let next = 0;
+  return strings.map((str) => (str === "" ? -1 : next++));
+};
 
 export const runKey = (pageNumber: number, itemIndex: number) => `${pageNumber}:${itemIndex}`;
 
@@ -70,6 +77,7 @@ const CropCanvas = ({
       data-crop-x={rect.x}
       data-crop-y={rect.y}
       data-crop-w={rect.width}
+      data-crop-h={rect.height}
     >
       <canvas
         ref={canvasRef}
@@ -149,8 +157,10 @@ const TextBlock = ({
   pageNumber,
   bodyPt,
   strings,
+  ordinals,
   marks,
 }: {
+  ordinals: number[];
   region: TextRegion;
   pageNumber: number;
   bodyPt: number;
@@ -171,6 +181,7 @@ const TextBlock = ({
           <span
             data-run={runKey(pageNumber, run.itemIndex)}
             data-run-start={run.start}
+            data-item-ordinal={ordinals[run.itemIndex]}
             className={run.sup ? "reflow-sup" : undefined}
           >
             <RunText str={strings[run.itemIndex] ?? ""} run={run} marks={marks} />
@@ -191,9 +202,10 @@ export const ReflowPageView = memo(function ReflowPageView({
   marks: PageMarks;
 }) {
   const { page, input, pdfPage } = loaded;
+  const ordinals = useMemo(() => textItemOrdinals(input.itemStrings), [input.itemStrings]);
   if (page.kind === "keep") {
     return (
-      <section className="reflow-page reflow-kept" data-reflow-page={page.pageNumber}>
+      <section className="reflow-page reflow-kept" data-reflow-page={page.pageNumber} data-page-w={page.width} data-page-h={page.height}>
         <CropCanvas
           pdfPage={pdfPage}
           rect={{ x: 0, y: 0, width: page.width, height: page.height }}
@@ -205,7 +217,7 @@ export const ReflowPageView = memo(function ReflowPageView({
     );
   }
   return (
-    <section className="reflow-page" data-reflow-page={page.pageNumber}>
+    <section className="reflow-page" data-reflow-page={page.pageNumber} data-page-w={page.width} data-page-h={page.height}>
       {page.regions.map((region, i) =>
         region.kind === "crop" ? (
           <CropCanvas key={i} pdfPage={pdfPage} rect={region.rect} pxPerPt={pxPerPt} index={i} />
@@ -216,6 +228,7 @@ export const ReflowPageView = memo(function ReflowPageView({
             pageNumber={page.pageNumber}
             bodyPt={page.bodyFontSize}
             strings={input.itemStrings}
+            ordinals={ordinals}
             marks={marks}
           />
         ),

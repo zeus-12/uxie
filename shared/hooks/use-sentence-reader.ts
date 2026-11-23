@@ -8,6 +8,8 @@ import {
   type WordMapEntry,
 } from "../lib/tts/utils";
 import { useCallback, useEffect, useRef } from "react";
+import { usePdfTextStore } from "../lib/pdf-text";
+import { REFLOW_LAYOUT_EVENT, requestReflowPage } from "../lib/reflow/reveal";
 
 export type HighlightMode = "tts" | "rsvp";
 
@@ -86,10 +88,12 @@ export function cleanSentenceForTts(text: string): string {
 }
 
 // Offsets are normalized (whitespace runs collapsed) — what sbd and the TTS
-// engines see — and mapped back to raw DOM offsets only when highlighting.
+// engines see — and mapped back to raw block offsets only when highlighting.
+// Blocks are pdf.js's non-empty text items, so the model is the same whichever
+// surface (canvas text layer or reflowed text) is showing the page.
 type PageTextModel = {
-  pageElement: Element;
-  blocks: Element[];
+  pageNumber: number;
+  blocks: string[];
   // 0 for whitespace-only blocks; excludes the separator space between blocks.
   blockRawLens: number[];
   blockStarts: number[];
@@ -98,17 +102,37 @@ type PageTextModel = {
   sentenceStarts: number[];
 };
 
-function buildPageTextModel(pageElement: Element): PageTextModel {
-  const blocks = Array.from(
-    pageElement.querySelectorAll("span[role='presentation']"),
+const canvasPage = (pageNumber: number) =>
+  document.querySelector(`.page[data-page-number="${pageNumber}"]`);
+
+const canvasSpans = (pageNumber: number) =>
+  Array.from(
+    canvasPage(pageNumber)?.querySelectorAll<HTMLElement>(
+      "span[role='presentation']",
+    ) ?? [],
   );
 
+const reflowSection = (pageNumber: number) =>
+  document.querySelector<HTMLElement>(
+    `.reflow-layer[data-active] [data-reflow-page="${pageNumber}"]`,
+  );
+
+function pageBlocks(pageNumber: number): string[] | null {
+  const cached = usePdfTextStore.getState().source?.blocks(pageNumber);
+  if (cached) return cached;
+  if (!canvasPage(pageNumber)) return null;
+  return canvasSpans(pageNumber).map((span) => span.textContent ?? "");
+}
+
+function buildPageTextModel(
+  pageNumber: number,
+  blocks: string[],
+): PageTextModel {
   const blockRawLens: number[] = [];
   const blockStarts: number[] = [];
   let rawText = "";
 
-  for (const block of blocks) {
-    const text = block.textContent ?? "";
+  for (const text of blocks) {
     blockStarts.push(rawText.length);
     if (text.trim().length === 0) {
       blockRawLens.push(0);
@@ -137,7 +161,7 @@ function buildPageTextModel(pageElement: Element): PageTextModel {
   }
 
   return {
-    pageElement,
+    pageNumber,
     blocks,
     blockRawLens,
     blockStarts,
@@ -177,66 +201,128 @@ function textPointInBlock(
   return null;
 }
 
-// Whitespace-only blocks and the synthetic inter-block separators occupy no
-// real DOM, so a position landing on one snaps to the nearest content block.
-function rawPosToDom(
-  model: PageTextModel,
-  rawPos: number,
-  atEnd: boolean,
-): { node: Node; offset: number } | null {
-  for (let i = 0; i < model.blocks.length; i++) {
-    const len = model.blockRawLens[i]!;
-    if (len === 0) continue;
-    const bs = model.blockStarts[i]!;
-    const be = bs + len;
-    const inside = atEnd
-      ? rawPos > bs && rawPos <= be
-      : rawPos >= bs && rawPos < be;
-    if (inside) return textPointInBlock(model.blocks[i]!, rawPos - bs, atEnd);
-  }
-  if (atEnd) {
-    for (let i = model.blocks.length - 1; i >= 0; i--) {
-      const len = model.blockRawLens[i]!;
-      if (len === 0) continue;
-      const be = model.blockStarts[i]! + len;
-      if (be <= rawPos) return textPointInBlock(model.blocks[i]!, len, true);
-    }
-  } else {
-    for (let i = 0; i < model.blocks.length; i++) {
-      const len = model.blockRawLens[i]!;
-      if (len === 0) continue;
-      if (model.blockStarts[i]! >= rawPos) {
-        return textPointInBlock(model.blocks[i]!, 0, false);
-      }
-    }
-  }
-  return null;
-}
+type Segment = { block: number; from: number; to: number };
 
-function rawRangeToRange(
+// Whitespace-only blocks and the separators between blocks have no characters
+// on any surface, so a raw range becomes the block slices it covers.
+function segmentsOf(
   model: PageTextModel,
   rawStart: number,
   rawEnd: number,
-): Range | null {
-  const s = rawPosToDom(model, rawStart, false);
-  const e = rawPosToDom(model, rawEnd, true);
-  if (!s || !e) return null;
+): Segment[] {
+  const out: Segment[] = [];
+  model.blocks.forEach((_, block) => {
+    const len = model.blockRawLens[block]!;
+    if (len === 0) return;
+    const bs = model.blockStarts[block]!;
+    const from = Math.max(rawStart, bs);
+    const to = Math.min(rawEnd, bs + len);
+    if (to > from) out.push({ block, from: from - bs, to: to - bs });
+  });
+  return out;
+}
+
+type Rect = { left: number; top: number; width: number; height: number };
+
+function blockRects(el: Element, from: number, to: number): Rect[] {
+  const s = textPointInBlock(el, from, false);
+  const e = textPointInBlock(el, to, true);
+  if (!s || !e) return [];
   const range = document.createRange();
   try {
     range.setStart(s.node, s.offset);
     range.setEnd(e.node, e.offset);
   } catch {
-    return null;
+    return [];
   }
-  return range.collapsed ? null : range;
+  return Array.from(range.getClientRects());
 }
 
-type Rect = { left: number; top: number; width: number; height: number };
+// Text a reflowed page shows as an image (a crop, or the whole page kept) is
+// still laid out on the hidden canvas page; both are renders of the same page,
+// so its rects scale onto the image.
+function projectOntoImage(
+  section: HTMLElement,
+  pageNumber: number,
+  r: Rect,
+): Rect | null {
+  const page = canvasPage(pageNumber);
+  if (!page) return null;
+  const box = (page.querySelector(".canvasWrapper") ?? page).getBoundingClientRect();
+  const pageW = Number(section.dataset.pageW);
+  const pageH = Number(section.dataset.pageH);
+  if (!box.width || !box.height || !pageW || !pageH) return null;
+  const x = ((r.left - box.left) / box.width) * pageW;
+  const y = ((r.top - box.top) / box.height) * pageH;
+  const w = (r.width / box.width) * pageW;
+  const h = (r.height / box.height) * pageH;
+  for (const crop of section.querySelectorAll<HTMLElement>(".reflow-crop")) {
+    const cx = Number(crop.dataset.cropX);
+    const cy = Number(crop.dataset.cropY);
+    const cw = Number(crop.dataset.cropW);
+    const ch = Number(crop.dataset.cropH);
+    if (x < cx || y < cy || x + w > cx + cw || y + h > cy + ch) continue;
+    const image = crop.querySelector("canvas")?.getBoundingClientRect();
+    if (!image || !image.width) return null;
+    const k = image.width / cw;
+    return {
+      left: image.left + (x - cx) * k,
+      top: image.top + (y - cy) * k,
+      width: w * k,
+      height: h * k,
+    };
+  }
+  return null;
+}
+
+// The surface showing the page: reflowed text when the page is in the reflow
+// window, otherwise pdf.js's canvas text layer.
+function surfaceRects(
+  model: PageTextModel,
+  segments: Segment[],
+): { host: Element; rects: Rect[] } | null {
+  const section = reflowSection(model.pageNumber);
+  const spans = canvasSpans(model.pageNumber);
+  if (!section) {
+    const host = canvasPage(model.pageNumber);
+    if (!host) return null;
+    return {
+      host,
+      rects: segments.flatMap((seg) => {
+        const span = spans[seg.block];
+        return span ? blockRects(span, seg.from, seg.to) : [];
+      }),
+    };
+  }
+  const runs = new Map<number, HTMLElement>();
+  section
+    .querySelectorAll<HTMLElement>("[data-item-ordinal]")
+    .forEach((el) => runs.set(Number(el.dataset.itemOrdinal), el));
+  const rects: Rect[] = [];
+  for (const seg of segments) {
+    const run = runs.get(seg.block);
+    if (run) {
+      const start = Number(run.dataset.runStart);
+      const length = run.textContent?.length ?? 0;
+      const from = Math.min(Math.max(seg.from - start, 0), length);
+      const to = Math.min(Math.max(seg.to - start, 0), length);
+      if (to > from) rects.push(...blockRects(run, from, to));
+      continue;
+    }
+    const span = spans[seg.block];
+    if (!span) continue;
+    for (const r of blockRects(span, seg.from, seg.to)) {
+      const projected = projectOntoImage(section, model.pageNumber, r);
+      if (projected) rects.push(projected);
+    }
+  }
+  return { host: section, rects };
+}
 
 // getClientRects gives one rect per span, so a line arrives as several. Merging
 // them into one band per line avoids sub-pixel seams and overlap double-darkening.
-function mergeRectsByLine(rects: DOMRectList): Rect[] {
-  const sorted = Array.from(rects)
+function mergeRectsByLine(rects: Rect[]): Rect[] {
+  const sorted = rects
     .filter((r) => r.width >= 0.5 && r.height >= 0.5)
     .sort((a, b) => a.top - b.top || a.left - b.left);
 
@@ -244,18 +330,15 @@ function mergeRectsByLine(rects: DOMRectList): Rect[] {
     [];
   for (const r of sorted) {
     const last = lines[lines.length - 1];
+    const right = r.left + r.width;
+    const bottom = r.top + r.height;
     if (last && Math.abs(r.top - last.top) <= 4 && r.left <= last.right + 6) {
       last.left = Math.min(last.left, r.left);
-      last.right = Math.max(last.right, r.right);
+      last.right = Math.max(last.right, right);
       last.top = Math.min(last.top, r.top);
-      last.bottom = Math.max(last.bottom, r.bottom);
+      last.bottom = Math.max(last.bottom, bottom);
     } else {
-      lines.push({
-        left: r.left,
-        right: r.right,
-        top: r.top,
-        bottom: r.bottom,
-      });
+      lines.push({ left: r.left, right, top: r.top, bottom });
     }
   }
   return lines.map((l) => ({
@@ -269,16 +352,16 @@ function mergeRectsByLine(rects: DOMRectList): Rect[] {
 type Pad = { x: number; y: number };
 
 function paintOverlays(
-  range: Range,
-  page: Element,
+  rects: Rect[],
+  host: Element,
   className: string,
   pad: Pad,
+  text: string,
 ): HTMLElement[] {
-  const layer = getOverlayLayer(page);
+  const layer = getOverlayLayer(host);
   const origin = layer.getBoundingClientRect();
-  const text = range.toString();
   const out: HTMLElement[] = [];
-  for (const r of mergeRectsByLine(range.getClientRects())) {
+  for (const r of mergeRectsByLine(rects)) {
     const el = document.createElement("div");
     el.className = className;
     el.setAttribute("data-hl-text", text);
@@ -299,26 +382,29 @@ function positionOverlay(el: HTMLElement, r: Rect, origin: DOMRect, pad: Pad) {
 // Reuses one element across words so it can transition; a hyphen-split word
 // spanning two lines needs a second, non-animated rect.
 function paintWordOverlay(
-  range: Range,
-  page: Element,
+  rawRects: Rect[],
+  host: Element,
   className: string,
   glideMs: number,
+  text: string,
 ) {
-  const layer = getOverlayLayer(page);
+  const layer = getOverlayLayer(host);
   const origin = layer.getBoundingClientRect();
-  const rects = mergeRectsByLine(range.getClientRects());
+  const rects = mergeRectsByLine(rawRects);
   const pad = OVERLAY_PAD.word;
 
-  layer
+  document
     .querySelectorAll(`.${className}.tts-hl-word-extra`)
     .forEach((e) => e.remove());
+  document
+    .querySelectorAll(`.${className}`)
+    .forEach((e) => e.parentElement !== layer && e.remove());
 
   if (rects.length === 0) {
     layer.querySelectorAll(`.${className}`).forEach((e) => e.remove());
     return;
   }
 
-  const text = range.toString();
   const isNew = !layer.querySelector(`.${className}:not(.tts-hl-word-extra)`);
   let primary = layer.querySelector<HTMLElement>(
     `.${className}:not(.tts-hl-word-extra)`,
@@ -351,10 +437,11 @@ function paintWordOverlay(
   }
 }
 
-// react-pdf-highlighter names the scroller .PdfHighlighter; pdf.js's own viewer
-// names it #viewerContainer.
+// The reflow layer scrolls while it shows; otherwise react-pdf-highlighter's
+// .PdfHighlighter, or pdf.js's own #viewerContainer.
 export function getReaderScrollContainer(): HTMLElement | null {
   return (
+    document.querySelector<HTMLElement>(".reflow-layer[data-active]") ??
     document.getElementById("viewerContainer") ??
     document.querySelector<HTMLElement>(".PdfHighlighter")
   );
@@ -364,25 +451,29 @@ export function getReaderScrollContainer(): HTMLElement | null {
 // otherwise. scrollend is exact; the window is the fallback (Safari < 18.2).
 const SCROLL_SETTLE_MS = 800;
 let programmaticScrollUntil = 0;
-let scrollEndWatcher: (() => void) | null = null;
+let scrollEndWatcher: { container: HTMLElement; stop: () => void } | null =
+  null;
 
-function beginProgrammaticScroll() {
+export function beginProgrammaticScroll(
+  container: HTMLElement | null = getReaderScrollContainer(),
+) {
   programmaticScrollUntil =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) +
     SCROLL_SETTLE_MS;
 
-  if (scrollEndWatcher || typeof window === "undefined") return;
-  if (!("onscrollend" in window)) return;
-
-  const container = getReaderScrollContainer();
-  if (!container) return;
+  if (typeof window === "undefined" || !("onscrollend" in window)) return;
+  if (!container || scrollEndWatcher?.container === container) return;
+  scrollEndWatcher?.stop();
 
   const onScrollEnd = () => {
     programmaticScrollUntil = 0;
-    container.removeEventListener("scrollend", onScrollEnd);
-    scrollEndWatcher = null;
+    stop();
   };
-  scrollEndWatcher = onScrollEnd;
+  const stop = () => {
+    container.removeEventListener("scrollend", onScrollEnd);
+    if (scrollEndWatcher?.container === container) scrollEndWatcher = null;
+  };
+  scrollEndWatcher = { container, stop };
   container.addEventListener("scrollend", onScrollEnd);
 }
 
@@ -395,6 +486,17 @@ export function isProgrammaticScroll(): boolean {
 function scrollIntoCentre(el: Element) {
   beginProgrammaticScroll();
   el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// Reading moved past the reflowed pages: ask the reflow layer to show that
+// page rather than follow along on the hidden canvas.
+function revealReflowedPage(pageNumber: number): boolean {
+  const layer = document.querySelector(".reflow-layer[data-active]");
+  if (!layer || layer.querySelector(`[data-reflow-page="${pageNumber}"]`)) {
+    return false;
+  }
+  requestReflowPage(pageNumber);
+  return true;
 }
 
 export function useSentenceReader({ pageCount }: { pageCount: number }) {
@@ -412,37 +514,36 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const glideMsRef = useRef(GLIDE_MAX_MS);
 
   const loadPageSentences = useCallback((pageNumber: number): string[] => {
-    const pageElement = document.querySelector(
-      `.page[data-page-number="${pageNumber}"]`,
-    );
-    if (!pageElement) return [];
+    const source = usePdfTextStore.getState().source;
+    for (let ahead = 0; ahead <= 2; ahead++) source?.prefetch(pageNumber + ahead);
+    const blocks = pageBlocks(pageNumber);
+    if (!blocks) return [];
 
-    const model = buildPageTextModel(pageElement);
+    const model = buildPageTextModel(pageNumber, blocks);
     modelRef.current = model;
     currentPageRef.current = pageNumber;
 
     return model.sentences;
   }, []);
 
-  // pdf.js re-renders the text layer by replacing the spans, so a model holding
-  // the old ones yields stale rects. Different count or identity => re-rendered.
   const ensureFreshModel = useCallback(() => {
-    const model = modelRef.current;
-    const page = document.querySelector(
-      `.page[data-page-number="${currentPageRef.current}"]`,
-    );
-    if (!model || !page) {
-      loadPageSentences(currentPageRef.current);
-      return;
-    }
-    const liveSpans = page.querySelectorAll("span[role='presentation']");
-    if (
-      liveSpans.length !== model.blocks.length ||
-      liveSpans[0] !== model.blocks[0]
-    ) {
+    if (modelRef.current?.pageNumber !== currentPageRef.current) {
       loadPageSentences(currentPageRef.current);
     }
   }, [loadPageSentences]);
+
+  const paintRange = useCallback(
+    (normStart: number, normEnd: number) => {
+      const model = modelRef.current;
+      if (!model) return null;
+      const raw = normRangeToRaw(model.norm, normStart, normEnd);
+      if (!raw) return null;
+      const surface = surfaceRects(model, segmentsOf(model, raw[0], raw[1]));
+      if (!surface) return null;
+      return { ...surface, text: model.norm.text.slice(normStart, normEnd) };
+    },
+    [],
+  );
 
   const highlightCurrentSentence = useCallback(
     (mode: HighlightMode = "tts") => {
@@ -458,19 +559,17 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const start = model.sentenceStarts[idx] ?? -1;
       if (start < 0) return;
 
-      const raw = normRangeToRaw(model.norm, start, start + sentence.length);
-      if (!raw) return;
-
-      const range = rawRangeToRange(model, raw[0], raw[1]);
-      if (!range) return;
+      const painted = paintRange(start, start + sentence.length);
+      if (!painted) return;
       paintOverlays(
-        range,
-        model.pageElement,
+        painted.rects,
+        painted.host,
         getHighlightClass("sentence", mode),
         OVERLAY_PAD.sentence,
+        painted.text,
       );
     },
-    [ensureFreshModel],
+    [ensureFreshModel, paintRange],
   );
 
   const highlightWordInSentence = useCallback(
@@ -494,31 +593,29 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
       const end = Math.min(charOffsetInSentence + wordLength, sentence.length);
 
-      const raw = normRangeToRaw(
-        model.norm,
+      const painted = paintRange(
         sentenceStart + charOffsetInSentence,
         sentenceStart + end,
       );
-      if (!raw) return;
-
-      const range = rawRangeToRange(model, raw[0], raw[1]);
-      if (!range) return;
+      if (!painted) return;
 
       const className = getHighlightClass("word", mode);
       // false for the second half of a hyphen-split word: keep the first half.
       if (removePreviousHighlights) {
         paintWordOverlay(
-          range,
-          model.pageElement,
+          painted.rects,
+          painted.host,
           className,
           glideMsRef.current,
+          painted.text,
         );
       } else {
         paintOverlays(
-          range,
-          model.pageElement,
+          painted.rects,
+          painted.host,
           `${className} tts-hl-word-extra`,
           OVERLAY_PAD.word,
+          painted.text,
         );
       }
 
@@ -530,7 +627,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
           removePreviousHighlights,
         );
     },
-    [ensureFreshModel],
+    [ensureFreshModel, paintRange],
   );
 
   const highlightWordByIndex = useCallback(
@@ -719,6 +816,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     const highlight =
       document.querySelector(`.${OVERLAY_CLASS.sentence.tts}`) ??
       document.querySelector(`.${OVERLAY_CLASS.sentence.rsvp}`);
+    if (revealReflowedPage(currentPageRef.current)) return;
     if (highlight) scrollIntoCentre(highlight);
   }, []);
 
@@ -730,6 +828,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       document.querySelector(`.${OVERLAY_CLASS.word.rsvp}`);
     const container = getReaderScrollContainer();
     if (!word || !container) return;
+    if (revealReflowedPage(currentPageRef.current)) return;
 
     const view = container.getBoundingClientRect();
     const rect = word.getBoundingClientRect();
@@ -825,20 +924,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     (mode?: HighlightMode) => {
       if (!modelRef.current) return;
 
-      const modeToUse = mode ?? lastHighlightModeRef.current;
-      const savedSentenceIdx = currentSentenceIndexRef.current;
-
-      const sentences = loadPageSentences(currentPageRef.current);
-      if (sentences.length === 0) return;
-
-      currentSentenceIndexRef.current = Math.min(
-        savedSentenceIdx,
-        sentences.length - 1,
-      );
-      highlightCurrentSentence(modeToUse);
+      highlightCurrentSentence(mode ?? lastHighlightModeRef.current);
       repaintWordRef.current?.();
     },
-    [loadPageSentences, highlightCurrentSentence],
+    [highlightCurrentSentence],
   );
 
   useEffect(() => {
@@ -851,7 +940,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     };
 
     document.addEventListener("pdf:textlayerrendered", handler);
-    return () => document.removeEventListener("pdf:textlayerrendered", handler);
+    document.addEventListener(REFLOW_LAYOUT_EVENT, handler);
+    return () => {
+      document.removeEventListener("pdf:textlayerrendered", handler);
+      document.removeEventListener(REFLOW_LAYOUT_EVENT, handler);
+    };
   }, [refreshHighlights]);
 
   // Continues onto following pages so a page turn has audio ready. Pages pdf.js
@@ -875,12 +968,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
         page <= pageCount && upcoming.length < count;
         page++
       ) {
-        const pageElement = document.querySelector(
-          `.page[data-page-number="${page}"]`,
-        );
-        if (!pageElement) break;
+        const blocks = pageBlocks(page);
+        if (!blocks) break;
 
-        for (const sentence of buildPageTextModel(pageElement).sentences) {
+        for (const sentence of buildPageTextModel(page, blocks).sentences) {
           if (upcoming.length >= count) break;
           upcoming.push(sentence);
         }

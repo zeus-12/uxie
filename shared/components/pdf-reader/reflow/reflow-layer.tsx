@@ -12,6 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import { selectedSlices, selectionToPosition, type ReflowSelection } from "./selection";
+import { beginProgrammaticScroll } from "../../../hooks/use-sentence-reader";
+import { REFLOW_REVEAL_EVENT, announceReflowLayout } from "../../../lib/reflow/reveal";
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
 import type { ReflowSource } from "../../../lib/reflow/source";
 import type { PageInput, Rect, Run } from "../../../lib/reflow/types";
@@ -231,6 +233,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           const el = section.querySelector<HTMLElement>(`[data-run="${runKey(pageNumber, run.itemIndex)}"]`);
           const glyph = el ? charRect(el, Math.min(char.offset, run.end - 1) - run.start) : null;
           if (glyph) {
+            beginProgrammaticScroll(root);
             root.scrollTop += glyph.top + glyph.height / 2 - target.clientY;
             return true;
           }
@@ -245,6 +248,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
               const el = section.querySelector<HTMLElement>(`[data-crop="${index}"]`);
               const s = el && cropScale(el);
               if (el && s) {
+                beginProgrammaticScroll(root);
                 root.scrollTop += el.getBoundingClientRect().top + (y - r.y) * s - target.clientY;
                 return true;
               }
@@ -274,6 +278,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         const s = (keptCrop && cropScale(keptCrop)) ?? ppt;
         elementTop = (keptCrop ?? section).getBoundingClientRect().top + y * s;
       }
+      beginProgrammaticScroll(root);
       root.scrollTop += elementTop - target.clientY;
       return true;
     },
@@ -286,7 +291,10 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     const kept = keepInPlace.current;
     if (kept) {
       const section = root.querySelector<HTMLElement>(`[data-reflow-page="${kept.pageNumber}"]`);
-      if (section) root.scrollTop += section.getBoundingClientRect().top - kept.top;
+      if (section) {
+        beginProgrammaticScroll(root);
+        root.scrollTop += section.getBoundingClientRect().top - kept.top;
+      }
       keepInPlace.current = null;
     }
     const target = pendingAnchor.current;
@@ -511,6 +519,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     const selected = root?.querySelector<HTMLElement>("mark[data-selected]");
     if (selected) {
       handledFind.current = key;
+      beginProgrammaticScroll(root);
       selected.scrollIntoView({ block: "center" });
       return;
     }
@@ -554,6 +563,31 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     eventBus.on("pagechanging", onPageChanging);
     return () => eventBus.off("pagechanging", onPageChanging);
   }, [eventBus, visible, findController, openAtPageTop]);
+
+  useEffect(
+    () => () => {
+      announceReflowLayout();
+    },
+    [],
+  );
+
+  const revealing = useRef<number | null>(null);
+  useEffect(() => {
+    revealing.current = null;
+    if (visible) announceReflowLayout();
+  }, [visible, pages, pxPerPt]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const onReveal = (e: Event) => {
+      const pageNumber = (e as CustomEvent<{ pageNumber: number }>).detail.pageNumber;
+      if (revealing.current === pageNumber || pagesRef.current.some((p) => p.page.pageNumber === pageNumber)) return;
+      revealing.current = pageNumber;
+      openAtPageTop(pageNumber);
+    };
+    document.addEventListener(REFLOW_REVEAL_EVENT, onReveal);
+    return () => document.removeEventListener(REFLOW_REVEAL_EVENT, onReveal);
+  }, [visible, openAtPageTop]);
 
   const anchorAt = useCallback(
     (clientX: number, clientY: number): ScreenAnchor | null => {
@@ -646,6 +680,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       width = root.clientWidth;
       const keep = viewTop.current;
       if (keep) placeAnchor({ ...keep, clientY: root.getBoundingClientRect().top + 8 }, livePxPerPt.current);
+      announceReflowLayout();
       onResized();
     });
     observer.observe(root);

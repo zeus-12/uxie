@@ -16,6 +16,7 @@ import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Rect as PdfRect } from "../../lib/reflow/types";
 import { useInPlaceReflow } from "./reflow/use-in-place-reflow";
+import { createPdfTextSource, usePdfTextStore } from "../../lib/pdf-text";
 import type { ReflowSelection } from "./reflow/selection";
 import { useReflowOnZoom } from "../../hooks/use-reflow-on-zoom";
 import {
@@ -60,7 +61,6 @@ const PdfHighlighter = ({
   showAiFeatures,
   onZoomChange,
   onReflowChange,
-  readingAloud = false,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
@@ -80,7 +80,6 @@ const PdfHighlighter = ({
   showAiFeatures: boolean;
   onZoomChange?: (scale: number, persist: boolean) => void;
   onReflowChange?: (reflowed: boolean) => void;
-  readingAloud?: boolean;
 }) => {
   const sendMessage = useChatStore((state) => state.sendMessage);
   const stageImageAttachment = useChatStore(
@@ -88,10 +87,12 @@ const PdfHighlighter = ({
   );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
   const { enabled: reflowSetting } = useReflowOnZoom();
-  const speedReading = usePdfSettingsStore((state) => state.rsvpOpen);
-  const speakingAlong = usePdfSettingsStore((state) => state.speakAlongEnabled);
-  // These follow the page's own text layer, so reflow steps aside for them.
-  const reflowOnZoom = reflowSetting && !readingAloud && !speedReading && !speakingAlong;
+  const reflowOnZoom = reflowSetting;
+  const setTextSource = usePdfTextStore((state) => state.setSource);
+  useEffect(() => {
+    setTextSource(createPdfTextSource(pdfDocument));
+    return () => setTextSource(null);
+  }, [pdfDocument, setTextSource]);
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
 

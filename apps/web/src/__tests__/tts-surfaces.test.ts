@@ -1,0 +1,61 @@
+import { createPdfTextSource, usePdfTextStore } from "@uxie/shared/lib/pdf-text";
+import { afterEach, describe, expect, it } from "vitest";
+import { fakeRangeClientRects, mountReader } from "./helpers/sentence-reader";
+
+fakeRangeClientRects();
+
+const ITEMS = ["Reading deeply is a ", "different craft. It is slower, ", "more deliberate."];
+
+const canvas = () =>
+  `<div class="page" data-page-number="1"><div class="textLayer">${ITEMS.map(
+    (t) => `<span role="presentation">${t}</span>`,
+  ).join("")}</div></div>`;
+
+const reflow = () =>
+  `<div class="reflow-layer" data-active=""><section data-reflow-page="1" data-page-w="600" data-page-h="800"><p data-reflow-block="">${ITEMS.map(
+    (t, i) => `<span data-run="1:${i}" data-run-start="0" data-item-ordinal="${i}">${t.trim()}</span>`,
+  ).join(" ")}</p></section></div>`;
+
+const hl = (cls: string) => {
+  const el = document.querySelector(`.${cls}`);
+  return { text: el?.getAttribute("data-hl-text") ?? null, onReflow: Boolean(el?.closest("[data-reflow-page]")) };
+};
+
+afterEach(() => {
+  usePdfTextStore.getState().setSource(null);
+  document.body.innerHTML = "";
+});
+
+describe("read-aloud text model across surfaces", () => {
+  it("keeps the sentence and word when the page switches to reflowed text", () => {
+    document.body.innerHTML = canvas();
+    const reader = mountReader(1);
+    reader.startFromPage(1);
+    reader.advanceToNextSentence();
+    reader.highlightWordInSentence(3, 2, "tts");
+    expect(hl("tts-hl-sentence")).toEqual({ text: "It is slower, more deliberate.", onReflow: false });
+    expect(hl("tts-hl-word")).toEqual({ text: "is", onReflow: false });
+
+    document.body.insertAdjacentHTML("beforeend", reflow());
+    document.dispatchEvent(new CustomEvent("reflow:layout"));
+    expect(hl("tts-hl-sentence")).toEqual({ text: "It is slower, more deliberate.", onReflow: true });
+    expect(hl("tts-hl-word")).toEqual({ text: "is", onReflow: true });
+    expect(document.querySelectorAll(".tts-hl-word").length).toBe(1);
+  });
+
+  it("reads a page from pdf.js text content when its text layer isn't rendered", async () => {
+    const doc = {
+      numPages: 2,
+      getPage: async () => ({
+        getTextContent: async () => ({ items: [{ str: "Page two begins here." }, { str: "" }, { type: "beginMarkedContent" }] }),
+      }),
+    };
+    const source = createPdfTextSource(doc as never);
+    usePdfTextStore.getState().setSource(source);
+    source.prefetch(2);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(source.blocks(2)).toEqual(["Page two begins here."]);
+    const reader = mountReader(2);
+    expect(reader.startFromPage(2)?.sentence).toBe("Page two begins here.");
+  });
+});

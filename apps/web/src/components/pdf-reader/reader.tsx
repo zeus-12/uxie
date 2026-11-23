@@ -6,7 +6,6 @@ import {
 } from "@/types/highlight";
 import { type ReaderDoc } from "@/types/reader";
 import { HighlightTypeEnum } from "@prisma/client";
-import { READING_STATUS } from "@uxie/shared/components/pdf-reader/constants";
 import PdfHighlighter from "@uxie/shared/components/pdf-reader/pdf-highlighter";
 import { PdfLoader } from "@uxie/shared/components/pdf-reader/pdf-loader";
 import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
@@ -122,6 +121,7 @@ const PdfReader = ({
     zoomLevel,
     pageCount,
     viewer: pdfViewer,
+    reflowed,
     onSaveReaderState: (state) => {
       if (onUpdateReaderState) {
         onUpdateReaderState(docId, state);
@@ -175,7 +175,6 @@ const PdfReader = ({
             pdfScaleValue={pdfScaleValue}
             onZoomChange={handleZoomChange}
             onReflowChange={setReflowed}
-            readingAloud={readingStatus !== READING_STATUS.IDLE}
           />
         )}
       </PdfLoader>
