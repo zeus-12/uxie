@@ -260,26 +260,34 @@ const PdfHighlighter = ({
   }, [linksDisabled]);
 
   const highlightRects = useCallback(
-    (pageNumber: number, pageWidth: number, pageHeight: number): PdfRect[] =>
+    (pageNumber: number, pageWidth: number, pageHeight: number) =>
       highlights
-        .flatMap((h) =>
-          h.position.rects.filter(
-            (r) => (r.pageNumber ?? getHighlightPageNumber(h.position)) === pageNumber,
-          ),
-        )
-        .flatMap((r) => {
-          const { x1, y1, x2, y2, width, height } = r;
-          if (
-            x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined ||
-            !width || !height
-          ) {
-            return [];
-          }
-          const sx = pageWidth / width;
-          const sy = pageHeight / height;
-          return [{ x: x1 * sx, y: y1 * sy, width: (x2 - x1) * sx, height: (y2 - y1) * sy }];
-        }),
+        .map((h) => ({
+          id: h.id,
+          rects: h.position.rects
+            .filter((r) => (r.pageNumber ?? getHighlightPageNumber(h.position)) === pageNumber)
+            .flatMap((r): PdfRect[] => {
+              const { x1, y1, x2, y2, width, height } = r;
+              if (
+                x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined ||
+                !width || !height
+              ) {
+                return [];
+              }
+              const sx = pageWidth / width;
+              const sy = pageHeight / height;
+              return [{ x: x1 * sx, y: y1 * sy, width: (x2 - x1) * sx, height: (y2 - y1) * sy }];
+            }),
+        }))
+        .filter((region) => region.rects.length > 0),
     [highlights],
+  );
+
+  const renderReflowHighlight = useCallback(
+    (id: string, close: () => void) => (
+      <HighlightedTextPopover id={id} deleteHighlight={deleteHighlight} hideTip={close} />
+    ),
+    [deleteHighlight],
   );
 
   const renderReflowSelection = useCallback(
@@ -308,6 +316,7 @@ const PdfHighlighter = ({
 
   const reflow = useInPlaceReflow({
     renderSelection: renderReflowSelection,
+    renderHighlight: renderReflowHighlight,
     enabled: reflowOnZoom,
     instance: highlighterInstance,
     pdfDocument,

@@ -10,9 +10,9 @@ const contains = (rects: Rect[], x: number, y: number) =>
 // was selected on) and keeps the characters whose centres fall inside its rects.
 export const highlightRanges = async (
   pdfPage: PDFPageProxy,
-  rects: Rect[],
-): Promise<ItemRange[]> => {
-  if (rects.length === 0) return [];
+  groups: Rect[][],
+): Promise<ItemRange[][]> => {
+  if (groups.every((rects) => rects.length === 0)) return groups.map(() => []);
   const viewport = pdfPage.getViewport({ scale: 1 });
   const container = document.createElement("div");
   container.className = "textLayer";
@@ -35,30 +35,31 @@ export const highlightRanges = async (
       textDivs,
       textContentItemsStr,
     }).promise;
-    if (textDivs.length !== textContentItemsStr.length) return [];
+    if (textDivs.length !== textContentItemsStr.length) return groups.map(() => []);
     const origin = container.getBoundingClientRect();
     const range = document.createRange();
-    const out: ItemRange[] = [];
+    const out: ItemRange[][] = groups.map(() => []);
     textDivs.forEach((div, itemIndex) => {
       const node = div.firstChild;
       if (!node || node.nodeType !== Node.TEXT_NODE) return;
       const length = (node as Text).length;
-      let open: number | null = null;
+      const open: Array<number | null> = groups.map(() => null);
       for (let c = 0; c <= length; c++) {
-        let inside = false;
+        let centre: { x: number; y: number } | null = null;
         if (c < length) {
           range.setStart(node, c);
           range.setEnd(node, c + 1);
           const r = range.getBoundingClientRect();
-          inside =
-            r.width > 0 &&
-            contains(rects, r.left + r.width / 2 - origin.left, r.top + r.height / 2 - origin.top);
+          if (r.width > 0) centre = { x: r.left + r.width / 2 - origin.left, y: r.top + r.height / 2 - origin.top };
         }
-        if (inside && open === null) open = c;
-        if (!inside && open !== null) {
-          out.push({ begin: { itemIndex, offset: open }, end: { itemIndex, offset: c } });
-          open = null;
-        }
+        groups.forEach((rects, g) => {
+          const inside = centre !== null && contains(rects, centre.x, centre.y);
+          if (inside && open[g] === null) open[g] = c;
+          if (!inside && open[g] !== null) {
+            out[g]!.push({ begin: { itemIndex, offset: open[g]! }, end: { itemIndex, offset: c } });
+            open[g] = null;
+          }
+        });
       }
     });
     return out;

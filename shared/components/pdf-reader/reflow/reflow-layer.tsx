@@ -17,6 +17,8 @@ import { REFLOW_REVEAL_EVENT, announceReflowLayout } from "../../../lib/reflow/r
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
 import type { ReflowSource } from "../../../lib/reflow/source";
 import type { PageInput, Rect, Run } from "../../../lib/reflow/types";
+
+export type HighlightRegion = { id: string; rects: Rect[] };
 import type { PdfPoint, ScreenAnchor } from "./canvas-anchor";
 import { caretAt, charRect, offsetWithin } from "./caret";
 import { highlightRanges } from "./highlight-ranges";
@@ -54,12 +56,13 @@ type Props = {
   eventBus: EventBus;
   scale: number;
   anchor: ScreenAnchor;
-  highlightRects: (pageNumber: number, width: number, height: number) => Rect[];
+  highlightRects: (pageNumber: number, width: number, height: number) => HighlightRegion[];
   visible: boolean;
   onPlaced: () => void;
   onFailed: () => void;
   onResized: () => void;
   renderSelection?: (selection: ReflowSelection, close: () => void, keepVisible: () => void) => ReactNode;
+  renderHighlight?: (id: string, close: () => void) => ReactNode;
 };
 
 type RunEntry = { pageNumber: number; run: Run };
@@ -113,21 +116,21 @@ const sectionAnchorAt = (
 };
 
 export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLayer(
-  { source, pdfDocument, viewer, findController, eventBus, scale, anchor, highlightRects, visible, onPlaced, onFailed, onResized, renderSelection },
+  { source, pdfDocument, viewer, findController, eventBus, scale, anchor, highlightRects, visible, onPlaced, onFailed, onResized, renderSelection, renderHighlight },
   ref,
 ) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<LoadedPage[]>([]);
   const pagesRef = useRef<LoadedPage[]>([]);
   const [findVersion, setFindVersion] = useState(0);
-  const [highlightsByPage, setHighlightsByPage] = useState<Record<number, ItemRange[]>>({});
+  const [highlightsByPage, setHighlightsByPage] = useState<Record<number, Array<ItemRange & { id: string }>>>({});
   const loading = useRef(new Set<number>());
   const pendingAnchor = useRef<ScreenAnchor | null>(anchor);
   const keepInPlace = useRef<{ pageNumber: number; top: number } | null>(null);
   const windowRequest = useRef(0);
   const syncingPage = useRef(false);
   const handledFind = useRef<string | null>(null);
-  const rangeCache = useRef(new WeakMap<PDFPageProxy, { key: string; ranges: ItemRange[] }>());
+  const rangeCache = useRef(new WeakMap<PDFPageProxy, { key: string; ranges: Array<ItemRange & { id: string }> }>());
   const pxPerPt = scale * CSS_PX_PER_PT;
   const livePxPerPt = useRef(pxPerPt);
   const viewTop = useRef<ScreenAnchor | null>(null);
@@ -392,14 +395,15 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   useEffect(() => {
     let cancelled = false;
     void Promise.all(
-      pages.map(async ({ page, pdfPage }): Promise<[number, ItemRange[]]> => {
+      pages.map(async ({ page, pdfPage }): Promise<[number, Array<ItemRange & { id: string }>]> => {
         if (page.kind !== "reflow") return [page.pageNumber, []];
-        const rects = highlightRects(page.pageNumber, page.width, page.height);
-        if (rects.length === 0) return [page.pageNumber, []];
-        const key = JSON.stringify(rects);
+        const regions = highlightRects(page.pageNumber, page.width, page.height);
+        if (regions.length === 0) return [page.pageNumber, []];
+        const key = JSON.stringify(regions);
         const cached = rangeCache.current.get(pdfPage);
         if (cached?.key === key) return [page.pageNumber, cached.ranges];
-        const ranges = await highlightRanges(pdfPage, rects);
+        const grouped = await highlightRanges(pdfPage, regions.map((r) => r.rects));
+        const ranges = grouped.flatMap((list, i) => list.map((range) => ({ ...range, id: regions[i]!.id })));
         rangeCache.current.set(pdfPage, { key, ranges });
         return [page.pageNumber, ranges];
       }),
@@ -417,6 +421,35 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const [ghost, setGhost] = useState<ReflowSelection | null>(null);
 
   const selectable = Boolean(renderSelection);
+  const [highlightTip, setHighlightTip] = useState<{ id: string; left: number; top: number } | null>(null);
+  const closeHighlightTip = useCallback(() => setHighlightTip(null), []);
+
+  useEffect(() => {
+    const root = scroller();
+    if (!root || !visible || !renderHighlight) return;
+    const onClick = (e: MouseEvent) => {
+      const mark = (e.target as Element | null)?.closest?.<HTMLElement>("mark[data-highlight-id]");
+      if (!mark || !root.contains(mark) || !window.getSelection()?.isCollapsed) return;
+      const box = mark.getBoundingClientRect();
+      const rootBox = root.getBoundingClientRect();
+      const half = Math.min(60, rootBox.width / 2);
+      setHighlightTip({
+        id: mark.dataset.highlightId!,
+        left: clamp(box.left + box.width / 2 - rootBox.left, half, rootBox.width - half),
+        top: box.top - rootBox.top + root.scrollTop,
+      });
+    };
+    const onDown = (e: PointerEvent) => {
+      if ((e.target as Element | null)?.closest?.("[data-reflow-tip]")) return;
+      setHighlightTip(null);
+    };
+    root.addEventListener("click", onClick);
+    root.addEventListener("pointerdown", onDown);
+    return () => {
+      root.removeEventListener("click", onClick);
+      root.removeEventListener("pointerdown", onDown);
+    };
+  }, [visible, renderHighlight]);
 
   const closeSelection = useCallback(() => {
     setSelection(null);
@@ -733,6 +766,11 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           marks={marksByPage.get(loaded.page.pageNumber)!}
         />
       ))}
+      {highlightTip && renderHighlight && (
+        <div className="reflow-tip" data-reflow-tip="" style={{ left: highlightTip.left, top: highlightTip.top }}>
+          {renderHighlight(highlightTip.id, closeHighlightTip)}
+        </div>
+      )}
       {selection && renderSelection && (
         <div className="reflow-tip" data-reflow-tip="" style={{ left: selection.left, top: selection.top }}>
           {renderSelection(selection.value, closeSelection, () => setGhost(selection.value))}

@@ -43,13 +43,15 @@ export const useInPlaceReflow = ({
   highlightRects,
   onZoomChange,
   renderSelection,
+  renderHighlight,
 }: {
   enabled: boolean;
   instance: Instance | null;
   pdfDocument: PDFDocumentProxy;
-  highlightRects: (pageNumber: number, width: number, height: number) => Rect[];
+  highlightRects: ComponentProps<typeof ReflowLayer>["highlightRects"];
   onZoomChange?: (scale: number, persist: boolean) => void;
   renderSelection?: ComponentProps<typeof ReflowLayer>["renderSelection"];
+  renderHighlight?: ComponentProps<typeof ReflowLayer>["renderHighlight"];
 }) => {
   const source = useMemo(() => createReflowSource(pdfDocument), [pdfDocument]);
   const [reflow, setReflow] = useState<{ anchor: ScreenAnchor; scale: number } | null>(null);
@@ -339,6 +341,7 @@ export const useInPlaceReflow = ({
         onFailed={onFailed}
         onResized={onResized}
         renderSelection={renderSelection}
+        renderHighlight={renderHighlight}
       />
     ) : null;
 

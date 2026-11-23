@@ -8,7 +8,7 @@ export type LoadedPage = { page: ReflowPage; input: PageInput; pdfPage: PDFPageP
 export type PageMarks = {
   search: ItemRange[];
   selectedSearch: number | null;
-  highlights: ItemRange[];
+  highlights: Array<ItemRange & { id?: string }>;
 };
 
 const MAX_CANVAS_PIXELS = 4_000_000;
@@ -94,11 +94,18 @@ const CropCanvas = ({
   );
 };
 
-type Slice = { from: number; to: number; search: boolean; selected: boolean; highlight: boolean };
+type Slice = {
+  from: number;
+  to: number;
+  search: boolean;
+  selected: boolean;
+  highlight: boolean;
+  highlightId: string | undefined;
+};
 
 const runSlices = (run: Run, marks: PageMarks): Slice[] => {
   const cuts = new Set<number>([run.start, run.end]);
-  const tagged: Array<{ from: number; to: number; kind: "search" | "selected" | "highlight" }> = [];
+  const tagged: Array<{ from: number; to: number; kind: "search" | "selected" | "highlight"; id?: string }> = [];
   marks.search.forEach((range, i) => {
     const s = sliceOfRun(run, range);
     if (!s) return;
@@ -106,7 +113,7 @@ const runSlices = (run: Run, marks: PageMarks): Slice[] => {
   });
   for (const range of marks.highlights) {
     const s = sliceOfRun(run, range);
-    if (s) tagged.push({ ...s, kind: "highlight" });
+    if (s) tagged.push({ ...s, kind: "highlight", id: range.id });
   }
   for (const t of tagged) {
     cuts.add(t.from);
@@ -124,6 +131,7 @@ const runSlices = (run: Run, marks: PageMarks): Slice[] => {
       search: covering.some((t) => t.kind === "search" || t.kind === "selected"),
       selected: covering.some((t) => t.kind === "selected"),
       highlight: covering.some((t) => t.kind === "highlight"),
+      highlightId: covering.find((t) => t.kind === "highlight" && t.id)?.id,
     });
   }
   return out;
@@ -143,7 +151,13 @@ const RunText = ({ str, run, marks }: { str: string; run: Run; marks: PageMarks 
             </mark>
           );
         }
-        if (s.highlight) node = <mark className="reflow-highlight">{node}</mark>;
+        if (s.highlight) {
+          node = (
+            <mark className="reflow-highlight" data-highlight-id={s.highlightId}>
+              {node}
+            </mark>
+          );
+        }
         return <Fragment key={s.from}>{node}</Fragment>;
       })}
     </>
