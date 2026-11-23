@@ -262,9 +262,8 @@ const usePdfReader = ({
     };
   }, [viewer, debouncedUpdateLastReadPage, lastReadPage]);
 
-  // The library re-applies pdfScaleValue on resize but never on prop change.
-  // Gated on page views existing: applying earlier makes pdf.js record the scale
-  // without using it, so its own `pagesinit` apply then skips as a no-op.
+  // Gated on page views: applied earlier, pdf.js records the scale without
+  // using it and its own `pagesinit` apply then skips as a no-op.
   useEffect(() => {
     const currentViewer = pdfViewerRef.current;
     if (currentViewer && currentViewer.pagesCount > 0) {
@@ -348,7 +347,8 @@ const usePdfReader = ({
           : 1;
 
         pdfViewerRef.current?.scrollPageIntoView({ pageNumber: startPage });
-        await sentenceReader.textReady(startPage);
+        if (!isContinueReading) await sentenceReader.ensureTextFrom(startPage);
+        if (thisOperationId !== currentOperationIdRef.current || shouldStopRef.current) return;
 
         const position = isContinueReading
           ? sentenceReader.getCurrentSentence()
@@ -392,8 +392,9 @@ const usePdfReader = ({
     cancelAllOperations();
     debouncedPlayAfterSkip.cancel();
 
+    const operationId = currentOperationIdRef.current;
     void sentenceReader.prepareNextSentence().then(() => {
-      if (!isReadingRef.current) return;
+      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) return;
       const next = sentenceReader.advanceToNextSentence();
       if (next) {
         scrollToHighlight();
@@ -488,7 +489,9 @@ const usePdfReader = ({
     if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current)
       return;
 
+    const operationId = currentOperationIdRef.current;
     void sentenceReader.prepareNextSentence().then(() => {
+      if (operationId !== currentOperationIdRef.current) return;
       if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current) return;
       const next = sentenceReader.advanceToNextSentence();
       if (next) {
@@ -599,6 +602,8 @@ const usePdfReader = ({
 
       const startPage =
         selectionPageNumber ?? (pageNumberInView > 0 ? pageNumberInView : 1);
+      await sentenceReader.ensureTextFrom(startPage);
+      if (thisOperationId !== currentOperationIdRef.current || shouldStopRef.current) return;
       const position = sentenceReader.startFromTextOnPage(
         startPage,
         selectedText,

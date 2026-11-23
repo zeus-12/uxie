@@ -106,6 +106,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const hasShownErrorRef = useRef(false);
   const statusRef = useRef(status);
+  const advancingRef = useRef(false);
   statusRef.current = status;
 
   const cleanWord = currentWord ? cleanWordForLookup(currentWord) : "";
@@ -196,34 +197,43 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     [sentenceReader],
   );
 
+  const showNextSentence = useCallback(() => {
+    const next = sentenceReader.advanceToNextSentence();
+    if (!next) {
+      stopRecognition();
+      setStatus(SPEAK_ALONG_STATUS.IDLE);
+      toast.success("Finished reading!");
+      return;
+    }
+
+    wordsRef.current = extractRealWordsWithHyphenation(next.sentence);
+    currentWordIndexRef.current = 0;
+    setCurrentSentence(next.sentence);
+    setCurrentPage(next.pageNumber);
+
+    const firstWord = wordsRef.current[0];
+    if (firstWord) {
+      setCurrentWord(firstWord.displayWord);
+      sentenceReader.highlightCurrentSentence("tts");
+      sentenceReader.scrollToCurrentSentence();
+      highlightSpeakAlongWord(firstWord);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sentenceReader, highlightSpeakAlongWord]);
+
   const updateWordDisplay = useCallback(() => {
     setShowDefinition(false);
     const words = wordsRef.current;
     const index = currentWordIndexRef.current;
 
     if (index >= words.length) {
-      // Move to next sentence
-      const next = sentenceReader.advanceToNextSentence();
-      if (!next) {
-        stopRecognition();
-        setStatus(SPEAK_ALONG_STATUS.IDLE);
-        toast.success("Finished reading!");
-        return;
-      }
-
-      // Load new sentence words
-      wordsRef.current = extractRealWordsWithHyphenation(next.sentence);
-      currentWordIndexRef.current = 0;
-      setCurrentSentence(next.sentence);
-      setCurrentPage(next.pageNumber);
-
-      const firstWord = wordsRef.current[0];
-      if (firstWord) {
-        setCurrentWord(firstWord.displayWord);
-        sentenceReader.highlightCurrentSentence("tts");
-        sentenceReader.scrollToCurrentSentence();
-        highlightSpeakAlongWord(firstWord);
-      }
+      if (advancingRef.current) return;
+      advancingRef.current = true;
+      void sentenceReader.prepareNextSentence().then(() => {
+        advancingRef.current = false;
+        if (statusRef.current === SPEAK_ALONG_STATUS.IDLE) return;
+        showNextSentence();
+      });
       return;
     }
 
@@ -232,8 +242,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
 
     setCurrentWord(wordInfo.displayWord);
     highlightSpeakAlongWord(wordInfo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sentenceReader, highlightSpeakAlongWord]);
+  }, [sentenceReader, highlightSpeakAlongWord, showNextSentence]);
 
   const updateWordDisplayRef = useRef(updateWordDisplay);
   updateWordDisplayRef.current = updateWordDisplay;
@@ -342,7 +351,8 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   );
 
   const start = useCallback(
-    (pageNumber: number) => {
+    async (pageNumber: number) => {
+      await sentenceReader.ensureTextFrom(pageNumber);
       const ok = loadSentence(pageNumber);
       if (!ok) {
         toast.error("No text found on this page");
@@ -352,7 +362,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
       hasShownErrorRef.current = false;
       startRecognition();
     },
-    [loadSentence, startRecognition],
+    [loadSentence, startRecognition, sentenceReader],
   );
 
   const stop = useCallback(() => {
@@ -413,10 +423,10 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
         status === SPEAK_ALONG_STATUS.LISTENING ||
         status === SPEAK_ALONG_STATUS.PAUSED
       ) {
-        loadSentence(pageNumber);
+        void sentenceReader.ensureTextFrom(pageNumber).then(() => loadSentence(pageNumber));
       }
     },
-    [status, loadSentence],
+    [status, loadSentence, sentenceReader],
   );
 
   const toggleDefinition = useCallback(() => {

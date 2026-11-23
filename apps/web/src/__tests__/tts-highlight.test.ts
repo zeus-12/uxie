@@ -29,6 +29,9 @@ function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
   const page = document.createElement("div");
   page.className = "page";
   page.setAttribute("data-page-number", String(pageNumber));
+  const textLayer = document.createElement("div");
+  textLayer.className = "textLayer";
+  page.appendChild(textLayer);
   for (const s of spans) {
     const el = document.createElement("span");
     el.setAttribute("role", "presentation");
@@ -45,8 +48,10 @@ function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
       toJSON() {},
     };
     el.getBoundingClientRect = () => rect as DOMRect;
-    page.appendChild(el);
+    textLayer.appendChild(el);
   }
+  // What pdf.js's TextLayerBuilder appends once the layer has finished rendering.
+  textLayer.appendChild(Object.assign(document.createElement("div"), { className: "endOfContent" }));
   document.body.appendChild(page);
 }
 

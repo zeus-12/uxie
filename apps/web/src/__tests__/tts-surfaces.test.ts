@@ -69,4 +69,28 @@ describe("read-aloud text model across surfaces", () => {
     expect(reader.advanceToNextSentence()).toBeNull();
     expect(reader.getCurrentPage()).toBe(1);
   });
+
+  it("crosses an empty page onto one whose text is still loading", async () => {
+    const texts: Record<number, string[]> = { 1: ["Page one ends here."], 2: [], 3: ["Page three starts."] };
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const doc = {
+      numPages: 3,
+      getPage: async (n: number) => ({
+        getTextContent: async () => {
+          if (n === 3) await gate;
+          return { items: texts[n]!.map((str) => ({ str })) };
+        },
+      }),
+    };
+    const source = createPdfTextSource(doc as never);
+    usePdfTextStore.getState().setSource(source);
+    await source.ready(1);
+    const reader = mountReader(3);
+    expect(reader.startFromPage(1)?.sentence).toBe("Page one ends here.");
+    const prepared = reader.prepareNextSentence();
+    release();
+    await prepared;
+    expect(reader.advanceToNextSentence()?.sentence).toBe("Page three starts.");
+  });
 });

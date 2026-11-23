@@ -120,9 +120,7 @@ const reflowSection = (pageNumber: number) =>
 function pageBlocks(pageNumber: number): string[] | null {
   const cached = usePdfTextStore.getState().source?.blocks(pageNumber);
   if (cached) return cached;
-  const page = canvasPage(pageNumber);
-  const layer = page?.querySelector(".textLayer");
-  if (!page || (layer && !layer.querySelector(".endOfContent"))) return null;
+  if (!canvasPage(pageNumber)?.querySelector(".textLayer .endOfContent")) return null;
   return canvasSpans(pageNumber).map((span) => span.textContent ?? "");
 }
 
@@ -986,17 +984,27 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     [pageCount],
   );
 
-  const textReady = useCallback(async (pageNumber: number) => {
-    await usePdfTextStore.getState().source?.ready(pageNumber);
-  }, []);
+  // Loads page text from `pageNumber` on, past genuinely empty pages, so the
+  // synchronous walks below find it rather than stop on a page still loading.
+  const ensureTextFrom = useCallback(
+    async (pageNumber: number) => {
+      const source = usePdfTextStore.getState().source;
+      if (!source) return;
+      for (let page = pageNumber; page <= pageCount; page++) {
+        await source.ready(page);
+        const blocks = source.blocks(page);
+        if (!blocks || buildPageTextModel(page, blocks).sentences.length > 0) return;
+      }
+    },
+    [pageCount],
+  );
 
-  // At a page's last sentence the next page's text may still be loading.
   const prepareNextSentence = useCallback(async () => {
     const model = modelRef.current;
     if (!model) return;
     if (currentSentenceIndexRef.current + 1 < model.sentences.length) return;
-    await textReady(currentPageRef.current + 1);
-  }, [textReady]);
+    await ensureTextFrom(currentPageRef.current + 1);
+  }, [ensureTextFrom]);
 
   const getTotalSentences = useCallback(
     () => modelRef.current?.sentences.length ?? 0,
@@ -1024,7 +1032,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     peekUpcomingSentences,
     getTotalSentences,
     getCurrentPage,
-    textReady,
+    ensureTextFrom,
     prepareNextSentence,
   };
 }

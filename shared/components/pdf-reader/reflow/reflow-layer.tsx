@@ -669,7 +669,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           const inWindow = pagesRef.current.some((p) => p.page.pageNumber === pageNumber);
           if (inWindow && placeAnchor(target, livePxPerPt.current)) return;
           void openWindow(pageNumber, target);
-        });
+        }).catch(() => openAtPageTop(pageNumber));
       },
       previewScale: (next, keep) => {
         const root = scroller();
@@ -680,7 +680,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         placeAnchor(keep, ppt);
       },
     }),
-    [anchorAt, placeAnchor, topAnchor, source, openWindow],
+    [anchorAt, placeAnchor, topAnchor, source, openWindow, openAtPageTop],
   );
 
   useLayoutEffect(() => {

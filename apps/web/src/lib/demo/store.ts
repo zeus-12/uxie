@@ -100,7 +100,7 @@ export const openCorpusDoc = (doc: DemoDoc) => {
     try {
       localStorage.setItem(SAVED_DEMO_KEY, JSON.stringify(docOf(state)));
     } catch {
-      return;
+      // Storage is unavailable; closing the test document reseeds the demo.
     }
   }
   state.openDoc(doc);

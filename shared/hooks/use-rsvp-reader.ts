@@ -123,6 +123,7 @@ export function useRsvpReader({
 
       currentPageRef.current = pageNumber;
       setCurrentPage(pageNumber);
+      void sentenceReader.ensureTextFrom(pageNumber + 1);
       setCurrentSentenceIndex(0);
       setCurrentWordIndex(0);
       setIsInitialized(true);
@@ -302,7 +303,8 @@ export function useRsvpReader({
   }, [advanceWord]);
 
   const startFromPage = useCallback(
-    (pageNumber: number) => {
+    async (pageNumber: number) => {
+      await sentenceReader.ensureTextFrom(pageNumber);
       const loaded = loadPage(pageNumber);
       if (loaded) {
         lastHighlightedSentenceRef.current = -1;
@@ -314,13 +316,14 @@ export function useRsvpReader({
         }
       }
     },
-    [loadPage, updateWordDisplay],
+    [loadPage, updateWordDisplay, sentenceReader],
   );
 
   const play = useCallback(() => {
     if (!isInitialized) {
       // Stopped state: initialize from the page the user is currently viewing
-      startFromPage(viewedPageRef.current);
+      void startFromPage(viewedPageRef.current).then(() => setIsPlaying(true));
+      return;
     }
     setIsPlaying(true);
   }, [isInitialized, startFromPage]);
