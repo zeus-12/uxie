@@ -257,6 +257,7 @@ function ReaderContent({
     skipSentence,
     skipToPreviousSentence,
     handleZoomChange,
+    handleToolbarZoomChange,
     handlePageChange,
     readSelectedText,
     currentZoom,
@@ -277,11 +278,6 @@ function ReaderContent({
     },
   });
 
-  // A zoom made while reflowed is a reflow zoom, not the page zoom to reopen at.
-  const handleToolbarZoom = useCallback(
-    (zoom: number) => handleZoomChange(zoom, !reflowed),
-    [handleZoomChange, reflowed],
-  );
 
   async function addHighlight(
     position: ScaledPosition,
@@ -449,7 +445,7 @@ function ReaderContent({
               skipSentence={skipSentence}
               skipToPreviousSentence={skipToPreviousSentence}
               totalPages={doc.pageCount}
-              onZoomChange={handleToolbarZoom}
+              onZoomChange={handleToolbarZoomChange}
               onPageChange={handlePageChange}
               currentZoom={currentZoom}
               reflowed={reflowed}

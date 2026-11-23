@@ -30,6 +30,7 @@ export type ReflowLayerApi = {
   anchorAt: (clientX: number, clientY: number) => ScreenAnchor | null;
   topAnchor: () => ScreenAnchor | null;
   previewScale: (scale: number, keep: ScreenAnchor) => void;
+  showPagePoint: (pageNumber: number, fx: number, fy: number) => void;
 };
 
 type FindController = {
@@ -415,6 +416,8 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const [selection, setSelection] = useState<{ value: ReflowSelection; left: number; top: number } | null>(null);
   const [ghost, setGhost] = useState<ReflowSelection | null>(null);
 
+  const selectable = Boolean(renderSelection);
+
   const closeSelection = useCallback(() => {
     setSelection(null);
     setGhost(null);
@@ -423,7 +426,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
 
   useEffect(() => {
     const root = scroller();
-    if (!root || !visible || !renderSelection) return;
+    if (!root || !visible || !selectable) return;
     let pointerDown = false;
     let running = false;
     let dirty = false;
@@ -485,7 +488,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       document.removeEventListener("keyup", onChange);
       document.removeEventListener("selectionchange", onChange);
     };
-  }, [visible, renderSelection, pdfDocument, viewer]);
+  }, [visible, selectable, pdfDocument, viewer]);
 
   const marksByPage = useMemo(() => {
     const fc = findController;
@@ -653,6 +656,21 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     () => ({
       anchorAt,
       topAnchor,
+      showPagePoint: (pageNumber, fx, fy) => {
+        void source.page(pageNumber).then((page) => {
+          const root = scroller();
+          if (!root) return;
+          const r = root.getBoundingClientRect();
+          const target: ScreenAnchor = {
+            point: { pageNumber, x: fx * page.width, y: fy * page.height },
+            clientX: r.left,
+            clientY: r.top + r.height / 3,
+          };
+          const inWindow = pagesRef.current.some((p) => p.page.pageNumber === pageNumber);
+          if (inWindow && placeAnchor(target, livePxPerPt.current)) return;
+          void openWindow(pageNumber, target);
+        });
+      },
       previewScale: (next, keep) => {
         const root = scroller();
         if (!root) return;
@@ -662,7 +680,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         placeAnchor(keep, ppt);
       },
     }),
-    [anchorAt, placeAnchor, topAnchor],
+    [anchorAt, placeAnchor, topAnchor, source, openWindow],
   );
 
   useLayoutEffect(() => {

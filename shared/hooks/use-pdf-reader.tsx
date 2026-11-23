@@ -348,6 +348,7 @@ const usePdfReader = ({
           : 1;
 
         pdfViewerRef.current?.scrollPageIntoView({ pageNumber: startPage });
+        await sentenceReader.textReady(startPage);
 
         const position = isContinueReading
           ? sentenceReader.getCurrentSentence()
@@ -391,13 +392,16 @@ const usePdfReader = ({
     cancelAllOperations();
     debouncedPlayAfterSkip.cancel();
 
-    const next = sentenceReader.advanceToNextSentence();
-    if (next) {
-      scrollToHighlight();
-      debouncedPlayAfterSkip();
-    } else {
-      stopReading();
-    }
+    void sentenceReader.prepareNextSentence().then(() => {
+      if (!isReadingRef.current) return;
+      const next = sentenceReader.advanceToNextSentence();
+      if (next) {
+        scrollToHighlight();
+        debouncedPlayAfterSkip();
+      } else {
+        stopReading();
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     cancelAllOperations,
@@ -484,13 +488,16 @@ const usePdfReader = ({
     if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current)
       return;
 
-    const next = sentenceReader.advanceToNextSentence();
-    if (next) {
-      scrollToHighlight();
-      playCurrentSentenceAudio();
-    } else {
-      stopReading();
-    }
+    void sentenceReader.prepareNextSentence().then(() => {
+      if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current) return;
+      const next = sentenceReader.advanceToNextSentence();
+      if (next) {
+        scrollToHighlight();
+        playCurrentSentenceAudio();
+      } else {
+        stopReading();
+      }
+    });
   }, [
     sentenceReader,
     scrollToHighlight,
@@ -543,6 +550,12 @@ const usePdfReader = ({
       if (persist) debouncedUpdateZoomLevel(zoom);
     },
     [debouncedUpdateZoomLevel],
+  );
+
+  // A zoom made while reflowed is a reflow zoom, not the page zoom to reopen at.
+  const handleToolbarZoomChange = useCallback(
+    (zoom: number) => handleZoomChange(zoom, !reflowed),
+    [handleZoomChange, reflowed],
   );
 
   const handlePageChange = useCallback((pageNumber: number) => {
@@ -670,6 +683,7 @@ const usePdfReader = ({
     skipSentence,
     skipToPreviousSentence,
     handleZoomChange,
+    handleToolbarZoomChange,
     handlePageChange,
     readSelectedText,
     currentZoom,

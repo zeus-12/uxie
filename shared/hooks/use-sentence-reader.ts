@@ -87,10 +87,8 @@ export function cleanSentenceForTts(text: string): string {
   return text.trim();
 }
 
-// Offsets are normalized (whitespace runs collapsed) — what sbd and the TTS
-// engines see — and mapped back to raw block offsets only when highlighting.
-// Blocks are pdf.js's non-empty text items, so the model is the same whichever
-// surface (canvas text layer or reflowed text) is showing the page.
+// Blocks are pdf.js's non-empty text items, so the model is surface-independent;
+// offsets are whitespace-normalized (what sbd and TTS see), raw only to paint.
 type PageTextModel = {
   pageNumber: number;
   blocks: string[];
@@ -117,10 +115,14 @@ const reflowSection = (pageNumber: number) =>
     `.reflow-layer[data-active] [data-reflow-page="${pageNumber}"]`,
   );
 
+// null when the page's text isn't known yet: pdf.js streams a text layer in
+// chunks and appends .endOfContent once it has all of them.
 function pageBlocks(pageNumber: number): string[] | null {
   const cached = usePdfTextStore.getState().source?.blocks(pageNumber);
   if (cached) return cached;
-  if (!canvasPage(pageNumber)) return null;
+  const page = canvasPage(pageNumber);
+  const layer = page?.querySelector(".textLayer");
+  if (!page || (layer && !layer.querySelector(".endOfContent"))) return null;
   return canvasSpans(pageNumber).map((span) => span.textContent ?? "");
 }
 
@@ -238,9 +240,8 @@ function blockRects(el: Element, from: number, to: number): Rect[] {
   return Array.from(range.getClientRects());
 }
 
-// Text a reflowed page shows as an image (a crop, or the whole page kept) is
-// still laid out on the hidden canvas page; both are renders of the same page,
-// so its rects scale onto the image.
+// Text reflow shows as an image (a crop or a kept page) is laid out on the hidden
+// canvas page; both render the same page, so its rects scale onto the image.
 function projectOntoImage(
   section: HTMLElement,
   pageNumber: number,
@@ -513,11 +514,12 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const lastWordBoundaryAtRef = useRef(0);
   const glideMsRef = useRef(GLIDE_MAX_MS);
 
-  const loadPageSentences = useCallback((pageNumber: number): string[] => {
+  // null when the page's text isn't known yet, so walks stop instead of skipping it.
+  const loadPageSentences = useCallback((pageNumber: number): string[] | null => {
     const source = usePdfTextStore.getState().source;
     for (let ahead = 0; ahead <= 2; ahead++) source?.prefetch(pageNumber + ahead);
     const blocks = pageBlocks(pageNumber);
-    if (!blocks) return [];
+    if (!blocks) return null;
 
     const model = buildPageTextModel(pageNumber, blocks);
     modelRef.current = model;
@@ -669,6 +671,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     let nextPage = currentPageRef.current + 1;
     while (nextPage <= pageCount) {
       const sentences = loadPageSentences(nextPage);
+      if (!sentences) return null;
       if (sentences.length > 0) {
         currentSentenceIndexRef.current = 0;
         highlightCurrentSentence();
@@ -697,7 +700,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       }
 
       const sentences = loadPageSentences(prevPage);
-      if (sentences.length === 0) return null;
+      if (!sentences || sentences.length === 0) return null;
 
       currentSentenceIndexRef.current = sentences.length - 1;
       highlightCurrentSentence();
@@ -714,6 +717,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       let currentPage = pageNumber;
       while (currentPage <= pageCount) {
         const sentences = loadPageSentences(currentPage);
+        if (!sentences) return null;
         if (sentences.length > 0) {
           currentSentenceIndexRef.current = 0;
           highlightCurrentSentence();
@@ -740,7 +744,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     ): SentencePosition | null => {
       const sentences = loadPageSentences(pageNumber);
       const model = modelRef.current;
-      if (sentences.length === 0 || !model) return null;
+      if (!sentences || sentences.length === 0 || !model) return null;
 
       const normalised = selectedText.trim().replace(/\s+/g, " ");
       let bestIdx = -1;
@@ -982,6 +986,18 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     [pageCount],
   );
 
+  const textReady = useCallback(async (pageNumber: number) => {
+    await usePdfTextStore.getState().source?.ready(pageNumber);
+  }, []);
+
+  // At a page's last sentence the next page's text may still be loading.
+  const prepareNextSentence = useCallback(async () => {
+    const model = modelRef.current;
+    if (!model) return;
+    if (currentSentenceIndexRef.current + 1 < model.sentences.length) return;
+    await textReady(currentPageRef.current + 1);
+  }, [textReady]);
+
   const getTotalSentences = useCallback(
     () => modelRef.current?.sentences.length ?? 0,
     [],
@@ -1008,5 +1024,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     peekUpcomingSentences,
     getTotalSentences,
     getCurrentPage,
+    textReady,
+    prepareNextSentence,
   };
 }

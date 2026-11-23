@@ -95,6 +95,8 @@ const PdfHighlighter = ({
   }, [pdfDocument, setTextSource]);
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
+  const reflowActiveRef = useRef(false);
+  const showReflowPointRef = useRef<((pageNumber: number, fx: number, fy: number) => void) | null>(null);
 
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
     null,
@@ -128,6 +130,12 @@ const PdfHighlighter = ({
         toast.error("Couldn't find this highlight in the document", {
           duration: 3000,
         });
+        return;
+      }
+
+      const first = highlight?.position.rects[0] ?? highlight?.position.boundingRect;
+      if (reflowActiveRef.current && first?.width && first.height && first.x1 !== undefined && first.y1 !== undefined) {
+        showReflowPointRef.current?.(pageNumber, first.x1 / first.width, first.y1 / first.height);
         return;
       }
 
@@ -271,6 +279,8 @@ const PdfHighlighter = ({
     onZoomChange,
   });
   const { bindPinch, active: reflowed } = reflow;
+  reflowActiveRef.current = reflowed;
+  showReflowPointRef.current = reflow.showPagePoint;
   useEffect(() => {
     onReflowChange?.(reflowed);
     return () => onReflowChange?.(false);

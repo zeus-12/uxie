@@ -9,7 +9,7 @@ const ITEMS = ["Reading deeply is a ", "different craft. It is slower, ", "more 
 const canvas = () =>
   `<div class="page" data-page-number="1"><div class="textLayer">${ITEMS.map(
     (t) => `<span role="presentation">${t}</span>`,
-  ).join("")}</div></div>`;
+  ).join("")}<div class="endOfContent"></div></div></div>`;
 
 const reflow = () =>
   `<div class="reflow-layer" data-active=""><section data-reflow-page="1" data-page-w="600" data-page-h="800"><p data-reflow-block="">${ITEMS.map(
@@ -57,5 +57,16 @@ describe("read-aloud text model across surfaces", () => {
     expect(source.blocks(2)).toEqual(["Page two begins here."]);
     const reader = mountReader(2);
     expect(reader.startFromPage(2)?.sentence).toBe("Page two begins here.");
+  });
+
+  it("waits on a page whose text layer hasn't finished instead of skipping it", () => {
+    const page = (n: number, done: boolean, text: string) =>
+      `<div class="page" data-page-number="${n}"><div class="textLayer"><span role="presentation">${text}</span>${done ? '<div class="endOfContent"></div>' : ""}</div></div>`;
+    document.body.innerHTML =
+      page(1, true, "Page one ends here.") + page(2, false, "Page two is still") + page(3, true, "Page three.");
+    const reader = mountReader(3);
+    expect(reader.startFromPage(1)?.sentence).toBe("Page one ends here.");
+    expect(reader.advanceToNextSentence()).toBeNull();
+    expect(reader.getCurrentPage()).toBe(1);
   });
 });

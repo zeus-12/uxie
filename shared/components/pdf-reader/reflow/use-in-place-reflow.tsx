@@ -321,5 +321,9 @@ export const useInPlaceReflow = ({
       />
     ) : null;
 
-  return { layer, bindPinch, active: Boolean(reflow && placed) };
+  const showPagePoint = useCallback((pageNumber: number, fx: number, fy: number) => {
+    layerRef.current?.showPagePoint(pageNumber, fx, fy);
+  }, []);
+
+  return { layer, bindPinch, active: Boolean(reflow && placed), showPagePoint };
 };

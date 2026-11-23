@@ -41,6 +41,8 @@ async function renderDemoPageWithFindMatches() {
     textDivs,
     textContentItemsStr,
   }).promise;
+  // What pdf.js's TextLayerBuilder appends once the layer has finished rendering.
+  textLayer.appendChild(Object.assign(document.createElement("div"), { className: "endOfContent" }));
 
   const eventBus = new EventBus();
   const findController = new PDFFindController({

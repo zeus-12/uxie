@@ -6,18 +6,19 @@ import { create } from "zustand";
 export type PdfTextSource = {
   blocks: (pageNumber: number) => string[] | null;
   prefetch: (pageNumber: number) => void;
+  ready: (pageNumber: number) => Promise<void>;
 };
 
 export const createPdfTextSource = (doc: PDFDocumentProxy): PdfTextSource => {
   const cache = new Map<number, string[]>();
-  const pending = new Set<number>();
-  return {
-    blocks: (pageNumber) => cache.get(pageNumber) ?? null,
-    prefetch: (pageNumber) => {
-      if (pageNumber < 1 || pageNumber > doc.numPages) return;
-      if (cache.has(pageNumber) || pending.has(pageNumber)) return;
-      pending.add(pageNumber);
-      doc
+  const pending = new Map<number, Promise<void>>();
+  const prefetch = (pageNumber: number): Promise<void> => {
+    if (pageNumber < 1 || pageNumber > doc.numPages || cache.has(pageNumber)) {
+      return Promise.resolve();
+    }
+    const inFlight = pending.get(pageNumber);
+    if (inFlight) return inFlight;
+    const load = doc
         .getPage(pageNumber)
         .then((page) => page.getTextContent({ includeMarkedContent: true, disableCombineTextItems: false }))
         .then((content) => {
@@ -29,7 +30,13 @@ export const createPdfTextSource = (doc: PDFDocumentProxy): PdfTextSource => {
         })
         .catch(() => undefined)
         .finally(() => pending.delete(pageNumber));
-    },
+    pending.set(pageNumber, load);
+    return load;
+  };
+  return {
+    blocks: (pageNumber) => cache.get(pageNumber) ?? null,
+    prefetch: (pageNumber) => void prefetch(pageNumber),
+    ready: prefetch,
   };
 };
 

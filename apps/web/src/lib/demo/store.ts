@@ -108,13 +108,14 @@ export const openCorpusDoc = (doc: DemoDoc) => {
 
 export const closeCorpusDoc = () => {
   if (!useDemoDocStore.getState().id.startsWith("corpus:")) return;
-  let saved: string | null = null;
+  let saved: DemoDoc | null = null;
   try {
-    saved = localStorage.getItem(SAVED_DEMO_KEY);
+    const raw = localStorage.getItem(SAVED_DEMO_KEY);
     localStorage.removeItem(SAVED_DEMO_KEY);
+    saved = raw ? (JSON.parse(raw) as DemoDoc) : null;
   } catch {
     saved = null;
   }
-  if (saved) useDemoDocStore.getState().openDoc(JSON.parse(saved) as DemoDoc);
+  if (saved) useDemoDocStore.getState().openDoc(saved);
   else resetDemo();
 };

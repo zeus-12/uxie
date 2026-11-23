@@ -107,6 +107,7 @@ const PdfReader = ({
     skipSentence,
     skipToPreviousSentence,
     handleZoomChange,
+    handleToolbarZoomChange,
     handlePageChange,
     readSelectedText,
     currentZoom,
@@ -131,11 +132,6 @@ const PdfReader = ({
     },
   });
 
-  // A zoom made while reflowed is a reflow zoom, not the page zoom to reopen at.
-  const handleToolbarZoom = useCallback(
-    (zoom: number) => handleZoomChange(zoom, !reflowed),
-    [handleZoomChange, reflowed],
-  );
 
   return (
     <>
@@ -190,7 +186,7 @@ const PdfReader = ({
         skipSentence={skipSentence}
         skipToPreviousSentence={skipToPreviousSentence}
         totalPages={pageCount}
-        onZoomChange={handleToolbarZoom}
+        onZoomChange={handleToolbarZoomChange}
         onPageChange={handlePageChange}
         currentZoom={currentZoom}
         reflowed={reflowed}
