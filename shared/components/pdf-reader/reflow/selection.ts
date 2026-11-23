@@ -101,10 +101,8 @@ const blockIndexOf = (itemsStr: string[], itemIndex: number) =>
   itemsStr.slice(0, itemIndex).filter((s) => s !== "").length;
 
 
-// The characters a reflow selection covers, in the order shown: the selected
-// slices plus whitespace-only items between two adjacent ones, which the page's
-// text layer would include too. A jump (another page, a reordered or dropped
-// item) is a gap.
+// Adds the whitespace items between two adjacent slices, as the page's text
+// layer selection would; a jump to another page or a reordered item is a gap.
 type Covered = { slices: RunSlice[]; quote: string };
 
 const coverSelection = (slices: RunSlice[], inputOf: (pageNumber: number) => PageInput | undefined): Covered | null => {

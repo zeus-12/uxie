@@ -403,7 +403,10 @@ const usePdfReader = ({
 
     const operationId = currentOperationIdRef.current;
     void sentenceReader.prepareNextSentence().then(() => {
-      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) return;
+      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) {
+        isSkippingRef.current = false;
+        return;
+      }
       if (readingStatusRef.current === READING_STATUS.PAUSED) {
         isSkippingRef.current = false;
         advanceOnResumeRef.current = true;
@@ -433,9 +436,13 @@ const usePdfReader = ({
     cancelAllOperations();
     debouncedPlayAfterSkip.cancel();
 
+    advanceOnResumeRef.current = false;
     const operationId = currentOperationIdRef.current;
     void sentenceReader.preparePreviousSentence().then(() => {
-      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) return;
+      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) {
+        isSkippingRef.current = false;
+        return;
+      }
       const prev = sentenceReader.goToPreviousSentence();
       if (!prev) {
         isSkippingRef.current = false;

@@ -254,11 +254,12 @@ export function useRsvpReader({
     if (nextPage <= pageCount) {
       if (!sentenceReader.isPageTextKnown(nextPage)) {
         const request = ++requestRef.current;
+        const wasPlaying = isPlaying;
         setIsPlaying(false);
         void sentenceReader.ensureTextFrom(nextPage).then(() => {
           if (request !== requestRef.current || !loadPage(nextPage)) return;
           lastHighlightedSentenceRef.current = -1;
-          if (updateWordDisplay(0, 0)) setIsPlaying(true);
+          if (updateWordDisplay(0, 0) && wasPlaying) setIsPlaying(true);
         });
         return true;
       }
@@ -279,6 +280,7 @@ export function useRsvpReader({
     loadPage,
     updateWordDisplay,
     sentenceReader,
+    isPlaying,
   ]);
 
   const prevWord = useCallback(() => {
@@ -305,26 +307,28 @@ export function useRsvpReader({
   }, [advanceWord]);
 
   const startFromPage = useCallback(
-    async (pageNumber: number) => {
+    async (pageNumber: number): Promise<boolean> => {
+      const request = ++requestRef.current;
       await sentenceReader.ensureTextFrom(pageNumber);
+      if (request !== requestRef.current) return false;
       const loaded = loadPage(pageNumber);
       if (loaded) {
         lastHighlightedSentenceRef.current = -1;
         const words = wordsRef.current;
         for (let i = 0; i < words.length; i++) {
           const displayed = updateWordDisplay(0, i, true);
-          if (displayed) return;
+          if (displayed) return true;
         }
       }
+      return loaded;
     },
     [loadPage, updateWordDisplay, sentenceReader],
   );
 
   const play = useCallback(() => {
     if (!isInitialized) {
-      const request = ++requestRef.current;
-      void startFromPage(viewedPageRef.current).then(() => {
-        if (request === requestRef.current) setIsPlaying(true);
+      void startFromPage(viewedPageRef.current).then((started) => {
+        if (started) setIsPlaying(true);
       });
       return;
     }

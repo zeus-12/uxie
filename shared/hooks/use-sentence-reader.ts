@@ -700,17 +700,17 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     const prevIdx = currentSentenceIndexRef.current - 1;
 
     if (prevIdx < 0) {
-      const prevPage = currentPageRef.current - 1;
-      if (prevPage < 1) {
-        currentSentenceIndexRef.current = 0;
+      for (let page = currentPageRef.current - 1; page >= 1; page--) {
+        const blocks = pageBlocks(page);
+        if (!blocks) return null;
+        const count = buildPageTextModel(page, blocks).sentences.length;
+        if (count === 0) continue;
+        loadPageSentences(page);
+        currentSentenceIndexRef.current = count - 1;
         highlightCurrentSentence();
         return getCurrentSentence();
       }
-
-      const sentences = loadPageSentences(prevPage);
-      if (!sentences || sentences.length === 0) return null;
-
-      currentSentenceIndexRef.current = sentences.length - 1;
+      currentSentenceIndexRef.current = 0;
       highlightCurrentSentence();
       return getCurrentSentence();
     }
@@ -1033,9 +1033,16 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     [pageCount],
   );
 
+  // Loads page text backwards past genuinely empty pages, like ensureTextFrom.
   const preparePreviousSentence = useCallback(async () => {
     if (currentSentenceIndexRef.current > 0) return;
-    await usePdfTextStore.getState().source?.ready(currentPageRef.current - 1);
+    const source = usePdfTextStore.getState().source;
+    if (!source) return;
+    for (let page = currentPageRef.current - 1; page >= 1; page--) {
+      await source.ready(page);
+      const blocks = source.blocks(page);
+      if (!blocks || buildPageTextModel(page, blocks).sentences.length > 0) return;
+    }
   }, []);
 
   const isPageTextKnown = useCallback((pageNumber: number) => pageBlocks(pageNumber) !== null, []);
