@@ -28,6 +28,7 @@ const BottomToolbar = ({
   onZoomChange,
   onPageChange,
   currentZoom,
+  reflowed,
   pageColour,
   pageColourChangeHandler,
   followAlongEnabled,
@@ -47,6 +48,7 @@ const BottomToolbar = ({
   onZoomChange: (zoom: number) => void;
   onPageChange: (page: number) => void;
   currentZoom: number | null;
+  reflowed: boolean;
   pageColour: string;
   pageColourChangeHandler: (colour: string) => void;
   followAlongEnabled: boolean;
@@ -89,7 +91,7 @@ const BottomToolbar = ({
             onZoomChange={onZoomChange}
           />
         ),
-        icon: <ZoomControlsIcon />,
+        icon: <ZoomControlsIcon reflowed={reflowed} />,
         clickOutsideToClose: true,
       },
       {
@@ -136,6 +138,7 @@ const BottomToolbar = ({
     pageNumber,
     pageNumberInView,
     currentZoom,
+    reflowed,
     currentReadingSpeed,
     readingStatus,
     pageColour,

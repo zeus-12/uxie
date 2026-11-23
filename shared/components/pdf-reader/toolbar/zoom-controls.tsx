@@ -1,6 +1,6 @@
 import { Button } from "../../ui/button";
 import { Slider } from "../../ui/slider";
-import { ZoomInIcon } from "lucide-react";
+import { WrapTextIcon, ZoomInIcon } from "lucide-react";
 
 export const ZoomControlsContent = ({
   currentZoom,
@@ -39,16 +39,21 @@ export const ZoomControlsContent = ({
   );
 };
 
-export const ZoomControlsIcon = () => {
+export const ZoomControlsIcon = ({ reflowed }: { reflowed: boolean }) => {
+  const label = reflowed ? "Zoom (text reflowed to fit)" : "Zoom";
   return (
     <Button
       variant="ghost"
       size="xs"
       className="block"
-      aria-label="Zoom"
-      title="Zoom"
+      aria-label={label}
+      title={label}
     >
-      <ZoomInIcon aria-hidden="true" className="h-5 w-5" />
+      {reflowed ? (
+        <WrapTextIcon aria-hidden="true" className="h-5 w-5" />
+      ) : (
+        <ZoomInIcon aria-hidden="true" className="h-5 w-5" />
+      )}
     </Button>
   );
 };

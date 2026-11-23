@@ -42,6 +42,7 @@ const PdfReader = ({
   // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
   // needs the live instance to track the page in view and apply zoom.
   const [pdfViewer, setPdfViewer] = useState<PDFViewer | null>(null);
+  const [reflowed, setReflowed] = useState(false);
   const handleHighlighterRef = useCallback(
     (instance: { viewer: PDFViewer } | null) => {
       setPdfViewer(instance?.viewer ?? null);
@@ -169,6 +170,7 @@ const PdfReader = ({
             readSelectedText={readSelectedText}
             pdfScaleValue={pdfScaleValue}
             onZoomChange={handleZoomChange}
+            onReflowChange={setReflowed}
           />
         )}
       </PdfLoader>
@@ -187,6 +189,7 @@ const PdfReader = ({
         onZoomChange={handleZoomChange}
         onPageChange={handlePageChange}
         currentZoom={currentZoom}
+        reflowed={reflowed}
         pageColour={pageColour}
         pageColourChangeHandler={pageColourChangeHandler}
         followAlongEnabled={followAlongEnabled}

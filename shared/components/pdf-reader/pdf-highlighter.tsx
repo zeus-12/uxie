@@ -61,6 +61,7 @@ const PdfHighlighter = ({
   readSelectedText,
   showAiFeatures,
   onZoomChange,
+  onReflowChange,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
@@ -84,12 +85,14 @@ const PdfHighlighter = ({
   // Whether the document is indexed — the AI actions are hidden until it is.
   showAiFeatures: boolean;
   onZoomChange?: (scale: number) => void;
+  onReflowChange?: (reflowed: boolean) => void;
 }) => {
   const sendMessage = useChatStore((state) => state.sendMessage);
   const stageImageAttachment = useChatStore(
     (state) => state.stageImageAttachment,
   );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
+  const reflowOnZoom = usePdfSettingsStore((state) => state.reflowOnZoom);
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
 
@@ -242,12 +245,16 @@ const PdfHighlighter = ({
   );
 
   const reflow = useInPlaceReflow({
+    enabled: reflowOnZoom,
     instance: highlighterInstance,
     pdfDocument,
     highlightRects,
     onZoomChange,
   });
-  const { bindPinch } = reflow;
+  const { bindPinch, active: reflowed } = reflow;
+  useEffect(() => {
+    onReflowChange?.(reflowed);
+  }, [onReflowChange, reflowed]);
   const [pinchSurface, setPinchSurface] = useState<HTMLDivElement | null>(null);
   useEffect(() => bindPinch(pinchSurface), [bindPinch, pinchSurface]);
 
@@ -257,7 +264,12 @@ const PdfHighlighter = ({
   const documentKey = pdfDocument.loadingTask.docId;
 
   return (
-    <div key={documentKey} ref={setPinchSurface} className="absolute inset-0">
+    <div
+      key={documentKey}
+      ref={setPinchSurface}
+      className="absolute inset-0"
+      data-reflow-on-zoom={reflowOnZoom || undefined}
+    >
       <PdfHighlighterComponent
         ref={setHighlighterRef}
         pdfDocument={pdfDocument}

@@ -60,6 +60,9 @@ interface PdfSettingsStore {
 
   pageColour: string;
   setPageColour: (colour: string) => void;
+
+  reflowOnZoom: boolean;
+  setReflowOnZoom: (enabled: boolean) => void;
 }
 
 export const usePdfSettingsStore = create<PdfSettingsStore>()(
@@ -92,6 +95,9 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
 
       pageColour: PDF_BACKGROUND_COLOURS[0],
       setPageColour: (colour) => set({ pageColour: colour }),
+
+      reflowOnZoom: false,
+      setReflowOnZoom: (enabled) => set({ reflowOnZoom: enabled }),
     }),
     { name: "pdf-settings" },
   ),

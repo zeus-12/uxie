@@ -216,6 +216,7 @@ function ReaderContent({
   // needs the live instance to track the page in view and apply zoom. The ref
   // mirrors it for callbacks that shouldn't re-subscribe when it arrives.
   const [pdfViewer, setPdfViewer] = useState<PdfViewerInstance | null>(null);
+  const [reflowed, setReflowed] = useState(false);
   const handleHighlighterRef = useCallback(
     (instance: HighlighterInstance | null) => {
       setPdfViewer(instance?.viewer ?? null);
@@ -435,6 +436,7 @@ function ReaderContent({
                 }
                 readSelectedText={readSelectedText}
                 onZoomChange={handleZoomChange}
+                onReflowChange={setReflowed}
               />
             )}
           </PdfLoader>
@@ -454,6 +456,7 @@ function ReaderContent({
             onZoomChange={handleZoomChange}
             onPageChange={handlePageChange}
             currentZoom={currentZoom}
+            reflowed={reflowed}
             pageColour={pageColour}
             pageColourChangeHandler={pageColourChangeHandler}
             followAlongEnabled={followAlongEnabled}

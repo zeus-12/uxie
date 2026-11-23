@@ -72,6 +72,8 @@ export const SettingsControls = ({
   const setSpeakAlongEnabled = usePdfSettingsStore(
     (state) => state.setSpeakAlongEnabled,
   );
+  const reflowOnZoom = usePdfSettingsStore((state) => state.reflowOnZoom);
+  const setReflowOnZoom = usePdfSettingsStore((state) => state.setReflowOnZoom);
 
   useOnClickOutside(containerRef, (e) => {
     if (triggerRef.current?.contains(e.target as Node)) {
@@ -100,6 +102,13 @@ export const SettingsControls = ({
             label: "Disable PDF links",
             enabled: linksDisabled,
             onToggle: toggleLinksDisabled,
+          },
+          {
+            id: "reflow-on-zoom",
+            label: "Reflow on zoom",
+            description: "Rewrap text to the screen when zooming in",
+            enabled: reflowOnZoom,
+            onToggle: () => setReflowOnZoom(!reflowOnZoom),
           },
           {
             id: "bionic-reading",

@@ -40,11 +40,13 @@ const touchMid = (t: TouchList) => ({
 });
 
 export const useInPlaceReflow = ({
+  enabled,
   instance,
   pdfDocument,
   highlightRects,
   onZoomChange,
 }: {
+  enabled: boolean;
   instance: Instance | null;
   pdfDocument: PDFDocumentProxy;
   highlightRects: (pageNumber: number, width: number, height: number) => Rect[];
@@ -88,7 +90,18 @@ export const useInPlaceReflow = ({
   );
 
   useEffect(() => {
-    if (!viewer || !instance) return;
+    if (enabled) return;
+    entryRequest.current += 1;
+    pinchRef.current = null;
+    pendingAnchor.current = null;
+    releaseTransform();
+    if (modeRef.current !== "reflow") return;
+    modeRef.current = "page";
+    exitTo(layerRef.current?.topAnchor() ?? null);
+  }, [enabled, exitTo, releaseTransform]);
+
+  useEffect(() => {
+    if (!viewer || !instance || !enabled) return;
     const onScale = () => {
       entryRequest.current += 1;
       releaseTransform();
@@ -125,7 +138,7 @@ export const useInPlaceReflow = ({
     };
     instance.eventBus.on("scalechanging", onScale);
     return () => instance.eventBus.off("scalechanging", onScale);
-  }, [viewer, instance, source, canvasTopAnchor, exitTo, releaseTransform]);
+  }, [viewer, instance, enabled, source, canvasTopAnchor, exitTo, releaseTransform]);
 
   useEffect(() => {
     const container = instance?.containerNode;
@@ -154,7 +167,7 @@ export const useInPlaceReflow = ({
 
   const bindPinch = useCallback(
     (wrapper: HTMLElement | null) => {
-      if (!wrapper || !viewer) return () => undefined;
+      if (!wrapper || !viewer || !enabled) return () => undefined;
       const pdfViewerEl = viewer.viewer as HTMLElement | null;
 
       const start = (e: TouchEvent) => {
@@ -220,7 +233,7 @@ export const useInPlaceReflow = ({
         wrapper.removeEventListener("touchcancel", end);
       };
     },
-    [viewer, commitScale],
+    [viewer, enabled, commitScale],
   );
 
   const onPlaced = useCallback(() => setPlaced(true), []);

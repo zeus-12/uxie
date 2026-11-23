@@ -1,4 +1,4 @@
-.PdfHighlighter,
+[data-reflow-on-zoom] .PdfHighlighter,
 .reflow-layer {
   touch-action: pan-x pan-y;
 }
