@@ -25,7 +25,7 @@ const positionFor = (rect: DOMRect, halfWidth = 84) => ({
 });
 
 const actionButtonClass =
-  "h-8 w-9 rounded-none px-0 text-gray-300 hover:bg-gray-900 hover:text-gray-50";
+  "h-8 w-9 rounded-none px-0 text-muted-foreground hover:bg-accent hover:text-foreground";
 
 export function ArticleSelectionPopover({
   rect,
@@ -66,13 +66,12 @@ export function ArticleSelectionPopover({
 
   return (
     <div
-      className="fixed z-[70] -translate-x-1/2 -translate-y-full rounded-md bg-black shadow-xl"
+      className="fixed z-[70] -translate-x-1/2 -translate-y-full rounded-lg border bg-popover shadow-[0_4px_16px_-4px_rgb(0_0_0/0.25)]"
       style={position}
       role="toolbar"
       aria-label="Selected text actions"
     >
-      <div className="absolute -bottom-[7px] left-1/2 h-0 w-0 -translate-x-1/2 border-l-[7px] border-r-[7px] border-t-[7px] border-solid border-black border-l-transparent border-r-transparent" />
-      <div className="flex divide-x divide-gray-800 overflow-hidden rounded-md">
+      <div className="flex divide-x divide-border overflow-hidden rounded-md">
         <CustomTooltip content="Copy the text" asChild>
           <Button
             type="button"
@@ -125,7 +124,7 @@ export function ArticleSelectionPopover({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-9 rounded-none px-0 text-violet-400 hover:bg-gray-900 hover:text-violet-300"
+              className="h-8 w-9 rounded-none px-0 text-primary hover:bg-accent hover:text-primary"
               aria-label="Ask AI about selected text"
               onClick={() => setMode("ai")}
             >
@@ -146,12 +145,11 @@ export function ArticleHighlightPopover({
 }: ActionProps & { onDelete: () => void }) {
   return (
     <div
-      className="fixed z-[70] -translate-x-1/2 -translate-y-full rounded-md bg-black shadow-xl"
+      className="fixed z-[70] -translate-x-1/2 -translate-y-full rounded-lg border bg-popover shadow-[0_4px_16px_-4px_rgb(0_0_0/0.25)]"
       style={positionFor(rect)}
       role="toolbar"
       aria-label={`Actions for highlighted text: ${text}`}
     >
-      <div className="absolute -bottom-[7px] left-1/2 h-0 w-0 -translate-x-1/2 border-l-[7px] border-r-[7px] border-t-[7px] border-solid border-black border-l-transparent border-r-transparent" />
       <CustomTooltip content="Delete highlight" asChild>
         <Button
           type="button"

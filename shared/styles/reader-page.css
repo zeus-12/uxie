@@ -1,0 +1,74 @@
+.uxie-pdf-page {
+  display: contents;
+}
+
+.uxie-pdf-page .pdfViewer.removePageBorders,
+.uxie-pdf-page .textLayer {
+  background-color: var(--page-tint);
+}
+
+.uxie-pdf-page[data-page-tone="ink"] {
+  --hl-blend: screen;
+  --hl-annotation: hsl(var(--palette-yellow) / 0.38);
+  --hl-annotation-focus: hsl(var(--palette-orange) / 0.45);
+  --hl-selection: hsl(var(--palette-blue) / 0.4);
+  --hl-search: hsl(var(--palette-yellow) / 0.35);
+  --hl-search-active: hsl(var(--palette-orange) / 0.6);
+  --hl-search-active-ring: hsl(var(--palette-orange));
+  --hl-tts-sentence: hsl(var(--palette-green) / 0.16);
+  --hl-tts-word: hsl(var(--palette-green) / 0.42);
+  --hl-rsvp-sentence: hsl(var(--palette-orange) / 0.16);
+  --hl-rsvp-word: hsl(var(--palette-orange) / 0.42);
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .pdfViewer.removePageBorders,
+.uxie-pdf-page[data-page-tone="ink"] .pdfViewer .page {
+  background-color: hsl(var(--background));
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .canvasWrapper {
+  filter: invert(1) hue-rotate(180deg) url(#uxie-ink-page);
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .textLayer {
+  background-color: transparent;
+  mix-blend-mode: screen;
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .textLayer ::selection {
+  background: var(--hl-selection);
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .Highlight__part {
+  background: var(--hl-annotation);
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .Highlight--scrolledTo .Highlight__part,
+.uxie-pdf-page[data-page-tone="ink"]
+  .AreaHighlight--scrolledTo
+  .AreaHighlight__part {
+  background: var(--hl-annotation-focus);
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .AreaHighlight {
+  border-color: hsl(var(--palette-yellow) / 0.6);
+  background-color: var(--hl-annotation);
+  mix-blend-mode: screen;
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .AreaHighlight__part,
+.uxie-pdf-page[data-page-tone="ink"] .MouseSelection {
+  background: var(--hl-annotation);
+  mix-blend-mode: screen;
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .bionic-reading-active .textLayer > span {
+  color: hsl(var(--foreground)) !important;
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .bionic-reading-active .Highlight__part,
+.uxie-pdf-page[data-page-tone="ink"]
+  .bionic-reading-active
+  .AreaHighlight__part {
+  background: var(--hl-annotation) !important;
+}

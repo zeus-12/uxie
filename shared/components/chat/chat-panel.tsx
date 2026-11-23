@@ -137,7 +137,7 @@ export function ChatPanel({
         <div
           className={cn(
             "rounded-2xl border border-input bg-muted/60 transition-colors focus-within:border-ring",
-            dragActive && "border-blue-500 bg-blue-500/10",
+            dragActive && "border-primary bg-primary/10",
           )}
           onDragEnter={(event) => {
             if (!event.dataTransfer.types.includes("Files")) return;
@@ -221,7 +221,7 @@ export function ChatPanel({
               type="button"
               onClick={() => (streaming && onStop ? onStop() : submitIfReady())}
               disabled={!streaming && !canSend}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-40"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:bg-muted disabled:text-muted-foreground"
               aria-label={streaming && onStop ? "Stop" : "Send"}
             >
               {streaming ? (
@@ -334,7 +334,7 @@ function ChatBubble({
             <MessageImageGrid images={attachments} onOpen={onOpenImage} />
           )}
           {content && (
-            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm text-white">
+            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
               {content}
             </div>
           )}

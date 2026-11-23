@@ -65,14 +65,14 @@ function FileBox({
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       className={cn(
-        "flex flex-col items-center justify-center gap-4 rounded-md border-[0.75px] border-gray-300 px-4 py-12",
+        "flex flex-col items-center justify-center gap-4 rounded-md border-[0.75px] border-border px-4 py-12",
         !preview && "cursor-pointer",
-        dragging && "border-gray-500 bg-gray-50",
+        dragging && "border-muted-foreground bg-muted",
       )}
     >
       {preview ? (
         <>
-          <div className="h-28 w-[86px] overflow-hidden rounded-sm border border-gray-200 bg-gray-50 shadow-sm">
+          <div className="h-28 w-[86px] overflow-hidden rounded-sm border border-border bg-muted shadow-sm">
             {preview.coverUrl && (
               <img
                 src={preview.coverUrl}
@@ -89,13 +89,13 @@ function FileBox({
                   type="button"
                   aria-label="Remove file"
                   onClick={onClear}
-                  className="rounded-sm text-gray-500 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <XIcon className="h-4 w-4" />
                 </button>
               )}
             </div>
-            <p className="text-sm tabular-nums text-gray-500">
+            <p className="text-sm tabular-nums text-muted-foreground">
               {preview.pageCount != null &&
                 `${preview.pageCount} ${
                   preview.pageCount === 1 ? "page" : "pages"
@@ -107,7 +107,7 @@ function FileBox({
       ) : (
         <>
           <p>Choose a PDF</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Click to browse, or drop it here
           </p>
         </>
@@ -149,7 +149,7 @@ export function ImportPdfDialog({
         <DialogHeader>
           <DialogTitle>
             <p className="text-xl">Add PDF</p>
-            <p className="text-sm font-normal text-gray-500">
+            <p className="text-sm font-normal text-muted-foreground">
               Import a PDF from your computer into your library.
             </p>
           </DialogTitle>
@@ -173,7 +173,7 @@ export function ImportPdfDialog({
           </div>
 
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               {error}
             </p>
           )}

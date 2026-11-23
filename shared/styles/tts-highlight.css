@@ -1,6 +1,5 @@
-/* Painted by shared/hooks/use-sentence-reader.ts. The layer must NOT create a
-   stacking context (no z-index / opacity / transform), or `multiply` can't
-   reach the page canvas underneath and the glyphs stop showing through. */
+/* No stacking context on the layer (no z-index/opacity/transform), or the
+   blend can't reach the page canvas and the glyphs stop showing through. */
 
 .tts-hl-layer {
   position: absolute;
@@ -14,25 +13,25 @@
 .tts-hl-rsvp-word {
   position: absolute;
   border-radius: 5px;
-  mix-blend-mode: multiply;
+  mix-blend-mode: var(--hl-blend, multiply);
   pointer-events: none;
 }
 
 .tts-hl-sentence {
-  background-color: #d6f7cd;
+  background-color: var(--hl-tts-sentence, #d6f7cd);
 }
 
 .tts-hl-rsvp-sentence {
-  background-color: #ffe6c2;
+  background-color: var(--hl-rsvp-sentence, #ffe6c2);
 }
 
 .tts-hl-rsvp-word {
-  background-color: #ffb74d;
+  background-color: var(--hl-rsvp-word, #ffb74d);
 }
 
 /* --tts-hl-glide is set per word from the measured speaking cadence. */
 .tts-hl-word {
-  background-color: #74f273;
+  background-color: var(--hl-tts-word, #74f273);
   --tts-hl-glide: 0.11s;
   transition:
     left var(--tts-hl-glide) cubic-bezier(0.4, 0, 0.2, 1),
