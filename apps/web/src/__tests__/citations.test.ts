@@ -8,6 +8,7 @@ import {
   type RetrievedChunk,
 } from "@uxie/shared/lib/chat";
 import { chatPartsToRows } from "@uxie/shared/lib/chat-rows";
+import { withoutPartialCitation } from "@uxie/shared/lib/citation-markdown";
 import {
   CITATION_HIGHLIGHT_DURATION_MS,
   createCitationNavigator,
@@ -256,6 +257,26 @@ describe("cited answer rendering", () => {
     expect(highlightSource).toHaveBeenCalledWith(page9);
     expect(useMobileSidebarStore.getState().isDrawerOpen).toBe(false);
     flushSync(() => root.unmount());
+  });
+});
+
+describe("streaming citation tokens", () => {
+  it("hides a citation token until its closing bracket arrives", () => {
+    for (const partial of [
+      "[",
+      "[r",
+      "[ref",
+      "[ref:",
+      "[ref:3",
+      "[ref:3, ",
+      "[ref:3, ref:4",
+    ]) {
+      expect(withoutPartialCitation(`Compiled ${partial}`)).toBe("Compiled ");
+    }
+    expect(withoutPartialCitation("Compiled [ref:3].")).toBe(
+      "Compiled [ref:3].",
+    );
+    expect(withoutPartialCitation("See [Figure 2")).toBe("See [Figure 2");
   });
 });
 

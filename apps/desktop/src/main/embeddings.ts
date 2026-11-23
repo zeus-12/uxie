@@ -4,7 +4,6 @@ import type { RetrievedChunk } from "@uxie/shared/lib/chat";
 import { getDb, getSqlite } from "./db";
 import { queryVectors, upsertVectors, type EmbeddedChunk } from "./db/vectors";
 
-/** Store a document's chunk embeddings and mark it vectorised. */
 export async function storeEmbeddings(
   docId: string,
   items: EmbeddedChunk[],

@@ -22,6 +22,7 @@ import type { CitationIndex, RetrievedChunk } from "../../lib/chat";
 import {
   CITATION_GROUP_TAG,
   remarkCitations,
+  withoutPartialCitation,
 } from "../../lib/citation-markdown";
 import type { ChatRole, ChatRow } from "../../lib/chat-rows";
 import {
@@ -295,7 +296,7 @@ function RowView({
       ) : row.kind === "streaming" ? (
         <ChatBubble
           role="assistant"
-          content={row.content}
+          content={withoutPartialCitation(row.content)}
           citations={row.citations}
           renderMarkdown={renderMarkdown}
         />

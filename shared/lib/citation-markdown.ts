@@ -69,3 +69,13 @@ function transform(node: MdNode, citations: CitationIndex) {
 export function remarkCitations(citations: CitationIndex) {
   return () => (tree: MdNode) => transform(tree, citations);
 }
+
+export function withoutPartialCitation(content: string): string {
+  const open = content.lastIndexOf("[");
+  if (open === -1) return content;
+  const tail = content.slice(open + 1);
+  return "ref:".startsWith(tail) ||
+    /^ref:[\d,\s]*(?:r(?:ef?)?:?)?[\d,\s]*$/.test(tail)
+    ? content.slice(0, open)
+    : content;
+}

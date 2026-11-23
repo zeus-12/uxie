@@ -2,9 +2,6 @@ import { chunkPdfPages } from "@uxie/shared/lib/embeddings";
 import type { RetrievedChunk } from "@uxie/shared/lib/chat";
 import { embedBatchInWorker, embedTextInWorker } from "./embed-client";
 
-/**
- * Embed a document's chunks (off the main thread) and store the vectors.
- */
 export async function vectorise(
   docId: string,
   onProgress?: (done: number, total: number) => void,
@@ -22,7 +19,6 @@ export async function vectorise(
   );
 }
 
-/** Retrieve the most relevant chunks for a query within a document. */
 export async function retrieve(
   docId: string,
   query: string,

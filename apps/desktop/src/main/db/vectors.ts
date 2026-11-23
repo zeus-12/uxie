@@ -28,16 +28,10 @@ function existingSchema(sqlite: Database.Database): ExistingSchema | null {
   };
 }
 
-/**
- * Load sqlite-vec and make sure doc_vectors is sized for the current model.
- * Returns true when the table was rebuilt, meaning every stored vector is gone
- * and the callers' `isVectorised` flags are now lies.
- */
 export function initVectorStore(sqlite: Database.Database): boolean {
   sqliteVec.load(sqlite);
 
-  // Vectors are derived data — if the embedding model changed, the old table is
-  // the wrong width and every insert would fail at runtime. Drop and rebuild.
+  // Vectors are derived data: a table of the wrong width or without page numbers is dropped and rebuilt.
   const schema = existingSchema(sqlite);
   if (schema?.dim === EMBEDDING_DIM && schema.hasPageNumber) return false;
 
@@ -64,7 +58,6 @@ export interface EmbeddedChunk extends PdfChunk {
   embedding: number[];
 }
 
-/** Replace all vectors for a document (idempotent re-vectorise). */
 export function upsertVectors(
   sqlite: Database.Database,
   docId: string,
@@ -99,7 +92,6 @@ export function hasVectors(sqlite: Database.Database, docId: string): boolean {
   return row.n > 0;
 }
 
-/** Nearest chunks for a query embedding within one document. */
 export function queryVectors(
   sqlite: Database.Database,
   docId: string,

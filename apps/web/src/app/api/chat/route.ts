@@ -1,5 +1,6 @@
 import { chatErrorResponse, prepareChatMessages } from "@/lib/chat-images";
 import { chatTurnResponse } from "@/lib/chat-turn";
+import { numberPassagesForDocument } from "@/lib/citation-refs";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
@@ -8,7 +9,6 @@ import { google } from "@ai-sdk/google";
 import { type Message } from "@prisma/client";
 import {
   CHAT_SYSTEM_PROMPT,
-  createCitationNumberer,
   GET_INFORMATION_TOOL_DESCRIPTION,
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
@@ -78,24 +78,13 @@ export async function POST(req: Request) {
     const prepared = prepareChatMessages(messages);
     if (!prepared.ok) return chatErrorResponse(prepared.error, 400);
 
-    const storedTurns = await prisma.message.findMany({
-      where: { documentId: docId },
-      select: { parts: true },
-    });
-
     return chatTurnResponse({
       options: {
         model: google("gemini-2.5-flash"),
         abortSignal: req.signal,
         messages: await convertToModelMessages(prepared.messages),
         system: CHAT_SYSTEM_PROMPT,
-        tools: AI_TOOLS({
-          docId,
-          numberPassages: createCitationNumberer([
-            ...storedTurns.map((turn) => turn.parts),
-            ...prepared.messages.map((message) => message.parts),
-          ]),
-        }),
+        tools: AI_TOOLS(docId),
         toolChoice: "auto",
         stopWhen: stepCountIs(3),
         maxOutputTokens: 2000,
@@ -170,13 +159,7 @@ export async function POST(req: Request) {
   }
 }
 
-const AI_TOOLS = ({
-  docId,
-  numberPassages,
-}: {
-  docId: string;
-  numberPassages: ReturnType<typeof createCitationNumberer>;
-}) => ({
+const AI_TOOLS = (docId: string) => ({
   [GET_INFORMATION_TOOL_NAME]: tool({
     description: GET_INFORMATION_TOOL_DESCRIPTION,
     inputSchema: getInformationInputSchema,
@@ -186,7 +169,7 @@ const AI_TOOLS = ({
         question,
       );
       return {
-        results: numberPassages(results),
+        results: await numberPassagesForDocument(docId, results),
         ...(unlocated ? { unlocated } : {}),
       };
     },

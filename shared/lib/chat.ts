@@ -92,7 +92,6 @@ export function citablePassagesFromParts(parts: unknown): CitablePassage[] {
   });
 }
 
-// Web chats stored before refs were numbered against history restart at 1, so a later passage with the same ref wins.
 export function withCitablePassages(
   index: CitationIndex,
   parts: unknown,

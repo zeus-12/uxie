@@ -85,8 +85,6 @@ function VectoriseGate({ docId }: { docId: string }) {
   );
 }
 
-// A stored/streamed message part, loosely typed — the same shape flows from the
-// live `useChat` stream and from persisted DB messages (trpc JSON).
 type LoosePart = Record<string, unknown> & { type: string };
 function partsOf(message: { parts?: unknown }): LoosePart[] {
   if (!Array.isArray(message.parts)) return [];
