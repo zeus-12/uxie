@@ -155,6 +155,12 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
     expect(reconstructPage({ ...input, items }, profile)).toMatchObject({ kind: "keep", reason: "unknown-font-metrics" });
   });
 
+  it("keeps a page whose text all became crops", async () => {
+    const [input, profile] = await Promise.all([tracemonkey.source.pageInput(2), tracemonkey.source.profile()]);
+    const items = input.items.map((item) => ({ ...item, monospace: true }));
+    expect(reconstructPage({ ...input, items }, profile)).toMatchObject({ kind: "keep", reason: "no-reflowable-text" });
+  });
+
   it("refuses pages it cannot reflow faithfully", async () => {
     const arabic = await load("rtl-arabic-wikipedia.pdf");
     expect(await arabic.source.page(1)).toMatchObject({ kind: "keep", reason: "right-to-left" });

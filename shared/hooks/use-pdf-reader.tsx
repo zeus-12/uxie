@@ -269,9 +269,8 @@ const usePdfReader = ({
     };
   }, [viewer, debouncedUpdateLastReadPage, lastReadPage]);
 
-  // The library re-applies pdfScaleValue on resize but never on prop change.
-  // Gated on page views existing: applying earlier makes pdf.js record the scale
-  // without using it, so its own `pagesinit` apply then skips as a no-op.
+  // Gated on page views: applied earlier, pdf.js records the scale without
+  // using it and its own `pagesinit` apply then skips as a no-op.
   useEffect(() => {
     const currentViewer = pdfViewerRef.current;
     if (currentViewer && currentViewer.pagesCount > 0) {

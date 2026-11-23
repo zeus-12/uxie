@@ -28,9 +28,7 @@ const DemoWorkspace = () => {
       highlights: s.highlights,
     })),
   );
-  // Snapshot the restored page and zoom for the reader's initial layout.
-  // Reading them reactively would re-trigger that restore every time the user
-  // scrolls or zooms. Updates are still persisted for the next visit.
+  // A snapshot: read reactively, the restore would re-run on every scroll or zoom.
   const [restored] = useState(() => {
     const { lastReadPage, zoomLevel } = useDemoDocStore.getState();
     return { lastReadPage, zoomLevel };

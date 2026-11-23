@@ -577,6 +577,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const currentPageRef = useRef(1);
   const currentSentenceIndexRef = useRef(0);
   const resumeIndexRef = useRef<number | null>(null);
+  const wordsSuspendedRef = useRef(false);
   const modelRef = useRef<PageTextModel | null>(null);
   const wordMapRef = useRef<{ map: WordMapEntry[]; spoken: string } | null>(
     null,
@@ -616,6 +617,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       modelRef.current = fresh;
       wordMapRef.current = null;
       repaintWordRef.current = null;
+      wordsSuspendedRef.current = true;
       removeHighlightsByType("word");
       removeHighlightsByType("sentence");
       const remap = remapPosition(model, currentSentenceIndexRef.current, fresh);
@@ -956,6 +958,8 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
         );
       }
 
+      // The utterance was built from the other surface's sentence text.
+      if (wordsSuspendedRef.current) return;
       if (!wordMapRef.current && spokenText) {
         const sentence =
           modelRef.current?.sentences[currentSentenceIndexRef.current];
@@ -1007,6 +1011,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
   // Drops the overlay too, or it glides across the page into the next sentence.
   const resetWordTracking = useCallback(() => {
+    wordsSuspendedRef.current = false;
     wordMapRef.current = null;
     repaintWordRef.current = null;
     lastWordBoundaryAtRef.current = 0;

@@ -579,6 +579,7 @@ export const reconstructPage = (page: PageInput, profile: DocumentProfile): Refl
   }
 
   classifyCaptionsAndFootnotes(regions, ctx);
+  if (!regions.some((r) => r.kind === "text")) return { kind: "keep", ...base, reason: "no-reflowable-text" };
   return { kind: "reflow", ...base, bodyFontSize: ctx.body, regions: mergeAdjacentCrops(regions), hyphens: ctx.hyphens };
 };
 

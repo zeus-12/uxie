@@ -104,6 +104,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const handledFind = useRef<string | null>(null);
   const revealing = useRef<number | null>(null);
   const pxPerPt = scale * CSS_PX_PER_PT;
+  const livePxPerPt = useRef(pxPerPt);
 
   const load = useCallback(
     async (pageNumber: number): Promise<LoadedPage> => {
@@ -132,6 +133,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const openWindow = useCallback(
     async (centre: number, then: ScreenAnchor | null) => {
       const request = ++windowRequest.current;
+      loading.current.clear();
       const from = Math.max(1, centre - 1);
       const to = Math.min(pdfDocument.numPages, centre + 1);
       let loaded: LoadedPage[];
@@ -474,6 +476,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         });
         span = (best as { el: HTMLElement } | null)?.el ?? null;
       }
+      const ppt = livePxPerPt.current;
       const crop = hit?.closest<HTMLElement>("[data-crop-y]");
       const section = (crop ?? span)?.closest<HTMLElement>("[data-reflow-page]");
       const pageNumber = Number(section?.dataset.reflowPage);
@@ -482,11 +485,11 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         const point: PdfPoint = {
           pageNumber,
           x: Number(crop.dataset.cropX),
-          y: Number(crop.dataset.cropY) + (clientY - r.top) / pxPerPt,
+          y: Number(crop.dataset.cropY) + (clientY - r.top) / ppt,
         };
         return { point, clientX: r.left, clientY };
       }
-      if (!span) return sectionAnchorAt(root, clientX, clientY, pxPerPt);
+      if (!span) return sectionAnchorAt(root, clientX, clientY, ppt);
       const entry = runIndex.get(span.dataset.run ?? "");
       if (!entry) return null;
       const caret = caretAt(clientX, clientY);
@@ -505,7 +508,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         char: { itemIndex: entry.run.itemIndex, offset },
       };
     },
-    [runIndex, pxPerPt],
+    [runIndex],
   );
 
   useImperativeHandle(
@@ -522,6 +525,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         const root = scroller();
         if (!root) return;
         const ppt = next * CSS_PX_PER_PT;
+        livePxPerPt.current = ppt;
         root.style.setProperty("--reflow-pt", `${ppt}px`);
         placeAnchor(keep, ppt);
       },
@@ -530,6 +534,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   );
 
   useLayoutEffect(() => {
+    livePxPerPt.current = pxPerPt;
     scroller()?.style.setProperty("--reflow-pt", `${pxPerPt}px`);
   }, [pxPerPt]);
 
