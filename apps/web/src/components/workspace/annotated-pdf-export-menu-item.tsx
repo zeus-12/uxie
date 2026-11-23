@@ -1,7 +1,4 @@
-import {
-  prepareAnnotatedPdfDownload,
-  type LoadedPdfForExport,
-} from "@/lib/annotated-pdf-export";
+import type { LoadedPdfForExport } from "@/lib/annotated-pdf-export";
 import { type ReaderDoc } from "@/types/reader";
 import { useAnnotatedPdfExport } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
 import { saveAs } from "file-saver";
@@ -17,6 +14,9 @@ export function useAnnotatedPdfExportMenuItem(
   const pdfDocument = source?.pdfDocument ?? null;
   const { isExporting, exportPdf } = useAnnotatedPdfExport(async () => {
     if (!source || !pdfDocument) return;
+    const { prepareAnnotatedPdfDownload } = await import(
+      "@/lib/annotated-pdf-export"
+    );
     const { blob, filename } = await prepareAnnotatedPdfDownload({
       highlights: source.readerDocument.highlights,
       pdfDocument,

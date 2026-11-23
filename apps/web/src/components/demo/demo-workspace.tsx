@@ -18,11 +18,7 @@ import { useMediaQuery } from "usehooks-ts";
 import { useShallow } from "zustand/react/shallow";
 
 const DemoWorkspace = () => {
-  // One shallow-compared subscription to the document fields, so the component
-  // only re-renders when a field it uses actually changes.
-  // One shallow-compared subscription to just the fields the reader renders.
-  // `note` is deliberately excluded — it's owned by the sidebar, so leaving it
-  // out keeps notes autosaves from re-rendering the (heavy) PDF reader.
+  // `note` is left out so notes autosaves don't re-render the PDF reader.
   const docFields = useDemoDocStore(
     useShallow((s) => ({
       id: s.id,

@@ -266,6 +266,7 @@ describe("annotated PDF export", () => {
       saveAnnotatedPdf({
         highlights: [textHighlight(textRect)],
         sourcePath,
+        libraryRoot: join(root, "library"),
         destinationPath,
       }),
     ).resolves.toEqual({ status: "exported" });
@@ -284,6 +285,7 @@ describe("annotated PDF export", () => {
       saveAnnotatedPdf({
         highlights: [],
         sourcePath: join(root, "missing-source.pdf"),
+        libraryRoot: root,
         destinationPath: null,
       }),
     ).resolves.toEqual({ status: "cancelled" });
@@ -300,6 +302,7 @@ describe("annotated PDF export", () => {
       saveAnnotatedPdf({
         highlights: [],
         sourcePath,
+        libraryRoot: root,
         destinationPath: sourcePath,
       }),
     ).rejects.toThrow("outside Uxie's library");
@@ -320,9 +323,38 @@ describe("annotated PDF export", () => {
     ]) {
       if (!existsSync(dirname(destinationPath))) continue;
       await expect(
-        saveAnnotatedPdf({ highlights: [], sourcePath, destinationPath }),
+        saveAnnotatedPdf({
+          highlights: [],
+          sourcePath,
+          libraryRoot: library,
+          destinationPath,
+        }),
       ).rejects.toThrow("outside Uxie's library");
     }
     expect(new Uint8Array(await readFile(sourcePath))).toEqual(source);
+  });
+
+  it("refuses every folder inside the library, not only the document's own", async () => {
+    const root = await mkdtemp(join(tmpdir(), "uxie-export-library-"));
+    const library = join(root, "documents");
+    const sourcePath = join(library, "doc-a", "document.pdf");
+    await mkdir(join(library, "doc-a"), { recursive: true });
+    await mkdir(join(library, "doc-b"));
+    await writeFile(sourcePath, await sourcePdf());
+
+    for (const destinationPath of [
+      join(library, "doc-b", "document.pdf"),
+      join(library, "exported.pdf"),
+    ]) {
+      await expect(
+        saveAnnotatedPdf({
+          highlights: [],
+          sourcePath,
+          libraryRoot: library,
+          destinationPath,
+        }),
+      ).rejects.toThrow("outside Uxie's library");
+      expect(existsSync(destinationPath)).toBe(false);
+    }
   });
 });

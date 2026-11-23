@@ -1,5 +1,4 @@
-import { readFile, stat } from "fs/promises";
-import { dirname } from "path";
+import { readFile } from "fs/promises";
 import { getDocument as loadPdfJsDocument } from "pdfjs-dist/legacy/build/pdf";
 import {
   annotatedPdfFilename,
@@ -9,7 +8,11 @@ import {
 import type { HighlightWithRects } from "@uxie/shared/schema";
 import type { FileExportResult } from "../ipc-contract";
 import { getDb, getDocument } from "./db";
-import { chooseExportPath, writeAtomically } from "./export-file";
+import {
+  assertOutsideLibrary,
+  chooseExportPath,
+  writeAtomically,
+} from "./export-file";
 import { documentsDir } from "./pdf";
 import { pdfPath } from "./pdf-store";
 
@@ -26,26 +29,19 @@ function exportHighlights(
   }));
 }
 
-async function isSameDirectory(a: string, b: string): Promise<boolean> {
-  const [first, second] = await Promise.all([stat(a), stat(b)]);
-  return first.dev === second.dev && first.ino === second.ino;
-}
-
 export async function saveAnnotatedPdf({
   highlights,
   sourcePath,
+  libraryRoot,
   destinationPath,
 }: {
   highlights: HighlightWithRects[];
   sourcePath: string;
+  libraryRoot: string;
   destinationPath: string | null;
 }): Promise<FileExportResult> {
   if (destinationPath === null) return { status: "cancelled" };
-  if (await isSameDirectory(dirname(destinationPath), dirname(sourcePath))) {
-    throw new Error(
-      "Choose a folder outside Uxie's library so the stored PDFs stay unchanged.",
-    );
-  }
+  await assertOutsideLibrary(destinationPath, libraryRoot);
 
   const sourceBytes = await readFile(sourcePath);
   const pdfJsDocument = await loadPdfJsDocument({
@@ -85,6 +81,7 @@ export async function exportAnnotatedPdf(
     return await saveAnnotatedPdf({
       highlights: document.highlights,
       sourcePath,
+      libraryRoot: documentsDir(),
       destinationPath,
     });
   } catch (error) {
