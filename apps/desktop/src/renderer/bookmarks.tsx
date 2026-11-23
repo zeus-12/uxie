@@ -49,8 +49,22 @@ const defaultTitle = (bookmark: Bookmark): string =>
 export const bookmarkTitle = (bookmark: Bookmark): string =>
   bookmark.label || defaultTitle(bookmark);
 
-const titleNamesPage = (bookmark: Bookmark): boolean =>
+const rowDefaultTitle = (bookmark: Bookmark): string =>
+  bookmarkKind(bookmark) === "pin" ? "Pin" : defaultTitle(bookmark);
+
+const rowTitle = (bookmark: Bookmark): string =>
+  bookmark.label || rowDefaultTitle(bookmark);
+
+const isQuietTitle = (bookmark: Bookmark): boolean =>
   !bookmark.label && bookmarkKind(bookmark) !== "passage";
+
+const showsPageNumber = (bookmark: Bookmark): boolean =>
+  !!bookmark.label || bookmarkKind(bookmark) !== "page";
+
+const rowAccessibleName = (bookmark: Bookmark): string =>
+  showsPageNumber(bookmark)
+    ? `${rowTitle(bookmark)}, page ${bookmark.pageNumber}`
+    : rowTitle(bookmark);
 
 const ROW_SELECTOR = "[data-bookmark-row]";
 const NAVIGATION_KEYS = ["ArrowDown", "ArrowUp", "Home", "End"];
@@ -273,12 +287,12 @@ function BookmarkRow({
     return (
       <form
         role="listitem"
-        className="flex h-8 items-center gap-2.5 rounded-md bg-muted px-2 ring-1 ring-inset ring-ring/40"
+        className="flex h-8 items-center gap-2.5 rounded-md bg-muted px-2 text-[13px] ring-1 ring-inset ring-ring/40"
         onSubmit={(event) => void submit(event)}
       >
         <Icon
           aria-hidden="true"
-          className="h-4 w-4 shrink-0 text-muted-foreground"
+          className="size-[15px] shrink-0 text-muted-foreground"
         />
         <input
           ref={inputRef}
@@ -286,7 +300,7 @@ function BookmarkRow({
           value={draft}
           maxLength={80}
           disabled={saving}
-          placeholder={defaultTitle(bookmark)}
+          placeholder={rowDefaultTitle(bookmark)}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={() => {
             if (!saving) setEditing(false);
@@ -297,7 +311,7 @@ function BookmarkRow({
             event.stopPropagation();
             stopEditing();
           }}
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
         />
       </form>
     );
@@ -318,18 +332,25 @@ function BookmarkRow({
           event.preventDefault();
           startEditing();
         }}
-        aria-label={`${title}, page ${bookmark.pageNumber}`}
-        className="flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left text-sm outline-none"
+        aria-label={rowAccessibleName(bookmark)}
+        className="flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-left text-[13px] outline-none"
       >
         <Icon
           aria-hidden="true"
-          className="h-4 w-4 shrink-0 text-muted-foreground"
+          className="size-[15px] shrink-0 text-muted-foreground"
         />
-        <span className="min-w-0 flex-1 truncate">{title}</span>
+        <span
+          className={cn(
+            "min-w-0 flex-1 truncate",
+            isQuietTitle(bookmark) && "text-muted-foreground",
+          )}
+        >
+          {rowTitle(bookmark)}
+        </span>
         <span
           className={cn(
             "w-[3.25rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground transition-opacity duration-100 group-hover:opacity-0 group-has-[:focus-visible]:opacity-0",
-            titleNamesPage(bookmark) && "invisible",
+            !showsPageNumber(bookmark) && "invisible",
           )}
         >
           {bookmark.pageNumber}
