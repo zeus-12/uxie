@@ -130,151 +130,146 @@ export function ChatPanel({
   }, [rows.length, rows[rows.length - 1]]);
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <div className="flex h-full flex-col">
-        {loaded ? (
-          <Virtuoso
-            ref={virtuosoRef}
-            className="uxie-chat-scroll flex-1"
-            data={rows}
-            alignToBottom
-            initialTopMostItemIndex={Math.max(0, rows.length - 1)}
-            followOutput={(atBottom) => (atBottom ? "auto" : false)}
-            atBottomStateChange={(atBottom) => (atBottomRef.current = atBottom)}
-            increaseViewportBy={{ top: 600, bottom: 200 }}
-            components={{ Header: () => <div className="h-3" /> }}
-            itemContent={(_, row) => (
-              <RowView
-                row={row}
-                renderMarkdown={renderMarkdown}
-                onOpenImage={setPreviewImage}
-              />
-            )}
-          />
-        ) : (
-          <div className="flex-1" />
-        )}
-
-        <div className="p-2">
-          <div
-            className={cn(
-              "rounded-2xl border border-input bg-muted/60 transition-colors focus-within:border-ring",
-              dragActive && "border-blue-500 bg-blue-500/10",
-            )}
-            onDragEnter={(event) => {
-              if (!event.dataTransfer.types.includes("Files")) return;
-              event.preventDefault();
-              dragDepthRef.current += 1;
-              setDragActive(true);
-            }}
-            onDragOver={(event) => {
-              if (event.dataTransfer.types.includes("Files"))
-                event.preventDefault();
-            }}
-            onDragLeave={(event) => {
-              if (!event.dataTransfer.types.includes("Files")) return;
-              dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-              if (dragDepthRef.current === 0) setDragActive(false);
-            }}
-            onDrop={(event) => {
-              if (!event.dataTransfer.types.includes("Files")) return;
-              event.preventDefault();
-              dragDepthRef.current = 0;
-              setDragActive(false);
-              onFilesSelected(Array.from(event.dataTransfer.files));
-            }}
-          >
-            <StagedImageStrip
-              images={attachments}
-              pending={attachmentsPending}
-              onOpen={setPreviewImage}
-              onRemove={onRemoveAttachment}
-              locked={sending}
+    <div className="flex h-full flex-col">
+      {loaded ? (
+        <Virtuoso
+          ref={virtuosoRef}
+          className="uxie-chat-scroll flex-1"
+          data={rows}
+          alignToBottom
+          initialTopMostItemIndex={Math.max(0, rows.length - 1)}
+          followOutput={(atBottom) => (atBottom ? "auto" : false)}
+          atBottomStateChange={(atBottom) => (atBottomRef.current = atBottom)}
+          increaseViewportBy={{ top: 600, bottom: 200 }}
+          components={{ Header: () => <div className="h-3" /> }}
+          itemContent={(_, row) => (
+            <RowView
+              row={row}
+              renderMarkdown={renderMarkdown}
+              onOpenImage={setPreviewImage}
             />
-
-            <div className="flex items-end gap-1.5 p-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="sr-only"
-                tabIndex={-1}
-                onChange={(event) => {
-                  onFilesSelected(Array.from(event.target.files ?? []));
-                  event.target.value = "";
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Attach images"
-                title="Attach images"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <ImagePlusIcon className="size-4" aria-hidden="true" />
-              </button>
-              <textarea
-                ref={taRef}
-                value={input}
-                onChange={(e) => {
-                  onInputChange(e.target.value);
-                  grow();
-                }}
-                readOnly={sending}
-                onPaste={(event) => {
-                  const images = Array.from(event.clipboardData.files).filter(
-                    (file) => file.type.startsWith("image/"),
-                  );
-                  if (images.length) onFilesSelected(images);
-                }}
-                onKeyDown={(e) => {
-                  const cmdEnter =
-                    (e.metaKey || e.ctrlKey) && e.key === "Enter";
-                  if (cmdEnter || (e.key === "Enter" && !e.shiftKey)) {
-                    e.preventDefault();
-                    submitIfReady();
-                  }
-                }}
-                rows={1}
-                placeholder={placeholder}
-                className="max-h-40 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-sm leading-5 outline-none placeholder:text-muted-foreground"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  streaming && onStop ? onStop() : submitIfReady()
-                }
-                disabled={!streaming && !canSend}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-40"
-                aria-label={streaming && onStop ? "Stop" : "Send"}
-              >
-                {streaming ? (
-                  onStop ? (
-                    <SquareIcon className="h-3.5 w-3.5 fill-current" />
-                  ) : (
-                    <Loader2Icon className="h-4 w-4 animate-spin" />
-                  )
-                ) : busy ? (
-                  <Loader2Icon className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowUpIcon className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-            {attachmentError && (
-              <p role="alert" className="px-3 pb-2 text-xs text-destructive">
-                {attachmentError}
-              </p>
-            )}
-          </div>
-        </div>
-        <ImageLightbox
-          image={previewImage}
-          onClose={() => setPreviewImage(null)}
+          )}
         />
+      ) : (
+        <div className="flex-1" />
+      )}
+
+      <div className="p-2">
+        <div
+          className={cn(
+            "rounded-2xl border border-input bg-muted/60 transition-colors focus-within:border-ring",
+            dragActive && "border-primary bg-primary/10",
+          )}
+          onDragEnter={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            dragDepthRef.current += 1;
+            setDragActive(true);
+          }}
+          onDragOver={(event) => {
+            if (event.dataTransfer.types.includes("Files"))
+              event.preventDefault();
+          }}
+          onDragLeave={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (dragDepthRef.current === 0) setDragActive(false);
+          }}
+          onDrop={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            dragDepthRef.current = 0;
+            setDragActive(false);
+            onFilesSelected(Array.from(event.dataTransfer.files));
+          }}
+        >
+          <StagedImageStrip
+            images={attachments}
+            pending={attachmentsPending}
+            onOpen={setPreviewImage}
+            onRemove={onRemoveAttachment}
+            locked={sending}
+          />
+
+          <div className="flex items-end gap-1.5 p-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(event) => {
+                onFilesSelected(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Attach images"
+              title="Attach images"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <ImagePlusIcon className="size-4" aria-hidden="true" />
+            </button>
+            <textarea
+              ref={taRef}
+              value={input}
+              onChange={(e) => {
+                onInputChange(e.target.value);
+                grow();
+              }}
+              readOnly={sending}
+              onPaste={(event) => {
+                const images = Array.from(event.clipboardData.files).filter(
+                  (file) => file.type.startsWith("image/"),
+                );
+                if (images.length) onFilesSelected(images);
+              }}
+              onKeyDown={(e) => {
+                const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
+                if (cmdEnter || (e.key === "Enter" && !e.shiftKey)) {
+                  e.preventDefault();
+                  submitIfReady();
+                }
+              }}
+              rows={1}
+              placeholder={placeholder}
+              className="max-h-40 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-sm leading-5 outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="button"
+              onClick={() => (streaming && onStop ? onStop() : submitIfReady())}
+              disabled={!streaming && !canSend}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:bg-muted disabled:text-muted-foreground"
+              aria-label={streaming && onStop ? "Stop" : "Send"}
+            >
+              {streaming ? (
+                onStop ? (
+                  <SquareIcon className="h-3.5 w-3.5 fill-current" />
+                ) : (
+                  <Loader2Icon className="h-4 w-4 animate-spin" />
+                )
+              ) : busy ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpIcon className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          {attachmentError && (
+            <p role="alert" className="px-3 pb-2 text-xs text-destructive">
+              {attachmentError}
+            </p>
+          )}
+        </div>
       </div>
-    </TooltipProvider>
+      <ImageLightbox
+        image={previewImage}
+        onClose={() => setPreviewImage(null)}
+      />
+    </div>
   );
 }
 
@@ -393,12 +388,14 @@ export function CitedMarkdown({
 }) {
   if (!citations?.size) return <>{renderMarkdown(content)}</>;
   return (
-    <CitationContext.Provider value={citations}>
-      {renderMarkdown(content, {
-        remarkPlugins: [remarkCitations(citations)],
-        components: CITATION_COMPONENTS,
-      })}
-    </CitationContext.Provider>
+    <TooltipProvider delayDuration={150}>
+      <CitationContext.Provider value={citations}>
+        {renderMarkdown(content, {
+          remarkPlugins: [remarkCitations(citations)],
+          components: CITATION_COMPONENTS,
+        })}
+      </CitationContext.Provider>
+    </TooltipProvider>
   );
 }
 
@@ -438,7 +435,7 @@ function CitationRef({
           type="button"
           onClick={() => openSource(source)}
           aria-label={`Source ${label}, ${sourceLocation(source)}`}
-          className="mx-px inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded bg-foreground/[0.08] px-1 align-middle text-[10px] font-medium not-italic leading-none text-muted-foreground tabular-nums transition-colors hover:bg-blue-500/15 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:text-blue-400"
+          className="mx-px inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded bg-foreground/[0.08] px-1 align-middle text-[10px] font-medium not-italic leading-none text-muted-foreground tabular-nums transition-colors hover:bg-info/15 hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {label}
         </button>

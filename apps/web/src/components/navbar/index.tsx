@@ -1,4 +1,8 @@
 import { UserAccountNav } from "@/components/navbar/user-account-nav";
+import {
+  ThemeButton,
+  ThemeMenu,
+} from "@uxie/shared/components/theme/theme-controls";
 import { Button } from "@uxie/shared/components/ui/button";
 import { Skeleton } from "@uxie/shared/components/ui/skeleton";
 import { useSession } from "next-auth/react";
@@ -18,20 +22,26 @@ const Navbar = () => {
               src="/logo.svg"
               width={40}
               height={40}
+              className="h-10 w-10 dark:brightness-0 dark:invert"
+              priority
               unoptimized
             />
-            {/* <span className="font-semibold">Uxie</span> */}
           </div>
         </Link>
-        {status === "loading" ? (
-          <Skeleton className="h-8 w-8 rounded-full" />
-        ) : session ? (
-          <UserAccountNav user={session.user} />
-        ) : (
-          <Button size="sm">
-            <Link href="/login">Sign in</Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          <ThemeMenu>
+            <ThemeButton />
+          </ThemeMenu>
+          {status === "loading" ? (
+            <Skeleton className="h-8 w-8 rounded-full" />
+          ) : session ? (
+            <UserAccountNav user={session.user} />
+          ) : (
+            <Button size="sm">
+              <Link href="/login">Sign in</Link>
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

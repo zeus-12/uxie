@@ -25,6 +25,12 @@ import {
   storeDocumentImage,
 } from "./pdf";
 import { getSettings, setSettings } from "./settings";
+import {
+  getWindowBackground,
+  isWindowBackground,
+  pickWindowBackground,
+  setWindowBackground,
+} from "./window-background";
 import { cancelCompletion, streamCompletion } from "./ai/completion";
 import { cancelChat, resolveChatRetrieve, streamChat } from "./ai/chat";
 import { getFlashcardsByDocId } from "./db/flashcards";
@@ -123,6 +129,13 @@ function registerIpc() {
     void streamChat(event.sender, streamId, docId, messages);
   });
   ipcMain.on("chat:cancel", (_event, streamId) => cancelChat(streamId));
+  ipcMain.on("window:setBackground", (event, background) => {
+    if (!isWindowBackground(background)) return;
+    BrowserWindow.fromWebContents(event.sender)?.setBackgroundColor(
+      pickWindowBackground(background),
+    );
+    setWindowBackground(background);
+  });
   ipcMain.on("chat:retrieve:reply", (_event, reqId, chunks) =>
     resolveChatRetrieve(reqId, chunks),
   );
@@ -137,7 +150,7 @@ function createMainWindow(): BrowserWindow {
     minHeight: 600,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 18, y: 18 },
-    backgroundColor: "#ffffff",
+    backgroundColor: getWindowBackground(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
     },

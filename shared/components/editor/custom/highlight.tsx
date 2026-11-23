@@ -32,7 +32,7 @@ export const HighlighBlock = createReactBlockSpec(
               .getState()
               .jumpToHighlight?.(highlightId, pageNumber || undefined);
           }}
-          className="w-2 rounded-full bg-yellow-400 hover:cursor-pointer"
+          className="w-2 rounded-full bg-[hsl(var(--palette-yellow))] hover:cursor-pointer"
         />
         <div className="flex-1">
           <div className="inline-content" ref={props.contentRef} />

@@ -141,7 +141,7 @@ export function ImageLightbox({
       onOpenChange={(open) => !open && onClose()}
     >
       <DialogPortal>
-        <DialogOverlay className="bg-black/80 backdrop-blur-sm" />
+        <DialogOverlay />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           className="fixed inset-0 z-50 flex items-center justify-center p-6 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
@@ -161,7 +161,7 @@ export function ImageLightbox({
           )}
           <DialogPrimitive.Close
             aria-label="Close"
-            className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full border border-border bg-popover text-popover-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <XIcon className="size-5" aria-hidden="true" />
           </DialogPrimitive.Close>

@@ -1,9 +1,9 @@
-/* This file holds the shadcn theme tokens + app CSS. The consuming app's CSS
-   entry provides `@import "tailwindcss"` and the @source globs (Tailwind must
-   resolve those from the app, not this package). */
+/* The consuming app's CSS entry provides `@import "tailwindcss"` and @source. */
 @import "./styles/tts-highlight.css";
 @import "./styles/citation-highlight.css";
+@import "./styles/themes.css";
 @import "./styles/pdf-search.css";
+@import "./styles/reader-page.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -27,59 +27,20 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-success: hsl(var(--status-success-solid));
+  --color-success-subtle: hsl(var(--status-success-subtle));
+  --color-warning: hsl(var(--status-warning-solid));
+  --color-warning-subtle: hsl(var(--status-warning-subtle));
+  --color-info: hsl(var(--status-info-solid));
+  --color-info-subtle: hsl(var(--status-info-subtle));
+  --color-danger: hsl(var(--status-error-solid));
+  --color-danger-subtle: hsl(var(--status-error-subtle));
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
   --breakpoint-xs: 450px;
-}
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-  }
 }
 
 /* TW4's default border/ring colour is currentColor; normalize to the token so
@@ -136,7 +97,7 @@
   height: 6px;
   margin: 3px;
   border-radius: 50%;
-  background-color: #a3a1a1;
+  background-color: hsl(var(--muted-foreground));
   opacity: 1;
   animation: bouncing-loader 0.6s infinite alternate;
 }
@@ -156,11 +117,8 @@
   animation-delay: 0.4s;
 }
 
-/* The highlight layer (z-index 3) sits above text spans (z-index auto)
-   within .textLayer. Without this, opaque annotation rects fully hide
-   reading-highlight backgrounds on the text spans beneath. Applying
-   multiply to the layer itself makes it blend with its backdrop (the
-   text spans), so both annotation and reading colours are visible. */
+/* Opaque annotation rects would otherwise hide TTS/RSVP highlights on the
+   text spans beneath; multiply lets both colours show. */
 .PdfHighlighter__highlight-layer {
   mix-blend-mode: multiply;
 }
@@ -246,9 +204,7 @@ body {
   margin: 0;
 }
 
-/* Electron window drag regions. The frameless macOS window overlays the traffic
-   lights at the top-left, so top bars are draggable and reserve left space; put
-   .app-no-drag on any interactive control inside them. */
+/* Frameless macOS window: top bars drag the window; mark their controls .app-no-drag. */
 .app-drag {
   -webkit-app-region: drag;
 }
@@ -257,11 +213,9 @@ body {
   -webkit-app-region: no-drag;
 }
 
-/* Chat message list scrollbar: thin, subtle, sitting flush at the right edge
-   instead of the chunky default that looked out of place. */
 .uxie-chat-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgb(203 213 225) transparent; /* slate-300 */
+  scrollbar-color: hsl(var(--muted-foreground) / 0.45) transparent;
 }
 .uxie-chat-scroll::-webkit-scrollbar {
   width: 8px;
@@ -274,5 +228,5 @@ body {
   border-radius: 9999px;
 }
 .uxie-chat-scroll:hover::-webkit-scrollbar-thumb {
-  background-color: rgb(203 213 225); /* slate-300, only on hover */
+  background-color: hsl(var(--muted-foreground) / 0.45);
 }

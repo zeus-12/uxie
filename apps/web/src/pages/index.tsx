@@ -14,9 +14,9 @@ import Balancer from "react-wrap-balancer";
 export default function Home() {
   return (
     <>
-      <div className="absolute top-0 -z-10 h-full w-full bg-white">
-        <div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[20%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-40 blur-[80px]" />
-        <div className="hidden md:flex absolute left-0 bottom-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-50 blur-[80px]" />
+      <div className="absolute top-0 -z-10 h-full w-full bg-background">
+        <div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[20%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-40 blur-[80px] dark:opacity-20" />
+        <div className="absolute bottom-0 left-0 hidden h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(173,109,244,0.5)] opacity-50 blur-[80px] dark:opacity-20 md:flex" />
       </div>
       <div className="px-4 py-2 lg:px-16">
         <div className="hd-screen">
@@ -27,15 +27,15 @@ export default function Home() {
 
         <Link
           href="/feedback"
-          className="fixed bottom-5 right-5 flex items-center justify-center rounded-full bg-black hover:cursor-pointer"
+          className="fixed bottom-5 right-5 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:cursor-pointer"
           title="Submit Feedback"
         >
-          <button className="group relative inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-neutral-950 font-medium text-neutral-200 transition-all duration-300 hover:w-32 ">
+          <button className="group relative inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-primary font-medium text-primary-foreground transition-all duration-300 hover:w-32">
             <div className="inline-flex whitespace-nowrap opacity-0 transition-all duration-200 group-hover:-translate-x-3 group-hover:opacity-100">
               Feedback
             </div>
             <div className="absolute right-3">
-              <MessageSquarePlusIcon size="22" className="text-gray-300" />
+              <MessageSquarePlusIcon size="22" />
             </div>
           </button>
         </Link>
@@ -60,11 +60,11 @@ const HeroSection = () => {
     <SlideUpWhenVisible>
       <div className="flex flex-col items-center justify-center gap-2 py-4 lg:py-8">
         <a
-          className="group mx-auto flex max-w-fit items-center justify-center space-x-2 overflow-hidden rounded-full border border-gray-200 bg-white px-6 py-2 shadow-[inset_10px_-50px_94px_0_rgb(199,199,199,0.1)] backdrop-blur transition-all hover:border-gray-300 hover:bg-white/50"
+          className="group mx-auto flex max-w-fit items-center justify-center space-x-2 overflow-hidden rounded-full border border-border bg-background px-6 py-2 shadow-sm backdrop-blur transition-all hover:border-muted-foreground/40 hover:bg-accent"
           href="https://vishnuu.com/posts/why-i-built-uxie"
           target="_blank"
         >
-          <p className="text-sm font-semibold text-gray-700 [text-wrap:balance]">
+          <p className="text-sm font-semibold text-foreground [text-wrap:balance]">
             Why I built Uxie 📝
           </p>
           <div className="group relative flex items-center">
@@ -73,7 +73,7 @@ const HeroSection = () => {
           </div>
         </a>
 
-        <Balancer className="mt-2 max-w-4xl text-center text-4xl font-semibold tracking-tight text-[#013720] sm:text-5xl lg:text-[3.5rem] lg:leading-none">
+        <Balancer className="mt-2 max-w-4xl text-center text-4xl font-semibold tracking-tight text-[#013720] dark:text-emerald-100 sm:text-5xl lg:text-[3.5rem] lg:leading-none">
           <span className="opacity-[.32]">The</span>{" "}
           <EmojiAnimate icons={aiIcons} text="AI-Powered PDF Reader" />{" "}
           <span className="opacity-[.32]">That</span>{" "}
@@ -82,7 +82,7 @@ const HeroSection = () => {
           <EmojiAnimate icons={learningIcons} text="Learning" />
         </Balancer>
 
-        <p className="text-center text-md text-gray-500 md:text-xl max-w-xl md:my-3">
+        <p className="text-md max-w-xl text-center text-muted-foreground md:my-3 md:text-xl">
           Uxie turns PDFs into interactive learning tools with AI-powered
           summaries and flashcards
         </p>
@@ -95,11 +95,11 @@ const HeroSection = () => {
               </span>
             </Button>
           </Link>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             or{" "}
             <Link
               href="/demo"
-              className="group font-medium text-gray-700 underline decoration-gray-300 underline-offset-2 transition-colors hover:text-gray-900 hover:decoration-gray-500"
+              className="group font-medium text-foreground underline decoration-border underline-offset-2 transition-colors hover:decoration-muted-foreground"
             >
               try the demo
               <span className="ml-0.5 inline-block transition-transform group-hover:translate-x-0.5">

@@ -1,3 +1,7 @@
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { createId } from "@paralleldrive/cuid2";
+import { CollaboratorRole } from "@prisma/client";
 import { Badge } from "@uxie/shared/components/ui/badge";
 import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
 import {
@@ -15,10 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@uxie/shared/components/ui/select";
-import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { createId } from "@paralleldrive/cuid2";
-import { CollaboratorRole } from "@prisma/client";
 import { TrashIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useState } from "react";
@@ -156,7 +156,7 @@ const InviteCollab = ({
         </DialogHeader>
 
         <div className="space-y-2">
-          <div className="space-y-2 rounded-md border-[0.5px] border-gray-200 bg-[#fdfeff] p-3">
+          <div className="space-y-2 rounded-md border-[0.5px] border-border bg-background p-3">
             <p className="mb-2 font-semibold">Invite members</p>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Input
@@ -195,7 +195,7 @@ const InviteCollab = ({
             </Button>
           </div>
 
-          <div className="space-y-2 rounded-md border-[0.5px] border-gray-200 bg-gray-50 p-3">
+          <div className="space-y-2 rounded-md border-[0.5px] border-border bg-muted/40 p-3">
             <p className="mb-2 font-medium">Team members</p>
             <div className="mb-6 mt-4 space-y-2 text-sm text-muted-foreground">
               {collaborators?.map((user, id) => (
@@ -208,9 +208,8 @@ const InviteCollab = ({
                     <Badge>{user.role}</Badge>
                     <TrashIcon
                       className={cn(
-                        // && isOwner
                         user.role === CollaboratorRole.OWNER && "invisible",
-                        "hover:cursor-pointer hover:fill-red-400 hover:text-red-400",
+                        "hover:cursor-pointer hover:fill-danger hover:text-danger",
                       )}
                       size={20}
                       onClick={() => removeCollaboratorById(user.id)}

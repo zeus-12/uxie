@@ -6,12 +6,10 @@
 /* Tailwind auto-scans this app; point it at the shared package too. */
 @source "../../../../shared";
 
-/* Light theme only for now — force a solid white surface, ignore OS dark mode. */
 html,
 body,
 #root {
-  background: #ffffff;
-  color-scheme: light;
+  background: hsl(var(--background));
 }
 
 /* Native desktop feel: controls use the arrow cursor (not the web pointer), and
@@ -46,4 +44,3 @@ textarea,
   user-select: text;
   cursor: auto;
 }
-

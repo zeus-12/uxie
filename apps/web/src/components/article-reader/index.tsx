@@ -334,8 +334,13 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col"
-      style={{ backgroundColor: backgroundColour }}
+      className="relative flex h-full min-h-0 flex-col bg-background text-foreground"
+      data-theme={backgroundColour === "theme" ? undefined : "light"}
+      style={
+        backgroundColour === "theme"
+          ? undefined
+          : { backgroundColor: backgroundColour }
+      }
     >
       <ReaderHeader
         title={doc.title}
@@ -357,11 +362,11 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
           className="mx-auto max-w-[68ch]"
           style={{ fontFamily: ARTICLE_FONT_FAMILIES[fontFamily] }}
         >
-          <header className="mb-10 border-b border-stone-200 pb-8">
+          <header className="mb-10 border-b border-border pb-8">
             <p className="mb-3 text-sm font-medium text-muted-foreground">
               {sourceName}
             </p>
-            <h1 className="text-balance text-3xl font-semibold leading-[1.12] tracking-tight text-stone-950 sm:text-4xl">
+            <h1 className="text-balance text-3xl font-semibold leading-[1.12] tracking-tight text-foreground sm:text-4xl">
               {article.snapshot.title}
             </h1>
             <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
@@ -370,7 +375,7 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
               <span>{readingMinutes(article.wordCount)} min read</span>
             </div>
             {article.excerpt && (
-              <p className="mt-5 text-pretty text-lg leading-7 text-stone-600">
+              <p className="mt-5 text-pretty text-lg leading-7 text-muted-foreground">
                 {article.excerpt}
               </p>
             )}
@@ -378,7 +383,7 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
 
           <div
             ref={articleContentRef}
-            className="article-content prose prose-stone max-w-none break-words leading-[1.7] prose-headings:scroll-mt-6 prose-headings:text-balance prose-headings:font-semibold prose-headings:tracking-tight prose-a:font-medium prose-a:text-stone-900 prose-a:decoration-stone-400 prose-a:underline-offset-4 prose-blockquote:border-stone-300 prose-blockquote:text-stone-700 prose-img:rounded-md prose-img:outline prose-img:outline-1 prose-img:outline-black/10 prose-pre:overflow-x-auto"
+            className="article-content prose max-w-none break-words leading-[1.7] prose-headings:scroll-mt-6 prose-headings:text-balance prose-headings:font-semibold prose-headings:tracking-tight prose-a:font-medium prose-a:text-foreground prose-a:decoration-muted-foreground prose-a:underline-offset-4 prose-blockquote:border-border prose-blockquote:text-muted-foreground prose-img:rounded-md prose-img:outline prose-img:outline-1 prose-img:outline-foreground/10 prose-pre:overflow-x-auto"
             style={{ fontFamily: "inherit", fontSize }}
             dangerouslySetInnerHTML={{ __html: article.snapshot.contentHtml }}
             onMouseUp={(event) => {
