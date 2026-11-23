@@ -7,7 +7,10 @@ import {
 } from "@/components/workspace/annotated-pdf-export-menu-item";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
 import { downloadNotes } from "@/lib/notes-export";
-import { ThemeMenuSub } from "@uxie/shared/components/theme/theme-controls";
+import {
+  ThemeMenuSub,
+  ThemeSheet,
+} from "@uxie/shared/components/theme/theme-controls";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,10 +50,12 @@ const Sidebar = ({
 }) => {
   const exportMenuItem = useAnnotatedPdfExportMenuItem(annotatedPdfExport);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isThemeSheetOpen, setIsThemeSheetOpen] = useState(false);
   useSidebarTabUrlSync();
 
   return (
     <div className="flex h-full flex-col bg-muted/40">
+      <ThemeSheet open={isThemeSheetOpen} onOpenChange={setIsThemeSheetOpen} />
       {isOwner && (
         <InviteCollab open={isInviteOpen} onOpenChange={setIsInviteOpen} />
       )}
@@ -90,7 +95,7 @@ const Sidebar = ({
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <ThemeMenuSub />
+              <ThemeMenuSub onOpenSheet={() => setIsThemeSheetOpen(true)} />
             </DropdownMenuContent>
           </DropdownMenu>
         }

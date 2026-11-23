@@ -14,6 +14,8 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
+import { useMediaQuery } from "usehooks-ts";
+import { SMALL_SCREEN_QUERY } from "../../lib/constants";
 import {
   APPEARANCE_THEMES,
   DARK_PRESET_THEMES,
@@ -28,6 +30,7 @@ import { cn } from "../../lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -37,6 +40,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "../ui/drawer";
 import {
   Select,
   SelectContent,
@@ -154,7 +158,18 @@ function ThemeRadioItems() {
   );
 }
 
-export function ThemeMenuSub() {
+export function ThemeMenuSub({ onOpenSheet }: { onOpenSheet: () => void }) {
+  const isSmallScreen = useMediaQuery(SMALL_SCREEN_QUERY);
+
+  if (isSmallScreen) {
+    return (
+      <DropdownMenuItem className="gap-2" onSelect={onOpenSheet}>
+        <Palette aria-hidden="true" className="size-4" />
+        Appearance
+      </DropdownMenuItem>
+    );
+  }
+
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger className="gap-2">
@@ -165,6 +180,27 @@ export function ThemeMenuSub() {
         <ThemeRadioItems />
       </DropdownMenuSubContent>
     </DropdownMenuSub>
+  );
+}
+
+export function ThemeSheet({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange} autoFocus>
+      <DrawerContent aria-describedby={undefined}>
+        <DrawerHeader>
+          <DrawerTitle>Appearance</DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 pb-6">
+          <ThemePicker />
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 

@@ -12,6 +12,7 @@ import {
   ResizablePanelGroup,
 } from "@uxie/shared/components/ui/resizable";
 import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
+import { SMALL_SCREEN_QUERY } from "@uxie/shared/lib/constants";
 import { useRouter } from "next/router";
 import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
@@ -22,7 +23,7 @@ import { useMediaQuery } from "usehooks-ts";
 function DocViewerContent({ doc }: { doc: DocumentData }) {
   const sidebarHidden = usePdfSettingsStore((state) => state.sidebarHidden);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
-  const isMobile = useMediaQuery("(max-width: 767px)");
+  const isMobile = useMediaQuery(SMALL_SCREEN_QUERY);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
 
   useEffect(() => {
