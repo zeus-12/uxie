@@ -3,6 +3,7 @@
    resolve those from the app, not this package). */
 @import "./styles/tts-highlight.css";
 @import "./styles/pdf-search.css";
+@import "./styles/reflow.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

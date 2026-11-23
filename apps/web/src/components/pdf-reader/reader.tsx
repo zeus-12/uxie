@@ -168,6 +168,7 @@ const PdfReader = ({
             }}
             readSelectedText={readSelectedText}
             pdfScaleValue={pdfScaleValue}
+            onZoomChange={handleZoomChange}
           />
         )}
       </PdfLoader>

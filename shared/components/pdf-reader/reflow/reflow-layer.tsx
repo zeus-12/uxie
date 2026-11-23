@@ -1,0 +1,420 @@
+import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFViewer } from "pdfjs-dist/types/web/pdf_viewer";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  forwardRef,
+} from "react";
+import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
+import type { ReflowSource } from "../../../lib/reflow/source";
+import type { Rect, Run } from "../../../lib/reflow/types";
+import type { PdfPoint, ScreenAnchor } from "./canvas-anchor";
+import { caretAt, charRect, offsetWithin } from "./caret";
+import { highlightRanges } from "./highlight-ranges";
+import { ReflowPageView, runKey, type LoadedPage, type PageMarks } from "./reflow-page";
+
+export const CSS_PX_PER_PT = 96 / 72;
+const WINDOW_RADIUS = 3;
+
+export type ReflowLayerApi = {
+  anchorAt: (clientX: number, clientY: number) => ScreenAnchor | null;
+  topAnchor: () => ScreenAnchor | null;
+  previewScale: (scale: number, keep: ScreenAnchor) => void;
+};
+
+type FindController = {
+  highlightMatches: boolean;
+  pageMatches: number[][];
+  pageMatchesLength: number[][];
+  selected: { pageIdx: number; matchIdx: number };
+};
+
+type EventBus = {
+  on: (name: string, fn: (e: unknown) => void) => void;
+  off: (name: string, fn: (e: unknown) => void) => void;
+};
+
+type Props = {
+  source: ReflowSource;
+  pdfDocument: PDFDocumentProxy;
+  viewer: PDFViewer;
+  findController: FindController | null;
+  eventBus: EventBus;
+  scale: number;
+  anchor: ScreenAnchor;
+  highlightRects: (pageNumber: number, width: number, height: number) => Rect[];
+  visible: boolean;
+  onPlaced: () => void;
+};
+
+type RunEntry = { pageNumber: number; run: Run };
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLayer(
+  { source, pdfDocument, viewer, findController, eventBus, scale, anchor, highlightRects, visible, onPlaced },
+  ref,
+) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [pages, setPages] = useState<LoadedPage[]>([]);
+  const pagesRef = useRef<LoadedPage[]>([]);
+  const [findVersion, setFindVersion] = useState(0);
+  const [highlightsByPage, setHighlightsByPage] = useState<Record<number, ItemRange[]>>({});
+  const loading = useRef(new Set<number>());
+  const pendingAnchor = useRef<ScreenAnchor | null>(anchor);
+  const keepInPlace = useRef<{ pageNumber: number; top: number } | null>(null);
+  const pxPerPt = scale * CSS_PX_PER_PT;
+
+  const load = useCallback(
+    async (pageNumber: number): Promise<LoadedPage> => {
+      const [page, input, pdfPage] = await Promise.all([
+        source.page(pageNumber),
+        source.pageInput(pageNumber),
+        pdfDocument.getPage(pageNumber),
+      ]);
+      return { page, input, pdfPage };
+    },
+    [source, pdfDocument],
+  );
+
+  const runIndex = useMemo(() => {
+    const map = new Map<string, RunEntry>();
+    for (const { page } of pages) {
+      if (page.kind !== "reflow") continue;
+      for (const region of page.regions) {
+        if (region.kind !== "text") continue;
+        for (const run of region.runs) map.set(runKey(page.pageNumber, run.itemIndex), { pageNumber: page.pageNumber, run });
+      }
+    }
+    return map;
+  }, [pages]);
+
+  const openWindow = useCallback(
+    async (centre: number, then: ScreenAnchor | null) => {
+      const from = Math.max(1, centre - 1);
+      const to = Math.min(pdfDocument.numPages, centre + 1);
+      const loaded = await Promise.all(
+        Array.from({ length: to - from + 1 }, (_, i) => load(from + i)),
+      );
+      pendingAnchor.current = then;
+      pagesRef.current = loaded;
+      setPages(loaded);
+    },
+    [load, pdfDocument.numPages],
+  );
+
+  useEffect(() => {
+    void openWindow(anchor.point.pageNumber, anchor);
+  }, [openWindow, anchor]);
+
+  const scroller = () => scrollerRef.current;
+
+  const placeAnchor = useCallback(
+    (target: ScreenAnchor, ppt: number) => {
+      const root = scroller();
+      if (!root) return false;
+      const { pageNumber, y } = target.point;
+      const section = root.querySelector<HTMLElement>(`[data-reflow-page="${pageNumber}"]`);
+      if (!section) return false;
+      const loaded = pages.find((p) => p.page.pageNumber === pageNumber);
+      if (!loaded) return false;
+      let elementTop: number | null = null;
+      const char = target.char;
+      if (char && loaded.page.kind === "reflow") {
+        for (const region of loaded.page.regions) {
+          if (region.kind !== "text") continue;
+          const run = region.runs.find(
+            (r) => r.itemIndex === char.itemIndex && char.offset >= r.start && char.offset <= r.end,
+          );
+          if (!run) continue;
+          const el = section.querySelector<HTMLElement>(`[data-run="${runKey(pageNumber, run.itemIndex)}"]`);
+          const glyph = el ? charRect(el, Math.min(char.offset, run.end - 1) - run.start) : null;
+          if (glyph) {
+            root.scrollTop += glyph.top + glyph.height / 2 - target.clientY;
+            return true;
+          }
+        }
+      }
+      if (loaded.page.kind === "reflow") {
+        let best: { run: Run; d: number } | null = null;
+        for (const [index, region] of loaded.page.regions.entries()) {
+          if (region.kind === "crop") {
+            const r = region.rect;
+            if (y >= r.y && y <= r.y + r.height && target.point.x >= r.x && target.point.x <= r.x + r.width) {
+              const el = section.querySelector<HTMLElement>(`[data-crop="${index}"]`);
+              if (el) {
+                root.scrollTop += el.getBoundingClientRect().top + (y - r.y) * ppt - target.clientY;
+                return true;
+              }
+            }
+            continue;
+          }
+          for (const run of region.runs) {
+            const r = run.rect;
+            const dy = y < r.y ? r.y - y : y > r.y + r.height ? y - (r.y + r.height) : 0;
+            const dx = target.point.x < r.x ? r.x - target.point.x : target.point.x > r.x + r.width ? target.point.x - (r.x + r.width) : 0;
+            const d = dy * 4 + dx;
+            if (!best || d < best.d) best = { run, d };
+          }
+        }
+        if (best) {
+          const el = section.querySelector<HTMLElement>(`[data-run="${runKey(pageNumber, best.run.itemIndex)}"]`);
+          if (el) {
+            const within =
+              best.run.rect.height > 0 ? clamp((y - best.run.rect.y) / best.run.rect.height, 0, 1) : 0;
+            const line = el.getClientRects()[0] ?? el.getBoundingClientRect();
+            elementTop = line.top + within * line.height;
+          }
+        }
+      }
+      if (elementTop === null) {
+        elementTop = section.getBoundingClientRect().top + y * ppt;
+      }
+      root.scrollTop += elementTop - target.clientY;
+      return true;
+    },
+    [pages],
+  );
+
+  useLayoutEffect(() => {
+    const root = scroller();
+    if (!root) return;
+    const kept = keepInPlace.current;
+    if (kept) {
+      const section = root.querySelector<HTMLElement>(`[data-reflow-page="${kept.pageNumber}"]`);
+      if (section) root.scrollTop += section.getBoundingClientRect().top - kept.top;
+      keepInPlace.current = null;
+    }
+    const target = pendingAnchor.current;
+    if (target && placeAnchor(target, pxPerPt)) {
+      pendingAnchor.current = null;
+      onPlaced();
+    }
+  }, [pages, placeAnchor, pxPerPt, onPlaced]);
+
+  const extend = useCallback(
+    async (direction: -1 | 1) => {
+      const first = pages[0]?.page.pageNumber;
+      const last = pages[pages.length - 1]?.page.pageNumber;
+      if (first === undefined || last === undefined) return;
+      const next = direction === 1 ? last + 1 : first - 1;
+      if (next < 1 || next > pdfDocument.numPages || loading.current.has(next)) return;
+      loading.current.add(next);
+      try {
+        const loaded = await load(next);
+        const current = pagesRef.current;
+        const edge = direction === 1 ? current[current.length - 1] : current[0];
+        if (!edge || edge.page.pageNumber + direction !== next) return;
+        const root = scroller();
+        if (root) {
+          const r = root.getBoundingClientRect();
+          const visibleSection = [...root.querySelectorAll<HTMLElement>("[data-reflow-page]")].find(
+            (el) => el.getBoundingClientRect().bottom > r.top,
+          );
+          if (visibleSection) {
+            keepInPlace.current = {
+              pageNumber: Number(visibleSection.dataset.reflowPage),
+              top: visibleSection.getBoundingClientRect().top,
+            };
+          }
+        }
+        const merged = direction === 1 ? [...current, loaded] : [loaded, ...current];
+        const trimmed =
+          merged.length <= WINDOW_RADIUS * 2 + 1
+            ? merged
+            : direction === 1
+              ? merged.slice(1)
+              : merged.slice(0, -1);
+        pagesRef.current = trimmed;
+        setPages(trimmed);
+      } finally {
+        loading.current.delete(next);
+      }
+    },
+    [pages, load, pdfDocument.numPages],
+  );
+
+  useEffect(() => {
+    const root = scroller();
+    if (!root) return;
+    const sections = root.querySelectorAll<HTMLElement>("[data-reflow-page]");
+    const first = sections[0];
+    const last = sections[sections.length - 1];
+    if (!first || !last) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          if (e.target === first) void extend(-1);
+          if (e.target === last) void extend(1);
+        }
+      },
+      { root, rootMargin: "800px 0px" },
+    );
+    observer.observe(first);
+    if (last !== first) observer.observe(last);
+    return () => observer.disconnect();
+  }, [pages, extend]);
+
+  useEffect(() => {
+    const bump = () => setFindVersion((v) => v + 1);
+    const events = ["updatefindmatchcount", "updatefindcontrolstate", "findbarclose"];
+    events.forEach((e) => eventBus.on(e, bump));
+    return () => events.forEach((e) => eventBus.off(e, bump));
+  }, [eventBus]);
+
+  useEffect(() => {
+    let cancelled = false;
+    for (const { page, pdfPage } of pages) {
+      if (page.kind !== "reflow" || highlightsByPage[page.pageNumber]) continue;
+      const rects = highlightRects(page.pageNumber, page.width, page.height);
+      if (rects.length === 0) continue;
+      void highlightRanges(pdfPage, rects).then((ranges) => {
+        if (!cancelled) setHighlightsByPage((h) => ({ ...h, [page.pageNumber]: ranges }));
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [pages, highlightRects, highlightsByPage]);
+
+  const marksFor = (loaded: LoadedPage): PageMarks => {
+    const index = loaded.page.pageNumber - 1;
+    const fc = findController;
+    const active = fc?.highlightMatches && fc.pageMatches?.[index];
+    const search = active
+      ? convertMatches(loaded.input.itemStrings, fc.pageMatches[index]!, fc.pageMatchesLength[index]!)
+      : [];
+    return {
+      search,
+      selectedSearch: active && fc.selected.pageIdx === index ? fc.selected.matchIdx : null,
+      highlights: highlightsByPage[loaded.page.pageNumber] ?? [],
+    };
+  };
+
+  useEffect(() => {
+    if (!visible || !findController?.highlightMatches) return;
+    const root = scroller();
+    const selected = root?.querySelector<HTMLElement>("mark[data-selected]");
+    if (selected) {
+      selected.scrollIntoView({ block: "center" });
+      return;
+    }
+    const pageIdx = findController.selected?.pageIdx;
+    if (pageIdx === undefined || pageIdx < 0) return;
+    const inWindow = pages.some((p) => p.page.pageNumber === pageIdx + 1);
+    if (!inWindow && root) {
+      const r = root.getBoundingClientRect();
+      void openWindow(pageIdx + 1, { point: { pageNumber: pageIdx + 1, x: 0, y: 0 }, clientX: r.left, clientY: r.top });
+    }
+  }, [findVersion, visible, findController, pages, openWindow]);
+
+  const anchorAt = useCallback(
+    (clientX: number, clientY: number): ScreenAnchor | null => {
+      const root = scroller();
+      if (!root) return null;
+      const hit = document.elementFromPoint(clientX, clientY);
+      let span = hit?.closest<HTMLElement>("[data-run]") ?? null;
+      if (!span || !root.contains(span)) {
+        let best: { el: HTMLElement; d: number } | null = null;
+        root.querySelectorAll<HTMLElement>("[data-run]").forEach((el) => {
+          const r = el.getBoundingClientRect();
+          const dy = clientY < r.top ? r.top - clientY : clientY > r.bottom ? clientY - r.bottom : 0;
+          const dx = clientX < r.left ? r.left - clientX : clientX > r.right ? clientX - r.right : 0;
+          const d = dy * 4 + dx;
+          if (!best || d < best.d) best = { el, d };
+        });
+        span = (best as { el: HTMLElement } | null)?.el ?? null;
+      }
+      const crop = hit?.closest<HTMLElement>("[data-crop-y]");
+      const section = (crop ?? span)?.closest<HTMLElement>("[data-reflow-page]");
+      const pageNumber = Number(section?.dataset.reflowPage);
+      if (crop && section && root.contains(crop)) {
+        const r = crop.getBoundingClientRect();
+        const cropY = Number(crop.dataset.cropY);
+        const point: PdfPoint = { pageNumber, x: 0, y: cropY + (clientY - r.top) / pxPerPt };
+        return { point, clientX, clientY };
+      }
+      if (!span) return null;
+      const entry = runIndex.get(span.dataset.run ?? "");
+      if (!entry) return null;
+      const caret = caretAt(clientX, clientY);
+      const inSpan = caret ? offsetWithin(span, caret) : null;
+      const offset = entry.run.start + (inSpan ?? 0);
+      const glyph = charRect(span, inSpan ?? 0) ?? span.getBoundingClientRect();
+      return {
+        point: {
+          pageNumber: entry.pageNumber,
+          x: entry.run.rect.x,
+          y: entry.run.rect.y + entry.run.rect.height / 2,
+        },
+        clientX,
+        clientY: glyph.top + glyph.height / 2,
+        char: { itemIndex: entry.run.itemIndex, offset },
+      };
+    },
+    [runIndex, pxPerPt],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      anchorAt,
+      topAnchor: () => {
+        const root = scroller();
+        if (!root) return null;
+        const r = root.getBoundingClientRect();
+        return anchorAt(r.left + r.width / 2, r.top + 8);
+      },
+      previewScale: (next, keep) => {
+        const root = scroller();
+        if (!root) return;
+        const ppt = next * CSS_PX_PER_PT;
+        root.style.setProperty("--reflow-pt", `${ppt}px`);
+        placeAnchor(keep, ppt);
+      },
+    }),
+    [anchorAt, placeAnchor],
+  );
+
+  useLayoutEffect(() => {
+    scroller()?.style.setProperty("--reflow-pt", `${pxPerPt}px`);
+  }, [pxPerPt]);
+
+  useEffect(() => {
+    const root = scroller();
+    if (!root || !visible) return;
+    const onScroll = () => {
+      const r = root.getBoundingClientRect();
+      const probe = r.top + Math.min(40, r.height / 4);
+      for (const section of root.querySelectorAll<HTMLElement>("[data-reflow-page]")) {
+        const s = section.getBoundingClientRect();
+        if (s.bottom > probe) {
+          const n = Number(section.dataset.reflowPage);
+          if (n && viewer.currentPageNumber !== n) viewer.currentPageNumber = n;
+          return;
+        }
+      }
+    };
+    root.addEventListener("scroll", onScroll, { passive: true });
+    return () => root.removeEventListener("scroll", onScroll);
+  }, [viewer, visible]);
+
+  return (
+    <div
+      ref={scrollerRef}
+      className="reflow-layer"
+      data-active={visible ? "" : undefined}
+      style={{ visibility: visible ? "visible" : "hidden" }}
+    >
+      {pages.map((loaded) => (
+        <ReflowPageView key={loaded.page.pageNumber} loaded={loaded} pxPerPt={pxPerPt} marks={marksFor(loaded)} />
+      ))}
+    </div>
+  );
+});

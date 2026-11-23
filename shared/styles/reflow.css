@@ -1,0 +1,79 @@
+.PdfHighlighter,
+.reflow-layer {
+  touch-action: pan-x pan-y;
+}
+
+.reflow-layer {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
+  background: #fff;
+  color: #1f2328;
+  padding: 0 16px;
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.reflow-page {
+  position: relative;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reflow-block {
+  margin: 0 0 0.75em;
+}
+
+h2.reflow-block,
+h3.reflow-block,
+h4.reflow-block {
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 0.6em;
+}
+
+.reflow-list-item {
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+.reflow-caption,
+.reflow-footnote {
+  color: #4b5563;
+}
+
+.reflow-sup {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.reflow-crop {
+  overflow-x: auto;
+  margin: 0 0 0.75em;
+}
+
+.reflow-crop canvas {
+  display: block;
+}
+
+.reflow-kept .reflow-crop {
+  margin: 0;
+}
+
+mark.reflow-search {
+  background: rgba(255, 196, 0, 0.45);
+  color: inherit;
+}
+
+mark.reflow-search[data-selected] {
+  background: rgba(255, 140, 0, 0.75);
+}
+
+mark.reflow-highlight {
+  background: rgba(255, 226, 143, 0.9);
+  color: inherit;
+}

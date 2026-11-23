@@ -16,9 +16,7 @@ const MyApp: AppType<{ session: Session | null }> = ({
 }) => {
   const router = useRouter();
   // Pages that render full-bleed (no navbar chrome).
-  const isFullBleed = ["/f/[docId]", "/demo", "/demo/reflow"].includes(
-    router.pathname,
-  );
+  const isFullBleed = ["/f/[docId]", "/demo"].includes(router.pathname);
 
   return (
     <SessionProvider session={session}>

@@ -434,6 +434,7 @@ function ReaderContent({
                   )
                 }
                 readSelectedText={readSelectedText}
+                onZoomChange={handleZoomChange}
               />
             )}
           </PdfLoader>

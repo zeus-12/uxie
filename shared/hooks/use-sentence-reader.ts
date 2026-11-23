@@ -98,10 +98,26 @@ type PageTextModel = {
   sentenceStarts: number[];
 };
 
-function buildPageTextModel(pageElement: Element): PageTextModel {
-  const blocks = Array.from(
-    pageElement.querySelectorAll("span[role='presentation']"),
+// While pinch reflow is showing, a page's reflowed text is the readable copy and
+// the canvas page underneath is hidden; reflow pages kept as images have no text.
+export function readerPageElement(pageNumber: number): Element | null {
+  const reflowed = document.querySelector(
+    `.reflow-layer[data-active] [data-reflow-page="${pageNumber}"]`,
   );
+  if (reflowed?.querySelector("[data-reflow-block]")) return reflowed;
+  return document.querySelector(`.page[data-page-number="${pageNumber}"]`);
+}
+
+function textBlocks(pageElement: Element): Element[] {
+  return Array.from(
+    pageElement.matches("[data-reflow-page]")
+      ? pageElement.querySelectorAll("[data-reflow-block]")
+      : pageElement.querySelectorAll("span[role='presentation']"),
+  );
+}
+
+function buildPageTextModel(pageElement: Element): PageTextModel {
+  const blocks = textBlocks(pageElement);
 
   const blockRawLens: number[] = [];
   const blockStarts: number[] = [];
@@ -355,6 +371,7 @@ function paintWordOverlay(
 // names it #viewerContainer.
 export function getReaderScrollContainer(): HTMLElement | null {
   return (
+    document.querySelector<HTMLElement>(".reflow-layer[data-active]") ??
     document.getElementById("viewerContainer") ??
     document.querySelector<HTMLElement>(".PdfHighlighter")
   );
@@ -412,9 +429,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const glideMsRef = useRef(GLIDE_MAX_MS);
 
   const loadPageSentences = useCallback((pageNumber: number): string[] => {
-    const pageElement = document.querySelector(
-      `.page[data-page-number="${pageNumber}"]`,
-    );
+    const pageElement = readerPageElement(pageNumber);
     if (!pageElement) return [];
 
     const model = buildPageTextModel(pageElement);
@@ -428,14 +443,12 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   // the old ones yields stale rects. Different count or identity => re-rendered.
   const ensureFreshModel = useCallback(() => {
     const model = modelRef.current;
-    const page = document.querySelector(
-      `.page[data-page-number="${currentPageRef.current}"]`,
-    );
+    const page = readerPageElement(currentPageRef.current);
     if (!model || !page) {
       loadPageSentences(currentPageRef.current);
       return;
     }
-    const liveSpans = page.querySelectorAll("span[role='presentation']");
+    const liveSpans = textBlocks(page);
     if (
       liveSpans.length !== model.blocks.length ||
       liveSpans[0] !== model.blocks[0]
@@ -875,9 +888,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
         page <= pageCount && upcoming.length < count;
         page++
       ) {
-        const pageElement = document.querySelector(
-          `.page[data-page-number="${page}"]`,
-        );
+        const pageElement = readerPageElement(page);
         if (!pageElement) break;
 
         for (const sentence of buildPageTextModel(pageElement).sentences) {

@@ -12,7 +12,9 @@ import {
   usePdfSettingsStore,
 } from "../../lib/store";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Rect as PdfRect } from "../../lib/reflow/types";
+import { useInPlaceReflow } from "./reflow/use-in-place-reflow";
 import {
   AreaHighlight,
   Highlight,
@@ -58,6 +60,7 @@ const PdfHighlighter = ({
   updateAreaHighlight,
   readSelectedText,
   showAiFeatures,
+  onZoomChange,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
@@ -80,6 +83,7 @@ const PdfHighlighter = ({
   readSelectedText: ReadSelectedText;
   // Whether the document is indexed — the AI actions are hidden until it is.
   showAiFeatures: boolean;
+  onZoomChange?: (scale: number) => void;
 }) => {
   const sendMessage = useChatStore((state) => state.sendMessage);
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
@@ -214,13 +218,43 @@ const PdfHighlighter = ({
     };
   }, [linksDisabled]);
 
+  const highlightRects = useCallback(
+    (pageNumber: number, pageWidth: number, pageHeight: number): PdfRect[] =>
+      highlights
+        .filter((h) => getHighlightPageNumber(h.position) === pageNumber)
+        .flatMap((h) => h.position.rects)
+        .flatMap((r) => {
+          const { x1, y1, x2, y2, width, height } = r;
+          if (
+            x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined ||
+            !width || !height
+          ) {
+            return [];
+          }
+          const sx = pageWidth / width;
+          const sy = pageHeight / height;
+          return [{ x: x1 * sx, y: y1 * sy, width: (x2 - x1) * sx, height: (y2 - y1) * sy }];
+        }),
+    [highlights],
+  );
+
+  const reflow = useInPlaceReflow({
+    instance: highlighterInstance,
+    pdfDocument,
+    highlightRects,
+    onZoomChange,
+  });
+  const { bindPinch } = reflow;
+  const [pinchSurface, setPinchSurface] = useState<HTMLDivElement | null>(null);
+  useEffect(() => bindPinch(pinchSurface), [bindPinch, pinchSurface]);
+
   // react-pdf-highlighter reuses its viewer and find controller when the
   // document changes, and pdf.js hands the find controller the new document
   // asynchronously, so a search in that gap would run against the old one.
   const documentKey = pdfDocument.loadingTask.docId;
 
   return (
-    <Fragment key={documentKey}>
+    <div key={documentKey} ref={setPinchSurface} className="absolute inset-0">
       <PdfHighlighterComponent
         ref={setHighlighterRef}
         pdfDocument={pdfDocument}
@@ -303,11 +337,12 @@ const PdfHighlighter = ({
         }}
         highlights={highlights as unknown as IHighlight[]}
       />
+      {reflow.layer}
       <PdfSearch
         eventBus={highlighterInstance?.eventBus ?? null}
         viewerContainer={highlighterInstance?.containerNode ?? null}
       />
-    </Fragment>
+    </div>
   );
 };
 
