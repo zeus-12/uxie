@@ -511,6 +511,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const repaintWordRef = useRef<(() => void) | null>(null);
   const lastWordBoundaryAtRef = useRef(0);
   const glideMsRef = useRef(GLIDE_MAX_MS);
+  const revealPendingRef = useRef(false);
 
   // null when the page's text isn't known yet, so walks stop instead of skipping it.
   const loadPageSentences = useCallback((pageNumber: number): string[] | null => {
@@ -668,9 +669,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
 
     let nextPage = currentPageRef.current + 1;
     while (nextPage <= pageCount) {
-      const sentences = loadPageSentences(nextPage);
-      if (!sentences) return null;
-      if (sentences.length > 0) {
+      const blocks = pageBlocks(nextPage);
+      if (!blocks) return null;
+      if (buildPageTextModel(nextPage, blocks).sentences.length > 0) {
+        loadPageSentences(nextPage);
         currentSentenceIndexRef.current = 0;
         highlightCurrentSentence();
         return getCurrentSentence();
@@ -714,9 +716,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     (pageNumber: number): SentencePosition | null => {
       let currentPage = pageNumber;
       while (currentPage <= pageCount) {
-        const sentences = loadPageSentences(currentPage);
-        if (!sentences) return null;
-        if (sentences.length > 0) {
+        const blocks = pageBlocks(currentPage);
+        if (!blocks) return null;
+        if (buildPageTextModel(currentPage, blocks).sentences.length > 0) {
+          loadPageSentences(currentPage);
           currentSentenceIndexRef.current = 0;
           highlightCurrentSentence();
           return getCurrentSentence();
@@ -818,7 +821,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     const highlight =
       document.querySelector(`.${OVERLAY_CLASS.sentence.tts}`) ??
       document.querySelector(`.${OVERLAY_CLASS.sentence.rsvp}`);
-    if (revealReflowedPage(currentPageRef.current)) return;
+    if (revealReflowedPage(currentPageRef.current)) {
+      revealPendingRef.current = true;
+      return;
+    }
     if (highlight) scrollIntoCentre(highlight);
   }, []);
 
@@ -830,7 +836,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       document.querySelector(`.${OVERLAY_CLASS.word.rsvp}`);
     const container = getReaderScrollContainer();
     if (!word || !container) return;
-    if (revealReflowedPage(currentPageRef.current)) return;
+    if (revealReflowedPage(currentPageRef.current)) {
+      revealPendingRef.current = true;
+      return;
+    }
 
     const view = container.getBoundingClientRect();
     const rect = word.getBoundingClientRect();
@@ -941,11 +950,21 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       refreshHighlights();
     };
 
+    const onReflowLayout = (e: Event) => {
+      handler(e);
+      if (!revealPendingRef.current || !reflowSection(currentPageRef.current)) return;
+      revealPendingRef.current = false;
+      const highlight = document.querySelector(
+        `.${OVERLAY_CLASS.sentence.tts}, .${OVERLAY_CLASS.sentence.rsvp}`,
+      );
+      if (highlight) scrollIntoCentre(highlight);
+    };
+
     document.addEventListener("pdf:textlayerrendered", handler);
-    document.addEventListener(REFLOW_LAYOUT_EVENT, handler);
+    document.addEventListener(REFLOW_LAYOUT_EVENT, onReflowLayout);
     return () => {
       document.removeEventListener("pdf:textlayerrendered", handler);
-      document.removeEventListener(REFLOW_LAYOUT_EVENT, handler);
+      document.removeEventListener(REFLOW_LAYOUT_EVENT, onReflowLayout);
     };
   }, [refreshHighlights]);
 
@@ -991,6 +1010,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       const source = usePdfTextStore.getState().source;
       if (!source) return;
       for (let page = pageNumber; page <= pageCount; page++) {
+        for (let ahead = 1; ahead <= 4; ahead++) source.prefetch(page + ahead);
         await source.ready(page);
         const blocks = source.blocks(page);
         if (!blocks || buildPageTextModel(page, blocks).sentences.length > 0) return;
@@ -998,6 +1018,8 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     },
     [pageCount],
   );
+
+  const isPageTextKnown = useCallback((pageNumber: number) => pageBlocks(pageNumber) !== null, []);
 
   const prepareNextSentence = useCallback(async () => {
     const model = modelRef.current;
@@ -1034,5 +1056,6 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     getCurrentPage,
     ensureTextFrom,
     prepareNextSentence,
+    isPageTextKnown,
   };
 }

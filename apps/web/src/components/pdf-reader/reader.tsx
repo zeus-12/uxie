@@ -132,7 +132,6 @@ const PdfReader = ({
     },
   });
 
-
   return (
     <>
       <PdfLoader url={docUrl} beforeLoad={<SpinnerPage />}>

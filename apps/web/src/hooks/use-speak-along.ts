@@ -106,6 +106,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const hasShownErrorRef = useRef(false);
   const statusRef = useRef(status);
+  const requestRef = useRef(0);
   const advancingRef = useRef(false);
   statusRef.current = status;
 
@@ -352,7 +353,9 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
 
   const start = useCallback(
     async (pageNumber: number) => {
+      const request = ++requestRef.current;
       await sentenceReader.ensureTextFrom(pageNumber);
+      if (request !== requestRef.current) return;
       const ok = loadSentence(pageNumber);
       if (!ok) {
         toast.error("No text found on this page");
@@ -366,6 +369,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   );
 
   const stop = useCallback(() => {
+    requestRef.current += 1;
     stopRecognition();
     setStatus(SPEAK_ALONG_STATUS.IDLE);
     wordsRef.current = [];
@@ -377,6 +381,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   }, [sentenceReader, stopRecognition]);
 
   const pause = useCallback(() => {
+    requestRef.current += 1;
     stopRecognition();
     setStatus(SPEAK_ALONG_STATUS.PAUSED);
   }, [stopRecognition]);
@@ -423,7 +428,10 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
         status === SPEAK_ALONG_STATUS.LISTENING ||
         status === SPEAK_ALONG_STATUS.PAUSED
       ) {
-        void sentenceReader.ensureTextFrom(pageNumber).then(() => loadSentence(pageNumber));
+        const request = ++requestRef.current;
+        void sentenceReader.ensureTextFrom(pageNumber).then(() => {
+          if (request === requestRef.current) loadSentence(pageNumber);
+        });
       }
     },
     [status, loadSentence, sentenceReader],

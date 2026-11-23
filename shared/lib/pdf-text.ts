@@ -28,7 +28,9 @@ export const createPdfTextSource = (doc: PDFDocumentProxy): PdfTextSource => {
             .filter((str) => str !== "");
           cache.set(pageNumber, strings);
         })
-        .catch(() => undefined)
+        .catch(() => {
+          cache.set(pageNumber, []);
+        })
         .finally(() => pending.delete(pageNumber));
     pending.set(pageNumber, load);
     return load;

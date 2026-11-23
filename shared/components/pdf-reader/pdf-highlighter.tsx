@@ -86,8 +86,7 @@ const PdfHighlighter = ({
     (state) => state.stageImageAttachment,
   );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
-  const { enabled: reflowSetting } = useReflowOnZoom();
-  const reflowOnZoom = reflowSetting;
+  const { enabled: reflowOnZoom } = useReflowOnZoom();
   const setTextSource = usePdfTextStore((state) => state.setSource);
   useEffect(() => {
     setTextSource(createPdfTextSource(pdfDocument));

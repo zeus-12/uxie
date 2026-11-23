@@ -52,6 +52,10 @@ const usePdfReader = ({
     READING_STATUS.IDLE,
   );
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
+  const readingStatusRef = useRef(readingStatus);
+  readingStatusRef.current = readingStatus;
+  // A sentence ended while paused and waiting for the next page's text.
+  const advanceOnResumeRef = useRef(false);
   // Both start unknown so the toolbar can't show a page or zoom we aren't on.
   const [pageNumberInView, setPageNumberInView] = useState(0);
   const [currentZoom, setCurrentZoom] = useState<number | null>(zoomLevel);
@@ -333,6 +337,7 @@ const usePdfReader = ({
         isSkippingRef.current = false;
         setReadingStatus(READING_STATUS.READING);
         currentReadingMode.current = READING_MODE.PAGE;
+        advanceOnResumeRef.current = false;
 
         currentOperationIdRef.current++;
         const thisOperationId = currentOperationIdRef.current;
@@ -453,6 +458,18 @@ const usePdfReader = ({
 
     setReadingStatus(READING_STATUS.READING);
 
+    if (advanceOnResumeRef.current) {
+      advanceOnResumeRef.current = false;
+      const next = sentenceReader.advanceToNextSentence();
+      if (next) {
+        scrollToHighlight();
+        await playCurrentSentenceAudio();
+      } else {
+        stopReading();
+      }
+      return;
+    }
+
     const localTts = getLocalTts(engine);
     if (localTts) {
       if (localTts.canResume()) {
@@ -469,9 +486,11 @@ const usePdfReader = ({
         await playCurrentSentenceAudio();
       }
     }
-  }, [getLocalTts, browserTts, playCurrentSentenceAudio]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getLocalTts, browserTts, playCurrentSentenceAudio, sentenceReader, scrollToHighlight]);
 
   const stopReading = useCallback(() => {
+    advanceOnResumeRef.current = false;
     shouldStopRef.current = true;
     isReadingRef.current = false;
     isSkippingRef.current = false;
@@ -493,6 +512,10 @@ const usePdfReader = ({
     void sentenceReader.prepareNextSentence().then(() => {
       if (operationId !== currentOperationIdRef.current) return;
       if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current) return;
+      if (readingStatusRef.current === READING_STATUS.PAUSED) {
+        advanceOnResumeRef.current = true;
+        return;
+      }
       const next = sentenceReader.advanceToNextSentence();
       if (next) {
         scrollToHighlight();
@@ -593,6 +616,7 @@ const usePdfReader = ({
       isSkippingRef.current = false;
       setReadingStatus(READING_STATUS.READING);
       currentReadingMode.current = READING_MODE.PAGE;
+      advanceOnResumeRef.current = false;
 
       currentOperationIdRef.current++;
       const thisOperationId = currentOperationIdRef.current;

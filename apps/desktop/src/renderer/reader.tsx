@@ -278,7 +278,6 @@ function ReaderContent({
     },
   });
 
-
   async function addHighlight(
     position: ScaledPosition,
     content: { text?: string; image?: string },
