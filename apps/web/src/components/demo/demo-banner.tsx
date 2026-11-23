@@ -18,7 +18,7 @@ export default function DemoBanner() {
         and notes stay on this device.
       </span>
       <div className="flex items-center gap-2">
-        {corpus && requested && (
+        {requested && corpus?.some((entry) => entry.name === requested) && (
           <select
             aria-label="Test document"
             value={requested}

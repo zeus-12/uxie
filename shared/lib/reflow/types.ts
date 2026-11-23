@@ -76,7 +76,8 @@ export type KeepReason =
   | "scanned"
   | "graphics-heavy"
   | "unknown-font-metrics"
-  | "no-reflowable-text";
+  | "no-reflowable-text"
+  | "unreadable";
 
 export type HyphenDecision = "soft-hyphen" | "word-evidence" | "kept";
 

@@ -47,11 +47,13 @@ export const useInPlaceReflow = ({
   instance: Instance | null;
   pdfDocument: PDFDocumentProxy;
   highlightRects: (pageNumber: number, width: number, height: number) => Rect[];
-  onZoomChange?: (scale: number) => void;
+  onZoomChange?: (scale: number, persist: boolean) => void;
 }) => {
   const source = useMemo(() => createReflowSource(pdfDocument), [pdfDocument]);
   const [reflow, setReflow] = useState<{ anchor: ScreenAnchor; scale: number } | null>(null);
   const [placed, setPlaced] = useState(false);
+  const placedRef = useRef(false);
+  placedRef.current = placed;
   const layerRef = useRef<ReflowLayerApi | null>(null);
   const pendingAnchor = useRef<ScreenAnchor | null>(null);
   const pendingZoomIn = useRef(false);
@@ -169,8 +171,15 @@ export const useInPlaceReflow = ({
         return;
       }
       releaseTransform();
+      const fit = fitWidthScale(viewer);
+      const reflowAfter = Boolean(
+        fit &&
+          (modeRef.current === "reflow"
+            ? scale >= fit * EXIT_RATIO
+            : pendingZoomIn.current && pendingAnchor.current && scale > fit * ENTER_RATIO),
+      );
       viewer.currentScale = scale;
-      onZoomChange?.(viewer.currentScale);
+      onZoomChange?.(viewer.currentScale, !reflowAfter);
     },
     [viewer, onZoomChange, releaseTransform],
   );
@@ -183,6 +192,11 @@ export const useInPlaceReflow = ({
       const start = (e: TouchEvent) => {
         if (e.touches.length !== 2) return;
         const mid = touchMid(e.touches);
+        if (modeRef.current === "reflow" && !placedRef.current) {
+          entryRequest.current += 1;
+          modeRef.current = "page";
+          setReflow(null);
+        }
         const mode = modeRef.current;
         let anchor: ScreenAnchor | null = null;
         let origin = { x: 0, y: 0 };

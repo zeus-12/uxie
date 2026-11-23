@@ -77,7 +77,7 @@ const PdfHighlighter = ({
   ) => void;
   readSelectedText: ReadSelectedText;
   showAiFeatures: boolean;
-  onZoomChange?: (scale: number) => void;
+  onZoomChange?: (scale: number, persist: boolean) => void;
   onReflowChange?: (reflowed: boolean) => void;
   readingAloud?: boolean;
 }) => {
@@ -88,8 +88,9 @@ const PdfHighlighter = ({
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
   const { enabled: reflowSetting } = useReflowOnZoom();
   const speedReading = usePdfSettingsStore((state) => state.rsvpOpen);
-  // Read-aloud and speed-read follow the page text, so reflow steps aside for them.
-  const reflowOnZoom = reflowSetting && !readingAloud && !speedReading;
+  const speakingAlong = usePdfSettingsStore((state) => state.speakAlongEnabled);
+  // These follow the page's own text layer, so reflow steps aside for them.
+  const reflowOnZoom = reflowSetting && !readingAloud && !speedReading && !speakingAlong;
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
 

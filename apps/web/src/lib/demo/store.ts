@@ -84,8 +84,30 @@ export const useDemoDocStore = create<DemoDocStore>()(
   ),
 );
 
-/** Clears all locally-stored demo data and reseeds the document. */
 export const resetDemo = () => {
   useDemoDocStore.persist.clearStorage();
   useDemoDocStore.getState().reset();
+};
+
+const SAVED_DEMO_KEY = "uxie-demo-doc-before-corpus";
+
+// A test document replaces the demo document only while it's open.
+export const openCorpusDoc = (doc: DemoDoc) => {
+  const { id, title, url, note, isVectorised, pageCount, lastReadPage, zoomLevel, highlights } =
+    useDemoDocStore.getState();
+  if (!id.startsWith("corpus:")) {
+    localStorage.setItem(
+      SAVED_DEMO_KEY,
+      JSON.stringify({ id, title, url, note, isVectorised, pageCount, lastReadPage, zoomLevel, highlights }),
+    );
+  }
+  useDemoDocStore.getState().openDoc(doc);
+};
+
+export const closeCorpusDoc = () => {
+  if (!useDemoDocStore.getState().id.startsWith("corpus:")) return;
+  const saved = localStorage.getItem(SAVED_DEMO_KEY);
+  localStorage.removeItem(SAVED_DEMO_KEY);
+  if (saved) useDemoDocStore.getState().openDoc(JSON.parse(saved) as DemoDoc);
+  else resetDemo();
 };

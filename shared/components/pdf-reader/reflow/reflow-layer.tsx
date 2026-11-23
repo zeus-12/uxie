@@ -12,7 +12,7 @@ import {
 } from "react";
 import { convertMatches, type ItemRange } from "../../../lib/reflow/anchors";
 import type { ReflowSource } from "../../../lib/reflow/source";
-import type { Rect, Run } from "../../../lib/reflow/types";
+import type { PageInput, Rect, Run } from "../../../lib/reflow/types";
 import type { PdfPoint, ScreenAnchor } from "./canvas-anchor";
 import { caretAt, charRect, offsetWithin } from "./caret";
 import { highlightRanges } from "./highlight-ranges";
@@ -59,6 +59,18 @@ type Props = {
 type RunEntry = { pageNumber: number; run: Run };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+const emptyInput = (pageNumber: number, width: number, height: number): PageInput => ({
+  pageNumber,
+  width,
+  height,
+  items: [],
+  itemStrings: [],
+  images: [],
+  paths: [],
+  formWidgetCount: 0,
+  structRoles: {},
+});
 
 // Crops follow the text scale and kept pages fit the width, so measure the image.
 const cropScale = (crop: HTMLElement) => {
@@ -115,12 +127,17 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
 
   const load = useCallback(
     async (pageNumber: number): Promise<LoadedPage> => {
-      const [page, input, pdfPage] = await Promise.all([
-        source.page(pageNumber),
-        source.pageInput(pageNumber),
-        pdfDocument.getPage(pageNumber),
-      ]);
-      return { page, input, pdfPage };
+      const pdfPage = await pdfDocument.getPage(pageNumber);
+      const reconstructed = await Promise.all([source.page(pageNumber), source.pageInput(pageNumber)]).catch(
+        () => null,
+      );
+      if (reconstructed) return { page: reconstructed[0], input: reconstructed[1], pdfPage };
+      const { width, height } = pdfPage.getViewport({ scale: 1 });
+      return {
+        page: { kind: "keep", pageNumber, width, height, reason: "unreadable" },
+        input: emptyInput(pageNumber, width, height),
+        pdfPage,
+      };
     },
     [source, pdfDocument],
   );
@@ -143,16 +160,22 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       loading.current.clear();
       const from = Math.max(1, centre - 1);
       const to = Math.min(pdfDocument.numPages, centre + 1);
-      let loaded: LoadedPage[];
-      try {
-        loaded = await Promise.all(
-          Array.from({ length: to - from + 1 }, (_, i) => load(from + i)),
-        );
-      } catch {
-        if (request === windowRequest.current) onFailed();
+      const settled = await Promise.allSettled(
+        Array.from({ length: to - from + 1 }, (_, i) => load(from + i)),
+      );
+      if (request !== windowRequest.current) return;
+      const at = centre - from;
+      if (settled[at]?.status !== "fulfilled") {
+        onFailed();
         return;
       }
-      if (request !== windowRequest.current) return;
+      let first = at;
+      let last = at;
+      while (first > 0 && settled[first - 1]!.status === "fulfilled") first--;
+      while (last < settled.length - 1 && settled[last + 1]!.status === "fulfilled") last++;
+      const loaded = settled
+        .slice(first, last + 1)
+        .map((r) => (r as PromiseFulfilledResult<LoadedPage>).value);
       pendingAnchor.current = then;
       pagesRef.current = loaded;
       setPages(loaded);

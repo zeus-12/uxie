@@ -540,10 +540,10 @@ const usePdfReader = ({
   }, []);
 
   const handleZoomChange = useCallback(
-    (zoom: number) => {
+    (zoom: number, persist = true) => {
       setCurrentZoom(zoom);
       setPdfScaleValue(String(zoom));
-      debouncedUpdateZoomLevel(zoom);
+      if (persist) debouncedUpdateZoomLevel(zoom);
     },
     [debouncedUpdateZoomLevel],
   );

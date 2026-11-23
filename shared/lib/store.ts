@@ -160,7 +160,6 @@ export const useArticleSettingsStore = create<ArticleSettingsStore>()(
 
 type JumpToHighlight = (
   highlightId: string,
-  /** From the note block, used when the highlight itself no longer exists. */
   fallbackPageNumber?: number,
 ) => void;
 
