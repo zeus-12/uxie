@@ -1,3 +1,8 @@
+.PdfHighlighter,
+.reflow-layer {
+  overscroll-behavior: none;
+}
+
 .uxie-pdf-page {
   display: contents;
 }
