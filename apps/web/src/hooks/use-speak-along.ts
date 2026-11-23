@@ -230,9 +230,11 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
     if (index >= words.length) {
       if (advancingRef.current) return;
       advancingRef.current = true;
+      const request = requestRef.current;
       void sentenceReader.prepareNextSentence().then(() => {
         advancingRef.current = false;
-        if (statusRef.current === SPEAK_ALONG_STATUS.IDLE) return;
+        if (request !== requestRef.current) return;
+        if (statusRef.current !== SPEAK_ALONG_STATUS.LISTENING) return;
         showNextSentence();
       });
       return;

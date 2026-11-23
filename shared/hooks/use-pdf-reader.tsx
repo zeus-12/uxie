@@ -10,6 +10,7 @@ import {
   getReaderScrollContainer,
   isProgrammaticScroll,
   removeAllHighlights,
+  TEXT_LAYER_COMPLETE,
   useSentenceReader,
 } from "./use-sentence-reader";
 import { usePdfSettingsStore } from "../lib/store";
@@ -238,9 +239,12 @@ const usePdfReader = ({
 
     const handleTextLayerRendered = ({
       pageNumber,
+      source,
     }: {
       pageNumber: number;
+      source?: { textLayerDiv?: HTMLElement };
     }) => {
+      source?.textLayerDiv?.setAttribute(TEXT_LAYER_COMPLETE, "");
       document.dispatchEvent(
         new CustomEvent("pdf:textlayerrendered", {
           detail: { pageNumber },
@@ -400,6 +404,11 @@ const usePdfReader = ({
     const operationId = currentOperationIdRef.current;
     void sentenceReader.prepareNextSentence().then(() => {
       if (operationId !== currentOperationIdRef.current || !isReadingRef.current) return;
+      if (readingStatusRef.current === READING_STATUS.PAUSED) {
+        isSkippingRef.current = false;
+        advanceOnResumeRef.current = true;
+        return;
+      }
       const next = sentenceReader.advanceToNextSentence();
       if (next) {
         scrollToHighlight();
@@ -424,11 +433,21 @@ const usePdfReader = ({
     cancelAllOperations();
     debouncedPlayAfterSkip.cancel();
 
-    const prev = sentenceReader.goToPreviousSentence();
-    if (prev) {
+    const operationId = currentOperationIdRef.current;
+    void sentenceReader.preparePreviousSentence().then(() => {
+      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) return;
+      const prev = sentenceReader.goToPreviousSentence();
+      if (!prev) {
+        isSkippingRef.current = false;
+        return;
+      }
       scrollToHighlight();
+      if (readingStatusRef.current === READING_STATUS.PAUSED) {
+        isSkippingRef.current = false;
+        return;
+      }
       debouncedPlayAfterSkip();
-    }
+    });
   }, [
     cancelAllOperations,
     debouncedPlayAfterSkip,

@@ -91,8 +91,11 @@ const PdfHighlighter = ({
   const { enabled: reflowOnZoom } = useReflowOnZoom();
   const setTextSource = usePdfTextStore((state) => state.setSource);
   useEffect(() => {
-    setTextSource(createPdfTextSource(pdfDocument));
-    return () => setTextSource(null);
+    const source = createPdfTextSource(pdfDocument);
+    setTextSource(source);
+    return () => {
+      if (usePdfTextStore.getState().source === source) setTextSource(null);
+    };
   }, [pdfDocument, setTextSource]);
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
@@ -301,9 +304,13 @@ const PdfHighlighter = ({
           content={{ text: selection.text }}
           hideTipAndSelection={close}
           addHighlight={() => {
-            void selection.resolvePosition().then((position) => {
-              if (position) addHighlight({ content: { text: selection.text }, position });
-            });
+            void selection
+              .resolvePosition()
+              .then((position) => {
+                if (!position) throw new Error("no position");
+                addHighlight({ content: { text: selection.text }, position });
+              })
+              .catch(() => toast.error("Couldn't create the highlight"));
           }}
           readSelectedText={readSelectedText}
           selectionInfoRef={selectionInfoRef}

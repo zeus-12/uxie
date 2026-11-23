@@ -15,7 +15,7 @@ describe("reflow selection → pdf.js item offsets", () => {
     const range = document.createRange();
     range.setStart(a!, 8);
     range.setEnd(c!, 9);
-    expect(selectedSlices(root, range)).toEqual([
+    expect(selectedSlices(root, range)).toMatchObject([
       { pageNumber: 1, itemIndex: 4, from: 8, to: 12 },
       { pageNumber: 1, itemIndex: 5, from: 2, to: 2 + b!.length },
       { pageNumber: 2, itemIndex: 0, from: 0, to: 9 },
@@ -30,7 +30,7 @@ describe("reflow selection → pdf.js item offsets", () => {
     const range = document.createRange();
     range.setStart(marked, 1);
     range.setEnd(rest, 3);
-    expect(selectedSlices(root, range)).toEqual([{ pageNumber: 3, itemIndex: 7, from: 6, to: 11 }]);
+    expect(selectedSlices(root, range)).toMatchObject([{ pageNumber: 3, itemIndex: 7, from: 6, to: 11 }]);
   });
 
   it("quotes like react-pdf-highlighter: pdf.js's end-of-line breaks and page breaks become spaces", () => {
@@ -53,5 +53,21 @@ describe("reflow selection → pdf.js item offsets", () => {
       (n) => inputs.get(n),
     );
     expect(quote).toBe("Take the ideas you highlighted and phrase each as a question");
+  });
+
+  it("covers only what was selected when reflow reordered the items", () => {
+    const input = {
+      pageNumber: 1,
+      itemStrings: ["end of one.", " ", "Figure label", "Start of two"],
+      items: [0, 1, 2, 3].map((index) => ({ index, hasEOL: false })),
+    } as never;
+    const quote = selectionQuote(
+      [
+        { pageNumber: 1, itemIndex: 0, from: 4, to: 11 },
+        { pageNumber: 1, itemIndex: 3, from: 0, to: 5 },
+      ],
+      () => input,
+    );
+    expect(quote).toBe("of one.  Start");
   });
 });

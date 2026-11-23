@@ -7,9 +7,9 @@ fakeRangeClientRects();
 const ITEMS = ["Reading deeply is a ", "different craft. It is slower, ", "more deliberate."];
 
 const canvas = () =>
-  `<div class="page" data-page-number="1"><div class="textLayer">${ITEMS.map(
+  `<div class="page" data-page-number="1"><div class="textLayer" data-text-complete="">${ITEMS.map(
     (t) => `<span role="presentation">${t}</span>`,
-  ).join("")}<div class="endOfContent"></div></div></div>`;
+  ).join("")}</div></div>`;
 
 const reflow = () =>
   `<div class="reflow-layer" data-active=""><section data-reflow-page="1" data-page-w="600" data-page-h="800"><p data-reflow-block="">${ITEMS.map(
@@ -61,7 +61,7 @@ describe("read-aloud text model across surfaces", () => {
 
   it("waits on a page whose text layer hasn't finished instead of skipping it", () => {
     const page = (n: number, done: boolean, text: string) =>
-      `<div class="page" data-page-number="${n}"><div class="textLayer"><span role="presentation">${text}</span>${done ? '<div class="endOfContent"></div>' : ""}</div></div>`;
+      `<div class="page" data-page-number="${n}"><div class="textLayer"${done ? ' data-text-complete=""' : ""}><span role="presentation">${text}</span></div></div>`;
     document.body.innerHTML =
       page(1, true, "Page one ends here.") + page(2, false, "Page two is still") + page(3, true, "Page three.");
     const reader = mountReader(3);

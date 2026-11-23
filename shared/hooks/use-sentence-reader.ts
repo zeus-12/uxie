@@ -8,6 +8,7 @@ import {
   type WordMapEntry,
 } from "../lib/tts/utils";
 import { useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { usePdfTextStore } from "../lib/pdf-text";
 import { REFLOW_LAYOUT_EVENT, requestReflowPage } from "../lib/reflow/reveal";
 
@@ -115,12 +116,14 @@ const reflowSection = (pageNumber: number) =>
     `.reflow-layer[data-active] [data-reflow-page="${pageNumber}"]`,
   );
 
-// null when the page's text isn't known yet: pdf.js streams a text layer in
-// chunks and appends .endOfContent once it has all of them.
+// Set on a text layer once pdf.js reports it rendered; it streams in chunks.
+export const TEXT_LAYER_COMPLETE = "data-text-complete";
+
+// null when the page's text isn't known yet.
 function pageBlocks(pageNumber: number): string[] | null {
   const cached = usePdfTextStore.getState().source?.blocks(pageNumber);
   if (cached) return cached;
-  if (!canvasPage(pageNumber)?.querySelector(".textLayer .endOfContent")) return null;
+  if (!canvasPage(pageNumber)?.querySelector(`.textLayer[${TEXT_LAYER_COMPLETE}]`)) return null;
   return canvasSpans(pageNumber).map((span) => span.textContent ?? "");
 }
 
@@ -516,7 +519,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   // null when the page's text isn't known yet, so walks stop instead of skipping it.
   const loadPageSentences = useCallback((pageNumber: number): string[] | null => {
     const source = usePdfTextStore.getState().source;
-    for (let ahead = 0; ahead <= 2; ahead++) source?.prefetch(pageNumber + ahead);
+    for (let page = pageNumber - 1; page <= pageNumber + 2; page++) source?.prefetch(page);
     const blocks = pageBlocks(pageNumber);
     if (!blocks) return null;
 
@@ -670,6 +673,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     let nextPage = currentPageRef.current + 1;
     while (nextPage <= pageCount) {
       const blocks = pageBlocks(nextPage);
+      if (!blocks && usePdfTextStore.getState().source?.failed(nextPage)) {
+        toast.error(`Couldn't read the text on page ${nextPage}; skipping it`);
+        nextPage++;
+        continue;
+      }
       if (!blocks) return null;
       if (buildPageTextModel(nextPage, blocks).sentences.length > 0) {
         loadPageSentences(nextPage);
@@ -717,6 +725,11 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       let currentPage = pageNumber;
       while (currentPage <= pageCount) {
         const blocks = pageBlocks(currentPage);
+        if (!blocks && usePdfTextStore.getState().source?.failed(currentPage)) {
+          toast.error(`Couldn't read the text on page ${currentPage}; skipping it`);
+          currentPage++;
+          continue;
+        }
         if (!blocks) return null;
         if (buildPageTextModel(currentPage, blocks).sentences.length > 0) {
           loadPageSentences(currentPage);
@@ -1012,12 +1025,18 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       for (let page = pageNumber; page <= pageCount; page++) {
         for (let ahead = 1; ahead <= 4; ahead++) source.prefetch(page + ahead);
         await source.ready(page);
+        if (source.failed(page) && !pageBlocks(page)) continue;
         const blocks = source.blocks(page);
         if (!blocks || buildPageTextModel(page, blocks).sentences.length > 0) return;
       }
     },
     [pageCount],
   );
+
+  const preparePreviousSentence = useCallback(async () => {
+    if (currentSentenceIndexRef.current > 0) return;
+    await usePdfTextStore.getState().source?.ready(currentPageRef.current - 1);
+  }, []);
 
   const isPageTextKnown = useCallback((pageNumber: number) => pageBlocks(pageNumber) !== null, []);
 
@@ -1056,6 +1075,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     getCurrentPage,
     ensureTextFrom,
     prepareNextSentence,
+    preparePreviousSentence,
     isPageTextKnown,
   };
 }

@@ -503,8 +503,8 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     if (!root || !visible || !selectable) return;
     let pointerDown = false;
 
-    // Cheap on purpose: it runs on every selectionchange while a selection is
-    // dragged, so nothing here may lay out text or touch the DOM.
+    // Runs on every selectionchange while a selection is dragged: it may read
+    // layout, but must not change the DOM or the live selection is dropped.
     const finish = () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;

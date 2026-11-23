@@ -50,8 +50,8 @@ function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
     el.getBoundingClientRect = () => rect as DOMRect;
     textLayer.appendChild(el);
   }
-  // What pdf.js's TextLayerBuilder appends once the layer has finished rendering.
-  textLayer.appendChild(Object.assign(document.createElement("div"), { className: "endOfContent" }));
+  // What the reader marks once pdf.js reports the layer rendered.
+  textLayer.setAttribute("data-text-complete", "");
   document.body.appendChild(page);
 }
 
