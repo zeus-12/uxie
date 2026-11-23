@@ -42,6 +42,7 @@ function DocViewerContent({ doc }: { doc: DocumentData }) {
       isOwner={doc.userPermissions.isOwner}
       isVectorised={doc.isVectorised}
       note={doc.note}
+      title={doc.title}
       annotatedPdfExport={
         doc.kind === "pdf" ? { pdfDocument, readerDocument: doc } : undefined
       }

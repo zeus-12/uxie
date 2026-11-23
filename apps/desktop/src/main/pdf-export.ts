@@ -1,7 +1,5 @@
-import { randomUUID } from "crypto";
-import { readFile, rename, rm, stat, writeFile } from "fs/promises";
-import { basename, dirname, join } from "path";
-import { BrowserWindow, dialog } from "electron";
+import { readFile, stat } from "fs/promises";
+import { dirname } from "path";
 import { getDocument as loadPdfJsDocument } from "pdfjs-dist/legacy/build/pdf";
 import {
   annotatedPdfFilename,
@@ -9,8 +7,9 @@ import {
   type AnnotatedPdfHighlight,
 } from "@uxie/shared/lib/annotated-pdf";
 import type { HighlightWithRects } from "@uxie/shared/schema";
-import type { AnnotatedPdfExportResult } from "../ipc-contract";
+import type { FileExportResult } from "../ipc-contract";
 import { getDb, getDocument } from "./db";
+import { chooseExportPath, writeAtomically } from "./export-file";
 import { documentsDir } from "./pdf";
 import { pdfPath } from "./pdf-store";
 
@@ -27,22 +26,6 @@ function exportHighlights(
   }));
 }
 
-async function writeAtomically(
-  destinationPath: string,
-  bytes: Uint8Array,
-): Promise<void> {
-  const temporaryPath = join(
-    dirname(destinationPath),
-    `.${basename(destinationPath)}.${randomUUID()}.tmp`,
-  );
-  try {
-    await writeFile(temporaryPath, bytes);
-    await rename(temporaryPath, destinationPath);
-  } finally {
-    await rm(temporaryPath, { force: true });
-  }
-}
-
 async function isSameDirectory(a: string, b: string): Promise<boolean> {
   const [first, second] = await Promise.all([stat(a), stat(b)]);
   return first.dev === second.dev && first.ino === second.ino;
@@ -56,7 +39,7 @@ export async function saveAnnotatedPdf({
   highlights: HighlightWithRects[];
   sourcePath: string;
   destinationPath: string | null;
-}): Promise<AnnotatedPdfExportResult> {
+}): Promise<FileExportResult> {
   if (destinationPath === null) return { status: "cancelled" };
   if (await isSameDirectory(dirname(destinationPath), dirname(sourcePath))) {
     throw new Error(
@@ -84,29 +67,25 @@ export async function saveAnnotatedPdf({
 
 export async function exportAnnotatedPdf(
   documentId: string,
-): Promise<AnnotatedPdfExportResult> {
+): Promise<FileExportResult> {
   const document = await getDocument(getDb(), documentId);
   if (!document) {
     return { status: "failed", message: "This document no longer exists." };
   }
 
   const sourcePath = pdfPath(documentsDir(), document.id);
-  const options: Electron.SaveDialogOptions = {
+  const destinationPath = await chooseExportPath({
     title: "Export annotated PDF",
     defaultPath: annotatedPdfFilename(document.title),
     buttonLabel: "Export",
     filters: [{ name: "PDF", extensions: ["pdf"] }],
-  };
-  const window = BrowserWindow.getFocusedWindow();
-  const { canceled, filePath } = window
-    ? await dialog.showSaveDialog(window, options)
-    : await dialog.showSaveDialog(options);
+  });
 
   try {
     return await saveAnnotatedPdf({
       highlights: document.highlights,
       sourcePath,
-      destinationPath: canceled || !filePath ? null : filePath,
+      destinationPath,
     });
   } catch (error) {
     return {

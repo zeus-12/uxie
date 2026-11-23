@@ -7,42 +7,28 @@ import {
 } from "@/components/workspace/annotated-pdf-export-menu-item";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
 import { useDemoDocStore } from "@/lib/demo/store";
-import { useBlocknoteEditorStore } from "@/lib/store";
+import { downloadNotes } from "@/lib/notes-export";
 import { ThemeMenuSub } from "@uxie/shared/components/theme/theme-controls";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
 import { AnnotatedPdfExportMenuItem } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
+import { NotesExportMenuItem } from "@uxie/shared/components/workspace/notes-export-menu-item";
 import {
   Sidebar as SharedSidebar,
   SidebarSettingsButton,
 } from "@uxie/shared/components/workspace/sidebar";
-import { saveAs } from "file-saver";
-import { Download } from "lucide-react";
 import { useState } from "react";
 
-// Same chrome as the real reader's sidebar (@/components/workspace/sidebar) —
-// only the panels and the menu items differ, since the demo has no backend.
 const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
   const exportMenuItem = useAnnotatedPdfExportMenuItem(annotatedPdfExport);
   const setNote = useDemoDocStore((s) => s.setNote);
-  // Snapshot the note once for the editor's initial content. Reading it
-  // reactively would recreate the editor on every autosave (it lives in a
-  // useMemo keyed on `note`), tearing down the editor mid-typing.
+  // Read once: the editor's useMemo is keyed on `note`, so a reactive read would rebuild it on every autosave.
   const [initialNote] = useState(() => useDemoDocStore.getState().note);
-  const { editor } = useBlocknoteEditorStore();
   useSidebarTabUrlSync();
-
-  const handleDownloadMarkdownAsFile = async () => {
-    if (!editor) return;
-    const markdownContent = await editor.blocksToMarkdownLossy(editor.document);
-    const blob = new Blob([markdownContent], { type: "text/markdown" });
-    saveAs(blob, "notes.md");
-  };
 
   return (
     <div className="flex h-full flex-col bg-muted/40">
@@ -54,14 +40,14 @@ const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
               <SidebarSettingsButton />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem
-                className="cursor-pointer gap-2"
-                disabled={!editor}
-                onSelect={handleDownloadMarkdownAsFile}
-              >
-                <Download size={16} />
-                Download notes
-              </DropdownMenuItem>
+              <NotesExportMenuItem
+                onExport={(markdown) =>
+                  downloadNotes(
+                    markdown,
+                    annotatedPdfExport.readerDocument.title,
+                  )
+                }
+              />
               <AnnotatedPdfExportMenuItem {...exportMenuItem} />
               <DropdownMenuSeparator />
               <ThemeMenuSub />

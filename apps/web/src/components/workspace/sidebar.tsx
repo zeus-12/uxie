@@ -6,7 +6,7 @@ import {
   useAnnotatedPdfExportMenuItem,
 } from "@/components/workspace/annotated-pdf-export-menu-item";
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
-import { useBlocknoteEditorStore } from "@/lib/store";
+import { downloadNotes } from "@/lib/notes-export";
 import { ThemeMenuSub } from "@uxie/shared/components/theme/theme-controls";
 import {
   DropdownMenu,
@@ -16,12 +16,12 @@ import {
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
 import { AnnotatedPdfExportMenuItem } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
+import { NotesExportMenuItem } from "@uxie/shared/components/workspace/notes-export-menu-item";
 import {
   Sidebar as SharedSidebar,
   SidebarSettingsButton,
 } from "@uxie/shared/components/workspace/sidebar";
-import { saveAs } from "file-saver";
-import { BugIcon, Download, UserPlus } from "lucide-react";
+import { BugIcon, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import InviteCollab from "./invite-collab-modal";
@@ -33,6 +33,7 @@ const Sidebar = ({
   isOwner,
   isVectorised,
   note,
+  title,
   annotatedPdfExport,
   showFlashcards = true,
 }: {
@@ -40,21 +41,13 @@ const Sidebar = ({
   isOwner: boolean;
   isVectorised: boolean;
   note: string | null;
+  title: string | null;
   annotatedPdfExport?: AnnotatedPdfExportSource;
   showFlashcards?: boolean;
 }) => {
-  const { editor } = useBlocknoteEditorStore();
   const exportMenuItem = useAnnotatedPdfExportMenuItem(annotatedPdfExport);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   useSidebarTabUrlSync();
-
-  const handleDownloadMarkdownAsFile = async () => {
-    if (!editor) return;
-    const markdownContent = await editor.blocksToMarkdownLossy(editor.document);
-
-    const blob = new Blob([markdownContent], { type: "text/markdown" });
-    saveAs(blob, "notes.md");
-  };
 
   return (
     <div className="flex h-full flex-col bg-muted/40">
@@ -79,14 +72,9 @@ const Sidebar = ({
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuItem
-                className="cursor-pointer gap-2"
-                disabled={!editor}
-                onSelect={handleDownloadMarkdownAsFile}
-              >
-                <Download size={16} />
-                Download notes
-              </DropdownMenuItem>
+              <NotesExportMenuItem
+                onExport={(markdown) => downloadNotes(markdown, title)}
+              />
 
               {annotatedPdfExport && (
                 <AnnotatedPdfExportMenuItem {...exportMenuItem} />

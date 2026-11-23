@@ -9,6 +9,7 @@ import {
   setFillingRgbColor,
   setGraphicsState,
 } from "pdf-lib";
+import { exportFilename } from "../export-filename";
 import {
   scaledRectToPdfRectangle,
   type PdfRectangle,
@@ -43,12 +44,7 @@ export const HIGHLIGHT_COLOR: Rgb = [255, 226, 143];
 const PRINT_FLAG = 4;
 
 export function annotatedPdfFilename(title: string | null): string {
-  const withoutExtension = (title ?? "").replace(/\.pdf$/i, "");
-  const safeTitle = withoutExtension
-    .replace(/[\u0000-\u001f/:]/g, "-")
-    .replace(/\s+/g, " ")
-    .trim();
-  return `${safeTitle || "document"} annotated.pdf`;
+  return exportFilename(title, "annotated.pdf");
 }
 
 function pageNumberFor(

@@ -39,6 +39,7 @@ import { extractPdfText } from "./pdf-text";
 import { queryEmbeddings, storeEmbeddings } from "./embeddings";
 import { createUserMessage } from "./chat-images";
 import { createMessage, getMessagesByDocId } from "./db/messages";
+import { exportNotes } from "./notes-export";
 import { exportAnnotatedPdf } from "./pdf-export";
 
 // Without this, app.getName() falls back to package.json's "name" — the
@@ -83,6 +84,7 @@ const invokeHandlers: {
   "documents:delete": (id) => deleteDocumentWithFile(id),
   "documents:storeImage": (docId, png) => storeDocumentImage(docId, png),
   "documents:exportAnnotatedPdf": (docId) => exportAnnotatedPdf(docId),
+  "documents:exportNotes": (docId, markdown) => exportNotes(docId, markdown),
 
   "highlights:add": (input) => addHighlight(getDb(), input),
   // Deliberately leaves the screenshot on disk: the same image is embedded in

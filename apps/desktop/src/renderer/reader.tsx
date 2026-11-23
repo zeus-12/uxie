@@ -22,6 +22,7 @@ import {
   AnnotatedPdfExportMenuItem,
   useAnnotatedPdfExport,
 } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
+import { NotesExportMenuItem } from "@uxie/shared/components/workspace/notes-export-menu-item";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -243,6 +244,12 @@ function ReaderContent({
     if (result.status === "failed") throw new Error(result.message);
     if (result.status === "exported") toast.success("Annotated PDF saved");
   });
+
+  const exportNotes = async (markdown: string) => {
+    const result = await window.uxieAPI.exportNotes(docId, markdown);
+    if (result.status === "failed") throw new Error(result.message);
+    if (result.status === "exported") toast.success("Notes saved");
+  };
 
   // ⌘1/2/3 switch tabs; ⌘L jumps to chat and focuses its input. Kept out of the
   // UI — just shortcuts.
@@ -488,6 +495,7 @@ function ReaderContent({
                 <SidebarSettingsButton className="app-no-drag" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
+                <NotesExportMenuItem onExport={exportNotes} />
                 <AnnotatedPdfExportMenuItem
                   ready
                   isExporting={isExporting}

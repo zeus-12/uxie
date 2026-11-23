@@ -64,7 +64,7 @@ export interface Settings {
   llm: LlmSettings;
 }
 
-export type AnnotatedPdfExportResult =
+export type FileExportResult =
   | { status: "cancelled" }
   | { status: "exported" }
   | { status: "failed"; message: string };
@@ -115,7 +115,11 @@ export interface IpcInvokeContract {
   };
   "documents:exportAnnotatedPdf": {
     args: [docId: string];
-    result: AnnotatedPdfExportResult;
+    result: FileExportResult;
+  };
+  "documents:exportNotes": {
+    args: [docId: string, markdown: string];
+    result: FileExportResult;
   };
 
   "highlights:add": { args: [input: AddHighlightInput]; result: void };
@@ -206,6 +210,7 @@ export const API_INVOKE = {
   deleteDocument: "documents:delete",
   storeDocumentImage: "documents:storeImage",
   exportAnnotatedPdf: "documents:exportAnnotatedPdf",
+  exportNotes: "documents:exportNotes",
 
   addHighlight: "highlights:add",
   deleteHighlight: "highlights:delete",

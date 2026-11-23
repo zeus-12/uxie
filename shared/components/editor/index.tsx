@@ -64,7 +64,7 @@ export default function Editor({
     onSaveNotes(value);
   }, 2000);
 
-  const { setEditor } = useBlocknoteEditorStore();
+  const { setEditor, releaseEditor } = useBlocknoteEditorStore();
 
   // Read through a ref so an inline `uploadFile` prop doesn't rebuild the
   // editor (and drop its content) on every render.
@@ -105,7 +105,8 @@ export default function Editor({
     if (!editor) return;
 
     setEditor(editor);
-  }, [editor, setEditor]);
+    return () => releaseEditor(editor);
+  }, [editor, setEditor, releaseEditor]);
 
   const completion = ai?.completion ?? "";
   const isLoading = ai?.isLoading ?? false;
