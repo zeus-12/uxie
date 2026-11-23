@@ -21,6 +21,7 @@ interface DemoDocStore extends DemoDoc {
     zoomLevel?: number;
   }) => void;
   reset: () => void;
+  openDoc: (doc: DemoDoc) => void;
 }
 
 const DEMO_STORAGE_KEY = "uxie-demo-doc";
@@ -61,6 +62,7 @@ export const useDemoDocStore = create<DemoDocStore>()(
       setReaderState: (state) => set(state),
 
       reset: () => set({ ...DEMO_DOC_SEED }),
+      openDoc: (doc) => set({ ...doc }),
     }),
     {
       name: DEMO_STORAGE_KEY,
@@ -75,6 +77,7 @@ export const useDemoDocStore = create<DemoDocStore>()(
         setIsVectorised,
         setReaderState,
         reset,
+        openDoc,
         ...doc
       }) => doc,
     },

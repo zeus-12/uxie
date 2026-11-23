@@ -1,4 +1,8 @@
+import { corpusUrl, useReflowCorpus } from "@/lib/demo/corpus";
+import { resetDemo, useDemoDocStore } from "@/lib/demo/store";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 
 // The reader relies on browser-only APIs (react-pdf-highlighter / pdf.js), so
 // it must never be server-rendered.
@@ -8,5 +12,31 @@ const DemoWorkspace = dynamic(
 );
 
 export default function DemoPage() {
-  return <DemoWorkspace />;
+  const docId = useDemoDocStore((s) => s.id);
+  const openDoc = useDemoDocStore((s) => s.openDoc);
+  const corpus = useReflowCorpus();
+  const router = useRouter();
+  const requested = router.query.doc;
+
+  useEffect(() => {
+    if (router.isReady && !requested && docId.startsWith("corpus:")) resetDemo();
+  }, [router.isReady, requested, docId]);
+
+  useEffect(() => {
+    const entry = corpus?.find((e) => e.name === requested);
+    if (!entry || docId === `corpus:${entry.name}`) return;
+    openDoc({
+      id: `corpus:${entry.name}`,
+      title: entry.name,
+      url: corpusUrl(entry.name),
+      note: null,
+      isVectorised: false,
+      pageCount: entry.pageCount,
+      lastReadPage: 1,
+      zoomLevel: null,
+      highlights: [],
+    });
+  }, [corpus, requested, docId, openDoc]);
+
+  return <DemoWorkspace key={docId} />;
 }
