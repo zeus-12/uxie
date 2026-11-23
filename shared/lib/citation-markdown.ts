@@ -7,46 +7,60 @@ type MdNode = {
   data?: { hName?: string; hProperties?: Record<string, string> };
 };
 
-export const CITATION_REF_TAG = "cite";
-export const CITATION_SOURCES_TAG = "footer";
+export const CITATION_GROUP_TAG = "cite";
 
-const CITATION_GROUP = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
+const CITATION_BRACKET = /\[(\d+(?:\s*,\s*\d+)*)\]/g;
 const LITERAL_CONTAINERS = new Set(["link", "linkReference"]);
 
-function citationNode(ref: number, label: number): MdNode {
+type CitedRef = { ref: number; label: number };
+
+function citationGroupNode(cited: CitedRef[]): MdNode {
   return {
-    type: "citationRef",
+    type: "citationGroup",
     children: [],
     data: {
-      hName: CITATION_REF_TAG,
-      hProperties: { dataRef: String(ref), dataLabel: String(label) },
+      hName: CITATION_GROUP_TAG,
+      hProperties: {
+        dataRefs: cited.map(({ ref }) => ref).join(","),
+        dataLabels: cited.map(({ label }) => label).join(","),
+      },
     },
   };
 }
 
 function splitCitations(
   value: string,
-  cite: (ref: number) => MdNode | null,
+  cite: (ref: number) => CitedRef | null,
 ): MdNode[] | null {
   const nodes: MdNode[] = [];
+  let group: CitedRef[] = [];
+  let groupEnd = -1;
   let last = 0;
-  for (const match of value.matchAll(CITATION_GROUP)) {
-    const refs = match[1]!.split(",").map((ref) => Number(ref.trim()));
-    const cited = refs.flatMap((ref) => cite(ref) ?? []);
+  for (const match of value.matchAll(CITATION_BRACKET)) {
+    const cited = match[1]!
+      .split(",")
+      .flatMap((ref) => cite(Number(ref.trim())) ?? []);
     if (!cited.length) continue;
+    if (match.index !== groupEnd && group.length) {
+      nodes.push(citationGroupNode(group));
+      group = [];
+    }
     if (match.index > last) {
       nodes.push({ type: "text", value: value.slice(last, match.index) });
     }
-    nodes.push(...cited);
-    last = match.index + match[0].length;
+    for (const entry of cited) {
+      if (!group.some(({ ref }) => ref === entry.ref)) group.push(entry);
+    }
+    last = groupEnd = match.index + match[0].length;
   }
+  if (group.length) nodes.push(citationGroupNode(group));
   if (!nodes.length) return null;
   if (last < value.length)
     nodes.push({ type: "text", value: value.slice(last) });
   return nodes;
 }
 
-function transform(node: MdNode, cite: (ref: number) => MdNode | null) {
+function transform(node: MdNode, cite: (ref: number) => CitedRef | null) {
   if (!node.children || LITERAL_CONTAINERS.has(node.type)) return;
   node.children = node.children.flatMap((child) => {
     if (child.type === "text" && child.value) {
@@ -61,20 +75,10 @@ function transform(node: MdNode, cite: (ref: number) => MdNode | null) {
 export function remarkCitations(citations: CitationIndex) {
   return () => (tree: MdNode) => {
     const order: number[] = [];
-    const cite = (ref: number) => {
+    transform(tree, (ref) => {
       if (!citations.has(ref)) return null;
       if (!order.includes(ref)) order.push(ref);
-      return citationNode(ref, order.indexOf(ref) + 1);
-    };
-    transform(tree, cite);
-    if (!order.length) return;
-    tree.children?.push({
-      type: "citationSources",
-      children: [],
-      data: {
-        hName: CITATION_SOURCES_TAG,
-        hProperties: { dataRefs: order.join(",") },
-      },
+      return { ref, label: order.indexOf(ref) + 1 };
     });
   };
 }

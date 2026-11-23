@@ -196,28 +196,28 @@ describe("cited answer rendering", () => {
     [12, page9],
   ]);
 
-  it("numbers cited passages in first-cited order and lists only those", () => {
+  it("numbers cited passages in first-cited order as bracketed groups", () => {
     const { container, root } = renderCited(
-      "Traces are linear [12]. They nest [7][12], see [7, 40].",
+      "Traces are linear [12]. They nest [7][12], see [7, 40] and [12, 7].",
       citations,
     );
-    const inline = [...container.querySelectorAll("p button")];
-    expect(inline.map((button) => button.textContent)).toEqual([
-      "1",
-      "2",
-      "1",
-      "2",
-    ]);
-    expect(container.querySelector("p")?.textContent).toBe(
-      "Traces are linear 1. They nest 21, see 2.",
+    const paragraph = container.querySelector("p");
+    expect(paragraph?.textContent).toBe(
+      "Traces are linear [1]. They nest [2, 1], see [2] and [1, 2].",
     );
-    const sources = container.querySelector("footer, .not-prose");
-    expect(sources?.textContent).toBe("Sources12");
     expect(
-      [...(sources?.querySelectorAll("button") ?? [])].map((button) =>
+      [...container.querySelectorAll("button")].map((button) =>
         button.getAttribute("aria-label"),
       ),
-    ).toEqual(["Source 1, Page 9", "Source 2, Page 4"]);
+    ).toEqual([
+      "Source 1, Page 9",
+      "Source 2, Page 4",
+      "Source 1, Page 9",
+      "Source 2, Page 4",
+      "Source 1, Page 9",
+      "Source 2, Page 4",
+    ]);
+    expect(container.querySelector("footer")).toBeNull();
     flushSync(() => root.unmount());
   });
 
@@ -233,20 +233,19 @@ describe("cited answer rendering", () => {
     flushSync(() => root.unmount());
   });
 
-  it("shows no sources row when the answer cites nothing", () => {
+  it("renders no refs when the answer cites nothing", () => {
     const { container, root } = renderCited("Not in the document.", citations);
     expect(container.querySelector("button")).toBeNull();
     expect(container.textContent).toBe("Not in the document.");
     flushSync(() => root.unmount());
   });
 
-  it("opens the cited passage from a sources ref", () => {
+  it("opens the cited passage from an inline ref", () => {
     const highlightSource = vi.fn();
     useCitationHighlightStore.getState().setHighlightSource(highlightSource);
     useMobileSidebarStore.getState().setDrawerOpen(true);
     const { container, root } = renderCited("Claim [12].", citations);
-    const buttons = container.querySelectorAll("button");
-    (buttons[buttons.length - 1] as HTMLButtonElement).click();
+    container.querySelector("button")!.click();
     expect(highlightSource).toHaveBeenCalledWith(page9);
     expect(useMobileSidebarStore.getState().isDrawerOpen).toBe(false);
     flushSync(() => root.unmount());

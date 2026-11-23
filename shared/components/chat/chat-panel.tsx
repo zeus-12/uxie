@@ -1,5 +1,6 @@
 import {
   createContext,
+  Fragment,
   useContext,
   useEffect,
   useRef,
@@ -19,8 +20,7 @@ import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { toast } from "sonner";
 import type { CitationIndex, RetrievedChunk } from "../../lib/chat";
 import {
-  CITATION_REF_TAG,
-  CITATION_SOURCES_TAG,
+  CITATION_GROUP_TAG,
   remarkCitations,
 } from "../../lib/citation-markdown";
 import type { ChatRole, ChatRow } from "../../lib/chat-rows";
@@ -48,8 +48,7 @@ export type { ChatRole, ChatRow } from "../../lib/chat-rows";
 export type MarkdownCitations = {
   remarkPlugins: ReturnType<typeof remarkCitations>[];
   components: {
-    [CITATION_REF_TAG]: typeof CitationRefTag;
-    [CITATION_SOURCES_TAG]: typeof CitationSourcesTag;
+    [CITATION_GROUP_TAG]: typeof CitationGroupTag;
   };
 };
 export type RenderMarkdown = (
@@ -359,7 +358,7 @@ function ChatBubble({
             <MessageImageGrid images={attachments} onOpen={onOpenImage} />
           )}
           {content && (
-            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-blue-500 px-3.5 py-2 text-sm text-white">
+            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
               {content}
             </div>
           )}
@@ -435,7 +434,7 @@ function CitationRef({
           type="button"
           onClick={() => openSource(source)}
           aria-label={`Source ${label}, ${sourceLocation(source)}`}
-          className="mx-px inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded bg-foreground/[0.08] px-1 align-middle text-[10px] font-medium not-italic leading-none text-muted-foreground tabular-nums transition-colors hover:bg-info/15 hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-sm font-medium text-info tabular-nums underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {label}
         </button>
@@ -457,36 +456,34 @@ function CitationRef({
   );
 }
 
-function CitationRefTag(
+function CitationGroupTag(
   props: HTMLAttributes<HTMLElement> & {
-    "data-ref"?: string;
-    "data-label"?: string;
+    "data-refs"?: string;
+    "data-labels"?: string;
   },
 ) {
-  const source = useContext(CitationContext).get(Number(props["data-ref"]));
-  if (!source || !props["data-label"]) return null;
-  return <CitationRef label={props["data-label"]} source={source} />;
-}
-
-function CitationSourcesTag(
-  props: HTMLAttributes<HTMLElement> & { "data-refs"?: string },
-) {
   const citations = useContext(CitationContext);
-  const sources = (props["data-refs"] ?? "")
-    .split(",")
-    .flatMap((ref) => citations.get(Number(ref)) ?? []);
-  if (!sources.length) return null;
+  const labels = (props["data-labels"] ?? "").split(",");
+  const cited = (props["data-refs"] ?? "").split(",").flatMap((ref, index) => {
+    const source = citations.get(Number(ref));
+    const label = labels[index];
+    return source && label ? [{ source, label }] : [];
+  });
+  if (!cited.length) return null;
   return (
-    <div className="not-prose mb-0.5 mt-2 flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-muted-foreground">
-      <span className="mr-0.5">Sources</span>
-      {sources.map((source, index) => (
-        <CitationRef key={index} label={String(index + 1)} source={source} />
+    <span className="whitespace-nowrap not-italic text-muted-foreground">
+      [
+      {cited.map(({ source, label }, index) => (
+        <Fragment key={label}>
+          {index > 0 && ", "}
+          <CitationRef label={label} source={source} />
+        </Fragment>
       ))}
-    </div>
+      ]
+    </span>
   );
 }
 
 const CITATION_COMPONENTS: MarkdownCitations["components"] = {
-  [CITATION_REF_TAG]: CitationRefTag,
-  [CITATION_SOURCES_TAG]: CitationSourcesTag,
+  [CITATION_GROUP_TAG]: CitationGroupTag,
 };
