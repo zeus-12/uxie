@@ -1,5 +1,4 @@
 import type { ArticleDocumentData } from "@/types/reader";
-import { PDF_ANNOTATION_HIGHLIGHT_COLOUR } from "@uxie/shared/lib/constants";
 
 export type ArticleTextSelection = {
   blockId: string;
@@ -166,8 +165,8 @@ export const paintArticleHighlights = (
     const mark = document.createElement("mark");
     mark.dataset.articleHighlightId = highlight.id;
     mark.className =
-      "article-annotation rounded-[2px] text-inherit decoration-clone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-600 focus-visible:ring-offset-1";
-    mark.style.backgroundColor = PDF_ANNOTATION_HIGHLIGHT_COLOUR;
+      "article-annotation rounded-[2px] text-inherit decoration-clone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
+    mark.style.backgroundColor = "var(--annotation)";
     mark.tabIndex = 0;
     mark.setAttribute("role", "button");
     mark.setAttribute(

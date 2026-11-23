@@ -35,7 +35,7 @@ const TABS: { value: SidebarTab; tooltip: string; icon: ReactNode }[] = [
 ];
 
 const CONTENT_TW =
-  "mt-0 break-words border-stone-200 bg-white sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto";
+  "mt-0 break-words border-border bg-background sm:rounded-lg sm:border sm:shadow-lg h-full w-full overflow-auto";
 
 export function SidebarTabs({
   className,
@@ -46,7 +46,7 @@ export function SidebarTabs({
 }) {
   return (
     <div className={className}>
-      <TabsList className="h-9 rounded-md bg-gray-200">
+      <TabsList className="h-9 rounded-md bg-muted">
         {TABS.filter((item) => tabs.includes(item.value)).map((item) => (
           <CustomTooltip content={item.tooltip} key={item.value} asChild>
             {/* Keep Tooltip's data-state on this wrapper. Putting both Radix
@@ -56,7 +56,7 @@ export function SidebarTabs({
               <TabsTrigger
                 value={item.value}
                 aria-label={item.tooltip}
-                className="relative px-2.5 py-1 text-muted-foreground transition-all duration-150 hover:bg-white/60 hover:text-foreground active:scale-95 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                className="relative px-2.5 py-1 text-muted-foreground transition-all duration-150 hover:bg-background/60 hover:text-foreground active:scale-95 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
                 {item.icon}
               </TabsTrigger>
@@ -99,7 +99,7 @@ export const SidebarSettingsButton = forwardRef<
     type="button"
     aria-label="Document options"
     className={cn(
-      "ml-auto rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-gray-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-90",
+      "ml-auto rounded-md p-1.5 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-90",
       className,
     )}
     {...props}
@@ -161,7 +161,7 @@ export function Sidebar({
     <Tabs
       value={tab}
       onValueChange={(v) => setTab(v as SidebarTab)}
-      className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden bg-gray-50"
+      className="max-hd-screen flex h-full max-w-full flex-col overflow-hidden bg-muted/40"
     >
       <SidebarHeader
         className={headerClassName}

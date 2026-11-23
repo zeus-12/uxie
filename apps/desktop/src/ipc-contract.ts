@@ -155,6 +155,8 @@ export interface IpcInvokeContract {
   };
 }
 
+export type WindowBackground = { light: string; dark: string };
+
 /** Fire-and-forget renderer→main channels: `ipcRenderer.send` ↔ `ipcMain.on`. */
 export interface IpcSendContract {
   "completion:start": [streamId: string, prompt: string];
@@ -168,6 +170,7 @@ export interface IpcSendContract {
   "chat:start": [streamId: string, docId: string, messages: ChatMessage[]];
   "chat:cancel": [streamId: string];
   "chat:retrieve:reply": [reqId: string, chunks: string[] | null];
+  "window:setBackground": [background: WindowBackground];
 }
 
 /** Main→renderer push channels: `webContents.send` ↔ `ipcRenderer.on`. */
@@ -229,6 +232,7 @@ export const API_SEND = {
   startChat: "chat:start",
   cancelChat: "chat:cancel",
   chatRetrieveReply: "chat:retrieve:reply",
+  setWindowBackground: "window:setBackground",
 } as const satisfies Record<string, keyof IpcSendContract>;
 
 export const API_EVENTS = {

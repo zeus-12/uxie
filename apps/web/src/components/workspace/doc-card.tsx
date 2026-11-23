@@ -26,7 +26,7 @@ const ProgressRing = ({
         fill="none"
         stroke="currentColor"
         strokeWidth={strokeWidth}
-        className="text-gray-200"
+        className="text-muted"
       />
       <circle
         cx={size / 2}
@@ -75,15 +75,15 @@ const DocCard = ({
     >
       <div
         className={cn(
-          "relative flex flex-col overflow-hidden rounded-md bg-white",
-          "border border-gray-200 shadow-sm",
+          "relative flex flex-col overflow-hidden rounded-md bg-card",
+          "border border-border shadow-sm",
           "transition-all duration-300 ease-out",
-          "group-hover:border-gray-300 group-hover:shadow-lg",
+          "group-hover:border-muted-foreground/40 group-hover:shadow-lg",
           "[transform-style:preserve-3d] [transform-origin:left_center]",
           "group-hover:[transform:rotateY(-6deg)]",
         )}
       >
-        <div className="relative aspect-[3/4] w-full bg-gray-50">
+        <div className="relative aspect-[3/4] w-full bg-muted/40">
           {coverImageUrl ? (
             <img
               src={coverImageUrl}
@@ -95,13 +95,13 @@ const DocCard = ({
             />
           ) : (
             <div className="flex h-full items-center justify-center">
-              <FileText className="h-12 w-12 text-gray-300" />
+              <FileText className="h-12 w-12 text-muted-foreground/40" />
             </div>
           )}
 
           {showProgress && (
             <CustomTooltip content={`${readingProgress}% read`}>
-              <div className="absolute bottom-2 right-2 flex items-center justify-center rounded-full bg-white/90 p-1 shadow-sm backdrop-blur-sm">
+              <div className="absolute bottom-2 right-2 flex items-center justify-center rounded-full bg-background/90 p-1 shadow-sm backdrop-blur-sm">
                 <ProgressRing
                   progress={readingProgress}
                   size={18}
@@ -125,7 +125,7 @@ const DocCard = ({
               <Sparkle
                 className={cn(
                   "h-4 w-4 shrink-0",
-                  isVectorised ? "text-primary" : "text-gray-200",
+                  isVectorised ? "text-primary" : "text-muted",
                 )}
               />
             </CustomTooltip>

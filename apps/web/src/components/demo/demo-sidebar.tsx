@@ -8,10 +8,12 @@ import {
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { useBlocknoteEditorStore } from "@/lib/store";
+import { ThemeMenuSub } from "@uxie/shared/components/theme/theme-controls";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@uxie/shared/components/ui/dropdown-menu";
 import { AnnotatedPdfExportMenuItem } from "@uxie/shared/components/workspace/annotated-pdf-export-menu-item";
@@ -43,7 +45,7 @@ const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
   };
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
+    <div className="flex h-full flex-col bg-muted/40">
       <SharedSidebar
         headerClassName="md:pl-0 md:pr-1"
         headerActions={
@@ -61,6 +63,8 @@ const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
                 Download notes
               </DropdownMenuItem>
               <AnnotatedPdfExportMenuItem {...exportMenuItem} />
+              <DropdownMenuSeparator />
+              <ThemeMenuSub />
             </DropdownMenuContent>
           </DropdownMenu>
         }

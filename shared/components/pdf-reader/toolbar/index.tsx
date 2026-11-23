@@ -1,3 +1,4 @@
+import { type PageColour } from "../../../lib/store";
 import { READING_STATUS } from "../constants";
 import { RsvpReader } from "../rsvp-reader";
 import { ExpandableTabs, type Tab } from "../../ui/expandable-tabs";
@@ -47,8 +48,8 @@ const BottomToolbar = ({
   onZoomChange: (zoom: number) => void;
   onPageChange: (page: number) => void;
   currentZoom: number | null;
-  pageColour: string;
-  pageColourChangeHandler: (colour: string) => void;
+  pageColour: PageColour;
+  pageColourChangeHandler: (colour: PageColour) => void;
   followAlongEnabled: boolean;
   toggleFollowAlong: () => void;
 }) => {
