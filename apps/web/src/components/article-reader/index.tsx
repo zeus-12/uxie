@@ -221,13 +221,13 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
         `[data-uxie-block-id="${CSS.escape(source.blockId)}"]`,
       );
       const range = block && findTextRangeInBlock(block, source.pageContent);
-      if (!block || !range || !CSS.highlights) {
+      if (!block || !range) {
         toast.error("Couldn't find this passage in the article", {
           duration: 3000,
         });
         return;
       }
-      CSS.highlights.set(ARTICLE_CITATION_HIGHLIGHT, new Highlight(range));
+      CSS.highlights?.set(ARTICLE_CITATION_HIGHLIGHT, new Highlight(range));
       block.scrollIntoView({
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
           ? "auto"

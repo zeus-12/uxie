@@ -77,7 +77,7 @@ model Document {
   zoomLevel       Float?
   coverImageUrl   String
   summary         String?           @db.Text
-  nextCitationRef Int               @default(1)
+  nextCitationRef Int               @default(0)
   kind            DocumentKind      @default(PDF)
   article         ArticleDocument?
   articleProgress ArticleProgress[]

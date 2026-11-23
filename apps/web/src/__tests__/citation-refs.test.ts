@@ -1,7 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const update = vi.fn();
-vi.mock("@/server/db", () => ({ prisma: { document: { update } } }));
+const db = vi.hoisted(() => ({
+  document: {
+    findUniqueOrThrow: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  message: { findMany: vi.fn() },
+}));
+vi.mock("@/server/db", () => ({ prisma: db }));
 
 const { numberPassagesForDocument } = await import("@/lib/citation-refs");
 
@@ -11,9 +18,24 @@ const chunk = (page: number) => ({
   pageNumber: page,
 });
 
+const storedTurn = (refs: number[]) => ({
+  parts: [
+    {
+      type: "tool-result",
+      toolCallId: "call",
+      toolName: "getInformation",
+      result: { results: refs.map((ref) => ({ ...chunk(ref), ref })) },
+    },
+  ],
+});
+
+beforeEach(() => vi.clearAllMocks());
+
 describe("numberPassagesForDocument", () => {
   it("numbers passages from the block the database hands out", async () => {
-    update.mockResolvedValueOnce({ nextCitationRef: 8 });
+    db.document.findUniqueOrThrow.mockResolvedValue({ nextCitationRef: 5 });
+    db.document.update.mockResolvedValue({ nextCitationRef: 8 });
+
     expect(
       await numberPassagesForDocument("doc", [chunk(1), chunk(2), chunk(3)]),
     ).toEqual([
@@ -21,16 +43,35 @@ describe("numberPassagesForDocument", () => {
       { ...chunk(2), ref: 6 },
       { ...chunk(3), ref: 7 },
     ]);
-    expect(update).toHaveBeenCalledWith({
+    expect(db.document.update).toHaveBeenCalledWith({
       where: { id: "doc" },
       data: { nextCitationRef: { increment: 3 } },
       select: { nextCitationRef: true },
     });
+    expect(db.message.findMany).not.toHaveBeenCalled();
+  });
+
+  it("starts an unseeded document above the refs its stored chat already uses", async () => {
+    db.document.findUniqueOrThrow.mockResolvedValue({ nextCitationRef: 0 });
+    db.message.findMany.mockResolvedValue([
+      storedTurn([1, 2]),
+      storedTurn([3, 6]),
+    ]);
+    db.document.update.mockResolvedValue({ nextCitationRef: 8 });
+
+    await numberPassagesForDocument("doc", [chunk(1)]);
+
+    expect(db.document.updateMany).toHaveBeenCalledWith({
+      where: { id: "doc", nextCitationRef: 0 },
+      data: { nextCitationRef: 7 },
+    });
+    expect(db.document.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      db.document.update.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("reserves nothing when there is nothing to number", async () => {
-    update.mockClear();
     expect(await numberPassagesForDocument("doc", [])).toEqual([]);
-    expect(update).not.toHaveBeenCalled();
+    expect(db.document.update).not.toHaveBeenCalled();
   });
 });

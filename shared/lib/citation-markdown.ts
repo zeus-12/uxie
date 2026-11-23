@@ -75,7 +75,7 @@ export function withoutPartialCitation(content: string): string {
   if (open === -1) return content;
   const tail = content.slice(open + 1);
   return "ref:".startsWith(tail) ||
-    /^ref:[\d,\s]*(?:r(?:ef?)?:?)?[\d,\s]*$/.test(tail)
+    /^ref:(?:[\d,\s]|ref:)*(?:re?f?)?$/.test(tail)
     ? content.slice(0, open)
     : content;
 }

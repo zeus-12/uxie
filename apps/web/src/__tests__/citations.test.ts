@@ -270,6 +270,8 @@ describe("streaming citation tokens", () => {
       "[ref:3",
       "[ref:3, ",
       "[ref:3, ref:4",
+      "[ref:3, ref:4, r",
+      "[ref:3, ref:4, ref:5",
     ]) {
       expect(withoutPartialCitation(`Compiled ${partial}`)).toBe("Compiled ");
     }

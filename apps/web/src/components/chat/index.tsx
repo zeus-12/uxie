@@ -27,6 +27,7 @@ import {
   type ChatImage,
 } from "@uxie/shared/lib/chat-attachments";
 import { chatPartsToRows } from "@uxie/shared/lib/chat-rows";
+import { withoutPartialCitation } from "@uxie/shared/lib/citation-markdown";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
 import { DefaultChatTransport, type FileUIPart } from "ai";
 import { SparklesIcon } from "lucide-react";
@@ -279,11 +280,21 @@ function ChatView({ docId }: { docId: string }) {
 
   const history = [...(prevChatMessages ?? []), ...messages];
   const rows: ChatRow[] = [];
+  const streamingMessage = streaming ? messages[messages.length - 1] : null;
   let citations: CitationIndex = new Map();
   for (const m of history) {
     const parts = partsOf(m);
     citations = withCitablePassages(citations, parts);
-    rows.push(...messageToRows(m.role, parts, citations));
+    const messageRows = messageToRows(m.role, parts, citations);
+    rows.push(
+      ...(m === streamingMessage
+        ? messageRows.map((row) =>
+            row.kind === "message" && row.role === "assistant"
+              ? { ...row, content: withoutPartialCitation(row.content) }
+              : row,
+          )
+        : messageRows),
+    );
   }
 
   if (streaming) {
