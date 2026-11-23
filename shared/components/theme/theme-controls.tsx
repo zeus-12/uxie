@@ -16,6 +16,7 @@ import {
 import {
   APPEARANCE_THEMES,
   isPresetTheme,
+  isTheme,
   PRESET_THEMES,
   type AppearanceTheme,
   type PresetTheme,
@@ -236,7 +237,9 @@ function PresetSelect({
   return (
     <Select
       value={preset ?? ""}
-      onValueChange={(value) => setTheme(value as PresetTheme)}
+      onValueChange={(value) => {
+        if (isTheme(value) && isPresetTheme(value)) setTheme(value);
+      }}
     >
       <SelectTrigger
         aria-label="Preset"

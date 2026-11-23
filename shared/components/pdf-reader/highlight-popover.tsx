@@ -6,10 +6,11 @@ import {
   AudioLines,
   ClipboardCopy,
   Highlighter,
+  MessageSquarePlus,
   Sparkles,
   TrashIcon,
 } from "lucide-react";
-import { useSidebarTabStore } from "../../lib/store";
+import { useChatStore, useSidebarTabStore } from "../../lib/store";
 import { useState, type RefObject } from "react";
 
 /**
@@ -37,6 +38,7 @@ export const TextSelectionPopover = ({
   hideTipAndSelection,
   addHighlight,
   sendMessage,
+  stageImageAttachment,
   showAiFeatures,
   readSelectedText,
   selectionInfoRef,
@@ -52,6 +54,7 @@ export const TextSelectionPopover = ({
   };
   hideTipAndSelection: () => void;
   sendMessage: ((message: string) => void) | null;
+  stageImageAttachment: ((dataUrl: string) => void) | null;
   showAiFeatures: boolean;
   readSelectedText: ReadSelectedText;
   selectionInfoRef: RefObject<SelectionInfo | null>;
@@ -109,7 +112,20 @@ export const TextSelectionPopover = ({
       icon: Highlighter,
       tooltip: "Highlight",
     },
-    showAiFeatures &&
+    !isTextHighlight &&
+      content.image &&
+      stageImageAttachment && {
+        onClick: () => {
+          stageImageAttachment(content.image ?? "");
+          switchSidebarTabToChat();
+          hideTipAndSelection();
+          useChatStore.getState().focusInput?.();
+        },
+        icon: MessageSquarePlus,
+        tooltip: "Attach to chat",
+      },
+    isTextHighlight &&
+      showAiFeatures &&
       sendMessage && {
         onClick: () => {
           transformSelection();
@@ -127,12 +143,13 @@ export const TextSelectionPopover = ({
         {OPTIONS.map((option, id) => {
           if (!option) return null;
           return (
-            <div
-              className="group px-[0.5rem] pb-[0.2rem] pt-[0.5rem] hover:cursor-pointer"
-              key={id}
-              onClick={option.onClick}
-            >
-              <CustomTooltip content={option.tooltip}>
+            <CustomTooltip content={option.tooltip} asChild key={id}>
+              <button
+                type="button"
+                aria-label={option.tooltip}
+                className="group px-2 pb-[0.2rem] pt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                onClick={option.onClick}
+              >
                 <option.icon
                   className={
                     "accent" in option && option.accent
@@ -140,8 +157,8 @@ export const TextSelectionPopover = ({
                       : "h-5 w-5 text-muted-foreground group-hover:text-foreground"
                   }
                 />
-              </CustomTooltip>
-            </div>
+              </button>
+            </CustomTooltip>
           );
         })}
       </div>
@@ -161,8 +178,10 @@ export const HighlightedTextPopover = ({
   return (
     <div className="rounded-lg border bg-popover shadow-[0_4px_16px_-4px_rgb(0_0_0/0.25)]">
       <div className="flex divide-x divide-border">
-        <div
-          className="group p-2 hover:cursor-pointer"
+        <button
+          type="button"
+          aria-label="Delete highlight"
+          className="group p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           onClick={() => {
             deleteHighlight(id);
             hideTip();
@@ -172,7 +191,7 @@ export const HighlightedTextPopover = ({
             size={18}
             className="rounded-full text-muted-foreground group-hover:text-danger"
           />
-        </div>
+        </button>
       </div>
     </div>
   );

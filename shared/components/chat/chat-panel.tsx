@@ -1,16 +1,36 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
-import { ArrowUpIcon, Loader2Icon, SearchIcon, SquareIcon } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import {
+  ArrowUpIcon,
+  ImagePlusIcon,
+  Loader2Icon,
+  SearchIcon,
+  SquareIcon,
+} from "lucide-react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import type { ChatImage } from "../../lib/chat-attachments";
 import { cn } from "../../lib/utils";
 import { ShimmeringText } from "../ui/shimmering-text";
+import {
+  ImageLightbox,
+  MessageImageGrid,
+  StagedImageStrip,
+} from "./chat-images";
 
 export type ChatRole = "user" | "assistant";
 
-// A flat, render-agnostic view of the conversation. Both apps translate their
-// native state (desktop: streamText state; web: useChat `parts`) into this, so
-// the whole chat surface looks identical regardless of the data layer.
 export type ChatRow =
-  | { kind: "message"; role: ChatRole; content: string }
+  | {
+      kind: "message";
+      role: ChatRole;
+      content: string;
+      attachments?: ChatImage[];
+    }
   | { kind: "streaming"; content: string }
   | { kind: "tool"; label: string; active: boolean }
   | { kind: "thinking"; label: string }
@@ -21,7 +41,13 @@ interface ChatPanelProps {
   /** Gate the list until history has loaded so it can start pinned to bottom. */
   loaded: boolean;
   input: string;
+  attachments: ChatImage[];
+  attachmentError?: string | null;
+  attachmentsPending: number;
+  sending?: boolean;
   onInputChange: (value: string) => void;
+  onFilesSelected: (files: File[]) => void;
+  onRemoveAttachment: (id: string) => void;
   onSubmit: () => void;
   onStop?: () => void;
   streaming: boolean;
@@ -36,7 +62,13 @@ export function ChatPanel({
   rows,
   loaded,
   input,
+  attachments,
+  attachmentError,
+  attachmentsPending,
+  sending = false,
   onInputChange,
+  onFilesSelected,
+  onRemoveAttachment,
   onSubmit,
   onStop,
   streaming,
@@ -47,7 +79,17 @@ export function ChatPanel({
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const atBottomRef = useRef(true);
   const internalTaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const taRef = inputRef ?? internalTaRef;
+  const [dragActive, setDragActive] = useState(false);
+  const dragDepthRef = useRef(0);
+  const busy = sending || attachmentsPending > 0;
+  const [previewImage, setPreviewImage] = useState<ChatImage | null>(null);
+  const canSend =
+    !streaming && !busy && (!!input.trim() || attachments.length > 0);
+  const submitIfReady = () => {
+    if (canSend) onSubmit();
+  };
 
   function grow() {
     const t = taRef.current;
@@ -80,7 +122,11 @@ export function ChatPanel({
           increaseViewportBy={{ top: 600, bottom: 200 }}
           components={{ Header: () => <div className="h-3" /> }}
           itemContent={(_, row) => (
-            <RowView row={row} renderMarkdown={renderMarkdown} />
+            <RowView
+              row={row}
+              renderMarkdown={renderMarkdown}
+              onOpenImage={setPreviewImage}
+            />
           )}
         />
       ) : (
@@ -88,43 +134,120 @@ export function ChatPanel({
       )}
 
       <div className="p-2">
-        <div className="flex items-end gap-2 rounded-2xl border border-input bg-muted/60 py-2 pl-3.5 pr-2 focus-within:border-ring">
-          <textarea
-            ref={taRef}
-            value={input}
-            onChange={(e) => {
-              onInputChange(e.target.value);
-              grow();
-            }}
-            onKeyDown={(e) => {
-              const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
-              if (cmdEnter || (e.key === "Enter" && !e.shiftKey)) {
-                e.preventDefault();
-                onSubmit();
-              }
-            }}
-            rows={2}
-            placeholder={placeholder}
-            className="max-h-40 min-h-[3.25rem] flex-1 resize-none self-stretch bg-transparent py-1 text-sm outline-none placeholder:text-muted-foreground"
+        <div
+          className={cn(
+            "rounded-2xl border border-input bg-muted/60 transition-colors focus-within:border-ring",
+            dragActive && "border-primary bg-primary/10",
+          )}
+          onDragEnter={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            dragDepthRef.current += 1;
+            setDragActive(true);
+          }}
+          onDragOver={(event) => {
+            if (event.dataTransfer.types.includes("Files"))
+              event.preventDefault();
+          }}
+          onDragLeave={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (dragDepthRef.current === 0) setDragActive(false);
+          }}
+          onDrop={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            dragDepthRef.current = 0;
+            setDragActive(false);
+            onFilesSelected(Array.from(event.dataTransfer.files));
+          }}
+        >
+          <StagedImageStrip
+            images={attachments}
+            pending={attachmentsPending}
+            onOpen={setPreviewImage}
+            onRemove={onRemoveAttachment}
+            locked={sending}
           />
-          <button
-            onClick={() => (streaming && onStop ? onStop() : onSubmit())}
-            disabled={!streaming && !input.trim()}
-            className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors disabled:bg-muted disabled:text-muted-foreground"
-            aria-label={streaming && onStop ? "Stop" : "Send"}
-          >
-            {streaming ? (
-              onStop ? (
-                <SquareIcon className="h-3.5 w-3.5 fill-current" />
-              ) : (
+
+          <div className="flex items-end gap-1.5 p-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(event) => {
+                onFilesSelected(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Attach images"
+              title="Attach images"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <ImagePlusIcon className="size-4" aria-hidden="true" />
+            </button>
+            <textarea
+              ref={taRef}
+              value={input}
+              onChange={(e) => {
+                onInputChange(e.target.value);
+                grow();
+              }}
+              readOnly={sending}
+              onPaste={(event) => {
+                const images = Array.from(event.clipboardData.files).filter(
+                  (file) => file.type.startsWith("image/"),
+                );
+                if (images.length) onFilesSelected(images);
+              }}
+              onKeyDown={(e) => {
+                const cmdEnter = (e.metaKey || e.ctrlKey) && e.key === "Enter";
+                if (cmdEnter || (e.key === "Enter" && !e.shiftKey)) {
+                  e.preventDefault();
+                  submitIfReady();
+                }
+              }}
+              rows={1}
+              placeholder={placeholder}
+              className="max-h-40 min-h-8 flex-1 resize-none bg-transparent py-1.5 text-sm leading-5 outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="button"
+              onClick={() => (streaming && onStop ? onStop() : submitIfReady())}
+              disabled={!streaming && !canSend}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:bg-muted disabled:text-muted-foreground"
+              aria-label={streaming && onStop ? "Stop" : "Send"}
+            >
+              {streaming ? (
+                onStop ? (
+                  <SquareIcon className="h-3.5 w-3.5 fill-current" />
+                ) : (
+                  <Loader2Icon className="h-4 w-4 animate-spin" />
+                )
+              ) : busy ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
-              )
-            ) : (
-              <ArrowUpIcon className="h-4 w-4" />
-            )}
-          </button>
+              ) : (
+                <ArrowUpIcon className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          {attachmentError && (
+            <p role="alert" className="px-3 pb-2 text-xs text-destructive">
+              {attachmentError}
+            </p>
+          )}
         </div>
       </div>
+      <ImageLightbox
+        image={previewImage}
+        onClose={() => setPreviewImage(null)}
+      />
     </div>
   );
 }
@@ -132,9 +255,11 @@ export function ChatPanel({
 function RowView({
   row,
   renderMarkdown,
+  onOpenImage,
 }: {
   row: ChatRow;
   renderMarkdown: (text: string) => ReactNode;
+  onOpenImage: (image: ChatImage) => void;
 }) {
   return (
     <div className="px-2 pb-4">
@@ -142,7 +267,9 @@ function RowView({
         <ChatBubble
           role={row.role}
           content={row.content}
+          attachments={row.attachments}
           renderMarkdown={renderMarkdown}
+          onOpenImage={onOpenImage}
         />
       ) : row.kind === "streaming" ? (
         <ChatBubble
@@ -165,7 +292,6 @@ function RowView({
   );
 }
 
-// ChatGPT-style: tool activity lives OUTSIDE the bubble, on its own line.
 function ToolChip({ label, active }: { label: string; active: boolean }) {
   if (active) {
     return (
@@ -187,11 +313,15 @@ function ToolChip({ label, active }: { label: string; active: boolean }) {
 function ChatBubble({
   role,
   content,
+  attachments = [],
   renderMarkdown,
+  onOpenImage,
 }: {
   role: ChatRole;
   content: string;
+  attachments?: ChatImage[];
   renderMarkdown: (text: string) => ReactNode;
+  onOpenImage?: (image: ChatImage) => void;
 }) {
   const isUser = role === "user";
   return (
@@ -199,8 +329,15 @@ function ChatBubble({
       className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
     >
       {isUser ? (
-        <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
-          {content}
+        <div className="ml-auto flex max-w-[85%] flex-col items-end gap-1.5">
+          {onOpenImage && (
+            <MessageImageGrid images={attachments} onOpen={onOpenImage} />
+          )}
+          {content && (
+            <div className="w-fit whitespace-pre-wrap rounded-2xl bg-primary px-3.5 py-2 text-sm text-primary-foreground">
+              {content}
+            </div>
+          )}
         </div>
       ) : (
         <div className="prose prose-sm max-w-none rounded-2xl bg-muted px-3.5 py-2 text-foreground prose-p:my-1.5 prose-pre:my-2 prose-headings:mt-2 prose-headings:mb-1">

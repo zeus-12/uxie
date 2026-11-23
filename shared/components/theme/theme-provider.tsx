@@ -19,6 +19,7 @@ import {
 interface ThemeContextValue {
   theme: Theme;
   resolvedTheme: ResolvedTheme;
+  storedThemeApplied: boolean;
   setTheme: (theme: Theme) => void;
 }
 
@@ -74,6 +75,7 @@ function storeTheme(theme: Theme) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("light");
+  const [storedThemeApplied, setStoredThemeApplied] = useState(false);
   const themeRef = useRef<Theme>("system");
 
   const show = useCallback((next: Theme) => {
@@ -84,6 +86,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useBrowserLayoutEffect(() => {
     show(readStoredTheme());
+    setStoredThemeApplied(true);
 
     const media = window.matchMedia(DARK_QUERY);
     const handleSystemChange = () => {
@@ -109,8 +112,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ theme, resolvedTheme, setTheme }),
-    [resolvedTheme, setTheme, theme],
+    () => ({ theme, resolvedTheme, storedThemeApplied, setTheme }),
+    [resolvedTheme, setTheme, storedThemeApplied, theme],
   );
 
   return (

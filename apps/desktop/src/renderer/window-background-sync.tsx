@@ -14,9 +14,10 @@ function backgroundOf(theme: ResolvedTheme): string {
 }
 
 export function WindowBackgroundSync() {
-  const { theme, resolvedTheme } = useTheme();
+  const { theme, resolvedTheme, storedThemeApplied } = useTheme();
 
   useEffect(() => {
+    if (!storedThemeApplied) return;
     if (theme === "system") {
       window.uxieAPI.setWindowBackground({
         light: backgroundOf("light"),
@@ -26,7 +27,7 @@ export function WindowBackgroundSync() {
     }
     const current = getComputedStyle(document.body).backgroundColor;
     window.uxieAPI.setWindowBackground({ light: current, dark: current });
-  }, [theme, resolvedTheme]);
+  }, [theme, resolvedTheme, storedThemeApplied]);
 
   return null;
 }

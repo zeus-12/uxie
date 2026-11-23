@@ -169,7 +169,6 @@ export default function Editor({
   useEffect(() => {
     if (!editor) return;
 
-    // Escape or Cmd+Z mid-completion cancels it and restores the "++" trigger.
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" || (e.metaKey && e.key === "z")) {
         stop();

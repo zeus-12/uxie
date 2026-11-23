@@ -4,7 +4,6 @@ import { useUploadThing } from "@/lib/uploadthing";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "@uploadthing/react";
 import { Button, buttonVariants } from "@uxie/shared/components/ui/button";
-import { Checkbox } from "@uxie/shared/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -14,16 +13,20 @@ import {
 } from "@uxie/shared/components/ui/dialog";
 import { Input } from "@uxie/shared/components/ui/input";
 import { Spinner } from "@uxie/shared/components/ui/spinner";
+import { OcrOption } from "@uxie/shared/components/workspace/ocr-option";
+import {
+  ocrPdf,
+  ocrProgressLabel,
+  type OcrProgress,
+} from "@uxie/shared/lib/ocr";
 import { XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   generateClientDropzoneAccept,
   generatePermittedFileTypes,
 } from "uploadthing/client";
-// @ts-ignore
-import scribe from "scribe.js-ocr";
 
 const UploadFileModal = ({
   refetchUserDocs,
@@ -45,9 +48,17 @@ const UploadFileModal = ({
   const [doOcr, setDoOcr] = useState(false);
 
   const [open, setOpen] = useState(false);
-  const [isOcring, setIsOcring] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
+  const isOcring = ocrProgress !== null;
+
+  const ocrAbort = useRef<AbortController | null>(null);
 
   const closeModal = () => setOpen(false);
+
+  const onOpenChange = (next: boolean) => {
+    if (!next) ocrAbort.current?.abort();
+    setOpen(next);
+  };
 
   const onUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(undefined);
@@ -70,43 +81,20 @@ const UploadFileModal = ({
         }
 
         if (doOcr) {
-          setIsOcring(true);
-          // await scribe.init({ pdf: true, ocr: true, font: true });
-          // const params = {
-          //   extractPDFTextNative: optGUI.extractText,
-          //   extractPDFTextOCR: optGUI.extractText,
-          // };
-          scribe.opt.displayMode = "invis";
-
-          await scribe.importFiles(files);
-          await scribe.recognize({
-            mode: "quality",
-            langs: ["eng"],
-            modeAdv: "combined",
-            vanillaMode: true,
-            combineMode: "data",
-          });
-
-          const data = (await scribe.exportData("pdf")) as string | ArrayBuffer;
-
-          const blob = new Blob([data], { type: "application/pdf" });
-          const file = new File([blob], firstFile.name, {
-            type: "application/pdf",
-          });
-
-          setIsOcring(false);
-          return [file];
+          const controller = new AbortController();
+          ocrAbort.current = controller;
+          return [await ocrPdf(firstFile, setOcrProgress, controller.signal)];
         }
         return files;
-      } catch (err) {
-        setIsOcring(false);
-        throw new Error("Something went wrong while ocr-ing the file.");
+      } finally {
+        setOcrProgress(null);
       }
     },
     onClientUploadComplete: () => {
       toast.success("File uploaded successfully.");
     },
     onUploadError: () => {
+      if (ocrAbort.current?.signal.aborted) return;
       toast.error("Error occurred while uploading", {
         duration: 3000,
       });
@@ -150,7 +138,7 @@ const UploadFileModal = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => setOpen(o)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger>
         <div
           onClick={(e) => {
@@ -216,24 +204,11 @@ const UploadFileModal = ({
           </div>
 
           <div>
-            <div className="my-3 flex items-center space-x-2">
-              <Checkbox
-                id="ocr"
-                checked={doOcr}
-                onCheckedChange={(c) => setDoOcr(!!c)}
-              />
-              <div>
-                <label
-                  htmlFor="ocr"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  OCR Pdf
-                </label>
-                <span className="block text-muted-foreground text-xs">
-                  Convert scanned PDF into searchable and selectable document.
-                </span>
-              </div>
-            </div>
+            <OcrOption
+              checked={doOcr}
+              onCheckedChange={setDoOcr}
+              disabled={isOcring}
+            />
           </div>
 
           <div>
@@ -250,13 +225,11 @@ const UploadFileModal = ({
               {isUploadthingUploading || isUrlUploading || isOcring ? (
                 <>
                   <Spinner />
-                  {isUploadthingUploading && (
+                  {isUploadthingUploading && !isOcring && (
                     <p className="ml-1">{uploadProgress}%</p>
                   )}
 
-                  {isOcring && (
-                    <span>Applying OCR, it might take a while...</span>
-                  )}
+                  {ocrProgress && <span>{ocrProgressLabel(ocrProgress)}</span>}
                 </>
               ) : (
                 "Upload"

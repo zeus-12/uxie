@@ -26,7 +26,6 @@ const Navbar = () => {
               priority
               unoptimized
             />
-            {/* <span className="font-semibold">Uxie</span> */}
           </div>
         </Link>
         <div className="flex items-center gap-1">

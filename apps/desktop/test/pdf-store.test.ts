@@ -45,6 +45,17 @@ describe("pdf-store", () => {
     expect(existsSync(imagePath(root, "abc", "img1"))).toBe(true);
   });
 
+  it("stores an image under its own extension", async () => {
+    const root = await tmpRoot();
+    await storeImage(root, "abc", "img1", new Uint8Array([1]), "jpeg");
+
+    expect(imagePath(root, "abc", "img1", "jpeg")).toBe(
+      join(root, "abc", "images", "img1.jpeg"),
+    );
+    expect(existsSync(imagePath(root, "abc", "img1", "jpeg"))).toBe(true);
+    expect(existsSync(imagePath(root, "abc", "img1"))).toBe(false);
+  });
+
   it("deleting the document removes its pdf, cover and every image", async () => {
     const root = await tmpRoot();
     await storePdf(root, "abc", await makePdf(1));

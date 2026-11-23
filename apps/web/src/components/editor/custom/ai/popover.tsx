@@ -254,7 +254,6 @@ const CommandBody = ({
               }}
             />
 
-            {/* <ArrowUpCircle className="w-5 h-5 text-gray-100 fill-gray-600" /> */}
           </div>
         )}
       </div>

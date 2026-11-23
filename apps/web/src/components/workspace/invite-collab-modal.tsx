@@ -208,7 +208,6 @@ const InviteCollab = ({
                     <Badge>{user.role}</Badge>
                     <TrashIcon
                       className={cn(
-                        // && isOwner
                         user.role === CollaboratorRole.OWNER && "invisible",
                         "hover:cursor-pointer hover:fill-danger hover:text-danger",
                       )}

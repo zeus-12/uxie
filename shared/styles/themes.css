@@ -1,5 +1,5 @@
 :root,
-[data-theme="light"] {
+[data-theme="light"]:not([data-sonner-toaster]) {
   color-scheme: light;
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -40,7 +40,7 @@
 }
 
 .dark,
-[data-theme="dark"] {
+[data-theme="dark"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);
@@ -79,7 +79,7 @@
   --status-success-subtle: 150 14.6% 16.1%;
 }
 
-[data-theme="tokyo-night"] {
+[data-theme="tokyo-night"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);
@@ -118,7 +118,7 @@
   --status-success-subtle: 150 8.3% 18.8%;
 }
 
-[data-theme="catppuccin-mocha"] {
+[data-theme="catppuccin-mocha"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);
@@ -157,7 +157,7 @@
   --status-success-subtle: 198.5 11.7% 21.8%;
 }
 
-[data-theme="rose-pine"] {
+[data-theme="rose-pine"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);
@@ -196,7 +196,7 @@
   --status-success-subtle: 220 17.3% 20.4%;
 }
 
-[data-theme="kanagawa-wave"] {
+[data-theme="kanagawa-wave"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);
@@ -235,7 +235,7 @@
   --status-success-subtle: 144 5% 19.8%;
 }
 
-[data-theme="ayu-mirage"] {
+[data-theme="ayu-mirage"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);
@@ -274,7 +274,7 @@
   --status-success-subtle: 136.4 8.9% 24.1%;
 }
 
-[data-theme="everforest"] {
+[data-theme="everforest"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);
@@ -313,7 +313,7 @@
   --status-success-subtle: 162 7.5% 26.3%;
 }
 
-[data-theme="solarized-dark"] {
+[data-theme="solarized-dark"]:not([data-sonner-toaster]) {
   color-scheme: dark;
   --annotation: hsl(var(--palette-yellow) / 0.3);
   --tts-sentence: hsl(var(--palette-green) / 0.2);

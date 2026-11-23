@@ -71,6 +71,7 @@ export const AlertBlock = createReactBlockSpec(
         }}
       >
         <Select
+          value={props.block.props.type}
           onValueChange={(value) => {
             props.editor.updateBlock(props.block, {
               type: "alert",
