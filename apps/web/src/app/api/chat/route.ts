@@ -1,3 +1,5 @@
+import { chatErrorResponse, prepareChatMessages } from "@/lib/chat-images";
+import { chatTurnResponse } from "@/lib/chat-turn";
 import { retrieveRelevantDocumentContent } from "@/lib/vectorise";
 import { chatRouteSchema } from "@/schema/routes";
 import { authOptions } from "@/server/auth";
@@ -10,7 +12,7 @@ import {
   GET_INFORMATION_TOOL_NAME,
   getInformationInputSchema,
 } from "@uxie/shared/lib/chat";
-import { convertToModelMessages, stepCountIs, streamText, tool } from "ai";
+import { convertToModelMessages, stepCountIs, tool } from "ai";
 import { getServerSession } from "next-auth";
 
 function getProperty(obj: object, key: string): unknown {
@@ -39,6 +41,7 @@ function isGetInformationOutput(output: unknown): output is {
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
+  const receivedAt = new Date();
   try {
     const reqBody = await req.json();
 
@@ -73,34 +76,21 @@ export async function POST(req: Request) {
       throw new Error("Document not vectorized.");
     }
 
-    const prevMessage = messages[messages.length - 1];
-    if (!prevMessage)
-      return new Response("No previous message found", { status: 404 });
+    const prepared = prepareChatMessages(messages);
+    if (!prepared.ok) return chatErrorResponse(prepared.error, 400);
 
-    const isPreviousMessageToolInvoked =
-      prevMessage.toolInvocations?.length &&
-      prevMessage.toolInvocations?.length > 0;
-
-    // don't add the user's message to the database if it was a tool invocation
-    if (!isPreviousMessageToolInvoked) {
-      await prisma.message.create({
-        data: {
-          parts: prevMessage.parts,
-          documentId: docId,
-          userId: session?.user.id,
-        },
-      });
-    }
-
-    const result = streamText({
-      model: google("gemini-2.5-flash"),
-      messages: await convertToModelMessages(messages),
-      system: CHAT_SYSTEM_PROMPT,
-      tools: AI_TOOLS({ docId }),
-      toolChoice: "auto",
-      stopWhen: stepCountIs(3),
-      maxOutputTokens: 2000,
-      onFinish: async ({ steps }) => {
+    return chatTurnResponse({
+      options: {
+        model: google("gemini-2.5-flash"),
+        abortSignal: req.signal,
+        messages: await convertToModelMessages(prepared.messages),
+        system: CHAT_SYSTEM_PROMPT,
+        tools: AI_TOOLS({ docId }),
+        toolChoice: "auto",
+        stopWhen: stepCountIs(3),
+        maxOutputTokens: 2000,
+      },
+      saveTurn: async (steps) => {
         const parts: Message["parts"][] = [];
 
         for (const step of steps || []) {
@@ -135,25 +125,34 @@ export async function POST(req: Request) {
           }
         }
 
-        if (parts.length > 0) {
-          await prisma.message.create({
+        await prisma.$transaction([
+          prisma.message.create({
             data: {
-              parts,
-              userId: null,
+              id: prepared.userMessageId,
+              parts: prepared.userParts,
               documentId: docId,
+              userId: session.user.id,
+              createdAt: receivedAt,
             },
-          });
-        }
+          }),
+          ...(parts.length > 0
+            ? [
+                prisma.message.create({
+                  data: {
+                    parts,
+                    userId: null,
+                    documentId: docId,
+                    createdAt: new Date(),
+                  },
+                }),
+              ]
+            : []),
+        ]);
       },
     });
-
-    return result.toUIMessageStreamResponse();
   } catch (error) {
     if (error instanceof Response && error.status === 429) {
-      return new Response(
-        "Rate limit exceeded. Please wait a little and try again soon.",
-        { status: 429 },
-      );
+      return chatErrorResponse("rateLimited", 429);
     }
     return new Response("Internal Server Error", { status: 500 });
   }

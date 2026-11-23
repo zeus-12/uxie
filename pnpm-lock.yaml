@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   react-pdf-highlighter@6.1.0:
-    hash: owes3js7dy4tvey3cl3z5l522u
+    hash: 4cipjeysn44b27cfblkuprxd4i
     path: patches/react-pdf-highlighter@6.1.0.patch
 
 importers:
@@ -56,7 +56,7 @@ importers:
         version: 9.0.0(@types/react@18.3.31)(react@18.3.1)
       react-pdf-highlighter:
         specifier: ^6.1.0
-        version: 6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.1.0(patch_hash=4cipjeysn44b27cfblkuprxd4i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-virtuoso:
         specifier: ^4.18.10
         version: 4.18.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -324,7 +324,7 @@ importers:
         version: 9.0.0(@types/react@18.3.31)(react@18.3.1)
       react-pdf-highlighter:
         specifier: ^6.1.0
-        version: 6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.1.0(patch_hash=4cipjeysn44b27cfblkuprxd4i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-resizable-panels:
         specifier: ^2.0.10
         version: 2.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -577,7 +577,7 @@ importers:
         version: 5.2.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-pdf-highlighter:
         specifier: ^6.1.0
-        version: 6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.1.0(patch_hash=4cipjeysn44b27cfblkuprxd4i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-resizable-panels:
         specifier: ^2.0.10
         version: 2.0.10(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -17150,7 +17150,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  react-pdf-highlighter@6.1.0(patch_hash=owes3js7dy4tvey3cl3z5l522u)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  react-pdf-highlighter@6.1.0(patch_hash=4cipjeysn44b27cfblkuprxd4i)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       lodash.debounce: 4.0.8
       pdfjs-dist: 2.16.105
