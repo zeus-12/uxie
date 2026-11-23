@@ -164,7 +164,7 @@ const UploadFileModal = ({
         <DialogHeader>
           <DialogTitle>
             <p className="text-xl">Add PDF/URL</p>
-            <p className="text-sm font-normal text-gray-500">
+            <p className="text-sm font-normal text-muted-foreground">
               Upload a PDF with up to {userPlan} pages, or paste a public web
               article.
             </p>
@@ -181,14 +181,16 @@ const UploadFileModal = ({
           />
 
           <div className="relative flex items-center py-5">
-            <div className="flex-grow border-t border-gray-100" />
-            <span className="mx-3 flex-shrink text-xs text-gray-500">OR</span>
-            <div className="flex-grow border-t border-gray-100" />
+            <div className="flex-grow border-t border-border" />
+            <span className="mx-3 flex-shrink text-xs text-muted-foreground">
+              OR
+            </span>
+            <div className="flex-grow border-t border-border" />
           </div>
 
           <div>
             <p>Import from URL</p>
-            <p className="mb-2 text-xs font-normal text-gray-500">
+            <p className="mb-2 text-xs font-normal text-muted-foreground">
               Paste a public article or direct PDF link. Articles open in a
               clean reader view.
             </p>
@@ -289,7 +291,7 @@ const Uploader = ({
   return (
     <div
       {...getRootProps()}
-      className="flex flex-col items-center justify-center gap-4 rounded-md border-[0.75px] border-gray-300 px-4 py-12"
+      className="flex flex-col items-center justify-center gap-4 rounded-md border-[0.75px] border-border px-4 py-12"
     >
       <input {...getInputProps()} />
 
@@ -298,13 +300,13 @@ const Uploader = ({
           <p>{file.name}</p>
           <XIcon
             onClick={() => setFile()}
-            className="h-4 w-4 text-gray-500 hover:cursor-pointer"
+            className="h-4 w-4 text-muted-foreground hover:cursor-pointer"
           />
         </div>
       ) : (
         <>
           <p>Upload the pdf</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Single PDF upto {maxSizeLabel}
           </p>
         </>

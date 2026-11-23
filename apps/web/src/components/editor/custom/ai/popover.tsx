@@ -53,7 +53,7 @@ const AiPopover = ({ rect, setRect }: AiPopoverProps) => {
           left: rect.left,
           width: rect.width,
         }}
-        className="absolute z-[1000] p-0 text-black bg-transparent border-0 shadow-none"
+        className="absolute z-[1000] border-0 bg-transparent p-0 text-foreground shadow-none"
       >
         <Command className="bg-transparent">
           <CommandBody closePopover={closePopover} rect={rect} />
@@ -165,7 +165,7 @@ const CommandBody = ({
     !!completions[curIndex];
   return (
     <>
-      <div className="w-full hover:cursor-auto items-start flex flex-col bg-white max-h-[300px] overflow-y-auto overflow-x-hidden border border-gray-200 rounded-md shadow-md">
+      <div className="flex max-h-[300px] w-full flex-col items-start overflow-y-auto overflow-x-hidden rounded-md border border-border bg-popover shadow-md hover:cursor-auto">
         {(isLoading || responseExists) && (
           <ReactMarkdown className="px-2 py-1 prose-sm ">
             {responseExists ? completions[curIndex] : completion}
@@ -189,7 +189,7 @@ const CommandBody = ({
                 size="sm"
                 className="p-1 hover:cursor-pointer"
               >
-                <p className="text-sm text-gray-700">Stop</p>
+                <p className="text-sm text-foreground">Stop</p>
               </Button>
             </div>
           </div>
@@ -198,14 +198,14 @@ const CommandBody = ({
             <CommandInput
               rootClassName="border-0"
               leftIcon={
-                <Sparkles className="w-4 h-4 text-gray-600 fill-gray-600" />
+                <Sparkles className="h-4 w-4 fill-current text-muted-foreground" />
               }
               rightIcon={
                 curIndex !== null ? (
                   <div className="flex items-center">
                     <Button
                       variant="ghost"
-                      className="bg-white p-0 hover:cursor-pointer h-5"
+                      className="h-5 bg-transparent p-0 hover:cursor-pointer"
                       disabled={curIndex === 0}
                       onClick={() => {
                         if (curIndex > 0) {
@@ -213,14 +213,14 @@ const CommandBody = ({
                         }
                       }}
                     >
-                      <ChevronLeft className="w-5 h-5 text-gray-600" />
+                      <ChevronLeft className="h-5 w-5 text-muted-foreground" />
                     </Button>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {curIndex + 1} of {completions.length}
                     </p>
                     <Button
                       variant="ghost"
-                      className="bg-white p-0 hover:cursor-pointer h-5"
+                      className="h-5 bg-transparent p-0 hover:cursor-pointer"
                       disabled={curIndex >= completions.length - 1}
                       onClick={() => {
                         if (curIndex < completions.length - 1) {
@@ -228,7 +228,7 @@ const CommandBody = ({
                         }
                       }}
                     >
-                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </Button>
                   </div>
                 ) : (
@@ -237,7 +237,7 @@ const CommandBody = ({
               }
               value={query}
               onValueChange={(value) => setQuery(value)}
-              className="px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-8 flex-1 bg-white border-0"
+              className="h-8 flex-1 border-0 bg-transparent px-0 py-0 font-normal outline-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               autoFocus={true}
               placeholder={
                 responseExists
@@ -254,7 +254,6 @@ const CommandBody = ({
               }}
             />
 
-            {/* <ArrowUpCircle className="w-5 h-5 text-gray-100 fill-gray-600" /> */}
           </div>
         )}
       </div>
@@ -264,7 +263,7 @@ const CommandBody = ({
           {responseExists ? (
             <CommandList
               className={cn(
-                "w-[20rem] bg-white border border-gray-200 mt-1 rounded-md shadow-md max-w-[80%]",
+                "mt-1 w-[20rem] max-w-[80%] rounded-md border border-border bg-popover shadow-md",
                 filteredCount === 0 && "border-0",
               )}
             >
@@ -282,7 +281,7 @@ const CommandBody = ({
           ) : (
             <CommandList
               className={cn(
-                "w-[20rem] bg-white border border-gray-200 mt-1 rounded-md shadow-md max-w-[80%]",
+                "mt-1 w-[20rem] max-w-[80%] rounded-md border border-border bg-popover shadow-md",
                 filteredCount === 0 && "border-0",
               )}
             >

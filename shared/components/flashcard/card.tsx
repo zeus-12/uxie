@@ -29,10 +29,10 @@ export interface FlashcardFeedback {
 }
 
 const VERDICTS: Record<FlashcardVerdict, { label: string; dot: string }> = {
-  correct: { label: "Correct", dot: "bg-emerald-600" },
+  correct: { label: "Correct", dot: "bg-success" },
   // A split green/red dot turns to mud at 6px, so partial gets its own colour.
-  partial: { label: "Half right", dot: "bg-amber-500" },
-  incorrect: { label: "Not quite", dot: "bg-red-600" },
+  partial: { label: "Half right", dot: "bg-warning" },
+  incorrect: { label: "Not quite", dot: "bg-danger" },
 };
 
 const IndividualFlashcard = ({
@@ -109,7 +109,7 @@ const IndividualFlashcard = ({
       <div className="flex shrink-0 items-center justify-between pt-3 text-[13px] text-muted-foreground">
         <button
           type="button"
-          className="flex items-center gap-1 py-1 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          className="flex items-center gap-1 py-1 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-60"
           disabled={current === 1}
           onClick={() => step(-1)}
         >
@@ -118,7 +118,7 @@ const IndividualFlashcard = ({
         </button>
         <button
           type="button"
-          className="flex items-center gap-1 py-1 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          className="flex items-center gap-1 py-1 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-60"
           disabled={current === total}
           onClick={() => step(1)}
         >
@@ -138,7 +138,7 @@ const Progress = ({ current, total }: { current: number; total: number }) => (
     </span>
     <span className="h-0.5 flex-1 rounded-full bg-muted">
       <span
-        className="block h-full rounded-full bg-blue-500 transition-[width] duration-300"
+        className="block h-full rounded-full bg-primary transition-[width] duration-300"
         style={{ width: `${(current / total) * 100}%` }}
       />
     </span>
@@ -178,7 +178,11 @@ const FlashcardQuestion = ({
       value={userResponse}
       onChange={(e) => setUserResponse(e.target.value)}
       onKeyDown={(e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && userResponse.trim()) {
+        if (
+          (e.metaKey || e.ctrlKey) &&
+          e.key === "Enter" &&
+          userResponse.trim()
+        ) {
           e.preventDefault();
           onSubmit();
         }
@@ -186,7 +190,7 @@ const FlashcardQuestion = ({
       // Focus is carried by the border alone, like the chat composer. The base
       // Textarea's ring is a near-black shadow at a 2px offset; even recoloured
       // and translucent it smudges at the corners, so it's switched off.
-      className="mt-3.5 min-h-[76px] resize-none rounded-xl bg-muted/40 p-3 text-sm transition-[background-color,border-color] duration-150 focus-visible:border-blue-500 focus-visible:bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+      className="mt-3.5 min-h-[76px] resize-none rounded-xl bg-muted/40 p-3 text-sm transition-[background-color,border-color] duration-150 focus-visible:border-ring focus-visible:bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
       placeholder="Type your answer…"
     />
 
@@ -203,7 +207,7 @@ const FlashcardQuestion = ({
         type="button"
         disabled={!userResponse.trim()}
         onClick={onSubmit}
-        className="rounded-full bg-blue-500 px-4 py-1.5 text-[13.5px] font-medium text-white transition-[colors,transform] hover:bg-blue-600 active:scale-[0.96] disabled:bg-muted disabled:text-muted-foreground"
+        className="rounded-full bg-primary px-4 py-1.5 text-[13.5px] font-medium text-primary-foreground transition-[colors,transform] hover:bg-primary/90 active:scale-[0.96] disabled:bg-muted disabled:text-muted-foreground"
       >
         Check
       </button>
@@ -217,7 +221,11 @@ const FlashcardQuestion = ({
 // is visible until you deliberately open it, so it can't anchor this answer.
 // An Accordion rather than a boolean — it brings the open/close animation, and
 // the collapsed rows leave the tab order with it.
-const EarlierAttempts = ({ attempts }: { attempts: FlashcardAttemptType[] }) => (
+const EarlierAttempts = ({
+  attempts,
+}: {
+  attempts: FlashcardAttemptType[];
+}) => (
   <Accordion type="single" collapsible className="mt-auto shrink-0 pt-4">
     <AccordionItem value="attempts" className="border-b-0 border-t">
       <AccordionTrigger className="py-2.5 text-xs font-normal text-muted-foreground transition-colors hover:text-foreground">
@@ -341,7 +349,7 @@ const FlashcardReport = ({
           type="button"
           onClick={onNext}
           disabled={isLast}
-          className="rounded-full bg-blue-500 px-4 py-1.5 text-[13.5px] font-medium text-white transition-[colors,transform] hover:bg-blue-600 active:scale-[0.96] disabled:bg-muted disabled:text-muted-foreground"
+          className="rounded-full bg-primary px-4 py-1.5 text-[13.5px] font-medium text-primary-foreground transition-[colors,transform] hover:bg-primary/90 active:scale-[0.96] disabled:bg-muted disabled:text-muted-foreground"
         >
           Next card
         </button>
@@ -369,16 +377,19 @@ const Grading = () => (
   </div>
 );
 
-const UNITS: [limit: number, seconds: number, unit: Intl.RelativeTimeFormatUnit][] =
-  [
-    [60, 1, "second"],
-    [3600, 60, "minute"],
-    [86400, 3600, "hour"],
-    [604800, 86400, "day"],
-    [2592000, 604800, "week"],
-    [31536000, 2592000, "month"],
-    [Infinity, 31536000, "year"],
-  ];
+const UNITS: [
+  limit: number,
+  seconds: number,
+  unit: Intl.RelativeTimeFormatUnit,
+][] = [
+  [60, 1, "second"],
+  [3600, 60, "minute"],
+  [86400, 3600, "hour"],
+  [604800, 86400, "day"],
+  [2592000, 604800, "week"],
+  [31536000, 2592000, "month"],
+  [Infinity, 31536000, "year"],
+];
 
 const RELATIVE = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 

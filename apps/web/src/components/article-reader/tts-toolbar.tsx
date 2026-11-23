@@ -15,7 +15,6 @@ import {
   ExpandableTabs,
   type Tab,
 } from "@uxie/shared/components/ui/expandable-tabs";
-import { READER_BACKGROUND_COLOURS } from "@uxie/shared/lib/constants";
 import {
   type ArticleFontFamily,
   useArticleSettingsStore,
@@ -186,12 +185,7 @@ export function ArticleBottomToolbar({
         children: (
           <BackgroundControlsContent
             pageColour={backgroundColour}
-            pageColourChangeHandler={(colour) => {
-              const nextColour = READER_BACKGROUND_COLOURS.find(
-                (candidate) => candidate === colour,
-              );
-              if (nextColour) setBackgroundColour(nextColour);
-            }}
+            pageColourChangeHandler={setBackgroundColour}
           />
         ),
         icon: <BackgroundControlsIcon pageColour={backgroundColour} />,

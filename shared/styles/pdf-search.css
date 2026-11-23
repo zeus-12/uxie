@@ -2,12 +2,12 @@
 .PdfHighlighter .textLayer .highlight {
   margin: 0;
   padding: 0;
-  background-color: rgb(250 204 21 / 45%);
+  background-color: var(--hl-search, rgb(250 204 21 / 45%));
   border-radius: 2px;
-  mix-blend-mode: multiply;
+  mix-blend-mode: var(--hl-blend, multiply);
 }
 
 .PdfHighlighter .textLayer .highlight.selected {
-  background-color: rgb(249 115 22 / 72%);
-  box-shadow: 0 0 0 1px rgb(154 52 18 / 85%);
+  background-color: var(--hl-search-active, rgb(249 115 22 / 72%));
+  box-shadow: 0 0 0 1px var(--hl-search-active-ring, rgb(154 52 18 / 85%));
 }

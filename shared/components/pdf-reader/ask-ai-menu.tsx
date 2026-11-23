@@ -7,12 +7,7 @@ import {
   Type,
   type LucideIcon,
 } from "lucide-react";
-import {
-  Command,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "../ui/command";
+import { Command, CommandInput, CommandItem, CommandList } from "../ui/command";
 
 export type SelectionTemplate = {
   id: string;
@@ -95,9 +90,7 @@ export const AskAiMenu = ({
         placeholder="Ask about the selection…"
         className="h-8 py-0 text-sm"
         rootClassName="px-2.5 py-0"
-        leftIcon={
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-400" />
-        }
+        leftIcon={<Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />}
       />
       <CommandList className="p-1">
         {trimmed && (
@@ -108,10 +101,12 @@ export const AskAiMenu = ({
           >
             <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
             {/* On the custom row the "title" is the user's own text, so it may truncate. */}
-            <span className="min-w-0 flex-1 truncate text-violet-500 dark:text-violet-400">
+            <span className="min-w-0 flex-1 truncate text-primary">
               {trimmed}
             </span>
-            <span className="shrink-0 text-xs text-muted-foreground">Ask AI</span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              Ask AI
+            </span>
           </CommandItem>
         )}
         {SELECTION_TEMPLATES.map((t) => (

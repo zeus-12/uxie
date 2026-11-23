@@ -4,6 +4,7 @@ import {
   type ReadSelectedText,
   type SelectionInfo,
 } from "./highlight-popover";
+import { PdfPageTone } from "./page-tone";
 import { PdfSearch } from "./pdf-search";
 import { getHighlightPageNumber } from "../../lib/highlights";
 import {
@@ -12,7 +13,7 @@ import {
   usePdfSettingsStore,
 } from "../../lib/store";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AreaHighlight,
   Highlight,
@@ -223,7 +224,7 @@ const PdfHighlighter = ({
   const documentKey = pdfDocument.loadingTask.docId;
 
   return (
-    <Fragment key={documentKey}>
+    <PdfPageTone key={documentKey}>
       <PdfHighlighterComponent
         ref={setHighlighterRef}
         pdfDocument={pdfDocument}
@@ -311,7 +312,7 @@ const PdfHighlighter = ({
         eventBus={highlighterInstance?.eventBus ?? null}
         viewerContainer={highlighterInstance?.containerNode ?? null}
       />
-    </Fragment>
+    </PdfPageTone>
   );
 };
 

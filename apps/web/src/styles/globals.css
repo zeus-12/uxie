@@ -1,78 +1,18 @@
 /* Must stay above the @tailwind directives — @import precedes all other rules. */
 @import "@uxie/shared/styles/tts-highlight.css";
+@import "@uxie/shared/styles/themes.css";
 @import "@uxie/shared/styles/pdf-search.css";
+@import "@uxie/shared/styles/reader-page.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    /* Full-colour aliases used by shared (Tailwind v4) components — e.g.
-       ShimmeringText reads var(--color-*) directly. They resolve the HSL
-       token triples above (and pick up the .dark overrides automatically). */
+  :root,
+  [data-theme] {
     --color-foreground: hsl(var(--foreground));
     --color-muted-foreground: hsl(var(--muted-foreground));
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -81,7 +21,7 @@
     @apply border-border;
   }
   body {
-    overscroll-behavior: none; /* Disables wiggle effect on scroll */
+    overscroll-behavior: none;
     @apply bg-background text-foreground;
   }
 }
@@ -128,7 +68,7 @@
   height: 6px;
   margin: 3px;
   border-radius: 50%;
-  background-color: #a3a1a1;
+  background-color: hsl(var(--muted-foreground));
   opacity: 1;
   animation: bouncing-loader 0.6s infinite alternate;
 }
@@ -155,29 +95,23 @@
   text-decoration-skip: none; /* works in Safari, not in Firefox & Chrome */
 }
 
-/* Make annotation highlights blend with reading highlights (TTS/RSVP).
-   The highlight layer (z-index 3) sits above text spans (z-index auto)
-   within .textLayer. Without this, opaque annotation rects fully hide
-   reading-highlight backgrounds on the text spans beneath. Applying
-   multiply to the layer itself makes it blend with its backdrop (the
-   text spans), so both annotation and reading colours are visible. */
+/* Opaque annotation rects would otherwise hide TTS/RSVP highlights on the
+   text spans beneath; multiply lets both colours show. */
 .PdfHighlighter__highlight-layer {
   mix-blend-mode: multiply;
 }
 
 ::highlight(uxie-article-tts-sentence) {
-  background-color: rgb(214 247 205);
+  background-color: var(--tts-sentence);
 }
 
 ::highlight(uxie-article-tts-word) {
-  background-color: rgb(116 242 115);
+  background-color: var(--tts-word);
 }
 
 @layer utilities {
   .hd-screen {
-    /* 100vh for browsers not supporting dvh */
     height: 100vh;
-    /* the ones that suppport dvh overrides vh */
     height: 100dvh;
   }
 
@@ -207,7 +141,6 @@ textarea {
   font-size: 16px;
 }
 
-/* Smooth transitions for resizable panels */
 [data-panel-group] {
   transition: all 0.3s ease-in-out;
 }
@@ -216,12 +149,10 @@ textarea {
   transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Ensure panels animate smoothly */
 [data-panel-id] {
   transition: flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* PDF links disabled styling */
 .annotationLayer a[href] {
   transition: opacity 0.2s ease-in-out;
 }
@@ -230,7 +161,6 @@ textarea {
   pointer-events: auto;
 }
 
-/* Bionic reading fonts */
 @font-face {
   font-family: "BR Sans";
   src: url("/fonts/br-sans.ttf") format("truetype");
@@ -246,7 +176,6 @@ textarea {
   src: url("/fonts/br-mono.ttf") format("truetype");
 }
 
-/* Bionic reading mode */
 .bionic-reading-active .canvasWrapper {
   visibility: hidden;
 }
