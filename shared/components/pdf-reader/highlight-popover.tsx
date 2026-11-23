@@ -7,10 +7,11 @@ import {
   BookmarkPlus,
   ClipboardCopy,
   Highlighter,
+  MessageSquarePlus,
   Sparkles,
   TrashIcon,
 } from "lucide-react";
-import { useSidebarTabStore } from "../../lib/store";
+import { useChatStore, useSidebarTabStore } from "../../lib/store";
 import { useState, type RefObject } from "react";
 
 /**
@@ -39,6 +40,7 @@ export const TextSelectionPopover = ({
   addHighlight,
   addBookmark,
   sendMessage,
+  stageImageAttachment,
   showAiFeatures,
   readSelectedText,
   selectionInfoRef,
@@ -55,6 +57,7 @@ export const TextSelectionPopover = ({
   };
   hideTipAndSelection: () => void;
   sendMessage: ((message: string) => void) | null;
+  stageImageAttachment: ((dataUrl: string) => void) | null;
   showAiFeatures: boolean;
   readSelectedText: ReadSelectedText;
   selectionInfoRef: RefObject<SelectionInfo | null>;
@@ -121,7 +124,20 @@ export const TextSelectionPopover = ({
         icon: BookmarkPlus,
         tooltip: "Bookmark passage",
       },
-    showAiFeatures &&
+    !isTextHighlight &&
+      content.image &&
+      stageImageAttachment && {
+        onClick: () => {
+          stageImageAttachment(content.image ?? "");
+          switchSidebarTabToChat();
+          hideTipAndSelection();
+          useChatStore.getState().focusInput?.();
+        },
+        icon: MessageSquarePlus,
+        tooltip: "Attach to chat",
+      },
+    isTextHighlight &&
+      showAiFeatures &&
       sendMessage && {
         onClick: () => {
           transformSelection();
@@ -144,9 +160,9 @@ export const TextSelectionPopover = ({
             <CustomTooltip content={option.tooltip} asChild key={id}>
               <button
                 type="button"
-                className="group px-[0.5rem] pb-[0.2rem] pt-[0.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                onClick={option.onClick}
                 aria-label={option.tooltip}
+                className="group px-2 pb-[0.2rem] pt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+                onClick={option.onClick}
               >
                 <option.icon
                   aria-hidden="true"
@@ -181,12 +197,12 @@ export const HighlightedTextPopover = ({
       <div className="flex divide-x divide-gray-800">
         <button
           type="button"
-          className="group p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          aria-label="Delete highlight"
+          className="group p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
           onClick={() => {
             deleteHighlight(id);
             hideTip();
           }}
-          aria-label="Delete highlight"
         >
           <TrashIcon
             aria-hidden="true"
