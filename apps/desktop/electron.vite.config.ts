@@ -39,12 +39,20 @@ export default defineConfig({
       },
     },
     plugins: [react()],
+    // scribe imports its native canvas binding only when `process` exists, which the
+    // sandboxed renderer and its workers don't have, so it must not be bundled.
+    optimizeDeps: { exclude: ["scribe.js-ocr"] },
+    worker: {
+      format: "es",
+      rollupOptions: { external: ["@scribe.js/canvas"] },
+    },
     css: {
       postcss: resolve(__dirname, "postcss.config.mjs"),
     },
     build: {
       // Electron ships a modern Chromium, so skip legacy transpilation/polyfills.
       target: "esnext",
+      rollupOptions: { external: ["@scribe.js/canvas"] },
     },
   },
 });

@@ -86,6 +86,9 @@ const PdfHighlighter = ({
   onZoomChange?: (scale: number) => void;
 }) => {
   const sendMessage = useChatStore((state) => state.sendMessage);
+  const stageImageAttachment = useChatStore(
+    (state) => state.stageImageAttachment,
+  );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
@@ -273,6 +276,7 @@ const PdfHighlighter = ({
           <TextSelectionPopover
             showAiFeatures={showAiFeatures}
             sendMessage={sendMessage}
+            stageImageAttachment={stageImageAttachment}
             content={content}
             hideTipAndSelection={hideTipAndSelection}
             addHighlight={() => addHighlight({ content, position })}

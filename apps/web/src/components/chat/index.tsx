@@ -1,4 +1,10 @@
 import { api } from "@/lib/api";
+import {
+  chatErrorMessage,
+  chatRequestBody,
+  MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
+  withoutEarlierImageData,
+} from "@/lib/chat-images";
 import { useChat } from "@ai-sdk/react";
 import {
   ChatPanel,
@@ -10,8 +16,16 @@ import {
   IndexingState,
 } from "@uxie/shared/components/other/indexing-state";
 import { SpinnerCentered } from "@uxie/shared/components/ui/spinner";
+import {
+  useChatImageAttachments,
+  type StagedChatImage,
+} from "@uxie/shared/hooks/use-chat-image-attachments";
+import {
+  userMessageRows,
+  type ChatImage,
+} from "@uxie/shared/lib/chat-attachments";
 import { useChatStore, useSidebarTabStore } from "@uxie/shared/lib/store";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type FileUIPart } from "ai";
 import { SparklesIcon } from "lucide-react";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -63,14 +77,38 @@ function VectoriseGate({ docId }: { docId: string }) {
 
 // A stored/streamed message part, loosely typed — the same shape flows from the
 // live `useChat` stream and from persisted DB messages (trpc JSON).
-type LoosePart = { type: string; text?: string; state?: string };
+type LoosePart = {
+  type: string;
+  text?: string;
+  state?: string;
+  filename?: string;
+  mediaType?: string;
+  url?: string;
+};
 const partsOf = (m: { parts?: unknown }): LoosePart[] =>
   Array.isArray(m.parts) ? (m.parts as LoosePart[]) : [];
 
-// Fan a message's parts into flat rows: text → a bubble, a tool call → a chip
-// that sits OUTSIDE the bubble (ChatGPT-style). tool-result parts are internal.
 function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
   const displayRole = role === "user" ? "user" : "assistant";
+  if (displayRole === "user") {
+    const content = parts
+      .filter((part) => part.type === "text")
+      .map((part) => part.text ?? "")
+      .join("");
+    const attachments = parts.flatMap((part, index): ChatImage[] =>
+      part.type === "file"
+        ? [
+            {
+              id: String(index),
+              filename: part.filename ?? "image",
+              url: part.url?.startsWith("data:image/") ? part.url : null,
+            },
+          ]
+        : [],
+    );
+    return userMessageRows(content, attachments);
+  }
+
   const rows: ChatRow[] = [];
   for (const p of parts) {
     if (p.type === "text") {
@@ -92,9 +130,41 @@ function messageToRows(role: string, parts: LoosePart[]): ChatRow[] {
   return rows;
 }
 
+type Turn = { text: string; images: StagedChatImage[] };
+
+function lastUserMessageId(messages: { id: string; role: string }[]) {
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index];
+    if (message?.role === "user") return message.id;
+  }
+  return null;
+}
+
 function ChatView({ docId }: { docId: string }) {
-  const { messages, status, stop, sendMessage } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat", body: { docId } }),
+  const utils = api.useContext();
+  const turnRef = useRef<Turn | null>(null);
+  const settleFailedTurnRef = useRef<
+    (turn: Turn, userMessageId: string) => Promise<void>
+  >(async () => undefined);
+  const { messages, status, error, stop, sendMessage, setMessages } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      prepareSendMessagesRequest: ({ messages, body }) => ({
+        body: chatRequestBody({
+          ...body,
+          docId,
+          messages: withoutEarlierImageData(messages),
+        }),
+      }),
+    }),
+    onFinish: ({ isError, isAbort, messages }) => {
+      const turn = turnRef.current;
+      turnRef.current = null;
+      const userMessageId = lastUserMessageId(messages);
+      if ((isError || isAbort) && turn && userMessageId) {
+        void settleFailedTurnRef.current(turn, userMessageId);
+      }
+    },
   });
 
   const { data: prevChatMessages, isLoading: isChatsLoading } =
@@ -104,24 +174,78 @@ function ChatView({ docId }: { docId: string }) {
     );
 
   const [input, setInput] = useState("");
+  const {
+    attachments,
+    attachmentError,
+    attachmentsPending,
+    addDataUrl,
+    addFiles,
+    removeAttachments,
+    clearAttachments,
+    restoreAttachments,
+  } = useChatImageAttachments({
+    maxTotalBytes: MAX_WEB_CHAT_IMAGE_TOTAL_BYTES,
+  });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const streaming = status === "streaming" || status === "submitted";
 
   const submit = () => {
     const text = input.trim();
-    if (!text || streaming) return;
-    sendMessage({ text });
+    if ((!text && !attachments.length) || streaming) return;
+    if (attachmentsPending > 0) return;
+    const files: FileUIPart[] = attachments.map((attachment) => ({
+      type: "file",
+      filename: attachment.filename,
+      mediaType: attachment.mediaType,
+      url: attachment.url,
+    }));
+    turnRef.current = { text, images: attachments };
+    if (text) void sendMessage({ text, files });
+    else void sendMessage({ files });
     setInput("");
+    clearAttachments();
   };
 
-  // Register a sender (highlight popover → chat) + a focuser (⌘L) on the shared
-  // store, and focus the input whenever the chat tab becomes active.
+  settleFailedTurnRef.current = async (turn, userMessageId) => {
+    const saved = await utils.client.message.getAllByDocId
+      .query({ docId })
+      .then(
+        (history) => history.some((message) => message.id === userMessageId),
+        () => false,
+      );
+    if (saved) return;
+    setMessages((current) => {
+      const index = current.findIndex(
+        (message) => message.id === userMessageId,
+      );
+      return index === -1 ? current : current.slice(0, index);
+    });
+    if (turn.text) {
+      setInput((current) => (current ? `${turn.text}\n${current}` : turn.text));
+    }
+    restoreAttachments(turn.images);
+  };
+
   const setSendMessage = useChatStore((s) => s.setSendMessage);
+  const setStageImageAttachment = useChatStore(
+    (s) => s.setStageImageAttachment,
+  );
   const setFocusInput = useChatStore((s) => s.setFocusInput);
   const tab = useSidebarTabStore((s) => s.tab);
   useEffect(() => {
-    setSendMessage((text: string) => sendMessage({ text }));
-  }, [sendMessage, setSendMessage]);
+    if (streaming) return;
+    setSendMessage((text: string) => {
+      turnRef.current = { text, images: [] };
+      void sendMessage({ text });
+    });
+    return () => setSendMessage(null);
+  }, [sendMessage, setSendMessage, streaming]);
+  useEffect(() => {
+    setStageImageAttachment((dataUrl: string) => {
+      void addDataUrl(dataUrl, "PDF selection.png");
+    });
+    return () => setStageImageAttachment(null);
+  }, [addDataUrl, setStageImageAttachment]);
   useEffect(() => {
     const focus = () => inputRef.current?.focus();
     setFocusInput(focus);
@@ -131,7 +255,6 @@ function ChatView({ docId }: { docId: string }) {
     if (tab === "chat") inputRef.current?.focus();
   }, [tab]);
 
-  // ⌘1/2/3 switch tabs; ⌘L jumps to chat and focuses its input.
   const setTab = useSidebarTabStore((s) => s.setTab);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -161,8 +284,6 @@ function ChatView({ docId }: { docId: string }) {
   const rows: ChatRow[] = [];
   for (const m of history) rows.push(...messageToRows(m.role, partsOf(m)));
 
-  // Current turn hasn't produced a tool chip or any text yet → a Thinking
-  // shimmer, driven by the real in-flight request status.
   if (streaming) {
     const last = messages[messages.length - 1];
     const lastHasAssistantContent =
@@ -176,7 +297,7 @@ function ChatView({ docId }: { docId: string }) {
   if (status === "error") {
     rows.push({
       kind: "error",
-      content: "Something went wrong. Please try again.",
+      content: chatErrorMessage(error),
     });
   }
 
@@ -185,7 +306,12 @@ function ChatView({ docId }: { docId: string }) {
       rows={rows}
       loaded={!isChatsLoading}
       input={input}
+      attachments={attachments}
+      attachmentError={attachmentError}
+      attachmentsPending={attachmentsPending}
       onInputChange={setInput}
+      onFilesSelected={(files) => void addFiles(files)}
+      onRemoveAttachment={(id) => removeAttachments([id])}
       onSubmit={submit}
       onStop={stop}
       streaming={streaming}
