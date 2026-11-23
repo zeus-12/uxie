@@ -10,14 +10,16 @@ import {
 } from "lucide-react";
 import {
   forwardRef,
+  Fragment,
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from "react";
 import {
   APPEARANCE_THEMES,
+  DARK_PRESET_THEMES,
   isPresetTheme,
   isTheme,
-  PRESET_THEMES,
+  LIGHT_PRESET_THEMES,
   type AppearanceTheme,
   type PresetTheme,
   type Theme,
@@ -35,7 +37,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Select, SelectContent, SelectTrigger } from "../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+} from "../ui/select";
 import { useTheme } from "./theme-provider";
 
 const APPEARANCE_OPTIONS = {
@@ -46,13 +55,19 @@ const APPEARANCE_OPTIONS = {
 
 const PRESET_LABELS = {
   "tokyo-night": "Tokyo Night",
-  "catppuccin-mocha": "Catppuccin Mocha",
   "rose-pine": "Rosé Pine",
   "kanagawa-wave": "Kanagawa Wave",
   "ayu-mirage": "Ayu Mirage",
-  everforest: "Everforest",
-  "solarized-dark": "Solarized Dark",
+  "tokyo-night-day": "Tokyo Night Day",
+  "rose-pine-dawn": "Rosé Pine Dawn",
+  "kanagawa-lotus": "Kanagawa Lotus",
+  "ayu-light": "Ayu Light",
 } satisfies Record<PresetTheme, string>;
+
+const PRESET_GROUPS = [
+  { label: "Dark presets", themes: DARK_PRESET_THEMES },
+  { label: "Light presets", themes: LIGHT_PRESET_THEMES },
+] satisfies { label: string; themes: readonly PresetTheme[] }[];
 
 export function ThemeSwatch({
   theme,
@@ -99,11 +114,11 @@ function ModeRadioItems() {
   );
 }
 
-function PresetRadioItems() {
+function PresetRadioItems({ themes }: { themes: readonly PresetTheme[] }) {
   const { setTheme } = useTheme();
   return (
     <>
-      {PRESET_THEMES.map((option) => (
+      {themes.map((option) => (
         <DropdownMenuRadioItem
           key={option}
           value={option}
@@ -126,11 +141,15 @@ function ThemeRadioItems() {
         Mode
       </DropdownMenuLabel>
       <ModeRadioItems />
-      <DropdownMenuSeparator />
-      <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-        Presets
-      </DropdownMenuLabel>
-      <PresetRadioItems />
+      {PRESET_GROUPS.map((group) => (
+        <Fragment key={group.label}>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+            {group.label}
+          </DropdownMenuLabel>
+          <PresetRadioItems themes={group.themes} />
+        </Fragment>
+      ))}
     </DropdownMenuRadioGroup>
   );
 }
@@ -258,21 +277,31 @@ function PresetSelect({
           className="ml-auto size-4 text-muted-foreground"
         />
       </SelectTrigger>
-      <SelectContent className="max-h-80">
-        {PRESET_THEMES.map((option) => (
-          <SelectPrimitive.Item
-            key={option}
-            value={option}
-            className="relative flex cursor-default select-none items-center gap-2.5 rounded-sm py-2 pl-2 pr-8 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
-          >
-            <ThemeSwatch theme={option} />
-            <SelectPrimitive.ItemText>
-              {PRESET_LABELS[option]}
-            </SelectPrimitive.ItemText>
-            <SelectPrimitive.ItemIndicator className="absolute right-2 inline-flex">
-              <Check aria-hidden="true" className="size-4" />
-            </SelectPrimitive.ItemIndicator>
-          </SelectPrimitive.Item>
+      <SelectContent className="max-h-96">
+        {PRESET_GROUPS.map((group, index) => (
+          <Fragment key={group.label}>
+            {index > 0 && <SelectSeparator />}
+            <SelectGroup>
+              <SelectLabel className="px-2 text-xs font-medium text-muted-foreground">
+                {group.label}
+              </SelectLabel>
+              {group.themes.map((option) => (
+                <SelectPrimitive.Item
+                  key={option}
+                  value={option}
+                  className="relative flex cursor-default select-none items-center gap-2.5 rounded-sm py-2 pl-2 pr-8 text-sm outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground"
+                >
+                  <ThemeSwatch theme={option} />
+                  <SelectPrimitive.ItemText>
+                    {PRESET_LABELS[option]}
+                  </SelectPrimitive.ItemText>
+                  <SelectPrimitive.ItemIndicator className="absolute right-2 inline-flex">
+                    <Check aria-hidden="true" className="size-4" />
+                  </SelectPrimitive.ItemIndicator>
+                </SelectPrimitive.Item>
+              ))}
+            </SelectGroup>
+          </Fragment>
         ))}
       </SelectContent>
     </Select>
@@ -291,9 +320,6 @@ export function ThemePicker() {
       <div className="flex flex-col gap-2">
         <span className="text-sm font-medium">Preset</span>
         <PresetSelect theme={theme} setTheme={setTheme} />
-        <span className="text-xs text-muted-foreground">
-          A preset replaces the mode with its own dark palette.
-        </span>
       </div>
     </div>
   );
