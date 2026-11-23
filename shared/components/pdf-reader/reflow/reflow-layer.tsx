@@ -60,6 +60,13 @@ type RunEntry = { pageNumber: number; run: Run };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
+// Crops follow the text scale and kept pages fit the width, so measure the image.
+const cropScale = (crop: HTMLElement) => {
+  const canvas = crop.querySelector("canvas")?.getBoundingClientRect();
+  const width = Number(crop.dataset.cropW);
+  return canvas && width > 0 ? canvas.width / width : null;
+};
+
 // Kept pages have no runs; a point on one maps through the page image it shows.
 const sectionAnchorAt = (
   root: HTMLElement,
@@ -74,11 +81,14 @@ const sectionAnchorAt = (
     if (!best || d < best.d) best = { section, d };
   }
   if (!best) return null;
-  const kept = best.section.classList.contains("reflow-kept");
-  const image = ((kept && best.section.querySelector("canvas")) || best.section).getBoundingClientRect();
+  const keptCrop = best.section.classList.contains("reflow-kept")
+    ? best.section.querySelector<HTMLElement>(".reflow-crop")
+    : null;
+  const scale = (keptCrop && cropScale(keptCrop)) ?? pxPerPt;
+  const image = (keptCrop?.querySelector("canvas") ?? best.section).getBoundingClientRect();
   const y = Math.min(Math.max(clientY, image.top), image.bottom);
   return {
-    point: { pageNumber: Number(best.section.dataset.reflowPage), x: 0, y: (y - image.top) / pxPerPt },
+    point: { pageNumber: Number(best.section.dataset.reflowPage), x: 0, y: (y - image.top) / scale },
     clientX: image.left,
     clientY: y,
   };
@@ -206,8 +216,9 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
             const r = region.rect;
             if (y >= r.y && y <= r.y + r.height && target.point.x >= r.x && target.point.x <= r.x + r.width) {
               const el = section.querySelector<HTMLElement>(`[data-crop="${index}"]`);
-              if (el) {
-                root.scrollTop += el.getBoundingClientRect().top + (y - r.y) * ppt - target.clientY;
+              const s = el && cropScale(el);
+              if (el && s) {
+                root.scrollTop += el.getBoundingClientRect().top + (y - r.y) * s - target.clientY;
                 return true;
               }
             }
@@ -232,8 +243,9 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         }
       }
       if (elementTop === null) {
-        const image = loaded.page.kind === "keep" ? section.querySelector("canvas") : null;
-        elementTop = (image ?? section).getBoundingClientRect().top + y * ppt;
+        const keptCrop = loaded.page.kind === "keep" ? section.querySelector<HTMLElement>(".reflow-crop") : null;
+        const s = (keptCrop && cropScale(keptCrop)) ?? ppt;
+        elementTop = (keptCrop ?? section).getBoundingClientRect().top + y * s;
       }
       root.scrollTop += elementTop - target.clientY;
       return true;
@@ -459,7 +471,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         const point: PdfPoint = {
           pageNumber,
           x: Number(crop.dataset.cropX),
-          y: Number(crop.dataset.cropY) + (clientY - r.top) / ppt,
+          y: Number(crop.dataset.cropY) + (clientY - r.top) / (cropScale(crop) ?? ppt),
         };
         return { point, clientX: r.left, clientY };
       }

@@ -1,5 +1,5 @@
 import type { PDFPageProxy, RenderTask } from "pdfjs-dist";
-import { Fragment, memo, useEffect, useRef, type ReactNode } from "react";
+import { Fragment, memo, useEffect, useRef, useState, type ReactNode } from "react";
 import { sliceOfRun, type ItemRange } from "../../../lib/reflow/anchors";
 import type { PageInput, Rect, ReflowPage, Run, TextRegion } from "../../../lib/reflow/types";
 
@@ -21,19 +21,34 @@ const CropCanvas = ({
   rect,
   pxPerPt,
   index,
+  fitWidth = false,
 }: {
   pdfPage: PDFPageProxy;
   rect: Rect;
   pxPerPt: number;
   index: number;
+  fitWidth?: boolean;
 }) => {
+  const boxRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [boxWidth, setBoxWidth] = useState<number | null>(null);
   const { x, y, width, height } = rect;
+
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!fitWidth || !box) return;
+    const observer = new ResizeObserver(() => setBoxWidth(box.clientWidth));
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [fitWidth]);
+
+  const cssPxPerPt = fitWidth ? (boxWidth === null ? null : boxWidth / width) : pxPerPt;
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || cssPxPerPt === null) return;
     const rect = { x, y, width, height };
-    const wanted = pxPerPt * (window.devicePixelRatio || 1);
+    const wanted = cssPxPerPt * (window.devicePixelRatio || 1);
     const cap = Math.sqrt(MAX_CANVAS_PIXELS / Math.max(1, rect.width * rect.height));
     const s = Math.min(wanted, cap);
     canvas.width = Math.max(1, Math.round(rect.width * s));
@@ -46,15 +61,26 @@ const CropCanvas = ({
       task = null;
     });
     return () => task?.cancel();
-  }, [pdfPage, x, y, width, height, pxPerPt]);
+  }, [pdfPage, x, y, width, height, cssPxPerPt]);
   return (
-    <div className="reflow-crop" data-crop={index} data-crop-x={rect.x} data-crop-y={rect.y}>
+    <div
+      ref={boxRef}
+      className="reflow-crop"
+      data-crop={index}
+      data-crop-x={rect.x}
+      data-crop-y={rect.y}
+      data-crop-w={rect.width}
+    >
       <canvas
         ref={canvasRef}
-        style={{
-          width: `calc(var(--reflow-pt) * ${rect.width})`,
-          height: `calc(var(--reflow-pt) * ${rect.height})`,
-        }}
+        style={
+          fitWidth
+            ? { width: "100%", aspectRatio: `${rect.width} / ${rect.height}` }
+            : {
+                width: `calc(var(--reflow-pt) * ${rect.width})`,
+                height: `calc(var(--reflow-pt) * ${rect.height})`,
+              }
+        }
       />
     </div>
   );
@@ -172,6 +198,7 @@ export const ReflowPageView = memo(function ReflowPageView({
           rect={{ x: 0, y: 0, width: page.width, height: page.height }}
           pxPerPt={pxPerPt}
           index={0}
+          fitWidth
         />
       </section>
     );
