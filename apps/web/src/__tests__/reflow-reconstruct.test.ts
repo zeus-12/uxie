@@ -36,14 +36,14 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   let scotus: Loaded;
   let udhr: Loaded;
   let nist: Loaded;
-  let tracemonkey: Loaded;
+  let convnext: Loaded;
 
   beforeAll(async () => {
-    [scotus, udhr, nist, tracemonkey] = await Promise.all([
+    [scotus, udhr, nist, convnext] = await Promise.all([
       load("scotus-opinion.pdf"),
       load("udhr-french.pdf"),
       load("nist-cswp.pdf"),
-      load("tracemonkey-two-column.pdf"),
+      load("convnext-two-column.pdf"),
     ]);
   }, 60_000);
 
@@ -100,24 +100,24 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   });
 
   it("reads two columns left then right, with figures as crops", async () => {
-    const page = reflowed(await tracemonkey.source.page(1));
-    const text = (await tracemonkey.text(1)).join("\n");
-    const abstract = text.indexOf("Dynamic languages such as JavaScript are more difficult");
+    const page = reflowed(await convnext.source.page(1));
+    const text = (await convnext.text(1)).join("\n");
+    const abstract = text.indexOf("of visual recognition began with the introduction of");
     const intro = text.indexOf("1. Introduction");
-    const rightColumn = text.indexOf("Compilers for statically typed languages");
+    const rightColumn = text.indexOf("visual feature learning. The introduction of AlexNet");
     expect(abstract).toBeGreaterThanOrEqual(0);
     expect(intro).toBeGreaterThan(abstract);
     expect(rightColumn).toBeGreaterThan(intro);
-    expect(text).toContain("Trace-based Just-in-Time Type Specialization for Dynamic Languages");
-    expect(page.regions.filter((r) => r.kind === "crop").length).toBe(0);
+    expect(text).toContain("A ConvNet for the 2020s");
+    expect(page.regions.filter((r) => r.kind === "crop" && r.role === "figure").length).toBe(1);
 
-    const figurePages = await Promise.all([2, 3, 4].map((n) => tracemonkey.source.page(n)));
+    const figurePages = await Promise.all([2, 3, 4].map((n) => convnext.source.page(n)));
     const crops = figurePages.flatMap((p) => (p.kind === "reflow" ? p.regions.filter((r) => r.kind === "crop") : []));
     expect(crops.length).toBeGreaterThan(0);
   });
 
   it("anchors every run to a distinct slice of a pdf.js text item", async () => {
-    for (const { source } of [scotus, nist, tracemonkey]) {
+    for (const { source } of [scotus, nist, convnext]) {
       for (const n of [1, 2, 3]) {
         const page = await source.page(n);
         if (page.kind !== "reflow") continue;
@@ -139,12 +139,22 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
     }
   });
 
-  it("detects code only from the font's FixedPitch flag", async () => {
-    const pages = await Promise.all([1, 2, 3, 4, 5].map((n) => tracemonkey.source.page(n)));
-    const code = pages.flatMap((p) => (p.kind === "reflow" ? p.regions.filter((r) => r.kind === "crop" && r.role === "code") : []));
-    expect(code.length).toBeGreaterThan(0);
-    const inputs = await Promise.all([1, 2, 3, 4, 5].map((n) => tracemonkey.source.pageInput(n)));
-    for (const input of inputs) for (const item of input.items) expect(item.monospace).not.toBeNull();
+  it("reads monospace from the font's FixedPitch flag, not its name", async () => {
+    const input = await convnext.source.pageInput(1);
+    const url = input.items.find((i) => i.str.includes("github.com/facebookresearch/ConvNeXt"));
+    const body = input.items.find((i) => i.str.includes("visual feature learning"));
+    expect(url?.monospace).toBe(true);
+    expect(body?.monospace).toBe(false);
+  });
+
+  it("crops consecutive fixed-pitch lines as code", async () => {
+    const [input, profile] = await Promise.all([convnext.source.pageInput(2), convnext.source.profile()]);
+    const page = reflowed(reconstructPage(input, profile));
+    const target = page.regions.find((r): r is TextRegion => r.kind === "text" && r.runs.length >= 4)!;
+    const lines = new Set(target.runs.map((r) => r.itemIndex));
+    const items = input.items.map((item) => (lines.has(item.index) ? { ...item, monospace: true } : item));
+    const crops = reflowed(reconstructPage({ ...input, items }, profile)).regions.filter((r) => r.kind === "crop" && r.role === "code");
+    expect(crops.length).toBeGreaterThan(0);
   });
 
   it("keeps a page whose text has no real font extent instead of guessing one", async () => {
@@ -156,7 +166,7 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   });
 
   it("keeps a page whose text all became crops", async () => {
-    const [input, profile] = await Promise.all([tracemonkey.source.pageInput(2), tracemonkey.source.profile()]);
+    const [input, profile] = await Promise.all([convnext.source.pageInput(2), convnext.source.profile()]);
     const items = input.items.map((item) => ({ ...item, monospace: true }));
     expect(reconstructPage({ ...input, items }, profile)).toMatchObject({ kind: "keep", reason: "no-reflowable-text" });
   });
