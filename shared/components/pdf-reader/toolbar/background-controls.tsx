@@ -26,8 +26,6 @@ export const BackgroundControlsContent = ({
   );
 };
 
-const OFFSHADE_COLOUR = "#F3F4F6";
-
 export const BackgroundControlsIcon = ({
   pageColour,
 }: {
@@ -38,14 +36,14 @@ export const BackgroundControlsIcon = ({
       type="button"
       variant="ghost"
       size="xs"
-      className="w-6 h-6"
-      style={{
-        backgroundColor:
-          pageColour === PDF_BACKGROUND_COLOURS[0]
-            ? OFFSHADE_COLOUR
-            : pageColour,
-      }}
       aria-label="Reader background colour"
-    />
+      title="Reader background colour"
+    >
+      <span
+        aria-hidden="true"
+        className="block h-5 w-5 rounded-md outline outline-1 outline-black/15"
+        style={{ backgroundColor: pageColour }}
+      />
+    </Button>
   );
 };

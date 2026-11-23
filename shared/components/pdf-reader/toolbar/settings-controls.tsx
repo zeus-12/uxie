@@ -14,7 +14,7 @@ import type { TTSVoice } from "../../../lib/tts/types";
 import { cn } from "../../../lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import { BotIcon, GlobeIcon, SettingsIcon } from "lucide-react";
+import { BotIcon, GlobeIcon, MarsIcon, SettingsIcon, VenusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
@@ -186,9 +186,9 @@ export const SettingsControls = ({
                   <SettingToggleOption key={option.id} option={option} />
                 ))}
 
-                <div className="pt-3 pb-1">
-                  <span className="mb-2 block whitespace-nowrap px-4 text-sm tracking-wide text-gray-800">
-                    Text to Speech
+                <div className="pb-1">
+                  <span className="block whitespace-nowrap px-4 py-2.5 text-sm text-foreground">
+                    Text to speech
                   </span>
 
                   <div className="flex flex-col divide-y">
@@ -258,13 +258,20 @@ const VoiceSelector = ({
               <TooltipTrigger asChild>
                 <span
                   className={cn(
-                    "text-sm w-4 text-center",
+                    "flex w-4 items-center justify-center",
                     selectedVoice === voice.id
                       ? "text-gray-800"
                       : "text-muted-foreground",
                   )}
                 >
-                  {voice.gender === "female" ? "♀" : "♂"}
+                  {voice.gender === "female" ? (
+                    <VenusIcon aria-hidden="true" className="h-4 w-4" />
+                  ) : (
+                    <MarsIcon aria-hidden="true" className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">
+                    {voice.gender === "female" ? "Female" : "Male"}
+                  </span>
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top">
