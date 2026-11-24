@@ -53,9 +53,8 @@ function DocViewerContent({ doc }: { doc: DocumentData }) {
 
   return (
     <>
-      {/* The panel group sizes itself to 100% of this wrapper, so the wrapper is
-          what makes every `h-full` below resolve against the viewport. Without a
-          definite height here the sidebar is content-sized and overflows the page. */}
+      {/* The panel group sizes to this wrapper; without a definite height here
+          the sidebar is content-sized and overflows the page. */}
       <div className="hd-screen">
         <ResizablePanelGroup autoSaveId="window-layout" direction="horizontal">
           <ResizablePanel defaultSize={50} minSize={30}>

@@ -88,7 +88,11 @@ export function ExpandableTabs({ tabs }: { tabs: Tab[] }) {
                     ? "bg-muted text-foreground"
                     : "hover:bg-muted",
                 )}
-                onClick={() => handleSelect(index)}
+                onClick={
+                  typeof tab.icon === "function"
+                    ? undefined
+                    : () => handleSelect(index)
+                }
               >
                 {typeof tab.icon === "function"
                   ? tab.icon({

@@ -1,4 +1,4 @@
-import { Badge } from "../../ui/badge";
+import { badgeVariants } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { ScrollArea } from "../../ui/scroll-area";
 import { Switch } from "../../ui/switch";
@@ -80,16 +80,21 @@ export const SettingsControls = ({
     onOpenChange(false);
   });
 
+  const onOpenChangeRef = useRef(onOpenChange);
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      onOpenChange(false);
+      onOpenChangeRef.current(false);
       triggerRef.current?.focus();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onOpenChange]);
+  }, [open]);
 
   const settingsOptions: SettingOption[] =
     reader === "article"
@@ -184,8 +189,11 @@ export const SettingsControls = ({
                     aria-label="Voice"
                     onKeyDown={moveVoiceSelection}
                   >
-                    {VOICE_GROUPS.map((group) => (
+                    {VOICE_GROUPS.map((group, groupIndex) => (
                       <VoiceGroup
+                        firstRadioFocusable={
+                          groupIndex === 0 && !hasKnownVoice(voice)
+                        }
                         key={group.title}
                         title={group.title}
                         description={group.description}
@@ -205,6 +213,9 @@ export const SettingsControls = ({
   );
 };
 
+const hasKnownVoice = (voiceId: TTSVoiceId) =>
+  VOICE_GROUPS.some((group) => group.voices.some((v) => v.id === voiceId));
+
 const moveVoiceSelection = (event: ReactKeyboardEvent<HTMLDivElement>) => {
   const step =
     event.key === "ArrowDown" || event.key === "ArrowRight"
@@ -222,7 +233,6 @@ const moveVoiceSelection = (event: ReactKeyboardEvent<HTMLDivElement>) => {
   const current = radios.indexOf(document.activeElement as HTMLButtonElement);
   const next = radios[(current + step + radios.length) % radios.length];
   next?.focus();
-  next?.click();
 };
 
 const Section = ({
@@ -251,12 +261,14 @@ const SettingToggleRow = ({ option }: { option: SettingOption }) => {
         <span className="flex items-center gap-1.5 text-sm">
           {option.label}
           {option.beta && (
-            <Badge
-              variant="secondary"
-              className="px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide"
+            <span
+              className={cn(
+                badgeVariants({ variant: "secondary" }),
+                "px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide",
+              )}
             >
               Beta
-            </Badge>
+            </span>
           )}
         </span>
         {option.description && (
@@ -280,7 +292,9 @@ const VoiceGroup = ({
   voices,
   selectedVoice,
   onSelect,
+  firstRadioFocusable,
 }: {
+  firstRadioFocusable: boolean;
   title: string;
   description: string;
   voices: readonly TTSVoice<TTSVoiceId>[];
@@ -308,7 +322,7 @@ const VoiceGroup = ({
           </span>
         )}
       </div>
-      {voices.map((voice) => {
+      {voices.map((voice, index) => {
         const selected = selectedVoice === voice.id;
         return (
           <button
@@ -316,7 +330,7 @@ const VoiceGroup = ({
             type="button"
             role="radio"
             aria-checked={selected}
-            tabIndex={selected ? 0 : -1}
+            tabIndex={selected || (firstRadioFocusable && index === 0) ? 0 : -1}
             onClick={() => onSelect(voice.id)}
             className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
           >
