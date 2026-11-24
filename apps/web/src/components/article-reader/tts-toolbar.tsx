@@ -15,6 +15,7 @@ import {
   ExpandableTabs,
   type Tab,
 } from "@uxie/shared/components/ui/expandable-tabs";
+import { SMALL_SCREEN_QUERY } from "@uxie/shared/lib/constants";
 import {
   type ArticleFontFamily,
   useArticleSettingsStore,
@@ -153,7 +154,7 @@ export function ArticleBottomToolbar({
   const setBackgroundColour = useArticleSettingsStore(
     (state) => state.setBackgroundColour,
   );
-  const isSmallScreen = useMediaQuery("(max-width: 767px)");
+  const isSmallScreen = useMediaQuery(SMALL_SCREEN_QUERY);
 
   const tabs: Tab[] = useMemo(
     () => [
@@ -194,8 +195,8 @@ export function ArticleBottomToolbar({
       },
       {
         children: null,
-        icon: <SettingsControls reader="article" />,
-        clickOutsideToClose: false,
+        icon: (panel) => <SettingsControls reader="article" {...panel} />,
+        clickOutsideToClose: true,
       },
       {
         children: null,

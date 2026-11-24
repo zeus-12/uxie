@@ -25,7 +25,6 @@ export const SidebarDrawerContent = ({ children }: { children: ReactNode }) => {
   const isOpen = useMobileSidebarStore((s) => s.isDrawerOpen);
   const setDrawerOpen = useMobileSidebarStore((s) => s.setDrawerOpen);
 
-  // Drag to close
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startY = useRef(0);
@@ -67,12 +66,12 @@ export const SidebarDrawerContent = ({ children }: { children: ReactNode }) => {
           transform: isOpen ? `translateY(${dragY}px)` : "translateY(100%)",
         }}
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 h-5/6 rounded-t-xl bg-muted/40 shadow-2xl",
+          "fixed inset-x-0 bottom-0 z-50 flex h-5/6 flex-col overflow-hidden rounded-t-xl bg-background shadow-2xl",
           !isDragging && "transition-transform duration-300 ease-out",
         )}
       >
         <div
-          className="flex items-center justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
+          className="flex cursor-grab touch-none items-center justify-center bg-muted/40 pb-2 pt-3 active:cursor-grabbing"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -80,8 +79,7 @@ export const SidebarDrawerContent = ({ children }: { children: ReactNode }) => {
           <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
         </div>
 
-        {/* Content */}
-        <div className="h-[calc(100%-2rem)] overflow-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-auto">{children}</div>
       </div>
     </>
   );

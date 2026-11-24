@@ -124,8 +124,8 @@ const BottomToolbar = ({
       },
       {
         children: null,
-        icon: <SettingsControls />,
-        clickOutsideToClose: false,
+        icon: (panel) => <SettingsControls {...panel} />,
+        clickOutsideToClose: true,
       },
       {
         children: null,

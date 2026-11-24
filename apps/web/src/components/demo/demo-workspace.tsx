@@ -12,6 +12,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@uxie/shared/components/ui/resizable";
+import { SMALL_SCREEN_QUERY } from "@uxie/shared/lib/constants";
 import { useEffect, useRef, useState } from "react";
 import { type ImperativePanelHandle } from "react-resizable-panels";
 import { useMediaQuery } from "usehooks-ts";
@@ -29,9 +30,7 @@ const DemoWorkspace = () => {
       highlights: s.highlights,
     })),
   );
-  // Snapshot the restored page and zoom for the reader's initial layout.
-  // Reading them reactively would re-trigger that restore every time the user
-  // scrolls or zooms. Updates are still persisted for the next visit.
+  // Snapshot once: a reactive read would re-run the restore on every scroll or zoom.
   const [restored] = useState(() => {
     const { lastReadPage, zoomLevel } = useDemoDocStore.getState();
     return { lastReadPage, zoomLevel };
@@ -41,7 +40,7 @@ const DemoWorkspace = () => {
 
   const sidebarHidden = usePdfSettingsStore((state) => state.sidebarHidden);
   const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
-  const isMobile = useMediaQuery("(max-width: 767px)");
+  const isMobile = useMediaQuery(SMALL_SCREEN_QUERY);
   const [pdfDocument, setPdfDocument] = useState<LoadedPdfForExport | null>(
     null,
   );
