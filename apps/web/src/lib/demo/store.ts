@@ -21,7 +21,6 @@ interface DemoDocStore extends DemoDoc {
     zoomLevel?: number;
   }) => void;
   reset: () => void;
-  openDoc: (doc: DemoDoc) => void;
 }
 
 const DEMO_STORAGE_KEY = "uxie-demo-doc";
@@ -62,7 +61,6 @@ export const useDemoDocStore = create<DemoDocStore>()(
       setReaderState: (state) => set(state),
 
       reset: () => set({ ...DEMO_DOC_SEED }),
-      openDoc: (doc) => set({ ...doc }),
     }),
     {
       name: DEMO_STORAGE_KEY,
@@ -77,45 +75,14 @@ export const useDemoDocStore = create<DemoDocStore>()(
         setIsVectorised,
         setReaderState,
         reset,
-        openDoc,
         ...doc
       }) => doc,
     },
   ),
 );
 
+/** Clears all locally-stored demo data and reseeds the document. */
 export const resetDemo = () => {
   useDemoDocStore.persist.clearStorage();
   useDemoDocStore.getState().reset();
-};
-
-const SAVED_DEMO_KEY = "uxie-demo-doc-before-corpus";
-
-const docOf = (state: DemoDocStore): DemoDoc =>
-  useDemoDocStore.persist.getOptions().partialize!(state) as DemoDoc;
-
-export const openCorpusDoc = (doc: DemoDoc) => {
-  const state = useDemoDocStore.getState();
-  if (!state.id.startsWith("corpus:")) {
-    try {
-      localStorage.setItem(SAVED_DEMO_KEY, JSON.stringify(docOf(state)));
-    } catch {
-      // Storage is unavailable; closing the test document reseeds the demo.
-    }
-  }
-  state.openDoc(doc);
-};
-
-export const closeCorpusDoc = () => {
-  if (!useDemoDocStore.getState().id.startsWith("corpus:")) return;
-  let saved: DemoDoc | null = null;
-  try {
-    const raw = localStorage.getItem(SAVED_DEMO_KEY);
-    localStorage.removeItem(SAVED_DEMO_KEY);
-    saved = raw ? (JSON.parse(raw) as DemoDoc) : null;
-  } catch {
-    saved = null;
-  }
-  if (saved) useDemoDocStore.getState().openDoc(saved);
-  else resetDemo();
 };
