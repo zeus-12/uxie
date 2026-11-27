@@ -58,6 +58,7 @@ const usePdfReader = ({
   readingStatusRef.current = readingStatus;
   // A sentence ended while paused and waiting for the next page's text.
   const advanceOnResumeRef = useRef(false);
+  const pendingAdvanceRef = useRef<number | null>(null);
   // Both start unknown so the toolbar can't show a page or zoom we aren't on.
   const [pageNumberInView, setPageNumberInView] = useState(0);
   const [currentZoom, setCurrentZoom] = useState<number | null>(zoomLevel);
@@ -403,7 +404,9 @@ const usePdfReader = ({
     debouncedPlayAfterSkip.cancel();
 
     const operationId = currentOperationIdRef.current;
+    pendingAdvanceRef.current = operationId;
     void sentenceReader.prepareNextSentence().then(() => {
+      if (pendingAdvanceRef.current === operationId) pendingAdvanceRef.current = null;
       if (operationId !== currentOperationIdRef.current || !isReadingRef.current) {
         isSkippingRef.current = false;
         return;
@@ -476,6 +479,7 @@ const usePdfReader = ({
       browserTts.pause();
     }
 
+    readingStatusRef.current = READING_STATUS.PAUSED;
     setReadingStatus(READING_STATUS.PAUSED);
   }, [getLocalTts, browserTts, debouncedPlayAfterSkip]);
 
@@ -483,7 +487,11 @@ const usePdfReader = ({
     const voice = usePdfSettingsStore.getState().voice;
     const engine = getEngineFromVoice(voice);
 
+    readingStatusRef.current = READING_STATUS.READING;
     setReadingStatus(READING_STATUS.READING);
+
+    // The advance waiting on the next page's text sees READING and plays it.
+    if (pendingAdvanceRef.current === currentOperationIdRef.current) return;
 
     if (advanceOnResumeRef.current) {
       advanceOnResumeRef.current = false;
@@ -536,7 +544,9 @@ const usePdfReader = ({
       return;
 
     const operationId = currentOperationIdRef.current;
+    pendingAdvanceRef.current = operationId;
     void sentenceReader.prepareNextSentence().then(() => {
+      if (pendingAdvanceRef.current === operationId) pendingAdvanceRef.current = null;
       if (operationId !== currentOperationIdRef.current) return;
       if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current) return;
       if (readingStatusRef.current === READING_STATUS.PAUSED) {

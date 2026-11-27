@@ -58,8 +58,6 @@ function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
 const buildPage = (pageNumber: number) =>
   buildPageFromSpans(FIXTURE[String(pageNumber)] ?? []);
 
-/** Feeds a sentence through the same char indices onWordBoundary would receive,
- *  returning the text each word's overlay ended up covering. */
 function readSentence(api: ReaderApi, pos: SentencePosition) {
   api.resetWordTracking();
   const spoken = pos.sentenceForTts;
@@ -200,7 +198,7 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
         if (isComplete(pos.sentence)) {
           sentencesChecked++;
           for (const step of readSentence(api, pos)) {
-            if (!normalizeWord(step.spoken)) continue; // skip pure-symbol tokens
+            if (!normalizeWord(step.spoken)) continue;
             wordsChecked++;
             const joined = step.highlighted.join("");
             const where = `p${pageNumber} "${step.spoken}"`;
@@ -237,7 +235,7 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
     const api = mountReader();
     const pos = api.startFromPage(1);
     expect(pos).not.toBeNull();
-    expect(pos!.sentence).toContain("under‐"); // hyphen preserved in source
+    expect(pos!.sentence).toContain("under‐");
     expect(pos!.sentenceForTts).toContain("understand"); // joined for speech
     expect(pos!.sentenceForTts).not.toContain("‐");
 

@@ -67,6 +67,7 @@ export const useInPlaceReflow = ({
   const pinchRef = useRef<Pinch | null>(null);
   const entryRequest = useRef(0);
   const activeTouches = useRef(0);
+  const zoomWhilePlacing = useRef<{ scale: number; clientX: number; clientY: number } | null>(null);
   const viewer = instance?.viewer ?? null;
 
   useEffect(() => {
@@ -209,7 +210,11 @@ export const useInPlaceReflow = ({
 
   const zoomAt = useCallback(
     (scale: number, clientX: number, clientY: number) => {
-      if (!viewer || (modeRef.current === "reflow" && !placedRef.current)) return;
+      if (!viewer) return;
+      if (modeRef.current === "reflow" && !placedRef.current) {
+        zoomWhilePlacing.current = { scale, clientX, clientY };
+        return;
+      }
       const target = clampZoom(scale);
       const current = viewer.currentScale;
       if (Math.abs(target - current) < 1e-3) return;
@@ -224,6 +229,16 @@ export const useInPlaceReflow = ({
   );
 
   useEffect(() => {
+    if (!placed || !reflow) {
+      if (!reflow) zoomWhilePlacing.current = null;
+      return;
+    }
+    const queued = zoomWhilePlacing.current;
+    zoomWhilePlacing.current = null;
+    if (queued) zoomAt(queued.scale, queued.clientX, queued.clientY);
+  }, [placed, reflow, zoomAt]);
+
+  useEffect(() => {
     if (!viewer || !enabled) return;
     const centre = () => {
       const r = viewer.container.getBoundingClientRect();
@@ -235,7 +250,7 @@ export const useInPlaceReflow = ({
     };
     const zoom: ReaderZoom = {
       zoomTo,
-      zoomBy: (factor) => zoomTo(viewer.currentScale * factor),
+      zoomBy: (factor) => zoomTo((zoomWhilePlacing.current?.scale ?? viewer.currentScale) * factor),
       zoomToFit: () => {
         const fit = fitWidthScale(viewer);
         if (fit) zoomTo(fit);
@@ -329,7 +344,7 @@ export const useInPlaceReflow = ({
         const frame = requestAnimationFrame(() => {
           const step = queued;
           queued = null;
-          if (step) zoomAt(viewer.currentScale * step.factor, step.x, step.y);
+          if (step) zoomAt((zoomWhilePlacing.current?.scale ?? viewer.currentScale) * step.factor, step.x, step.y);
         });
         queued = { factor, x, y, frame };
       };

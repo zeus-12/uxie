@@ -234,7 +234,7 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
       void sentenceReader.prepareNextSentence().then(() => {
         advancingRef.current = false;
         if (request !== requestRef.current) return;
-        if (statusRef.current !== SPEAK_ALONG_STATUS.LISTENING) return;
+        if (statusRef.current === SPEAK_ALONG_STATUS.IDLE) return;
         showNextSentence();
       });
       return;
@@ -284,7 +284,6 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
 
     recognition.onend = () => {
       setIsListening(false);
-      // Auto-restart if still in listening mode
       if (statusRef.current === SPEAK_ALONG_STATUS.LISTENING) {
         try {
           recognition.start();
@@ -383,7 +382,6 @@ export function useSpeakAlong({ pageCount }: { pageCount: number }) {
   }, [sentenceReader, stopRecognition]);
 
   const pause = useCallback(() => {
-    requestRef.current += 1;
     stopRecognition();
     setStatus(SPEAK_ALONG_STATUS.PAUSED);
   }, [stopRecognition]);

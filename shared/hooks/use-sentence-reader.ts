@@ -503,6 +503,12 @@ function revealReflowedPage(pageNumber: number): boolean {
 
 export function useSentenceReader({ pageCount }: { pageCount: number }) {
   const currentPageRef = useRef(1);
+  const reportedFailures = useRef(new Set<number>());
+  const reportFailedPage = (page: number) => {
+    if (reportedFailures.current.has(page)) return;
+    reportedFailures.current.add(page);
+    toast.error(`Couldn't read the text on page ${page}; skipping it`);
+  };
   const currentSentenceIndexRef = useRef(0);
   const modelRef = useRef<PageTextModel | null>(null);
   const wordMapRef = useRef<{ map: WordMapEntry[]; spoken: string } | null>(
@@ -674,7 +680,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     while (nextPage <= pageCount) {
       const blocks = pageBlocks(nextPage);
       if (!blocks && usePdfTextStore.getState().source?.failed(nextPage)) {
-        toast.error(`Couldn't read the text on page ${nextPage}; skipping it`);
+        reportFailedPage(nextPage);
         nextPage++;
         continue;
       }
@@ -702,7 +708,10 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     if (prevIdx < 0) {
       for (let page = currentPageRef.current - 1; page >= 1; page--) {
         const blocks = pageBlocks(page);
-        if (!blocks) return null;
+        if (!blocks) {
+          if (usePdfTextStore.getState().source?.failed(page)) continue;
+          return null;
+        }
         const count = buildPageTextModel(page, blocks).sentences.length;
         if (count === 0) continue;
         loadPageSentences(page);
@@ -726,7 +735,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
       while (currentPage <= pageCount) {
         const blocks = pageBlocks(currentPage);
         if (!blocks && usePdfTextStore.getState().source?.failed(currentPage)) {
-          toast.error(`Couldn't read the text on page ${currentPage}; skipping it`);
+          reportFailedPage(currentPage);
           currentPage++;
           continue;
         }
@@ -823,6 +832,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
   );
 
   const reset = useCallback(() => {
+    reportedFailures.current.clear();
     currentPageRef.current = 1;
     currentSentenceIndexRef.current = 0;
     modelRef.current = null;
@@ -1041,6 +1051,7 @@ export function useSentenceReader({ pageCount }: { pageCount: number }) {
     for (let page = currentPageRef.current - 1; page >= 1; page--) {
       await source.ready(page);
       const blocks = source.blocks(page);
+      if (!blocks && source.failed(page)) continue;
       if (!blocks || buildPageTextModel(page, blocks).sentences.length > 0) return;
     }
   }, []);

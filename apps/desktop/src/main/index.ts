@@ -155,7 +155,7 @@ function registerIpc() {
 // otherwise it hands the step back as "window:zoom".
 function buildMenu(): Menu {
   const zoom = (direction: ZoomDirection) => () =>
-    BrowserWindow.getFocusedWindow()?.webContents.send("view:zoom", direction);
+    (BrowserWindow.getFocusedWindow() ?? mainWindow)?.webContents.send("view:zoom", direction);
   return Menu.buildFromTemplate([
     ...(isMac ? [{ role: "appMenu" as const }] : []),
     { role: "fileMenu" },
