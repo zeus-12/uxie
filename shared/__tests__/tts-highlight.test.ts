@@ -14,7 +14,7 @@ import {
   type ReaderApi,
 } from "./helpers/sentence-reader";
 
-// Real pdf.js spans captured from public/demo.pdf. Re-capture by rendering it
+// Real pdf.js spans captured from apps/web/public/demo.pdf. Re-capture by rendering it
 // with renderTextLayer and dumping each span's text + getBoundingClientRect.
 type FixtureSpan = { text: string; top: number; left: number; width: number };
 const FIXTURE = textlayer as Record<string, FixtureSpan[]>;

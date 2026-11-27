@@ -7,7 +7,7 @@
     "dev:desktop": "pnpm --filter @uxie/desktop dev",
     "build:web": "pnpm --filter @uxie/web build",
     "build:desktop": "pnpm --filter @uxie/desktop build",
-    "typecheck": "pnpm --filter @uxie/web typecheck && pnpm --filter @uxie/desktop typecheck",
+    "typecheck": "pnpm --filter @uxie/web typecheck && pnpm --filter @uxie/desktop typecheck && pnpm --filter @uxie/shared typecheck",
     "lint": "pnpm --filter @uxie/web lint",
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",

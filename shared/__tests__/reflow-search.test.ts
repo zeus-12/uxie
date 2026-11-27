@@ -62,9 +62,9 @@ const searchPage = async (file: string, pageNumber: number, query: string) => {
 
 describe("reflow search projection", () => {
   it.each([
-    ["../../public/demo.pdf", 1, "reading"],
-    ["fixtures/reflow/convnext-two-column.pdf", 1, "convnet"],
-    ["fixtures/reflow/scotus-opinion.pdf", 3, "first amendment"],
+    ["../../apps/web/public/demo.pdf", 1, "reading"],
+    ["fixtures/reflow/two-column.pdf", 1, "convnet"],
+    ["fixtures/reflow/text.pdf", 2, "first amendment"],
   ])("maps %s page %i matches for %s onto the same item offsets as pdf.js", async (file, page, query) => {
     const r = await searchPage(file, page, query);
     expect(r.pageMatches.length).toBeGreaterThan(0);

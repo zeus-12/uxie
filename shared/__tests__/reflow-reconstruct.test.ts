@@ -33,36 +33,30 @@ const reflowed = (page: ReflowPage) => {
 };
 
 describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
-  let scotus: Loaded;
+  let opinion: Loaded;
   let udhr: Loaded;
-  let nist: Loaded;
-  let convnext: Loaded;
+  let paper: Loaded;
 
   beforeAll(async () => {
-    [scotus, udhr, nist, convnext] = await Promise.all([
-      load("scotus-opinion.pdf"),
-      load("udhr-french.pdf"),
-      load("nist-cswp.pdf"),
-      load("convnext-two-column.pdf"),
-    ]);
+    [opinion, udhr, paper] = await Promise.all([load("text.pdf"), load("french.pdf"), load("two-column.pdf")]);
   }, 60_000);
 
   it("removes running headers and page numbers but keeps body text that mentions them", async () => {
-    const pages = await Promise.all([10, 11, 12, 13, 20].map((n) => scotus.text(n)));
+    const pages = await Promise.all([2, 3, 4, 5, 6, 7, 8, 9].map((n) => opinion.text(n)));
     for (const regions of pages) {
       expect(regions.some((t) => /^Cite as:/.test(t))).toBe(false);
       expect(regions.some((t) => t === "Opinion of the Court")).toBe(false);
       expect(regions.some((t) => /^\d+$/.test(t.trim()))).toBe(false);
     }
-    const all = (await Promise.all(Array.from({ length: 40 }, (_, i) => scotus.text(i + 1)))).flat();
+    const all = (await Promise.all(Array.from({ length: 9 }, (_, i) => opinion.text(i + 1)))).flat();
     expect(all.some((t) => t.includes("delivered the opinion of the Court"))).toBe(true);
   });
 
   it("does not turn wrapped citations into list items", async () => {
-    for (let n = 1; n <= 40; n++) {
-      const page = await scotus.source.page(n);
+    for (let n = 1; n <= 9; n++) {
+      const page = await opinion.source.page(n);
       if (page.kind !== "reflow") continue;
-      const input = await scotus.source.pageInput(n);
+      const input = await opinion.source.pageInput(n);
       const strs = new Map(input.items.map((i) => [i.index, i.str]));
       for (const r of page.regions) {
         if (r.kind !== "text" || r.role !== "list-item") continue;
@@ -86,22 +80,22 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   });
 
   it("keeps a real line-end hyphen and joins a broken word only on evidence", async () => {
-    const page = reflowed(await nist.source.page(2));
-    expect(page.hyphens).toContainEqual({ tail: "high", head: "level", decision: "kept" });
-    const text = (await nist.text(2)).join(" ");
-    expect(text).toContain("high-level cybersecurity outcomes");
+    const page = reflowed(await opinion.source.page(5));
+    expect(page.hyphens).toContainEqual({ tail: "and", head: "desist", decision: "kept" });
+    const text = (await opinion.text(5)).join(" ");
+    expect(text).toContain("can issue cease-and-desist orders");
 
-    const scotusPages = await Promise.all(Array.from({ length: 40 }, (_, i) => scotus.source.page(i + 1)));
-    const joins = scotusPages.flatMap((p) => (p.kind === "reflow" ? p.hyphens : []));
+    const pages = await Promise.all(Array.from({ length: 9 }, (_, i) => opinion.source.page(i + 1)));
+    const joins = pages.flatMap((p) => (p.kind === "reflow" ? p.hyphens : []));
     expect(joins).toContainEqual({ tail: "bibli", head: "cal", decision: "word-evidence" });
-    const all = (await Promise.all(Array.from({ length: 40 }, (_, i) => scotus.text(i + 1)))).flat().join(" ");
+    const all = (await Promise.all(Array.from({ length: 9 }, (_, i) => opinion.text(i + 1)))).flat().join(" ");
     expect(all).toContain("contradicts biblical truth");
     expect(all).not.toContain("bibli-cal");
   });
 
   it("reads two columns left then right, with figures as crops", async () => {
-    const page = reflowed(await convnext.source.page(1));
-    const text = (await convnext.text(1)).join("\n");
+    const page = reflowed(await paper.source.page(1));
+    const text = (await paper.text(1)).join("\n");
     const abstract = text.indexOf("of visual recognition began with the introduction of");
     const intro = text.indexOf("1. Introduction");
     const rightColumn = text.indexOf("visual feature learning. The introduction of AlexNet");
@@ -111,13 +105,13 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
     expect(text).toContain("A ConvNet for the 2020s");
     expect(page.regions.filter((r) => r.kind === "crop" && r.role === "figure").length).toBe(1);
 
-    const figurePages = await Promise.all([2, 3, 4].map((n) => convnext.source.page(n)));
+    const figurePages = await Promise.all([2, 3].map((n) => paper.source.page(n)));
     const crops = figurePages.flatMap((p) => (p.kind === "reflow" ? p.regions.filter((r) => r.kind === "crop") : []));
     expect(crops.length).toBeGreaterThan(0);
   });
 
   it("anchors every run to a distinct slice of a pdf.js text item", async () => {
-    for (const { source } of [scotus, nist, convnext]) {
+    for (const { source } of [opinion, paper]) {
       for (const n of [1, 2, 3]) {
         const page = await source.page(n);
         if (page.kind !== "reflow") continue;
@@ -140,7 +134,7 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   });
 
   it("reads monospace from the font's FixedPitch flag, not its name", async () => {
-    const input = await convnext.source.pageInput(1);
+    const input = await paper.source.pageInput(1);
     const url = input.items.find((i) => i.str.includes("github.com/facebookresearch/ConvNeXt"));
     const body = input.items.find((i) => i.str.includes("visual feature learning"));
     expect(url?.monospace).toBe(true);
@@ -148,7 +142,7 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   });
 
   it("crops consecutive fixed-pitch lines as code", async () => {
-    const [input, profile] = await Promise.all([convnext.source.pageInput(2), convnext.source.profile()]);
+    const [input, profile] = await Promise.all([paper.source.pageInput(2), paper.source.profile()]);
     const page = reflowed(reconstructPage(input, profile));
     const target = page.regions.find((r): r is TextRegion => r.kind === "text" && r.runs.length >= 4)!;
     const lines = new Set(target.runs.map((r) => r.itemIndex));
@@ -158,7 +152,7 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   });
 
   it("keeps a page whose text has no real font extent instead of guessing one", async () => {
-    const [input, profile] = await Promise.all([nist.source.pageInput(2), nist.source.profile()]);
+    const [input, profile] = await Promise.all([opinion.source.pageInput(5), opinion.source.profile()]);
     expect(reconstructPage(input, profile).kind).toBe("reflow");
     const target = input.items.findIndex((i) => i.horizontal && !i.artifact && i.direction !== "ttb" && i.str.trim());
     const items = input.items.map((item, i) => (i === target ? { ...item, metricsKnown: false } : item));
@@ -166,22 +160,22 @@ describe("reflow reconstruction on real PDFs", { timeout: 60_000 }, () => {
   });
 
   it("keeps a page whose text all became crops", async () => {
-    const [input, profile] = await Promise.all([convnext.source.pageInput(2), convnext.source.profile()]);
+    const [input, profile] = await Promise.all([paper.source.pageInput(2), paper.source.profile()]);
     const items = input.items.map((item) => ({ ...item, monospace: true }));
     expect(reconstructPage({ ...input, items }, profile)).toMatchObject({ kind: "keep", reason: "no-reflowable-text" });
   });
 
   it("reads the page's link annotations with their real targets", async () => {
-    const input = await convnext.source.pageInput(1);
+    const input = await paper.source.pageInput(1);
     const github = input.links.find((l) => l.url === "https://github.com/facebookresearch/ConvNeXt");
     expect(github?.rect.width).toBeGreaterThan(0);
     expect(input.links.some((l) => l.dest === "cite.LeCun1989")).toBe(true);
   });
 
   it("refuses pages it cannot reflow faithfully", async () => {
-    const arabic = await load("rtl-arabic-wikipedia.pdf");
+    const arabic = await load("rtl.pdf");
     expect(await arabic.source.page(1)).toMatchObject({ kind: "keep", reason: "right-to-left" });
-    const scan = await load("scan-ocr-nasa.pdf");
+    const scan = await load("ocr.pdf");
     expect(await scan.source.page(1)).toMatchObject({ kind: "keep", reason: "scanned" });
   });
 });
@@ -208,7 +202,7 @@ describe("font data from pdf.js font objects", () => {
 
 describe("reflow profile", { timeout: 60_000 }, () => {
   it("builds from the sample pages that load and retries after a total failure", async () => {
-    const doc = await getDocument({ data: fixture("udhr-french.pdf"), verbosity: 0, fontExtraProperties: true }).promise;
+    const doc = await getDocument({ data: fixture("french.pdf"), verbosity: 0, fontExtraProperties: true }).promise;
     let failAll = true;
     const flaky = {
       numPages: doc.numPages,
