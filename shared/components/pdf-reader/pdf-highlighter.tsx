@@ -372,7 +372,10 @@ const PdfHighlighter = ({
             stageImageAttachment={stageImageAttachment}
             content={content}
             hideTipAndSelection={hideTipAndSelection}
-            addHighlight={() => addHighlight({ content, position })}
+            addHighlight={() => {
+              addHighlight({ content, position });
+              window.getSelection()?.removeAllRanges();
+            }}
             readSelectedText={readSelectedText}
             selectionInfoRef={selectionInfoRef}
             transformSelection={transformSelection}
