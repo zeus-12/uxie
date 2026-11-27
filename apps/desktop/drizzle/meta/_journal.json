@@ -22,6 +22,20 @@
       "when": 1785004475694,
       "tag": "0002_elite_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788124231262,
+      "tag": "0003_rapid_klaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795368477782,
+      "tag": "0004_cold_ulik",
+      "breakpoints": true
     }
   ]
 }

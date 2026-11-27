@@ -4,6 +4,7 @@ import { copyTextToClipboard } from "../../lib/utils";
 import { AskAiMenu } from "./ask-ai-menu";
 import {
   AudioLines,
+  BookmarkPlus,
   ClipboardCopy,
   Highlighter,
   MessageSquarePlus,
@@ -37,6 +38,7 @@ export const TextSelectionPopover = ({
   content,
   hideTipAndSelection,
   addHighlight,
+  addBookmark,
   sendMessage,
   stageImageAttachment,
   showAiFeatures,
@@ -48,6 +50,7 @@ export const TextSelectionPopover = ({
   // AI input steals focus and collapses the native selection.
   transformSelection: () => void;
   addHighlight: () => void;
+  addBookmark?: () => void;
   content: {
     text?: string | undefined;
     image?: string | undefined;
@@ -112,6 +115,15 @@ export const TextSelectionPopover = ({
       icon: Highlighter,
       tooltip: "Highlight",
     },
+    isTextHighlight &&
+      addBookmark && {
+        onClick: () => {
+          addBookmark();
+          hideTipAndSelection();
+        },
+        icon: BookmarkPlus,
+        tooltip: "Bookmark passage",
+      },
     !isTextHighlight &&
       content.image &&
       stageImageAttachment && {
@@ -151,6 +163,7 @@ export const TextSelectionPopover = ({
                 onClick={option.onClick}
               >
                 <option.icon
+                  aria-hidden="true"
                   className={
                     "accent" in option && option.accent
                       ? "h-5 w-5 text-primary group-hover:opacity-80"
@@ -188,6 +201,7 @@ export const HighlightedTextPopover = ({
           }}
         >
           <TrashIcon
+            aria-hidden="true"
             size={18}
             className="rounded-full text-muted-foreground group-hover:text-danger"
           />

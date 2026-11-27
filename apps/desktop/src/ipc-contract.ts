@@ -18,6 +18,8 @@
 
 import type {
   AddHighlightInput,
+  Bookmark,
+  CreateBookmarkInput,
   CreateDocumentInput,
   Document,
   DocumentWithHighlights,
@@ -133,6 +135,17 @@ export interface IpcInvokeContract {
     result: void;
   };
 
+  "bookmarks:list": { args: [documentId: string]; result: Bookmark[] };
+  "bookmarks:create": {
+    args: [input: CreateBookmarkInput];
+    result: Bookmark;
+  };
+  "bookmarks:rename": {
+    args: [id: string, label: string | null];
+    result: Bookmark;
+  };
+  "bookmarks:delete": { args: [id: string]; result: void };
+
   "settings:get": { args: []; result: Settings };
   "settings:set": { args: [settings: Settings]; result: void };
 
@@ -220,6 +233,11 @@ export const API_INVOKE = {
   addHighlight: "highlights:add",
   deleteHighlight: "highlights:delete",
   updateAreaHighlight: "highlights:updateArea",
+
+  listBookmarks: "bookmarks:list",
+  createBookmark: "bookmarks:create",
+  renameBookmark: "bookmarks:rename",
+  deleteBookmark: "bookmarks:delete",
 
   getSettings: "settings:get",
   setSettings: "settings:set",

@@ -1,15 +1,14 @@
-// Local SQLite schema — a 1:1 mirror of apps/web/prisma/schema.prisma so a
-// future Prisma→Drizzle convergence has one source of truth. The desktop app
-// only exercises documents + highlights; the rest is kept for parity.
-// Prisma→SQLite: enum→text, bool→int, DateTime→int timestamp, Float→real,
-// Json→text, cuid()→cuid2 (app-side).
+// Mirrors apps/web/prisma/schema.prisma (except desktop-only Bookmark) so a future Prisma→Drizzle
+// convergence has one source of truth. Mapping: enum→text, bool→int, DateTime→int timestamp, Json→text.
 import {
+  index,
   integer,
   real,
   sqliteTable,
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export const PLANS = ["FREE", "FREE_PLUS", "PRO"] as const;
@@ -79,7 +78,9 @@ export const document = sqliteTable("Document", {
     .$defaultFn(() => new Date())
     .$onUpdate(() => new Date()),
   pageCount: integer("pageCount").notNull(),
-  isUploaded: integer("isUploaded", { mode: "boolean" }).notNull().default(true),
+  isUploaded: integer("isUploaded", { mode: "boolean" })
+    .notNull()
+    .default(true),
   lastReadPage: integer("lastReadPage").notNull().default(1),
   // The pdf.js scale to restore on open. Null means "auto" — the viewer's own
   // fit-to-width default, which is what a document gets until the user zooms.
@@ -130,6 +131,29 @@ export const highlight = sqliteTable("Highlight", {
   // live, so deleting the highlight can delete the file with it. Null for TEXT.
   imageUrl: text("imageUrl"),
 });
+
+export const bookmark = sqliteTable(
+  "Bookmark",
+  {
+    id: primaryId(),
+    documentId: text("documentId")
+      .notNull()
+      .references(() => document.id, { onDelete: "cascade" }),
+    pageNumber: integer("pageNumber").notNull(),
+    label: text("label"),
+    location: text("location", { mode: "json" }).$type<BookmarkLocation>(),
+    createdAt: createdAt(),
+  },
+  (t) => ({
+    documentCreatedAtIndex: index("Bookmark_documentId_createdAt_idx").on(
+      t.documentId,
+      t.createdAt,
+    ),
+    pageBookmarkUnique: uniqueIndex("Bookmark_documentId_pageNumber_page_key")
+      .on(t.documentId, t.pageNumber)
+      .where(sql`${t.location} IS NULL`),
+  }),
+);
 
 export const cordinate = sqliteTable(
   "Cordinate",
@@ -195,6 +219,7 @@ export type User = typeof user.$inferSelect;
 export type Document = typeof document.$inferSelect;
 export type NewDocument = typeof document.$inferInsert;
 export type Highlight = typeof highlight.$inferSelect;
+export type Bookmark = typeof bookmark.$inferSelect;
 export type Cordinate = typeof cordinate.$inferSelect;
 export type Message = typeof message.$inferSelect;
 export type Flashcard = typeof flashcard.$inferSelect;
@@ -212,6 +237,41 @@ export interface RectInput {
   width: number;
   height: number;
   pageNumber?: number | null;
+}
+
+export interface PdfSelectionPosition {
+  boundingRect: RectInput;
+  rects: RectInput[];
+}
+
+export type PdfPassageAnchor =
+  | {
+      version: 1;
+      kind: "quote";
+      exact: string;
+    }
+  | {
+      version: 1;
+      kind: "selection";
+      exact: string;
+      position: PdfSelectionPosition;
+    };
+
+// x and y are fractions of the unrotated page box (PDF user space), measured from its top-left.
+export interface PdfPointAnchor {
+  version: 1;
+  kind: "point";
+  x: number;
+  y: number;
+}
+
+export type BookmarkLocation = PdfPassageAnchor | PdfPointAnchor;
+
+export interface CreateBookmarkInput {
+  documentId: string;
+  pageNumber: number;
+  label?: string | null;
+  location?: BookmarkLocation | null;
 }
 
 export interface AddHighlightInput {
