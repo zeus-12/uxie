@@ -5,6 +5,12 @@
 
 .uxie-pdf-page {
   display: contents;
+  --hl-selection: rgb(252 232 151);
+}
+
+.uxie-pdf-page .textLayer ::selection,
+.uxie-pdf-page .reflow-layer ::selection {
+  background: var(--hl-selection);
 }
 
 .uxie-pdf-page .pdfViewer.removePageBorders,
@@ -39,10 +45,6 @@
 .uxie-pdf-page[data-page-tone="ink"] .textLayer {
   background-color: transparent;
   mix-blend-mode: screen;
-}
-
-.uxie-pdf-page[data-page-tone="ink"] .textLayer ::selection {
-  background: var(--hl-selection);
 }
 
 .uxie-pdf-page[data-page-tone="ink"] .Highlight__part {

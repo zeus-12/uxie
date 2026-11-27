@@ -476,33 +476,75 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const [ghost, setGhost] = useState<ReflowSelection | null>(null);
 
   const selectable = Boolean(renderSelection);
-  const [highlightTip, setHighlightTip] = useState<{ id: string; left: number; top: number } | null>(null);
+  const [highlightTip, setHighlightTip] = useState<{ id: string; left: number; top: number; pinned: boolean } | null>(
+    null,
+  );
+  const highlightTipRef = useRef(highlightTip);
+  highlightTipRef.current = highlightTip;
+  const highlightTipEl = useRef<HTMLDivElement>(null);
   const closeHighlightTip = useCallback(() => setHighlightTip(null), []);
 
+  // Same rules as the page's highlights: hover shows the tip, a click or tap pins it
+  // until a pointerdown outside it, Escape, or delete.
   useEffect(() => {
     const root = scroller();
     if (!root || !visible || !renderHighlight) return;
-    const onClick = (e: MouseEvent) => {
-      const mark = (e.target as Element | null)?.closest?.<HTMLElement>("mark[data-highlight-id]");
-      if (!mark || !root.contains(mark) || !window.getSelection()?.isCollapsed) return;
+    const markAt = (target: EventTarget | null) => {
+      const mark = (target as Element | null)?.closest?.<HTMLElement>("mark[data-highlight-id]");
+      return mark && root.contains(mark) ? mark : null;
+    };
+    const tipFor = (mark: HTMLElement, pinned: boolean) => {
       const box = mark.getBoundingClientRect();
       const rootBox = root.getBoundingClientRect();
       const half = Math.min(60, rootBox.width / 2);
-      setHighlightTip({
+      return {
         id: mark.dataset.highlightId!,
         left: clamp(box.left + box.width / 2 - rootBox.left, half, rootBox.width - half),
         top: box.top - rootBox.top + root.scrollTop,
-      });
+        pinned,
+      };
+    };
+    const onClick = (e: MouseEvent) => {
+      const mark = markAt(e.target);
+      if (!mark || !window.getSelection()?.isCollapsed) return;
+      setHighlightTip(tipFor(mark, true));
+    };
+    const onOver = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || highlightTipRef.current?.pinned || e.buttons) return;
+      const mark = markAt(e.target);
+      if (mark && highlightTipRef.current?.id !== mark.dataset.highlightId) setHighlightTip(tipFor(mark, false));
+    };
+    const onMove = (e: PointerEvent) => {
+      const tip = highlightTipRef.current;
+      if (e.pointerType !== "mouse" || !tip || tip.pinned) return;
+      if (markAt(e.target)?.dataset.highlightId === tip.id) return;
+      const box = highlightTipEl.current?.getBoundingClientRect();
+      const near =
+        box &&
+        e.clientX > box.left - 60 &&
+        e.clientX < box.right + 60 &&
+        e.clientY > box.top - 30 &&
+        e.clientY < box.bottom + 30;
+      if (!near) setHighlightTip(null);
     };
     const onDown = (e: PointerEvent) => {
       if ((e.target as Element | null)?.closest?.("[data-reflow-tip]")) return;
       setHighlightTip(null);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setHighlightTip(null);
+    };
     root.addEventListener("click", onClick);
-    root.addEventListener("pointerdown", onDown);
+    root.addEventListener("pointerover", onOver);
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("keydown", onKey);
     return () => {
       root.removeEventListener("click", onClick);
-      root.removeEventListener("pointerdown", onDown);
+      root.removeEventListener("pointerover", onOver);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("keydown", onKey);
     };
   }, [visible, renderHighlight]);
 
@@ -836,7 +878,12 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
         />
       ))}
       {highlightTip && renderHighlight && (
-        <div className="reflow-tip" data-reflow-tip="" style={{ left: highlightTip.left, top: highlightTip.top }}>
+        <div
+          ref={highlightTipEl}
+          className="reflow-tip"
+          data-reflow-tip=""
+          style={{ left: highlightTip.left, top: highlightTip.top }}
+        >
           {renderHighlight(highlightTip.id, closeHighlightTip)}
         </div>
       )}

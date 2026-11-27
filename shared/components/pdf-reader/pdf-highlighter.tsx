@@ -5,6 +5,7 @@ import {
   type SelectionInfo,
 } from "./highlight-popover";
 import { PdfPageTone } from "./page-tone";
+import { HighlightTip } from "./highlight-tip";
 import { PdfSearch } from "./pdf-search";
 import { getHighlightPageNumber } from "../../lib/highlights";
 import {
@@ -25,7 +26,6 @@ import {
   Highlight,
   type IHighlight,
   PdfHighlighter as PdfHighlighterComponent,
-  Popup,
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
 
@@ -99,6 +99,7 @@ const PdfHighlighter = ({
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
   const reflowActiveRef = useRef(false);
+  const pinnedHighlightRef = useRef<string | null>(null);
   const showReflowPointRef = useRef<((pageNumber: number, fx: number, fy: number) => void) | null>(null);
 
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
@@ -413,22 +414,22 @@ const PdfHighlighter = ({
           );
 
           return (
-            <Popup
-              popupContent={
+            <HighlightTip
+              key={index}
+              id={highlight.id}
+              pinnedRef={pinnedHighlightRef}
+              show={(tip) => setTip(highlight, () => tip)}
+              hide={hideTip}
+              popover={
                 <HighlightedTextPopover
                   id={highlight.id}
                   deleteHighlight={deleteHighlight}
                   hideTip={hideTip}
                 />
               }
-              onMouseOver={(popupContent) =>
-                setTip(highlight, () => popupContent)
-              }
-              onMouseOut={hideTip}
-              key={index}
             >
               {component}
-            </Popup>
+            </HighlightTip>
           );
         }}
         highlights={highlights as unknown as IHighlight[]}

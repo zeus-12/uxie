@@ -165,6 +165,8 @@ export interface IpcInvokeContract {
 
 export type WindowBackground = { light: string; dark: string };
 
+export type ZoomDirection = "in" | "out" | "reset";
+
 /** Fire-and-forget renderer→main channels: `ipcRenderer.send` ↔ `ipcMain.on`. */
 export interface IpcSendContract {
   "completion:start": [streamId: string, prompt: string];
@@ -179,6 +181,7 @@ export interface IpcSendContract {
   "chat:cancel": [streamId: string];
   "chat:retrieve:reply": [reqId: string, chunks: RetrievedChunk[] | null];
   "window:setBackground": [background: WindowBackground];
+  "window:zoom": [direction: ZoomDirection];
 }
 
 /** Main→renderer push channels: `webContents.send` ↔ `ipcRenderer.on`. */
@@ -198,6 +201,7 @@ export interface IpcEventContract {
   "chat:done": [streamId: string, parts: ChatPart[]];
   "chat:error": [streamId: string, message: string];
   "chat:retrieve": [reqId: string, docId: string, question: string];
+  "view:zoom": [direction: ZoomDirection];
 }
 
 export const API_INVOKE = {
@@ -243,6 +247,7 @@ export const API_SEND = {
   cancelChat: "chat:cancel",
   chatRetrieveReply: "chat:retrieve:reply",
   setWindowBackground: "window:setBackground",
+  zoomWindow: "window:zoom",
 } as const satisfies Record<string, keyof IpcSendContract>;
 
 export const API_EVENTS = {
@@ -258,6 +263,7 @@ export const API_EVENTS = {
   onChatDone: "chat:done",
   onChatError: "chat:error",
   onChatRetrieve: "chat:retrieve",
+  onViewZoom: "view:zoom",
 } as const satisfies Record<string, keyof IpcEventContract>;
 
 /** The renderer-facing API, derived method-by-method from the maps above.

@@ -1,6 +1,6 @@
-import { app, BrowserWindow, ipcMain, protocol, shell } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, protocol, shell } from "electron";
 import { join } from "path";
-import type { IpcInvokeContract } from "../ipc-contract";
+import type { IpcInvokeContract, ZoomDirection } from "../ipc-contract";
 import {
   addHighlight,
   createDocument,
@@ -140,9 +140,49 @@ function registerIpc() {
     );
     setWindowBackground(background);
   });
+  ipcMain.on("window:zoom", (event, direction) => {
+    const contents = event.sender;
+    if (direction === "reset") contents.setZoomLevel(0);
+    else if (direction === "in") contents.setZoomLevel(contents.getZoomLevel() + 0.5);
+    else if (direction === "out") contents.setZoomLevel(contents.getZoomLevel() - 0.5);
+  });
   ipcMain.on("chat:retrieve:reply", (_event, reqId, chunks) =>
     resolveChatRetrieve(reqId, chunks),
   );
+}
+
+// The renderer decides what a zoom shortcut zooms: the reader while it owns zoom,
+// otherwise it hands the step back as "window:zoom".
+function buildMenu(): Menu {
+  const zoom = (direction: ZoomDirection) => () =>
+    BrowserWindow.getFocusedWindow()?.webContents.send("view:zoom", direction);
+  return Menu.buildFromTemplate([
+    ...(isMac ? [{ role: "appMenu" as const }] : []),
+    { role: "fileMenu" },
+    { role: "editMenu" },
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "forceReload" },
+        { role: "toggleDevTools" },
+        { type: "separator" },
+        { id: "zoom-reset", label: "Actual Size", accelerator: "CommandOrControl+0", click: zoom("reset") },
+        { id: "zoom-in", label: "Zoom In", accelerator: "CommandOrControl+=", click: zoom("in") },
+        {
+          label: "Zoom In",
+          accelerator: "CommandOrControl+Plus",
+          visible: false,
+          acceleratorWorksWhenHidden: true,
+          click: zoom("in"),
+        },
+        { id: "zoom-out", label: "Zoom Out", accelerator: "CommandOrControl+-", click: zoom("out") },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+      ],
+    },
+    { role: "windowMenu" },
+  ]);
 }
 
 // ── Window ───────────────────────────────────────────────────────────
@@ -186,6 +226,7 @@ app.whenReady().then(async () => {
   await migrateDocumentStorage();
   registerPdfProtocol();
   registerIpc();
+  Menu.setApplicationMenu(buildMenu());
   mainWindow = createMainWindow();
 
   app.on("activate", () => {
