@@ -8,7 +8,10 @@ import {
 import { useSidebarTabUrlSync } from "@/hooks/use-sidebar-tab-url-sync";
 import { useDemoDocStore } from "@/lib/demo/store";
 import { downloadNotes } from "@/lib/notes-export";
-import { ThemeMenuSub } from "@uxie/shared/components/theme/theme-controls";
+import {
+  ThemeMenuSub,
+  ThemeSheet,
+} from "@uxie/shared/components/theme/theme-controls";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,10 +31,12 @@ const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
   const setNote = useDemoDocStore((s) => s.setNote);
   // Read once: the editor's useMemo is keyed on `note`, so a reactive read would rebuild it on every autosave.
   const [initialNote] = useState(() => useDemoDocStore.getState().note);
+  const [isThemeSheetOpen, setIsThemeSheetOpen] = useState(false);
   useSidebarTabUrlSync();
 
   return (
     <div className="flex h-full flex-col bg-muted/40">
+      <ThemeSheet open={isThemeSheetOpen} onOpenChange={setIsThemeSheetOpen} />
       <SharedSidebar
         headerClassName="md:pl-0 md:pr-1"
         headerActions={
@@ -50,7 +55,7 @@ const DemoSidebar = (annotatedPdfExport: AnnotatedPdfExportSource) => {
               />
               <AnnotatedPdfExportMenuItem {...exportMenuItem} />
               <DropdownMenuSeparator />
-              <ThemeMenuSub />
+              <ThemeMenuSub onOpenSheet={() => setIsThemeSheetOpen(true)} />
             </DropdownMenuContent>
           </DropdownMenu>
         }

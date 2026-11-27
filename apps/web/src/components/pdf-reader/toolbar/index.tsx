@@ -24,6 +24,7 @@ import {
   ExpandableTabs,
   type Tab,
 } from "@uxie/shared/components/ui/expandable-tabs";
+import { SMALL_SCREEN_QUERY } from "@uxie/shared/lib/constants";
 import { type PageColour } from "@uxie/shared/lib/store";
 import { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
@@ -72,8 +73,7 @@ const BottomToolbar = ({
 }) => {
   const [pageNumber, setPageNumber] = useState(1);
 
-  // update if tailwind config is changed
-  const isSmallScreen = useMediaQuery("(max-width: 767px)");
+  const isSmallScreen = useMediaQuery(SMALL_SCREEN_QUERY);
 
   useEffect(() => {
     setPageNumber(pageNumberInView);
@@ -144,8 +144,8 @@ const BottomToolbar = ({
       },
       {
         children: null,
-        icon: <SettingsControls />,
-        clickOutsideToClose: false,
+        icon: (panel) => <SettingsControls {...panel} />,
+        clickOutsideToClose: true,
       },
       ...(!isSmallScreen
         ? [
@@ -195,7 +195,7 @@ const BottomToolbar = ({
   ]);
 
   return (
-    <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 touch-none flex-col items-center">
+    <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 flex-col items-center">
       <SpeakAlong pageNumber={pageNumberInView} pageCount={totalPages} />
       <RsvpReader pageNumber={pageNumberInView} pageCount={totalPages} />
       <ExpandableTabs tabs={tabs} />

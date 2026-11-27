@@ -1,11 +1,7 @@
+import { badgeVariants } from "../../ui/badge";
 import { Button } from "../../ui/button";
 import { ScrollArea } from "../../ui/scroll-area";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../../ui/tooltip";
+import { Switch } from "../../ui/switch";
 import { usePdfSettingsStore } from "../../../lib/store";
 import { getEngineFromVoice, type TTSVoiceId } from "../../../lib/tts";
 import { BROWSER_VOICES } from "../../../lib/tts/providers/browser-provider";
@@ -13,9 +9,14 @@ import { KOKORO_VOICES } from "../../../lib/tts/providers/kokoro-provider";
 import type { TTSVoice } from "../../../lib/tts/types";
 import { cn } from "../../../lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import type { LucideIcon } from "lucide-react";
-import { BotIcon, GlobeIcon, MarsIcon, SettingsIcon, VenusIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { CheckIcon, SettingsIcon } from "lucide-react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+} from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
 type SettingsReader = "pdf" | "article";
@@ -23,34 +24,36 @@ type SettingsReader = "pdf" | "article";
 interface SettingOption {
   id: string;
   label: string;
+  beta?: boolean;
   description?: string;
   enabled: boolean;
   onToggle: () => void;
 }
 
-const VOICE_SELECTOR_OPTIONS = [
+const VOICE_GROUPS = [
   {
     voices: BROWSER_VOICES,
-    icon: GlobeIcon,
     title: "Browser",
     description: "Fast, lower quality",
   },
   {
     voices: KOKORO_VOICES,
-    icon: BotIcon,
     title: "Kokoro",
-    description: "First load takes time, better quality",
+    description: "Better quality, slow first load",
   },
 ];
 
 export const SettingsControls = ({
   reader = "pdf",
+  open,
+  onOpenChange,
 }: {
   reader?: SettingsReader;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
   const toggleLinksDisabled = usePdfSettingsStore(
     (state) => state.toggleLinksDisabled,
@@ -65,7 +68,6 @@ export const SettingsControls = ({
   const setVoice = usePdfSettingsStore((state) => state.setVoice);
   const rsvpOpen = usePdfSettingsStore((state) => state.rsvpOpen);
   const setRsvpOpen = usePdfSettingsStore((state) => state.setRsvpOpen);
-
   const speakAlongEnabled = usePdfSettingsStore(
     (state) => state.speakAlongEnabled,
   );
@@ -75,23 +77,26 @@ export const SettingsControls = ({
   const reflowOnZoom = usePdfSettingsStore((state) => state.reflowOnZoom);
   const setReflowOnZoom = usePdfSettingsStore((state) => state.setReflowOnZoom);
 
-  useOnClickOutside(containerRef, (e) => {
-    if (triggerRef.current?.contains(e.target as Node)) {
-      return;
-    }
-    setIsOpen(false);
+  useOnClickOutside(panelRef, (event) => {
+    if (!open || triggerRef.current?.contains(event.target as Node)) return;
+    onOpenChange(false);
+  });
+
+  const onOpenChangeRef = useRef(onOpenChange);
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
   });
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      setIsOpen(false);
+      onOpenChangeRef.current(false);
       triggerRef.current?.focus();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen]);
+  }, [open]);
 
   const settingsOptions: SettingOption[] =
     reader === "article"
@@ -112,33 +117,35 @@ export const SettingsControls = ({
           },
           {
             id: "bionic-reading",
-            label: "Bionic reading (BETA)",
-            description: "If it overlaps, try increasing the zoom.",
+            label: "Bionic reading",
+            beta: true,
+            description: "If it overlaps, try zooming in",
             enabled: bionicReadingEnabled,
             onToggle: toggleBionicReading,
           },
           {
             id: "speed-read",
-            label: "Speed Read",
-            description: "RSVP word-by-word reader",
+            label: "Speed read",
+            description: "Word-by-word RSVP reader",
             enabled: rsvpOpen,
             onToggle: () => setRsvpOpen(!rsvpOpen),
           },
           {
             id: "speak-along",
-            label: "Speak along (BETA)",
+            label: "Speak along",
+            beta: true,
             description: "Practice pronunciation with your mic",
             enabled: speakAlongEnabled,
             onToggle: () => setSpeakAlongEnabled(!speakAlongEnabled),
           },
         ];
 
-  const engine = getEngineFromVoice(voice);
   const hasActiveSettings =
-    settingsOptions.some((opt) => opt.enabled) || engine === "kokoro";
+    settingsOptions.some((opt) => opt.enabled) ||
+    getEngineFromVoice(voice) === "kokoro";
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center">
       <Button
         ref={triggerRef}
         type="button"
@@ -148,10 +155,10 @@ export const SettingsControls = ({
         aria-label="Reader settings"
         title="Reader settings"
         aria-haspopup="dialog"
-        aria-expanded={isOpen}
+        aria-expanded={open}
         onClick={(e) => {
           e.stopPropagation();
-          setIsOpen((prev) => !prev);
+          onOpenChange(!open);
         }}
       >
         <SettingsIcon
@@ -161,49 +168,51 @@ export const SettingsControls = ({
         />
       </Button>
       <AnimatePresence>
-        {isOpen && (
+        {open && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{
-              duration: 0.2,
-              ease: [0.16, 1, 0.3, 1],
-            }}
-            // Below md, `fixed` resolves against the translated toolbar, not the
-            // viewport, so the panel spans the toolbar's width.
-            className="absolute bottom-full left-0 z-[99] mb-3 max-md:fixed max-md:inset-x-2 max-md:bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)] max-md:mb-0"
-            ref={containerRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            className="absolute bottom-[calc(100%+0.75rem)] z-[99] cursor-default max-md:left-1/2 max-md:w-[calc(100vw-1rem)] max-md:max-w-sm max-md:-translate-x-1/2 md:right-0 md:w-72"
+            ref={panelRef}
             role="dialog"
             aria-label="Reader settings"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* The toggle rows are what give this panel its width. Articles
-                have none, so without a floor it collapses to the voice column. */}
-            <ScrollArea className="min-w-56 rounded-lg border bg-background shadow-lg max-h-[55vh] [&>div[data-radix-scroll-area-viewport]]:max-h-[55vh]">
-              <div className="divide-y">
-                {settingsOptions.map((option) => (
-                  <SettingToggleOption key={option.id} option={option} />
-                ))}
-
-                <div className="pb-1">
-                  <span className="block whitespace-nowrap px-4 py-2.5 text-sm text-foreground">
-                    Text to speech
-                  </span>
-
-                  <div className="flex flex-col divide-y">
-                    {VOICE_SELECTOR_OPTIONS.map((selectorProps) => (
-                      <VoiceSelector
-                        key={selectorProps.title}
-                        voices={selectorProps.voices}
-                        icon={selectorProps.icon}
-                        title={selectorProps.title}
-                        description={selectorProps.description}
+            <ScrollArea className="max-h-[min(32rem,62vh)] rounded-xl border border-border bg-popover text-popover-foreground shadow-lg [&>[data-radix-scroll-area-viewport]]:max-h-[min(32rem,62vh)] [&>[data-radix-scroll-area-viewport]]:overscroll-none">
+              <div className="p-1">
+                {settingsOptions.length > 0 && (
+                  <>
+                    <Section title="Reading">
+                      {settingsOptions.map((option) => (
+                        <SettingToggleRow key={option.id} option={option} />
+                      ))}
+                    </Section>
+                    <div className="-mx-1 my-1 h-px bg-border" />
+                  </>
+                )}
+                <Section title="Voice">
+                  <div
+                    role="radiogroup"
+                    aria-label="Voice"
+                    onKeyDown={moveVoiceSelection}
+                  >
+                    {VOICE_GROUPS.map((group, groupIndex) => (
+                      <VoiceGroup
+                        firstRadioFocusable={
+                          groupIndex === 0 && !hasKnownVoice(voice)
+                        }
+                        key={group.title}
+                        title={group.title}
+                        description={group.description}
+                        voices={group.voices}
                         selectedVoice={voice}
                         onSelect={setVoice}
                       />
                     ))}
                   </div>
-                </div>
+                </Section>
               </div>
             </ScrollArea>
           </motion.div>
@@ -213,131 +222,137 @@ export const SettingsControls = ({
   );
 };
 
-const VoiceSelector = ({
-  voices,
-  icon: Icon,
-  title,
-  description,
-  selectedVoice,
-  onSelect,
-}: {
-  voices: TTSVoice<TTSVoiceId>[] | readonly TTSVoice<TTSVoiceId>[];
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  selectedVoice: TTSVoiceId;
-  onSelect: (voiceId: TTSVoiceId) => void;
-}) => {
-  return (
-    <div>
-      {voices.map((voice) => (
-        <button
-          key={voice.id}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(voice.id);
-          }}
-          className={cn(
-            "w-full px-4 py-2 text-left text-sm transition-colors flex items-center gap-1",
-            selectedVoice === voice.id ? "bg-primary/10" : "hover:bg-muted/50",
-          )}
-        >
-          <span
-            className={cn(
-              "transition-colors w-12",
-              selectedVoice === voice.id
-                ? "text-foreground"
-                : "text-muted-foreground",
-            )}
-          >
-            {voice.name.replace(/\s*\((Female|Male)\)/i, "")}
-          </span>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className={cn(
-                    "flex w-4 items-center justify-center",
-                    selectedVoice === voice.id
-                      ? "text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {voice.gender === "female" ? (
-                    <VenusIcon aria-hidden="true" className="h-4 w-4" />
-                  ) : (
-                    <MarsIcon aria-hidden="true" className="h-4 w-4" />
-                  )}
-                  <span className="sr-only">
-                    {voice.gender === "female" ? "Female" : "Male"}
-                  </span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p>{voice.gender === "female" ? "Female" : "Male"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+const hasKnownVoice = (voiceId: TTSVoiceId) =>
+  VOICE_GROUPS.some((group) => group.voices.some((v) => v.id === voiceId));
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="w-4 flex items-center justify-center">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                <p className="font-medium">{title}</p>
-                <p className="text-xs text-muted-foreground">{description}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <div
-            className={cn(
-              "h-2 w-2 rounded-full transition-all duration-200 flex-shrink-0 ml-auto",
-              selectedVoice === voice.id ? "scale-100 bg-primary" : "scale-0",
-            )}
-          />
-        </button>
-      ))}
-    </div>
-  );
+const moveVoiceSelection = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+  const step =
+    event.key === "ArrowDown" || event.key === "ArrowRight"
+      ? 1
+      : event.key === "ArrowUp" || event.key === "ArrowLeft"
+      ? -1
+      : 0;
+  if (step === 0) return;
+  event.preventDefault();
+  const radios = [
+    ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+      '[role="radio"]',
+    ),
+  ];
+  const current = radios.indexOf(document.activeElement as HTMLButtonElement);
+  const next = radios[(current + step + radios.length) % radios.length];
+  next?.focus();
 };
 
-const SettingToggleOption = ({ option }: { option: SettingOption }) => {
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) => (
+  <div>
+    <h3 className="px-2 pb-1 pt-2 text-xs font-medium text-muted-foreground">
+      {title}
+    </h3>
+    {children}
+  </div>
+);
+
+const SettingToggleRow = ({ option }: { option: SettingOption }) => {
+  const id = useId();
   return (
-    <div
-      key={option.id}
-      className="flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50 justify-between"
-      onClick={(e) => {
-        e.stopPropagation();
-        option.onToggle();
-      }}
+    <label
+      htmlFor={id}
+      className="flex cursor-pointer items-center justify-between gap-3 rounded-md px-2 py-2 transition-colors hover:bg-accent"
     >
-      <div>
-        <span
-          className={cn(
-            "select-none whitespace-nowrap text-sm transition-colors",
-            option.enabled ? "text-foreground" : "text-muted-foreground",
-          )}
-        >
+      <span className="min-w-0">
+        <span className="flex items-center gap-1.5 text-sm">
           {option.label}
+          {option.beta && (
+            <span
+              className={cn(
+                badgeVariants({ variant: "secondary" }),
+                "px-1.5 py-0 text-[10px] font-medium uppercase tracking-wide",
+              )}
+            >
+              Beta
+            </span>
+          )}
         </span>
         {option.description && (
-          <span className="text-xs text-muted-foreground block">
+          <span className="block text-xs text-muted-foreground">
             {option.description}
           </span>
         )}
-      </div>
-      <div
-        className={cn(
-          "h-2 w-2 rounded-full transition-all duration-200 flex-shrink-0",
-          option.enabled
-            ? "scale-100 bg-primary"
-            : "scale-95 bg-muted-foreground/30",
-        )}
+      </span>
+      <Switch
+        id={id}
+        checked={option.enabled}
+        onCheckedChange={option.onToggle}
       />
+    </label>
+  );
+};
+
+const VoiceGroup = ({
+  title,
+  description,
+  voices,
+  selectedVoice,
+  onSelect,
+  firstRadioFocusable,
+}: {
+  firstRadioFocusable: boolean;
+  title: string;
+  description: string;
+  voices: readonly TTSVoice<TTSVoiceId>[];
+  selectedVoice: TTSVoiceId;
+  onSelect: (voiceId: TTSVoiceId) => void;
+}) => {
+  const labelId = useId();
+  const inUse = voices.some((voice) => voice.id === selectedVoice);
+  return (
+    <div role="group" aria-labelledby={labelId} className="pb-1 pt-1">
+      <div className="flex items-baseline gap-1.5 px-2 pb-1 pt-1.5 text-[11px] leading-4">
+        <span
+          id={labelId}
+          className={cn(
+            "font-semibold uppercase tracking-wider",
+            inUse ? "text-foreground" : "text-muted-foreground",
+          )}
+        >
+          {title}
+        </span>
+        <span className="truncate text-muted-foreground">{description}</span>
+        {inUse && (
+          <span className="ml-auto shrink-0 font-medium text-primary">
+            In use
+          </span>
+        )}
+      </div>
+      {voices.map((voice, index) => {
+        const selected = selectedVoice === voice.id;
+        return (
+          <button
+            key={voice.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            tabIndex={selected || (firstRadioFocusable && index === 0) ? 0 : -1}
+            onClick={() => onSelect(voice.id)}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+          >
+            <span>{voice.name.replace(/\s*\((Female|Male)\)/i, "")}</span>
+            <span className="text-xs text-muted-foreground">
+              {voice.gender === "female" ? "Female" : "Male"}
+            </span>
+            {selected && (
+              <CheckIcon aria-hidden="true" className="ml-auto size-4" />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 };
