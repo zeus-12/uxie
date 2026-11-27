@@ -13,6 +13,7 @@ import {
   TEXT_LAYER_COMPLETE,
   useSentenceReader,
 } from "./use-sentence-reader";
+import { useReaderZoomStore } from "../lib/reader-zoom";
 import { usePdfSettingsStore } from "../lib/store";
 import { getEngineFromVoice } from "../lib/tts";
 import type { LocalTtsHook } from "../lib/tts/types";
@@ -604,10 +605,13 @@ const usePdfReader = ({
     [debouncedUpdateZoomLevel],
   );
 
-  // A zoom made while reflowed is a reflow zoom, not the page zoom to reopen at.
   const handleToolbarZoomChange = useCallback(
-    (zoom: number) => handleZoomChange(zoom, !reflowed),
-    [handleZoomChange, reflowed],
+    (zoom: number) => {
+      const readerZoom = useReaderZoomStore.getState().zoom;
+      if (readerZoom) readerZoom.zoomTo(zoom);
+      else handleZoomChange(zoom);
+    },
+    [handleZoomChange],
   );
 
   const handlePageChange = useCallback((pageNumber: number) => {

@@ -1,6 +1,7 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { PdfHighlighter as PdfHighlighterComponent } from "react-pdf-highlighter";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { clampZoom, useReaderZoomStore, ZOOM_STEP, type ReaderZoom } from "../../../lib/reader-zoom";
 import { createReflowSource } from "../../../lib/reflow/source";
 import type { Rect } from "../../../lib/reflow/types";
 import {
@@ -13,10 +14,11 @@ import { ReflowLayer, type ReflowLayerApi } from "./reflow-layer";
 
 const ENTER_RATIO = 1.15;
 const EXIT_RATIO = 1.02;
-const MIN_SCALE = 0.25;
-const MAX_SCALE = 6;
+const LINE_PX = 16;
 
 type Instance = InstanceType<typeof PdfHighlighterComponent>;
+
+type GestureEvent = Event & { scale: number; clientX: number; clientY: number };
 
 type Pinch = {
   startDistance: number;
@@ -64,6 +66,7 @@ export const useInPlaceReflow = ({
   const modeRef = useRef<"page" | "reflow">("page");
   const pinchRef = useRef<Pinch | null>(null);
   const entryRequest = useRef(0);
+  const activeTouches = useRef(0);
   const viewer = instance?.viewer ?? null;
 
   useEffect(() => {
@@ -204,6 +207,47 @@ export const useInPlaceReflow = ({
     [viewer, onZoomChange, releaseTransform],
   );
 
+  const zoomAt = useCallback(
+    (scale: number, clientX: number, clientY: number) => {
+      if (!viewer || (modeRef.current === "reflow" && !placedRef.current)) return;
+      const target = clampZoom(scale);
+      const current = viewer.currentScale;
+      if (Math.abs(target - current) < 1e-3) return;
+      pendingZoomIn.current = target > current;
+      pendingAnchor.current =
+        modeRef.current === "reflow"
+          ? (layerRef.current?.anchorAt(clientX, clientY) ?? null)
+          : canvasAnchorAt(viewer, clientX, clientY);
+      commitScale(target);
+    },
+    [viewer, commitScale],
+  );
+
+  useEffect(() => {
+    if (!viewer || !enabled) return;
+    const centre = () => {
+      const r = viewer.container.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    };
+    const zoomTo = (scale: number) => {
+      const c = centre();
+      zoomAt(scale, c.x, c.y);
+    };
+    const zoom: ReaderZoom = {
+      zoomTo,
+      zoomBy: (factor) => zoomTo(viewer.currentScale * factor),
+      zoomToFit: () => {
+        const fit = fitWidthScale(viewer);
+        if (fit) zoomTo(fit);
+      },
+    };
+    const { setZoom } = useReaderZoomStore.getState();
+    setZoom(zoom);
+    return () => {
+      if (useReaderZoomStore.getState().zoom === zoom) setZoom(null);
+    };
+  }, [viewer, enabled, zoomAt]);
+
   const bindPinch = useCallback(
     (wrapper: HTMLElement | null) => {
       if (!wrapper || !viewer || !enabled) return () => undefined;
@@ -245,7 +289,7 @@ export const useInPlaceReflow = ({
         const pinch = pinchRef.current;
         if (!pinch || e.touches.length !== 2) return;
         e.preventDefault();
-        const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, pinch.startScale * (touchDistance(e.touches) / pinch.startDistance)));
+        const scale = clampZoom(pinch.startScale * (touchDistance(e.touches) / pinch.startDistance));
         pinch.ratio = scale / pinch.startScale;
         if (pinch.mode === "reflow") {
           layerRef.current?.previewScale(scale, pinch.anchor);
@@ -276,18 +320,65 @@ export const useInPlaceReflow = ({
         if (pinch.mode === "reflow") layerRef.current?.previewScale(pinch.startScale, pinch.anchor);
       };
 
+      let queued: { factor: number; x: number; y: number; frame: number } | null = null;
+      const queueZoom = (factor: number, x: number, y: number) => {
+        if (queued) {
+          Object.assign(queued, { factor: queued.factor * factor, x, y });
+          return;
+        }
+        const frame = requestAnimationFrame(() => {
+          const step = queued;
+          queued = null;
+          if (step) zoomAt(viewer.currentScale * step.factor, step.x, step.y);
+        });
+        queued = { factor, x, y, frame };
+      };
+
+      // Chromium sends a trackpad pinch as ctrl+wheel with deltaY = -100·ln(scale).
+      const wheel = (e: WheelEvent) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        const px =
+          e.deltaMode === WheelEvent.DOM_DELTA_LINE
+            ? e.deltaY * LINE_PX
+            : e.deltaMode === WheelEvent.DOM_DELTA_PAGE
+              ? e.deltaY * wrapper.clientHeight
+              : e.deltaY;
+        const factor = Math.min(ZOOM_STEP, Math.max(1 / ZOOM_STEP, Math.exp(-px / 100)));
+        queueZoom(factor, e.clientX, e.clientY);
+      };
+
+      // Safari's trackpad pinch; on iOS the same events come with touches, which the touch path owns.
+      let gestureScale = 1;
+      const gestureStart = () => {
+        gestureScale = 1;
+      };
+      const gestureChange = (e: Event) => {
+        const g = e as GestureEvent;
+        if (activeTouches.current > 0 || !g.scale) return;
+        queueZoom(g.scale / gestureScale, g.clientX, g.clientY);
+        gestureScale = g.scale;
+      };
+
+      wrapper.addEventListener("wheel", wheel, { passive: false });
+      wrapper.addEventListener("gesturestart", gestureStart);
+      wrapper.addEventListener("gesturechange", gestureChange);
       wrapper.addEventListener("touchstart", start, { passive: false });
       wrapper.addEventListener("touchmove", move, { passive: false });
       wrapper.addEventListener("touchend", end);
       wrapper.addEventListener("touchcancel", cancel);
       return () => {
+        if (queued) cancelAnimationFrame(queued.frame);
+        wrapper.removeEventListener("wheel", wheel);
+        wrapper.removeEventListener("gesturestart", gestureStart);
+        wrapper.removeEventListener("gesturechange", gestureChange);
         wrapper.removeEventListener("touchstart", start);
         wrapper.removeEventListener("touchmove", move);
         wrapper.removeEventListener("touchend", end);
         wrapper.removeEventListener("touchcancel", cancel);
       };
     },
-    [viewer, enabled, commitScale, releaseTransform],
+    [viewer, enabled, commitScale, releaseTransform, zoomAt],
   );
 
   // The reader owns pinch while reflow is on: a pinch that starts outside the PDF
@@ -299,12 +390,22 @@ export const useInPlaceReflow = ({
       if (e.touches.length > 1) e.preventDefault();
     };
     const blockGesture = (e: Event) => e.preventDefault();
+    const countTouches = (e: TouchEvent) => {
+      activeTouches.current = e.touches.length;
+    };
     root.setAttribute("data-reflow-on-zoom", "");
+    for (const type of ["touchstart", "touchend", "touchcancel"] as const) {
+      document.addEventListener(type, countTouches, { capture: true, passive: true });
+    }
     document.addEventListener("touchmove", blockMultiTouch, { passive: false });
     document.addEventListener("gesturestart", blockGesture);
     document.addEventListener("gesturechange", blockGesture);
     return () => {
       root.removeAttribute("data-reflow-on-zoom");
+      activeTouches.current = 0;
+      for (const type of ["touchstart", "touchend", "touchcancel"] as const) {
+        document.removeEventListener(type, countTouches, { capture: true });
+      }
       document.removeEventListener("touchmove", blockMultiTouch);
       document.removeEventListener("gesturestart", blockGesture);
       document.removeEventListener("gesturechange", blockGesture);

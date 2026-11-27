@@ -264,7 +264,13 @@ export const ReflowPageView = memo(function ReflowPageView({
     );
   }
   return (
-    <section className="reflow-page" data-reflow-page={page.pageNumber} data-page-w={page.width} data-page-h={page.height}>
+    <section
+      className="reflow-page reflow-column"
+      data-reflow-page={page.pageNumber}
+      data-page-w={page.width}
+      data-page-h={page.height}
+      style={{ fontSize: `calc(var(--reflow-pt) * ${page.bodyFontSize.toFixed(2)})` }}
+    >
       {page.regions.map((region, i) =>
         region.kind === "crop" ? (
           <CropCanvas key={i} pdfPage={pdfPage} rect={region.rect} pxPerPt={pxPerPt} index={i} />

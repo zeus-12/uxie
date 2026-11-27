@@ -159,6 +159,12 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
   const livePxPerPt = useRef(pxPerPt);
   const viewTop = useRef<ScreenAnchor | null>(null);
 
+  // Declared before every effect that places an anchor, so they measure the new scale.
+  useLayoutEffect(() => {
+    livePxPerPt.current = pxPerPt;
+    scrollerRef.current?.style.setProperty("--reflow-pt", `${pxPerPt}px`);
+  }, [pxPerPt]);
+
   const load = useCallback(
     async (pageNumber: number): Promise<LoadedPage> => {
       const pdfPage = await pdfDocument.getPage(pageNumber);
@@ -217,9 +223,6 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     [load, pdfDocument.numPages, onFailed],
   );
 
-  useEffect(() => {
-    void openWindow(anchor.point.pageNumber, anchor);
-  }, [openWindow, anchor]);
 
   useEffect(
     () => () => {
@@ -331,6 +334,17 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
       onPlaced();
     }
   }, [pages, placeAnchor, pxPerPt, onPlaced]);
+
+  // A new anchor arrives with each zoom step; when its page is already laid out,
+  // placing it in this pass keeps the next step reading a settled layout.
+  const placeNow = useRef({ placeAnchor, pxPerPt });
+  placeNow.current = { placeAnchor, pxPerPt };
+  useLayoutEffect(() => {
+    const inWindow = pagesRef.current.some((p) => p.page.pageNumber === anchor.point.pageNumber);
+    const { placeAnchor: place, pxPerPt: ppt } = placeNow.current;
+    if (inWindow && !pendingAnchor.current && place(anchor, ppt)) return;
+    void openWindow(anchor.point.pageNumber, anchor);
+  }, [anchor, openWindow]);
 
   // Trimming a page the observer still sees would make it extend straight back.
   const withinPreload = (pageNumber: number) => {
@@ -764,11 +778,6 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     }),
     [anchorAt, placeAnchor, topAnchor, showPagePoint],
   );
-
-  useLayoutEffect(() => {
-    livePxPerPt.current = pxPerPt;
-    scroller()?.style.setProperty("--reflow-pt", `${pxPerPt}px`);
-  }, [pxPerPt]);
 
   useEffect(() => {
     const root = scroller();

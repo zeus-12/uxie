@@ -33,6 +33,7 @@ import {
 import { toast } from "@uxie/shared/components/ui/sonner";
 import { buttonVariants } from "@uxie/shared/components/ui/button";
 import { cn } from "@uxie/shared/lib/utils";
+import { useReaderZoomStore, ZOOM_STEP } from "@uxie/shared/lib/reader-zoom";
 import {
   useBlocknoteEditorStore,
   useChatStore,
@@ -281,6 +282,21 @@ function ReaderContent({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [setSidebarTab]);
+
+  // While reflow-on-zoom is on, ⌘+/−/0 zoom the reader instead of the window.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const zoom = useReaderZoomStore.getState().zoom;
+      if (!zoom || !(e.metaKey || e.ctrlKey) || e.altKey) return;
+      if (e.key === "=" || e.key === "+") zoom.zoomBy(ZOOM_STEP);
+      else if (e.key === "-") zoom.zoomBy(1 / ZOOM_STEP);
+      else if (e.key === "0") zoom.zoomToFit();
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const {
     pageNumberInView,

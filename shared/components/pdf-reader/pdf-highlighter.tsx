@@ -20,7 +20,6 @@ import type { Rect as PdfRect } from "../../lib/reflow/types";
 import { useInPlaceReflow } from "./reflow/use-in-place-reflow";
 import { createPdfTextSource, usePdfTextStore } from "../../lib/pdf-text";
 import type { ReflowSelection } from "./reflow/selection";
-import { useReflowOnZoom } from "../../hooks/use-reflow-on-zoom";
 import {
   AreaHighlight,
   Highlight,
@@ -88,7 +87,7 @@ const PdfHighlighter = ({
     (state) => state.stageImageAttachment,
   );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
-  const { enabled: reflowOnZoom } = useReflowOnZoom();
+  const reflowOnZoom = usePdfSettingsStore((state) => state.reflowOnZoom);
   const setTextSource = usePdfTextStore((state) => state.setSource);
   useEffect(() => {
     const source = createPdfTextSource(pdfDocument);

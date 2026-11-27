@@ -1,6 +1,7 @@
 import { Button } from "../../ui/button";
 import { Slider } from "../../ui/slider";
-import { WrapTextIcon, ZoomInIcon } from "lucide-react";
+import { MinusIcon, PlusIcon, WrapTextIcon, ZoomInIcon } from "lucide-react";
+import { clampZoom, ZOOM_STEP } from "../../../lib/reader-zoom";
 
 export const ZoomControlsContent = ({
   currentZoom,
@@ -21,8 +22,18 @@ export const ZoomControlsContent = ({
   }
 
   return (
-    <div className="gap-2 flex">
-      <p className="text-sm font-medium">{Math.round(currentZoom * 100)}%</p>
+    <div className="gap-2 flex items-center">
+      <p className="text-sm font-medium tabular-nums">{Math.round(currentZoom * 100)}%</p>
+
+      <Button
+        variant="ghost"
+        size="xs"
+        aria-label="Zoom out"
+        title="Zoom out"
+        onClick={() => onZoomChange(clampZoom(currentZoom / ZOOM_STEP))}
+      >
+        <MinusIcon aria-hidden="true" className="size-4" />
+      </Button>
 
       <Slider
         defaultValue={[100]}
@@ -35,6 +46,16 @@ export const ZoomControlsContent = ({
         step={10}
         className="[&>:last-child>span]:h-6 [&>:last-child>span]:w-2 [&>:last-child>span]:border-[1px] [&>:last-child>span]:border-background [&>:last-child>span]:bg-primary [&>:last-child>span]:ring-offset-0 w-24"
       />
+
+      <Button
+        variant="ghost"
+        size="xs"
+        aria-label="Zoom in"
+        title="Zoom in"
+        onClick={() => onZoomChange(clampZoom(currentZoom * ZOOM_STEP))}
+      >
+        <PlusIcon aria-hidden="true" className="size-4" />
+      </Button>
     </div>
   );
 };

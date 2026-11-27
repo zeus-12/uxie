@@ -25,6 +25,11 @@ html[data-reflow-on-zoom] body,
   border-bottom: 1px solid #e5e7eb;
 }
 
+.reflow-column {
+  max-width: 34em;
+  margin-inline: auto;
+}
+
 .reflow-block {
   margin: 0 0 0.75em;
 }
