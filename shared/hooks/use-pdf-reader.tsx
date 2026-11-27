@@ -10,8 +10,10 @@ import {
   getReaderScrollContainer,
   isProgrammaticScroll,
   removeAllHighlights,
+  TEXT_LAYER_COMPLETE,
   useSentenceReader,
 } from "./use-sentence-reader";
+import { useReaderZoomStore } from "../lib/reader-zoom";
 import { usePdfSettingsStore } from "../lib/store";
 import { getEngineFromVoice } from "../lib/tts";
 import type { LocalTtsHook } from "../lib/tts/types";
@@ -31,6 +33,7 @@ const usePdfReader = ({
   docId,
   pageCount,
   viewer,
+  reflowed = false,
   onSaveReaderState,
 }: {
   lastReadPage: number;
@@ -41,6 +44,7 @@ const usePdfReader = ({
   // Passed in rather than read off a global, so opening a second document binds
   // to its viewer instead of the previous, discarded one.
   viewer: PDFViewer | null;
+  reflowed?: boolean;
   onSaveReaderState?: (state: {
     lastReadPage?: number;
     zoomLevel?: number;
@@ -50,6 +54,11 @@ const usePdfReader = ({
     READING_STATUS.IDLE,
   );
   const [currentReadingSpeed, setCurrentReadingSpeed] = useState(1);
+  const readingStatusRef = useRef(readingStatus);
+  readingStatusRef.current = readingStatus;
+  // A sentence ended while paused and waiting for the next page's text.
+  const advanceOnResumeRef = useRef(false);
+  const pendingAdvanceRef = useRef<number | null>(null);
   // Both start unknown so the toolbar can't show a page or zoom we aren't on.
   const [pageNumberInView, setPageNumberInView] = useState(0);
   const [currentZoom, setCurrentZoom] = useState<number | null>(zoomLevel);
@@ -64,6 +73,7 @@ const usePdfReader = ({
 
   const pdfViewerRef = useRef<PDFViewer | null>(null);
   const userScrolledRef = useRef(false);
+  const userScrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isReadingRef = useRef(false);
   const shouldStopRef = useRef(false);
   const currentReadingMode = useRef<READING_MODE>(READING_MODE.PAGE);
@@ -231,9 +241,12 @@ const usePdfReader = ({
 
     const handleTextLayerRendered = ({
       pageNumber,
+      source,
     }: {
       pageNumber: number;
+      source?: { textLayerDiv?: HTMLElement };
     }) => {
+      source?.textLayerDiv?.setAttribute(TEXT_LAYER_COMPLETE, "");
       document.dispatchEvent(
         new CustomEvent("pdf:textlayerrendered", {
           detail: { pageNumber },
@@ -259,9 +272,8 @@ const usePdfReader = ({
     };
   }, [viewer, debouncedUpdateLastReadPage, lastReadPage]);
 
-  // The library re-applies pdfScaleValue on resize but never on prop change.
-  // Gated on page views existing: applying earlier makes pdf.js record the scale
-  // without using it, so its own `pagesinit` apply then skips as a no-op.
+  // Gated on page views: applied earlier, pdf.js records the scale without
+  // using it and its own `pagesinit` apply then skips as a no-op.
   useEffect(() => {
     const currentViewer = pdfViewerRef.current;
     if (currentViewer && currentViewer.pagesCount > 0) {
@@ -269,29 +281,28 @@ const usePdfReader = ({
     }
   }, [pdfScaleValue, viewer]);
 
-  // Keyed on `viewer`: the scroll container mounts after this hook does.
+  // The scroll container mounts after this hook does, and the reflow layer
+  // takes over scrolling while it shows; the hold outlives the switch.
   useEffect(() => {
     const container = getReaderScrollContainer();
     if (!container) return;
 
-    let timeout: NodeJS.Timeout;
     const handleScroll = () => {
       // Without this the reader reads its own follow-along scroll as the user
       // taking over and stops following.
       if (isProgrammaticScroll()) return;
       userScrolledRef.current = true;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
+      clearTimeout(userScrollTimeoutRef.current);
+      userScrollTimeoutRef.current = setTimeout(() => {
         userScrolledRef.current = false;
       }, 2000);
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      clearTimeout(timeout);
-    };
-  }, [viewer]);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [viewer, reflowed]);
+
+  useEffect(() => () => clearTimeout(userScrollTimeoutRef.current), []);
 
   useEffect(() => {
     const apply = () => {
@@ -332,6 +343,7 @@ const usePdfReader = ({
         isSkippingRef.current = false;
         setReadingStatus(READING_STATUS.READING);
         currentReadingMode.current = READING_MODE.PAGE;
+        advanceOnResumeRef.current = false;
 
         currentOperationIdRef.current++;
         const thisOperationId = currentOperationIdRef.current;
@@ -346,6 +358,8 @@ const usePdfReader = ({
           : 1;
 
         pdfViewerRef.current?.scrollPageIntoView({ pageNumber: startPage });
+        if (!isContinueReading) await sentenceReader.ensureTextFrom(startPage);
+        if (thisOperationId !== currentOperationIdRef.current || shouldStopRef.current) return;
 
         const position = isContinueReading
           ? sentenceReader.getCurrentSentence()
@@ -389,13 +403,27 @@ const usePdfReader = ({
     cancelAllOperations();
     debouncedPlayAfterSkip.cancel();
 
-    const next = sentenceReader.advanceToNextSentence();
-    if (next) {
-      scrollToHighlight();
-      debouncedPlayAfterSkip();
-    } else {
-      stopReading();
-    }
+    const operationId = currentOperationIdRef.current;
+    pendingAdvanceRef.current = operationId;
+    void sentenceReader.prepareNextSentence().then(() => {
+      if (pendingAdvanceRef.current === operationId) pendingAdvanceRef.current = null;
+      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) {
+        isSkippingRef.current = false;
+        return;
+      }
+      if (readingStatusRef.current === READING_STATUS.PAUSED) {
+        isSkippingRef.current = false;
+        advanceOnResumeRef.current = true;
+        return;
+      }
+      const next = sentenceReader.advanceToNextSentence();
+      if (next) {
+        scrollToHighlight();
+        debouncedPlayAfterSkip();
+      } else {
+        stopReading();
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     cancelAllOperations,
@@ -412,11 +440,25 @@ const usePdfReader = ({
     cancelAllOperations();
     debouncedPlayAfterSkip.cancel();
 
-    const prev = sentenceReader.goToPreviousSentence();
-    if (prev) {
+    advanceOnResumeRef.current = false;
+    const operationId = currentOperationIdRef.current;
+    void sentenceReader.preparePreviousSentence().then(() => {
+      if (operationId !== currentOperationIdRef.current || !isReadingRef.current) {
+        isSkippingRef.current = false;
+        return;
+      }
+      const prev = sentenceReader.goToPreviousSentence();
+      if (!prev) {
+        isSkippingRef.current = false;
+        return;
+      }
       scrollToHighlight();
+      if (readingStatusRef.current === READING_STATUS.PAUSED) {
+        isSkippingRef.current = false;
+        return;
+      }
       debouncedPlayAfterSkip();
-    }
+    });
   }, [
     cancelAllOperations,
     debouncedPlayAfterSkip,
@@ -437,6 +479,7 @@ const usePdfReader = ({
       browserTts.pause();
     }
 
+    readingStatusRef.current = READING_STATUS.PAUSED;
     setReadingStatus(READING_STATUS.PAUSED);
   }, [getLocalTts, browserTts, debouncedPlayAfterSkip]);
 
@@ -444,7 +487,23 @@ const usePdfReader = ({
     const voice = usePdfSettingsStore.getState().voice;
     const engine = getEngineFromVoice(voice);
 
+    readingStatusRef.current = READING_STATUS.READING;
     setReadingStatus(READING_STATUS.READING);
+
+    // The advance waiting on the next page's text sees READING and plays it.
+    if (pendingAdvanceRef.current === currentOperationIdRef.current) return;
+
+    if (advanceOnResumeRef.current) {
+      advanceOnResumeRef.current = false;
+      const next = sentenceReader.advanceToNextSentence();
+      if (next) {
+        scrollToHighlight();
+        await playCurrentSentenceAudio();
+      } else {
+        stopReading();
+      }
+      return;
+    }
 
     const localTts = getLocalTts(engine);
     if (localTts) {
@@ -462,9 +521,11 @@ const usePdfReader = ({
         await playCurrentSentenceAudio();
       }
     }
-  }, [getLocalTts, browserTts, playCurrentSentenceAudio]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getLocalTts, browserTts, playCurrentSentenceAudio, sentenceReader, scrollToHighlight]);
 
   const stopReading = useCallback(() => {
+    advanceOnResumeRef.current = false;
     shouldStopRef.current = true;
     isReadingRef.current = false;
     isSkippingRef.current = false;
@@ -482,13 +543,24 @@ const usePdfReader = ({
     if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current)
       return;
 
-    const next = sentenceReader.advanceToNextSentence();
-    if (next) {
-      scrollToHighlight();
-      playCurrentSentenceAudio();
-    } else {
-      stopReading();
-    }
+    const operationId = currentOperationIdRef.current;
+    pendingAdvanceRef.current = operationId;
+    void sentenceReader.prepareNextSentence().then(() => {
+      if (pendingAdvanceRef.current === operationId) pendingAdvanceRef.current = null;
+      if (operationId !== currentOperationIdRef.current) return;
+      if (!isReadingRef.current || shouldStopRef.current || isSkippingRef.current) return;
+      if (readingStatusRef.current === READING_STATUS.PAUSED) {
+        advanceOnResumeRef.current = true;
+        return;
+      }
+      const next = sentenceReader.advanceToNextSentence();
+      if (next) {
+        scrollToHighlight();
+        playCurrentSentenceAudio();
+      } else {
+        stopReading();
+      }
+    });
   }, [
     sentenceReader,
     scrollToHighlight,
@@ -535,12 +607,21 @@ const usePdfReader = ({
   }, []);
 
   const handleZoomChange = useCallback(
-    (zoom: number) => {
+    (zoom: number, persist = true) => {
       setCurrentZoom(zoom);
       setPdfScaleValue(String(zoom));
-      debouncedUpdateZoomLevel(zoom);
+      if (persist) debouncedUpdateZoomLevel(zoom);
     },
     [debouncedUpdateZoomLevel],
+  );
+
+  const handleToolbarZoomChange = useCallback(
+    (zoom: number) => {
+      const readerZoom = useReaderZoomStore.getState().zoom;
+      if (readerZoom) readerZoom.zoomTo(zoom);
+      else handleZoomChange(zoom);
+    },
+    [handleZoomChange],
   );
 
   const handlePageChange = useCallback((pageNumber: number) => {
@@ -575,6 +656,7 @@ const usePdfReader = ({
       isSkippingRef.current = false;
       setReadingStatus(READING_STATUS.READING);
       currentReadingMode.current = READING_MODE.PAGE;
+      advanceOnResumeRef.current = false;
 
       currentOperationIdRef.current++;
       const thisOperationId = currentOperationIdRef.current;
@@ -584,6 +666,8 @@ const usePdfReader = ({
 
       const startPage =
         selectionPageNumber ?? (pageNumberInView > 0 ? pageNumberInView : 1);
+      await sentenceReader.ensureTextFrom(startPage);
+      if (thisOperationId !== currentOperationIdRef.current || shouldStopRef.current) return;
       const position = sentenceReader.startFromTextOnPage(
         startPage,
         selectedText,
@@ -668,6 +752,7 @@ const usePdfReader = ({
     skipSentence,
     skipToPreviousSentence,
     handleZoomChange,
+    handleToolbarZoomChange,
     handlePageChange,
     readSelectedText,
     currentZoom,

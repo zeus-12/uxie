@@ -3,6 +3,7 @@
 @import "@uxie/shared/styles/citation-highlight.css";
 @import "@uxie/shared/styles/themes.css";
 @import "@uxie/shared/styles/pdf-search.css";
+@import "@uxie/shared/styles/reflow.css";
 @import "@uxie/shared/styles/reader-page.css";
 
 @tailwind base;
@@ -21,8 +22,11 @@
   * {
     @apply border-border;
   }
+  html,
   body {
     overscroll-behavior: none;
+  }
+  body {
     @apply bg-background text-foreground;
   }
 }

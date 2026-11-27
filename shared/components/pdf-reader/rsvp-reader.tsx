@@ -227,7 +227,7 @@ export function RsvpReader({ pageNumber, pageCount }: RsvpReaderProps) {
     }
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
-      startFromPage(pageNumber);
+      void startFromPage(pageNumber);
     }
   }, [rsvpOpen, pageNumber, startFromPage]);
 

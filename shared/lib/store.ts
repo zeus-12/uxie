@@ -75,6 +75,9 @@ interface PdfSettingsStore {
 
   pageColour: PageColour;
   setPageColour: (colour: PageColour) => void;
+
+  reflowOnZoom: boolean;
+  setReflowOnZoom: (enabled: boolean) => void;
 }
 
 export const usePdfSettingsStore = create<PdfSettingsStore>()(
@@ -107,6 +110,9 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
 
       pageColour: "theme",
       setPageColour: (colour) => set({ pageColour: colour }),
+
+      reflowOnZoom: false,
+      setReflowOnZoom: (enabled) => set({ reflowOnZoom: enabled }),
     }),
     {
       name: "pdf-settings",
@@ -158,7 +164,6 @@ export const useArticleSettingsStore = create<ArticleSettingsStore>()(
 
 type JumpToHighlight = (
   highlightId: string,
-  /** From the note block, used when the highlight itself no longer exists. */
   fallbackPageNumber?: number,
 ) => void;
 

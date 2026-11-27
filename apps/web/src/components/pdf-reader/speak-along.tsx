@@ -190,7 +190,7 @@ export function SpeakAlong({
     } else if (status === SPEAK_ALONG_STATUS.PAUSED) {
       resume();
     } else {
-      start(pageNumber);
+      void start(pageNumber);
     }
   };
 

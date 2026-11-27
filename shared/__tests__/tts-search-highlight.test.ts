@@ -18,7 +18,7 @@ const QUERY = "reading";
 
 async function renderDemoPageWithFindMatches() {
   const data = new Uint8Array(
-    readFileSync(resolve(__dirname, "../../public/demo.pdf")),
+    readFileSync(resolve(__dirname, "../../apps/web/public/demo.pdf")),
   );
   const pdfDocument = await getDocument({ data }).promise;
   const pdfPage = await pdfDocument.getPage(1);
@@ -41,6 +41,8 @@ async function renderDemoPageWithFindMatches() {
     textDivs,
     textContentItemsStr,
   }).promise;
+  // What the reader marks once pdf.js reports the layer rendered.
+  textLayer.setAttribute("data-text-complete", "");
 
   const eventBus = new EventBus();
   const findController = new PDFFindController({

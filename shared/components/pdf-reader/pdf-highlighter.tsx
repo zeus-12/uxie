@@ -5,6 +5,7 @@ import {
   type SelectionInfo,
 } from "./highlight-popover";
 import { PdfPageTone } from "./page-tone";
+import { HighlightTip } from "./highlight-tip";
 import { PdfSearch } from "./pdf-search";
 import { getHighlightPageNumber } from "../../lib/highlights";
 import {
@@ -16,12 +17,15 @@ import {
 import { createCitationNavigator } from "../../lib/citation-navigation";
 import { type PDFDocumentProxy } from "pdfjs-dist";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Rect as PdfRect } from "../../lib/reflow/types";
+import { useInPlaceReflow } from "./reflow/use-in-place-reflow";
+import { createPdfTextSource, usePdfTextStore } from "../../lib/pdf-text";
+import type { ReflowSelection } from "./reflow/selection";
 import {
   AreaHighlight,
   Highlight,
   type IHighlight,
   PdfHighlighter as PdfHighlighterComponent,
-  Popup,
 } from "react-pdf-highlighter";
 import { toast } from "sonner";
 
@@ -35,11 +39,6 @@ type Rect = {
   pageNumber?: number | null;
 };
 
-/**
- * The geometry is treated opaquely — it goes straight to react-pdf-highlighter
- * — so this is loose enough for both web's DB-shaped highlights and desktop's
- * already-mapped ones.
- */
 export type ReaderHighlight = {
   id: string;
   position: {
@@ -61,15 +60,13 @@ const PdfHighlighter = ({
   updateAreaHighlight,
   readSelectedText,
   showAiFeatures,
+  onZoomChange,
+  onReflowChange,
 }: {
   pdfDocument: PDFDocumentProxy;
   highlights: ReaderHighlight[];
   pdfScaleValue: string;
-  // Hands the mounted PdfHighlighter instance (and so its pdf.js PDFViewer) to
-  // the caller, which needs it to track the page in view and apply zoom.
   highlighterRef?: (instance: HighlighterInstance | null) => void;
-  // Persistence is the caller's business: web writes through tRPC, desktop
-  // through IPC, the demo into local state.
   addHighlight: (args: {
     content: { text?: string; image?: string };
     position: IHighlight["position"];
@@ -81,18 +78,30 @@ const PdfHighlighter = ({
     pageNumber?: number,
   ) => void;
   readSelectedText: ReadSelectedText;
-  // Whether the document is indexed — the AI actions are hidden until it is.
   showAiFeatures: boolean;
+  onZoomChange?: (scale: number, persist: boolean) => void;
+  onReflowChange?: (reflowed: boolean) => void;
 }) => {
   const sendMessage = useChatStore((state) => state.sendMessage);
   const stageImageAttachment = useChatStore(
     (state) => state.stageImageAttachment,
   );
   const linksDisabled = usePdfSettingsStore((state) => state.linksDisabled);
+  const reflowOnZoom = usePdfSettingsStore((state) => state.reflowOnZoom);
+  const setTextSource = usePdfTextStore((state) => state.setSource);
+  useEffect(() => {
+    const source = createPdfTextSource(pdfDocument);
+    setTextSource(source);
+    return () => {
+      if (usePdfTextStore.getState().source === source) setTextSource(null);
+    };
+  }, [pdfDocument, setTextSource]);
 
   const selectionInfoRef = useRef<SelectionInfo | null>(null);
+  const reflowActiveRef = useRef(false);
+  const pinnedHighlightRef = useRef<string | null>(null);
+  const showReflowPointRef = useRef<((pageNumber: number, fx: number, fy: number) => void) | null>(null);
 
-  // Handed to us by the viewer once the document is ready.
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
     null,
   );
@@ -103,8 +112,6 @@ const PdfHighlighter = ({
     (state) => state.setHighlightSource,
   );
 
-  // Keep the mounted instance locally (for the jump fallback below) as well as
-  // handing it to the caller.
   const highlighterInstanceRef = useRef<HighlighterInstance | null>(null);
   const [highlighterInstance, setHighlighterInstance] =
     useState<HighlighterInstance | null>(null);
@@ -117,9 +124,8 @@ const PdfHighlighter = ({
     [highlighterRef],
   );
 
-  // The highlight blocks in the notes editor jump through here. It goes by page
-  // number rather than by element id: pdf.js only keeps nearby pages rendered,
-  // so a highlight's DOM node doesn't exist until its page is scrolled into view.
+  // Jumps by page, not element id: pdf.js only keeps nearby pages rendered, so
+  // a highlight's DOM node doesn't exist until its page is in view.
   useEffect(() => {
     setJumpToHighlight((highlightId, fallbackPageNumber) => {
       const highlight = highlights.find((h) => h.id === highlightId);
@@ -131,6 +137,12 @@ const PdfHighlighter = ({
         toast.error("Couldn't find this highlight in the document", {
           duration: 3000,
         });
+        return;
+      }
+
+      const first = highlight?.position.rects[0] ?? highlight?.position.boundingRect;
+      if (reflowActiveRef.current && first?.width && first.height && first.x1 !== undefined && first.y1 !== undefined) {
+        showReflowPointRef.current?.(pageNumber, first.x1 / first.width, first.y1 / first.height);
         return;
       }
 
@@ -228,9 +240,8 @@ const PdfHighlighter = ({
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, []);
 
-  // Backs the "disable links" toggle in the settings menu: pdf.js renders real
-  // anchors in its annotation layer, so suppressing them means swallowing the
-  // click before it navigates.
+  // pdf.js renders real anchors in its annotation layer, so disabling links
+  // means swallowing the click before it navigates.
   useEffect(() => {
     const handleLinkClick = (event: MouseEvent) => {
       if (!linksDisabled) return;
@@ -251,13 +262,95 @@ const PdfHighlighter = ({
     };
   }, [linksDisabled]);
 
-  // react-pdf-highlighter reuses its viewer and find controller when the
-  // document changes, and pdf.js hands the find controller the new document
-  // asynchronously, so a search in that gap would run against the old one.
+  const highlightRects = useCallback(
+    (pageNumber: number, pageWidth: number, pageHeight: number) =>
+      highlights
+        .map((h) => ({
+          id: h.id,
+          rects: h.position.rects
+            .filter((r) => (r.pageNumber ?? getHighlightPageNumber(h.position)) === pageNumber)
+            .flatMap((r): PdfRect[] => {
+              const { x1, y1, x2, y2, width, height } = r;
+              if (
+                x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined ||
+                !width || !height
+              ) {
+                return [];
+              }
+              const sx = pageWidth / width;
+              const sy = pageHeight / height;
+              return [{ x: x1 * sx, y: y1 * sy, width: (x2 - x1) * sx, height: (y2 - y1) * sy }];
+            }),
+        }))
+        .filter((region) => region.rects.length > 0),
+    [highlights],
+  );
+
+  const renderReflowHighlight = useCallback(
+    (id: string, close: () => void) => (
+      <HighlightedTextPopover id={id} deleteHighlight={deleteHighlight} hideTip={close} />
+    ),
+    [deleteHighlight],
+  );
+
+  const renderReflowSelection = useCallback(
+    (selection: ReflowSelection, close: () => void, keepVisible: () => void) => {
+      selectionInfoRef.current = selection.start;
+      return (
+        <TextSelectionPopover
+          showAiFeatures={showAiFeatures}
+          sendMessage={sendMessage}
+          stageImageAttachment={stageImageAttachment}
+          content={{ text: selection.text }}
+          hideTipAndSelection={close}
+          addHighlight={() => {
+            void selection
+              .resolvePosition()
+              .then((position) => {
+                if (!position) throw new Error("no position");
+                addHighlight({ content: { text: selection.text }, position });
+              })
+              .catch(() => toast.error("Couldn't create the highlight"));
+          }}
+          readSelectedText={readSelectedText}
+          selectionInfoRef={selectionInfoRef}
+          transformSelection={keepVisible}
+        />
+      );
+    },
+    [showAiFeatures, sendMessage, stageImageAttachment, addHighlight, readSelectedText],
+  );
+
+  const reflow = useInPlaceReflow({
+    renderSelection: renderReflowSelection,
+    renderHighlight: renderReflowHighlight,
+    enabled: reflowOnZoom,
+    instance: highlighterInstance,
+    pdfDocument,
+    highlightRects,
+    onZoomChange,
+  });
+  const { bindPinch, active: reflowed } = reflow;
+  reflowActiveRef.current = reflowed;
+  showReflowPointRef.current = reflow.showPagePoint;
+  useEffect(() => {
+    onReflowChange?.(reflowed);
+    return () => onReflowChange?.(false);
+  }, [onReflowChange, reflowed]);
+  const [pinchSurface, setPinchSurface] = useState<HTMLDivElement | null>(null);
+  useEffect(() => bindPinch(pinchSurface), [bindPinch, pinchSurface]);
+
+  // The library reuses its find controller across documents and pdf.js hands it
+  // the new one asynchronously, so a search in that gap hits the old document.
   const documentKey = pdfDocument.loadingTask.docId;
 
   return (
     <PdfPageTone key={documentKey}>
+    <div
+      ref={setPinchSurface}
+      className="absolute inset-0"
+      data-reflow-on-zoom={reflowOnZoom || undefined}
+    >
       <PdfHighlighterComponent
         ref={setHighlighterRef}
         pdfDocument={pdfDocument}
@@ -279,7 +372,10 @@ const PdfHighlighter = ({
             stageImageAttachment={stageImageAttachment}
             content={content}
             hideTipAndSelection={hideTipAndSelection}
-            addHighlight={() => addHighlight({ content, position })}
+            addHighlight={() => {
+              addHighlight({ content, position });
+              window.getSelection()?.removeAllRanges();
+            }}
             readSelectedText={readSelectedText}
             selectionInfoRef={selectionInfoRef}
             transformSelection={transformSelection}
@@ -321,30 +417,32 @@ const PdfHighlighter = ({
           );
 
           return (
-            <Popup
-              popupContent={
+            <HighlightTip
+              key={index}
+              id={highlight.id}
+              pinnedRef={pinnedHighlightRef}
+              show={(tip) => setTip(highlight, () => tip)}
+              hide={hideTip}
+              popover={
                 <HighlightedTextPopover
                   id={highlight.id}
                   deleteHighlight={deleteHighlight}
                   hideTip={hideTip}
                 />
               }
-              onMouseOver={(popupContent) =>
-                setTip(highlight, () => popupContent)
-              }
-              onMouseOut={hideTip}
-              key={index}
             >
               {component}
-            </Popup>
+            </HighlightTip>
           );
         }}
         highlights={highlights as unknown as IHighlight[]}
       />
+      {reflow.layer}
       <PdfSearch
         eventBus={highlighterInstance?.eventBus ?? null}
         viewerContainer={highlighterInstance?.containerNode ?? null}
       />
+    </div>
     </PdfPageTone>
   );
 };

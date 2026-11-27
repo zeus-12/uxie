@@ -7,6 +7,7 @@ import {
 import { type ReaderDoc } from "@/types/reader";
 import { HighlightTypeEnum } from "@prisma/client";
 import PdfHighlighter from "@uxie/shared/components/pdf-reader/pdf-highlighter";
+import { PdfLoader } from "@uxie/shared/components/pdf-reader/pdf-loader";
 import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import { type PDFDocumentProxy } from "pdfjs-dist";
@@ -18,7 +19,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { PdfLoader } from "react-pdf-highlighter";
 import { toast } from "sonner";
 
 const PdfReader = ({
@@ -47,10 +47,8 @@ const PdfReader = ({
 }) => {
   const { url: docUrl, pageCount, id: docId, lastReadPage, zoomLevel } = doc;
 
-  // PdfHighlighter owns the pdf.js PDFViewer. Capture it here (stable callback
-  // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
-  // needs the live instance to track the page in view and apply zoom.
   const [pdfViewer, setPdfViewer] = useState<PDFViewer | null>(null);
+  const [reflowed, setReflowed] = useState(false);
   const handleHighlighterRef = useCallback(
     (instance: { viewer: PDFViewer } | null) => {
       setPdfViewer(instance?.viewer ?? null);
@@ -118,6 +116,7 @@ const PdfReader = ({
     skipSentence,
     skipToPreviousSentence,
     handleZoomChange,
+    handleToolbarZoomChange,
     handlePageChange,
     readSelectedText,
     currentZoom,
@@ -132,6 +131,7 @@ const PdfReader = ({
     zoomLevel,
     pageCount,
     viewer: pdfViewer,
+    reflowed,
     onSaveReaderState: (state) => {
       if (onUpdateReaderState) {
         onUpdateReaderState(docId, state);
@@ -181,6 +181,8 @@ const PdfReader = ({
               }}
               readSelectedText={readSelectedText}
               pdfScaleValue={pdfScaleValue}
+              onZoomChange={handleZoomChange}
+              onReflowChange={setReflowed}
             />
           </LoadedPdfHighlighter>
         )}
@@ -197,9 +199,10 @@ const PdfReader = ({
         skipSentence={skipSentence}
         skipToPreviousSentence={skipToPreviousSentence}
         totalPages={pageCount}
-        onZoomChange={handleZoomChange}
+        onZoomChange={handleToolbarZoomChange}
         onPageChange={handlePageChange}
         currentZoom={currentZoom}
+        reflowed={reflowed}
         pageColour={pageColour}
         pageColourChangeHandler={pageColourChangeHandler}
         followAlongEnabled={followAlongEnabled}

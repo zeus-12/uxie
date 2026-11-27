@@ -4,7 +4,6 @@ import { ChevronLeftIcon, SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
-  PdfLoader,
   type IHighlight,
   type ScaledPosition,
 } from "react-pdf-highlighter";
@@ -17,6 +16,7 @@ import {
   Sidebar,
   SidebarSettingsButton,
 } from "@uxie/shared/components/workspace/sidebar";
+import { PdfLoader } from "@uxie/shared/components/pdf-reader/pdf-loader";
 import { DocumentTitle } from "@uxie/shared/components/workspace/document-title";
 import {
   AnnotatedPdfExportMenuItem,
@@ -100,9 +100,6 @@ type NotesEditor = {
   document: unknown[];
 };
 
-// Mirror the web: a highlight also drops a block into the notes editor — a
-// linked quote for text, the screenshot for an area selection. No-op if the
-// notes tab hasn't mounted the editor yet.
 function appendNoteBlock(block: unknown) {
   const editor = useBlocknoteEditorStore.getState()
     .editor as NotesEditor | null;
@@ -236,11 +233,8 @@ function ReaderContent({
   );
   const [error, setError] = useState<string | null>(null);
 
-  // PdfHighlighter owns the pdf.js PDFViewer. Capture it here (stable callback
-  // ref, so it only fires on mount/unmount) and hand it to usePdfReader, which
-  // needs the live instance to track the page in view and apply zoom. The ref
-  // mirrors it for callbacks that shouldn't re-subscribe when it arrives.
   const [pdfViewer, setPdfViewer] = useState<PdfViewerInstance | null>(null);
+  const [reflowed, setReflowed] = useState(false);
   const handleHighlighterRef = useCallback(
     (instance: HighlighterInstance | null) => {
       setPdfViewer(instance?.viewer ?? null);
@@ -300,6 +294,7 @@ function ReaderContent({
     skipSentence,
     skipToPreviousSentence,
     handleZoomChange,
+    handleToolbarZoomChange,
     handlePageChange,
     readSelectedText,
     currentZoom,
@@ -314,6 +309,7 @@ function ReaderContent({
     zoomLevel: doc.zoomLevel,
     pageCount: doc.pageCount,
     viewer: pdfViewer,
+    reflowed,
     onSaveReaderState: (state) => {
       void window.uxieAPI.updateReaderState(docId, state);
     },
@@ -330,9 +326,8 @@ function ReaderContent({
       { id: hlId, position, content, comment: { text: "", emoji: "" } },
     ]);
 
-    // An area selection is a screenshot: write it into the document's folder
-    // first, so the note holds a url rather than half a megabyte of base64 that
-    // would be re-serialised on every autosave.
+    // Stored as a file so the note holds a url, not base64 that every autosave
+    // would re-serialise.
     let imageUrl: string | null = null;
     if (!isText && content.image) {
       const bytes = dataUrlToBytes(content.image);
@@ -468,6 +463,8 @@ function ReaderContent({
                     )
                   }
                   readSelectedText={readSelectedText}
+                  onZoomChange={handleZoomChange}
+                  onReflowChange={setReflowed}
                 />
               )}
             </PdfLoader>
@@ -484,9 +481,10 @@ function ReaderContent({
               skipSentence={skipSentence}
               skipToPreviousSentence={skipToPreviousSentence}
               totalPages={doc.pageCount}
-              onZoomChange={handleZoomChange}
+              onZoomChange={handleToolbarZoomChange}
               onPageChange={handlePageChange}
               currentZoom={currentZoom}
+              reflowed={reflowed}
               pageColour={pageColour}
               pageColourChangeHandler={pageColourChangeHandler}
               followAlongEnabled={followAlongEnabled}

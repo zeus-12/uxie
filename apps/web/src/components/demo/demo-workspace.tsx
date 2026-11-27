@@ -64,7 +64,7 @@ const DemoWorkspace = () => {
   );
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="hd-screen flex flex-col">
       <DemoBanner />
 
       <div className="min-h-0 flex-1">

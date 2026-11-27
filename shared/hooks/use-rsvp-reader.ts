@@ -36,7 +36,6 @@ function processWordsWithHyphenation(words: string[]): ProcessedWord[] {
     if (isHyphenatedEnd(word) && i + 1 < words.length) {
       const nextWord = words[i + 1];
       if (nextWord) {
-        // Combine: remove hyphen and join with next word
         processed.push({
           word: word.slice(0, -1) + nextWord,
           rawStartIndex: i,
@@ -58,7 +57,6 @@ function processWordsWithHyphenation(words: string[]): ProcessedWord[] {
   return processed;
 }
 
-// Helper to get just the words from processed array
 function getProcessedWordStrings(processed: ProcessedWord[]): string[] {
   return processed.map((p) => p.word);
 }
@@ -84,9 +82,10 @@ export function useRsvpReader({
   const [followAlongEnabled, setFollowAlongEnabled] = useState(true);
 
   const wordsRef = useRef<string[]>([]);
-  const rawWordsRef = useRef<string[]>([]); // Original words before processing (for char offset calculation)
+  const rawWordsRef = useRef<string[]>([]);
   const sentencesRef = useRef<string[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const requestRef = useRef(0);
   const lastHighlightedSentenceRef = useRef<number>(-1);
   const currentPageRef = useRef(1);
   const viewedPageRef = useRef(pageNumber);
@@ -123,6 +122,7 @@ export function useRsvpReader({
 
       currentPageRef.current = pageNumber;
       setCurrentPage(pageNumber);
+      void sentenceReader.ensureTextFrom(pageNumber + 1);
       setCurrentSentenceIndex(0);
       setCurrentWordIndex(0);
       setIsInitialized(true);
@@ -142,7 +142,7 @@ export function useRsvpReader({
   const highlightSentenceOnce = useCallback(
     (sentenceIdx: number) => {
       if (lastHighlightedSentenceRef.current === sentenceIdx) {
-        return; // Already highlighted this sentence
+        return;
       }
 
       sentenceReader.startFromPage(currentPageRef.current);
@@ -171,9 +171,8 @@ export function useRsvpReader({
 
       const word = processedWord.word;
 
-      // Auto-skip symbols-only words
       if (shouldSkipWord(word) && !skipAutoAdvance) {
-        return false; // Signal to advance
+        return false;
       }
 
       setCurrentWord(word);
@@ -182,10 +181,8 @@ export function useRsvpReader({
       rawWordsRef.current = rawWords;
       wordsRef.current = getProcessedWordStrings(processed);
 
-      // Only highlight sentence if it changed
       highlightSentenceOnce(sentenceIdx);
 
-      // Calculate the character offset using raw word positions
       const rawStartIdx = processedWord.rawStartIndex;
       const charOffset =
         rawWords.slice(0, rawStartIdx).join(" ").length +
@@ -229,15 +226,12 @@ export function useRsvpReader({
     let nextWordIdx = currentWordIndex + 1;
     let sentenceIdx = currentSentenceIndex;
 
-    // Try to advance within current sentence
     while (nextWordIdx < words.length) {
       const displayed = updateWordDisplay(sentenceIdx, nextWordIdx);
       if (displayed) return true;
-      // Word was skipped, try next
       nextWordIdx++;
     }
 
-    // Move to next sentence
     let nextSentenceIdx = currentSentenceIndex + 1;
     while (nextSentenceIdx < sentencesRef.current.length) {
       const nextSentence = sentencesRef.current[nextSentenceIdx];
@@ -246,9 +240,8 @@ export function useRsvpReader({
         const processed = processWordsWithHyphenation(rawWords);
         rawWordsRef.current = rawWords;
         wordsRef.current = getProcessedWordStrings(processed);
-        lastHighlightedSentenceRef.current = -1; // Force re-highlight for new sentence
+        lastHighlightedSentenceRef.current = -1;
 
-        // Find first non-skip word
         for (let i = 0; i < processed.length; i++) {
           const displayed = updateWordDisplay(nextSentenceIdx, i);
           if (displayed) return true;
@@ -257,9 +250,19 @@ export function useRsvpReader({
       nextSentenceIdx++;
     }
 
-    // Move to next page
     const nextPage = currentPage + 1;
     if (nextPage <= pageCount) {
+      if (!sentenceReader.isPageTextKnown(nextPage)) {
+        const request = ++requestRef.current;
+        const wasPlaying = isPlaying;
+        setIsPlaying(false);
+        void sentenceReader.ensureTextFrom(nextPage).then(() => {
+          if (request !== requestRef.current || !loadPage(nextPage)) return;
+          lastHighlightedSentenceRef.current = -1;
+          if (updateWordDisplay(0, 0) && wasPlaying) setIsPlaying(true);
+        });
+        return true;
+      }
       const loaded = loadPage(nextPage);
       if (loaded) {
         lastHighlightedSentenceRef.current = -1;
@@ -276,6 +279,8 @@ export function useRsvpReader({
     pageCount,
     loadPage,
     updateWordDisplay,
+    sentenceReader,
+    isPlaying,
   ]);
 
   const prevWord = useCallback(() => {
@@ -302,30 +307,36 @@ export function useRsvpReader({
   }, [advanceWord]);
 
   const startFromPage = useCallback(
-    (pageNumber: number) => {
+    async (pageNumber: number): Promise<boolean> => {
+      const request = ++requestRef.current;
+      await sentenceReader.ensureTextFrom(pageNumber);
+      if (request !== requestRef.current) return false;
       const loaded = loadPage(pageNumber);
       if (loaded) {
         lastHighlightedSentenceRef.current = -1;
-        // Find first non-skip word
         const words = wordsRef.current;
         for (let i = 0; i < words.length; i++) {
           const displayed = updateWordDisplay(0, i, true);
-          if (displayed) return;
+          if (displayed) return true;
         }
       }
+      return loaded;
     },
-    [loadPage, updateWordDisplay],
+    [loadPage, updateWordDisplay, sentenceReader],
   );
 
   const play = useCallback(() => {
     if (!isInitialized) {
-      // Stopped state: initialize from the page the user is currently viewing
-      startFromPage(viewedPageRef.current);
+      void startFromPage(viewedPageRef.current).then((started) => {
+        if (started) setIsPlaying(true);
+      });
+      return;
     }
     setIsPlaying(true);
   }, [isInitialized, startFromPage]);
 
   const pause = useCallback(() => {
+    requestRef.current += 1;
     setIsPlaying(false);
     clearPlayInterval();
   }, [clearPlayInterval]);
@@ -339,6 +350,7 @@ export function useRsvpReader({
   }, [isPlaying, pause, play]);
 
   const stop = useCallback(() => {
+    requestRef.current += 1;
     setIsPlaying(false);
     clearPlayInterval();
     removeAllHighlights();
@@ -347,7 +359,6 @@ export function useRsvpReader({
     setCurrentWordIndex(0);
     setIsInitialized(false);
     lastHighlightedSentenceRef.current = -1;
-    // Keep panel open - just reset state
   }, [clearPlayInterval]);
 
   const close = useCallback(() => {

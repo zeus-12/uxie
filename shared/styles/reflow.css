@@ -1,0 +1,120 @@
+html[data-reflow-on-zoom],
+html[data-reflow-on-zoom] body,
+[data-reflow-on-zoom] .PdfHighlighter,
+.reflow-layer {
+  touch-action: pan-x pan-y;
+}
+
+.reflow-layer {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
+  background: var(--page-tint, #fff);
+  color: #1f2328;
+  padding: 0 16px;
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+.reflow-page {
+  position: relative;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reflow-column {
+  max-width: 34em;
+  margin-inline: auto;
+}
+
+.reflow-block {
+  margin: 0 0 0.75em;
+}
+
+h2.reflow-block,
+h3.reflow-block,
+h4.reflow-block {
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 0.6em;
+}
+
+.reflow-list-item {
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+.reflow-caption,
+.reflow-footnote {
+  color: #4b5563;
+}
+
+.reflow-sup {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.reflow-crop {
+  overflow-x: auto;
+  margin: 0 0 0.75em;
+}
+
+.reflow-crop canvas {
+  display: block;
+}
+
+.reflow-kept .reflow-crop {
+  margin: 0;
+}
+
+mark.reflow-search {
+  background: var(--hl-search, rgb(250 204 21 / 45%));
+  color: inherit;
+}
+
+mark.reflow-search[data-selected] {
+  background: var(--hl-search-active, rgb(249 115 22 / 72%));
+}
+
+mark.reflow-highlight {
+  background: var(--hl-annotation, rgb(255 226 143 / 90%));
+  color: inherit;
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-layer {
+  color: hsl(var(--foreground));
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-page {
+  border-bottom-color: hsl(var(--border));
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-caption,
+.uxie-pdf-page[data-page-tone="ink"] .reflow-footnote {
+  color: hsl(var(--muted-foreground));
+}
+
+.uxie-pdf-page[data-page-tone="ink"] .reflow-crop canvas {
+  filter: invert(1) hue-rotate(180deg) url(#uxie-ink-page);
+}
+
+.reflow-tip {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, calc(-100% - 8px));
+  touch-action: manipulation;
+}
+
+mark.reflow-highlight[data-highlight-id] {
+  cursor: pointer;
+}
+
+a.reflow-link {
+  color: hsl(var(--palette-blue));
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}

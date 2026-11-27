@@ -3,6 +3,7 @@
 @import "./styles/citation-highlight.css";
 @import "./styles/themes.css";
 @import "./styles/pdf-search.css";
+@import "./styles/reflow.css";
 @import "./styles/reader-page.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -49,8 +50,11 @@
   * {
     @apply border-border;
   }
+  html,
   body {
     overscroll-behavior: none;
+  }
+  body {
     @apply bg-background text-foreground;
   }
 }

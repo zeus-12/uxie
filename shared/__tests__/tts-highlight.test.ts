@@ -14,7 +14,7 @@ import {
   type ReaderApi,
 } from "./helpers/sentence-reader";
 
-// Real pdf.js spans captured from public/demo.pdf. Re-capture by rendering it
+// Real pdf.js spans captured from apps/web/public/demo.pdf. Re-capture by rendering it
 // with renderTextLayer and dumping each span's text + getBoundingClientRect.
 type FixtureSpan = { text: string; top: number; left: number; width: number };
 const FIXTURE = textlayer as Record<string, FixtureSpan[]>;
@@ -29,6 +29,9 @@ function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
   const page = document.createElement("div");
   page.className = "page";
   page.setAttribute("data-page-number", String(pageNumber));
+  const textLayer = document.createElement("div");
+  textLayer.className = "textLayer";
+  page.appendChild(textLayer);
   for (const s of spans) {
     const el = document.createElement("span");
     el.setAttribute("role", "presentation");
@@ -45,16 +48,16 @@ function buildPageFromSpans(spans: FixtureSpan[], pageNumber = 1) {
       toJSON() {},
     };
     el.getBoundingClientRect = () => rect as DOMRect;
-    page.appendChild(el);
+    textLayer.appendChild(el);
   }
+  // What the reader marks once pdf.js reports the layer rendered.
+  textLayer.setAttribute("data-text-complete", "");
   document.body.appendChild(page);
 }
 
 const buildPage = (pageNumber: number) =>
   buildPageFromSpans(FIXTURE[String(pageNumber)] ?? []);
 
-/** Feeds a sentence through the same char indices onWordBoundary would receive,
- *  returning the text each word's overlay ended up covering. */
 function readSentence(api: ReaderApi, pos: SentencePosition) {
   api.resetWordTracking();
   const spoken = pos.sentenceForTts;
@@ -195,7 +198,7 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
         if (isComplete(pos.sentence)) {
           sentencesChecked++;
           for (const step of readSentence(api, pos)) {
-            if (!normalizeWord(step.spoken)) continue; // skip pure-symbol tokens
+            if (!normalizeWord(step.spoken)) continue;
             wordsChecked++;
             const joined = step.highlighted.join("");
             const where = `p${pageNumber} "${step.spoken}"`;
@@ -232,7 +235,7 @@ describe("TTS word highlighting over a real pdf.js text layer (demo.pdf)", () =>
     const api = mountReader();
     const pos = api.startFromPage(1);
     expect(pos).not.toBeNull();
-    expect(pos!.sentence).toContain("under‐"); // hyphen preserved in source
+    expect(pos!.sentence).toContain("under‐");
     expect(pos!.sentenceForTts).toContain("understand"); // joined for speech
     expect(pos!.sentenceForTts).not.toContain("‐");
 
