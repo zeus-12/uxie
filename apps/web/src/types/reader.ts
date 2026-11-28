@@ -1,5 +1,6 @@
 import { type AppRouter } from "@/server/api/root";
 import { type inferRouterOutputs } from "@trpc/server";
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
 
 type Rect = {
   x1?: number;
@@ -40,6 +41,8 @@ export type ReaderDoc = Pick<
 > & {
   highlights: Array<{
     id: string;
+    color: HighlightColor;
+    text?: string | null;
     position: { boundingRect: Rect; rects: Rect[]; pageNumber: number | null };
   }>;
 };

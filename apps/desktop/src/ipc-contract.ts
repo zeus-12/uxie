@@ -26,6 +26,7 @@ import type {
   ReaderStateInput,
   RectInput,
 } from "@uxie/shared/schema";
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
 import type {
   PdfChunk,
   PdfPageText,
@@ -132,6 +133,10 @@ export interface IpcInvokeContract {
     args: [id: string, boundingRect: RectInput];
     result: void;
   };
+  "highlights:updateColor": {
+    args: [id: string, color: HighlightColor];
+    result: void;
+  };
 
   "settings:get": { args: []; result: Settings };
   "settings:set": { args: [settings: Settings]; result: void };
@@ -224,6 +229,7 @@ export const API_INVOKE = {
   addHighlight: "highlights:add",
   deleteHighlight: "highlights:delete",
   updateAreaHighlight: "highlights:updateArea",
+  updateHighlightColor: "highlights:updateColor",
 
   getSettings: "settings:get",
   setSettings: "settings:set",

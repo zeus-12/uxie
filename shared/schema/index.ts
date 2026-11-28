@@ -11,6 +11,11 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { createId } from "@paralleldrive/cuid2";
+import {
+  DEFAULT_HIGHLIGHT_COLOR,
+  HIGHLIGHT_COLORS,
+  type HighlightColor,
+} from "../lib/highlight-colors";
 
 export const PLANS = ["FREE", "FREE_PLUS", "PRO"] as const;
 export const COLLABORATOR_ROLES = ["EDITOR", "VIEWER", "OWNER"] as const;
@@ -126,6 +131,10 @@ export const highlight = sqliteTable("Highlight", {
     .references(() => document.id, { onDelete: "cascade" }),
   createdAt: createdAt(),
   pageNumber: integer("pageNumber"),
+  color: text("color", { enum: HIGHLIGHT_COLORS })
+    .notNull()
+    .default(DEFAULT_HIGHLIGHT_COLOR),
+  selectedText: text("selectedText"),
   // IMAGE highlights are a screenshot of a region; this is where those bytes
   // live, so deleting the highlight can delete the file with it. Null for TEXT.
   imageUrl: text("imageUrl"),
@@ -221,6 +230,8 @@ export interface AddHighlightInput {
   pageNumber?: number | null;
   boundingRect: RectInput;
   rects: RectInput[];
+  color: HighlightColor;
+  selectedText?: string | null;
   /** IMAGE highlights only — the stored screenshot. */
   imageUrl?: string | null;
 }

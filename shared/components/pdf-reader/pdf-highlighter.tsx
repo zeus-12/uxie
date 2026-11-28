@@ -1,11 +1,14 @@
-import {
-  HighlightedTextPopover,
-  TextSelectionPopover,
-  type ReadSelectedText,
-  type SelectionInfo,
-} from "./highlight-popover";
+import { HighlightedTextPopover, TextSelectionPopover } from "./highlight-popover";
 import { PdfPageTone } from "./page-tone";
-import { HighlightTip } from "./highlight-tip";
+import { AnchoredPopover } from "./anchored-popover";
+import { READING_MODE } from "./constants";
+import { rectAnchor, type AnchorSource } from "../../lib/popover-placement";
+import type { HighlightColor } from "../../lib/highlight-colors";
+import { useHighlightTip, useSelectionTip } from "../../hooks/use-reader-tips";
+import { getPagesFromRange } from "react-pdf-highlighter/dist/esm/lib/pdfjs-dom";
+import getClientRects from "react-pdf-highlighter/dist/esm/lib/get-client-rects";
+import getBoundingRect from "react-pdf-highlighter/dist/esm/lib/get-bounding-rect";
+import { createPortal } from "react-dom";
 import { PdfSearch } from "./pdf-search";
 import { getHighlightPageNumber } from "../../lib/highlights";
 import {
@@ -13,10 +16,11 @@ import {
   useCitationHighlightStore,
   useHighlightJumpStore,
   usePdfSettingsStore,
+  usePublishHighlightColors,
 } from "../../lib/store";
 import { createCitationNavigator } from "../../lib/citation-navigation";
 import { type PDFDocumentProxy } from "pdfjs-dist";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Rect as PdfRect } from "../../lib/reflow/types";
 import { useInPlaceReflow } from "./reflow/use-in-place-reflow";
 import { createPdfTextSource, usePdfTextStore } from "../../lib/pdf-text";
@@ -41,6 +45,8 @@ type Rect = {
 
 export type ReaderHighlight = {
   id: string;
+  color: HighlightColor;
+  text?: string | null;
   position: {
     boundingRect: Rect;
     rects: Rect[];
@@ -50,6 +56,64 @@ export type ReaderHighlight = {
 
 export type HighlighterInstance = InstanceType<typeof PdfHighlighterComponent>;
 
+type ScaledRect = IHighlight["position"]["boundingRect"];
+type ScaledPosition = IHighlight["position"];
+
+type SelectionInfo = { blockIndex: number; offsetInBlock: number; pageNumber: number };
+
+export type ReadSelectedText = (args: {
+  text?: string;
+  readingSpeed?: number;
+  continueReadingFromLastPosition?: boolean;
+  readingMode: READING_MODE;
+  selectionBlockIndex?: number;
+  selectionOffsetInBlock?: number;
+  selectionPageNumber?: number;
+}) => Promise<void>;
+
+type PageSelection =
+  | { kind: "text"; text: string; position: ScaledPosition; info: SelectionInfo | null }
+  | { kind: "area"; image: string; position: ScaledPosition; reset: () => void };
+
+const GHOST_ID = "uxie-selection-ghost";
+
+// Where in the text layer the selection starts, so "Read the text" begins at that word.
+function selectionInfoFor(range: Range): SelectionInfo | null {
+  const start = range.startContainer;
+  const block = (start instanceof Element ? start : start.parentElement)?.closest(
+    'span[role="presentation"]',
+  );
+  const page = block?.closest(".page[data-page-number]");
+  const pageNumber = Number(page?.getAttribute("data-page-number"));
+  if (!block || !page || !Number.isInteger(pageNumber)) return null;
+  const blockIndex = [...page.querySelectorAll('span[role="presentation"]')].indexOf(block);
+  if (blockIndex === -1) return null;
+  const before = document.createRange();
+  before.setStart(block, 0);
+  before.setEnd(range.startContainer, range.startOffset);
+  return { blockIndex, offsetInBlock: before.toString().length, pageNumber };
+}
+
+function areaAnchor(
+  viewer: HighlighterInstance["viewer"] | undefined,
+  rect: ScaledRect,
+  pageNumber: number,
+): AnchorSource {
+  return rectAnchor(() => {
+    const page = viewer?.getPageView(pageNumber - 1)?.div;
+    if (!page || !rect.width || !rect.height) return null;
+    const box = page.getBoundingClientRect();
+    const sx = box.width / rect.width;
+    const sy = box.height / rect.height;
+    return new DOMRect(
+      box.left + rect.x1 * sx,
+      box.top + rect.y1 * sy,
+      (rect.x2 - rect.x1) * sx,
+      (rect.y2 - rect.y1) * sy,
+    );
+  });
+}
+
 const PdfHighlighter = ({
   pdfDocument,
   highlights,
@@ -57,6 +121,7 @@ const PdfHighlighter = ({
   highlighterRef,
   addHighlight,
   deleteHighlight,
+  recolorHighlight,
   updateAreaHighlight,
   readSelectedText,
   showAiFeatures,
@@ -70,8 +135,10 @@ const PdfHighlighter = ({
   addHighlight: (args: {
     content: { text?: string; image?: string };
     position: IHighlight["position"];
+    color: HighlightColor;
   }) => void;
   deleteHighlight: (id: string) => void;
+  recolorHighlight: (id: string, color: HighlightColor) => void;
   updateAreaHighlight: (
     id: string,
     boundingRect: Rect,
@@ -97,9 +164,9 @@ const PdfHighlighter = ({
     };
   }, [pdfDocument, setTextSource]);
 
-  const selectionInfoRef = useRef<SelectionInfo | null>(null);
   const reflowActiveRef = useRef(false);
-  const pinnedHighlightRef = useRef<string | null>(null);
+
+  const highlightColors = usePublishHighlightColors(highlights);
   const showReflowPointRef = useRef<((pageNumber: number, fx: number, fy: number) => void) | null>(null);
 
   const scrollToHighlightRef = useRef<((highlight: IHighlight) => void) | null>(
@@ -196,50 +263,6 @@ const PdfHighlighter = ({
     };
   }, [setHighlightSource]);
 
-  // Remember where in the text layer the selection started, so "Read the text"
-  // can begin at that word rather than at the top of the selection.
-  useEffect(() => {
-    const handleMouseUp = () => {
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
-
-      const range = sel.getRangeAt(0);
-      const startNode = range.startContainer;
-      let el: Element | null =
-        startNode instanceof Element ? startNode : startNode.parentElement;
-
-      while (el && !el.matches?.('span[role="presentation"]')) {
-        el = el.parentElement;
-      }
-      if (!el) return;
-
-      const pageEl = el.closest(".page[data-page-number]");
-      if (!pageEl) return;
-
-      const pn = parseInt(pageEl.getAttribute("data-page-number") ?? "", 10);
-      if (isNaN(pn)) return;
-
-      const allBlocks = pageEl.querySelectorAll("span[role='presentation']");
-      const blockIdx = Array.from(allBlocks).indexOf(el);
-      if (blockIdx === -1) return;
-
-      const measureRange = document.createRange();
-      measureRange.setStart(el, 0);
-      measureRange.setEnd(range.startContainer, range.startOffset);
-      const offsetInBlock = measureRange.toString().length;
-      measureRange.detach();
-
-      selectionInfoRef.current = {
-        blockIndex: blockIdx,
-        offsetInBlock,
-        pageNumber: pn,
-      };
-    };
-
-    document.addEventListener("mouseup", handleMouseUp);
-    return () => document.removeEventListener("mouseup", handleMouseUp);
-  }, []);
-
   // pdf.js renders real anchors in its annotation layer, so disabling links
   // means swallowing the click before it navigates.
   useEffect(() => {
@@ -261,6 +284,11 @@ const PdfHighlighter = ({
       document.removeEventListener("click", handleLinkClick, true);
     };
   }, [linksDisabled]);
+
+  const highlightById = useMemo(
+    () => new Map(highlights.map((h) => [h.id, h])),
+    [highlights],
+  );
 
   const highlightRects = useCallback(
     (pageNumber: number, pageWidth: number, pageHeight: number) =>
@@ -286,48 +314,80 @@ const PdfHighlighter = ({
     [highlights],
   );
 
-  const renderReflowHighlight = useCallback(
-    (id: string, close: () => void) => (
-      <HighlightedTextPopover id={id} deleteHighlight={deleteHighlight} hideTip={close} />
-    ),
-    [deleteHighlight],
-  );
+  const askAi = showAiFeatures && sendMessage ? sendMessage : undefined;
 
-  const renderReflowSelection = useCallback(
-    (selection: ReflowSelection, close: () => void, keepVisible: () => void) => {
-      selectionInfoRef.current = selection.start;
+  const highlightPopover = useCallback(
+    (id: string, close: () => void) => {
+      const highlight = highlightById.get(id);
+      if (!highlight) return null;
+      const text = highlight.text ?? null;
       return (
-        <TextSelectionPopover
-          showAiFeatures={showAiFeatures}
-          sendMessage={sendMessage}
-          stageImageAttachment={stageImageAttachment}
-          content={{ text: selection.text }}
-          hideTipAndSelection={close}
-          addHighlight={() => {
-            void selection
-              .resolvePosition()
-              .then((position) => {
-                if (!position) throw new Error("no position");
-                addHighlight({ content: { text: selection.text }, position });
-              })
-              .catch(() => toast.error("Couldn't create the highlight"));
-          }}
-          readSelectedText={readSelectedText}
-          selectionInfoRef={selectionInfoRef}
-          transformSelection={keepVisible}
+        <HighlightedTextPopover
+          text={text}
+          color={highlight.color}
+          onRead={
+            text
+              ? () =>
+                  void readSelectedText({
+                    text,
+                    readingMode: READING_MODE.TEXT,
+                    selectionPageNumber: getHighlightPageNumber(highlight.position) ?? undefined,
+                  })
+              : undefined
+          }
+          onRecolor={(color) => recolorHighlight(id, color)}
+          onDelete={() => deleteHighlight(id)}
+          onAskAi={askAi}
+          close={close}
         />
       );
     },
-    [showAiFeatures, sendMessage, stageImageAttachment, addHighlight, readSelectedText],
+    [highlightById, readSelectedText, recolorHighlight, deleteHighlight, askAi],
   );
+
+  const textSelectionPopover = (
+    text: string,
+    info: SelectionInfo | null,
+    resolvePosition: () => Promise<ScaledPosition | null>,
+    close: () => void,
+    keepVisible: () => void,
+  ) => (
+    <TextSelectionPopover
+      text={text}
+      onHighlight={(color) => {
+        void resolvePosition()
+          .then((position) => {
+            if (!position) throw new Error("no position");
+            addHighlight({ content: { text }, position, color });
+          })
+          .catch(() => toast.error("Couldn't create the highlight"));
+      }}
+      onRead={() =>
+        void readSelectedText({
+          text,
+          readingMode: READING_MODE.TEXT,
+          selectionBlockIndex: info?.blockIndex,
+          selectionOffsetInBlock: info?.offsetInBlock,
+          selectionPageNumber: info?.pageNumber,
+        })
+      }
+      onAskAi={askAi}
+      onAskAiStart={keepVisible}
+      close={close}
+    />
+  );
+
+  const renderReflowSelection = (selection: ReflowSelection, close: () => void, keepVisible: () => void) =>
+    textSelectionPopover(selection.text, selection.start, selection.resolvePosition, close, keepVisible);
 
   const reflow = useInPlaceReflow({
     renderSelection: renderReflowSelection,
-    renderHighlight: renderReflowHighlight,
+    renderHighlight: highlightPopover,
     enabled: reflowOnZoom,
     instance: highlighterInstance,
     pdfDocument,
     highlightRects,
+    highlightColors,
     onZoomChange,
   });
   const { bindPinch, active: reflowed } = reflow;
@@ -339,6 +399,76 @@ const PdfHighlighter = ({
   }, [onReflowChange, reflowed]);
   const [pinchSurface, setPinchSurface] = useState<HTMLDivElement | null>(null);
   useEffect(() => bindPinch(pinchSurface), [bindPinch, pinchSurface]);
+
+  const pageRoot = highlighterInstance?.containerNode ?? null;
+  const describePageSelection = useCallback(
+    (selection: Selection, range: Range): PageSelection | null => {
+      const instance = highlighterInstanceRef.current;
+      const pages = getPagesFromRange(range);
+      if (!instance || pages.length === 0) return null;
+      const rects = getClientRects(range, pages);
+      if (rects.length === 0) return null;
+      const position = instance.viewportPositionToScaled({
+        boundingRect: getBoundingRect(rects),
+        rects,
+        pageNumber: pages[0]!.number,
+      });
+      const text = selection.toString().split("\n").join(" ");
+      return { kind: "text", text, position, info: selectionInfoFor(range) };
+    },
+    [],
+  );
+  const selectionTip = useSelectionTip(pageRoot, describePageSelection);
+  const highlightTip = useHighlightTip(pageRoot, { suspended: selectionTip.tip !== null });
+  const [ghost, setGhost] = useState<ScaledPosition | null>(null);
+  const openSelection = useRef<PageSelection | null>(null);
+  useEffect(() => {
+    const previous = openSelection.current;
+    openSelection.current = selectionTip.tip?.value ?? null;
+    if (selectionTip.tip) return;
+    setGhost(null);
+    if (previous?.kind === "area") previous.reset();
+  }, [selectionTip.tip]);
+  const closeSelection = useCallback(() => {
+    selectionTip.close();
+    window.getSelection()?.removeAllRanges();
+  }, [selectionTip.close]);
+
+  const viewerHighlights = useMemo(
+    () =>
+      ghost
+        ? [...highlights, { id: GHOST_ID, position: ghost }]
+        : highlights,
+    [highlights, ghost],
+  );
+
+  const selection = selectionTip.tip?.value;
+  const selectionPopover =
+    selection?.kind === "text" ? (
+      textSelectionPopover(
+        selection.text,
+        selection.info,
+        () => Promise.resolve(selection.position),
+        closeSelection,
+        () => setGhost(selection.position),
+      )
+    ) : selection?.kind === "area" ? (
+      <TextSelectionPopover
+        image={selection.image}
+        onHighlight={(color) =>
+          addHighlight({ content: { image: selection.image }, position: selection.position, color })
+        }
+        onAttach={
+          stageImageAttachment
+            ? () => {
+                stageImageAttachment(selection.image);
+                useChatStore.getState().focusInput?.();
+              }
+            : undefined
+        }
+        close={closeSelection}
+      />
+    ) : null;
 
   // The library reuses its find controller across documents and pdf.js hands it
   // the new one asynchronously, so a search in that gap hits the old document.
@@ -360,40 +490,34 @@ const PdfHighlighter = ({
         scrollRef={(scrollTo) => {
           scrollToHighlightRef.current = scrollTo;
         }}
-        onSelectionFinished={(
-          position,
-          content,
-          hideTipAndSelection,
-          transformSelection,
-        ) => (
-          <TextSelectionPopover
-            showAiFeatures={showAiFeatures}
-            sendMessage={sendMessage}
-            stageImageAttachment={stageImageAttachment}
-            content={content}
-            hideTipAndSelection={hideTipAndSelection}
-            addHighlight={() => {
-              addHighlight({ content, position });
-              window.getSelection()?.removeAllRanges();
-            }}
-            readSelectedText={readSelectedText}
-            selectionInfoRef={selectionInfoRef}
-            transformSelection={transformSelection}
-          />
-        )}
+        onSelectionFinished={(position, content, hideTipAndSelection) => {
+          if (content.image) {
+            selectionTip.show(
+              { kind: "area", image: content.image, position, reset: hideTipAndSelection },
+              areaAnchor(highlighterInstanceRef.current?.viewer, position.boundingRect, position.pageNumber),
+            );
+          }
+          return null;
+        }}
         highlightTransform={(
           highlight,
           index,
-          setTip,
-          hideTip,
+          _setTip,
+          _hideTip,
           viewportToScaled,
           _screenshot,
           isScrolledTo,
         ) => {
+          const stored = highlightById.get(highlight.id);
           const isTextHighlight = highlight.position.rects?.length !== 0;
 
           const component = isTextHighlight ? (
-            <div id={highlight.id}>
+            <div
+              key={index}
+              id={highlight.id}
+              data-highlight-id={stored?.id}
+              data-highlight-color={stored?.color}
+            >
               <Highlight
                 isScrolledTo={isScrolledTo}
                 position={highlight.position}
@@ -401,7 +525,12 @@ const PdfHighlighter = ({
               />
             </div>
           ) : (
-            <div id={highlight.id}>
+            <div
+              key={index}
+              id={highlight.id}
+              data-highlight-id={stored?.id}
+              data-highlight-color={stored?.color}
+            >
               <AreaHighlight
                 isScrolledTo={isScrolledTo}
                 highlight={highlight}
@@ -416,27 +545,30 @@ const PdfHighlighter = ({
             </div>
           );
 
-          return (
-            <HighlightTip
-              key={index}
-              id={highlight.id}
-              pinnedRef={pinnedHighlightRef}
-              show={(tip) => setTip(highlight, () => tip)}
-              hide={hideTip}
-              popover={
-                <HighlightedTextPopover
-                  id={highlight.id}
-                  deleteHighlight={deleteHighlight}
-                  hideTip={hideTip}
-                />
-              }
-            >
-              {component}
-            </HighlightTip>
-          );
+          return component;
         }}
-        highlights={highlights as unknown as IHighlight[]}
+        highlights={viewerHighlights as unknown as IHighlight[]}
       />
+      {pageRoot &&
+        createPortal(
+          <>
+            {highlightTip.tip && (
+              <AnchoredPopover
+                key={highlightTip.tip.id}
+                ref={highlightTip.popoverRef}
+                anchor={highlightTip.tip.anchor}
+              >
+                {highlightPopover(highlightTip.tip.id, highlightTip.close)}
+              </AnchoredPopover>
+            )}
+            {selectionTip.tip && selectionPopover && (
+              <AnchoredPopover ref={selectionTip.popoverRef} anchor={selectionTip.tip.anchor}>
+                {selectionPopover}
+              </AnchoredPopover>
+            )}
+          </>,
+          pageRoot,
+        )}
       {reflow.layer}
       <PdfSearch
         eventBus={highlighterInstance?.eventBus ?? null}

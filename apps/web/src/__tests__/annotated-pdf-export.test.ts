@@ -16,6 +16,7 @@ describe("prepareAnnotatedPdfDownload", () => {
       highlights: [
         {
           id: "highlight-1",
+          color: "yellow",
           position: {
             pageNumber: 1,
             boundingRect: null,

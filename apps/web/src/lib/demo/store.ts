@@ -1,4 +1,9 @@
 import { type HighlightPositionType } from "@/types/highlight";
+import {
+  DEFAULT_HIGHLIGHT_COLOR,
+  isHighlightColor,
+  type HighlightColor,
+} from "@uxie/shared/lib/highlight-colors";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { DEMO_DOC_SEED, type DemoDoc, type DemoHighlight } from "./seed";
@@ -8,6 +13,7 @@ export type { DemoDoc } from "./seed";
 interface DemoDocStore extends DemoDoc {
   addHighlight: (highlight: DemoHighlight) => void;
   deleteHighlight: (id: string) => void;
+  recolorHighlight: (id: string, color: HighlightColor) => void;
   updateAreaHighlight: (
     id: string,
     boundingRect: HighlightPositionType["boundingRect"],
@@ -38,6 +44,13 @@ export const useDemoDocStore = create<DemoDocStore>()(
           highlights: state.highlights.filter((h) => h.id !== id),
         })),
 
+      recolorHighlight: (id, color) =>
+        set((state) => ({
+          highlights: state.highlights.map((h) =>
+            h.id === id ? { ...h, color } : h,
+          ),
+        })),
+
       updateAreaHighlight: (id, boundingRect, pageNumber) =>
         set((state) => ({
           highlights: state.highlights.map((h) =>
@@ -64,11 +77,21 @@ export const useDemoDocStore = create<DemoDocStore>()(
     }),
     {
       name: DEMO_STORAGE_KEY,
-      // Persist only the document data by omitting the action functions, so any
-      // new data field is persisted automatically.
+      version: 1,
+      migrate: (persisted) => {
+        const doc = persisted as DemoDoc;
+        return {
+          ...doc,
+          highlights: (doc.highlights ?? []).map((h) => ({
+            ...h,
+            color: isHighlightColor(h.color) ? h.color : DEFAULT_HIGHLIGHT_COLOR,
+          })),
+        } as DemoDocStore;
+      },
       partialize: ({
         addHighlight,
         deleteHighlight,
+        recolorHighlight,
         updateAreaHighlight,
         setNote,
         setTitle,

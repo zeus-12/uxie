@@ -80,6 +80,8 @@ export const documentRouter = createTRPCRouter({
         .filter((highlight) => highlight.type !== "ARTICLE_TEXT")
         .map((highlight) => ({
           id: highlight.id,
+          color: highlight.color,
+          text: highlight.selectedText,
           position: {
             boundingRect: {
               id: highlight.boundingRectangle?.id,
@@ -161,6 +163,7 @@ export const documentRouter = createTRPCRouter({
             return [
               {
                 id: highlight.id,
+                color: highlight.color,
                 selectedText: highlight.selectedText ?? anchor.exactText,
                 anchor: {
                   snapshotId: anchor.snapshotId,

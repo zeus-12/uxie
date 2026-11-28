@@ -88,6 +88,7 @@ describe("article text anchors", () => {
     const highlights = [
       {
         id: "highlight-1",
+        color: "yellow",
         selectedText: "bravo",
         anchor: {
           snapshotId: "snapshot-1",
@@ -101,6 +102,7 @@ describe("article text anchors", () => {
       },
       {
         id: "highlight-2",
+        color: "green",
         selectedText: "delta",
         anchor: {
           snapshotId: "snapshot-1",
@@ -119,11 +121,15 @@ describe("article text anchors", () => {
 
     expect(root.textContent).toBe(before);
     expect(
-      root.querySelectorAll("mark[data-article-highlight-id]"),
+      root.querySelectorAll("mark[data-highlight-id]"),
     ).toHaveLength(2);
     expect(
-      root.querySelector('mark[data-article-highlight-id="highlight-1"]')
+      root.querySelector('mark[data-highlight-id="highlight-1"]')
         ?.textContent,
     ).toBe("bravo");
+    expect(
+      root.querySelector<HTMLElement>('mark[data-highlight-id="highlight-2"]')
+        ?.dataset.highlightColor,
+    ).toBe("green");
   });
 });

@@ -1,4 +1,5 @@
 import { type HighlightPositionType } from "@/types/highlight";
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
 
 /**
  * Static seed data for the unauthenticated demo experience.
@@ -13,6 +14,8 @@ import { type HighlightPositionType } from "@/types/highlight";
 export interface DemoHighlight {
   id: string;
   position: HighlightPositionType;
+  color: HighlightColor;
+  text?: string | null;
 }
 
 export interface DemoDoc {

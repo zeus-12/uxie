@@ -5,15 +5,15 @@ import { useBlocknoteEditorStore } from "@/lib/store";
 import { HighlightContentType } from "@/types/highlight";
 import type { ArticleDocumentData } from "@/types/reader";
 import { createId } from "@paralleldrive/cuid2";
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
 import { CITATION_HIGHLIGHT_DURATION_MS } from "@uxie/shared/lib/citation-navigation";
 import {
   useArticleSettingsStore,
   useChatStore,
   useCitationHighlightStore,
   useHighlightJumpStore,
-  useSidebarTabStore,
 } from "@uxie/shared/lib/store";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
 import {
@@ -22,10 +22,14 @@ import {
   paintArticleHighlights,
   type ArticleTextSelection,
 } from "./article-dom";
+import { useRecolorHighlight } from "@/hooks/use-recolor-highlight";
+import { AnchoredPopover } from "@uxie/shared/components/pdf-reader/anchored-popover";
 import {
-  ArticleHighlightPopover,
-  ArticleSelectionPopover,
-} from "./selection-popover";
+  HighlightedTextPopover,
+  TextSelectionPopover,
+} from "@uxie/shared/components/pdf-reader/highlight-popover";
+import { useHighlightTip, useSelectionTip } from "@uxie/shared/hooks/use-reader-tips";
+import { usePublishHighlightColors } from "@uxie/shared/lib/store";
 import { ArticleBottomToolbar } from "./tts-toolbar";
 import { useArticleTts } from "./use-article-tts";
 
@@ -44,15 +48,14 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
   const { article } = doc;
   const sourceName = article.siteName || new URL(article.canonicalUrl).hostname;
   const scrollRootRef = useRef<HTMLElement>(null);
-  const articleContentRef = useRef<HTMLDivElement>(null);
+  const articleContentRef = useRef<HTMLDivElement | null>(null);
+  const [articleContent, setArticleContent] = useState<HTMLDivElement | null>(null);
+  const attachArticleContent = useCallback((element: HTMLDivElement | null) => {
+    articleContentRef.current = element;
+    setArticleContent(element);
+  }, []);
   const restoredProgressRef = useRef(false);
   const restoringProgressRef = useRef(true);
-  const [selection, setSelection] = useState<ArticleTextSelection | null>(null);
-  const [activeHighlight, setActiveHighlight] = useState<{
-    id: string;
-    text: string;
-    rect: DOMRect;
-  } | null>(null);
   const fontFamily = useArticleSettingsStore((state) => state.fontFamily);
   const fontSize = useArticleSettingsStore((state) => state.fontSize);
   const backgroundColour = useArticleSettingsStore(
@@ -65,7 +68,6 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
     (state) => state.setJumpToHighlight,
   );
   const sendChatMessage = useChatStore((state) => state.sendMessage);
-  const setSidebarTab = useSidebarTabStore((state) => state.setTab);
   const articleTts = useArticleTts({
     articleRootRef: articleContentRef,
     scrollRootRef,
@@ -83,6 +85,7 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
             ...old.highlights,
             {
               id: input.id,
+              color: input.color,
               selectedText: input.exactText,
               anchor: {
                 snapshotId: input.snapshotId,
@@ -186,7 +189,7 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
     setJumpToHighlight((highlightId) => {
       const root = articleContentRef.current;
       const mark = root?.querySelector<HTMLElement>(
-        `mark[data-article-highlight-id="${highlightId}"]`,
+        `mark[data-highlight-id="${CSS.escape(highlightId)}"]`,
       );
       if (!mark) {
         toast.error("Couldn't find this highlight in the article.");
@@ -282,42 +285,30 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
     return () => saveProgress.flush();
   }, [saveProgress]);
 
-  const dismissPopover = () => {
-    setSelection(null);
-    setActiveHighlight(null);
+  const recolorHighlight = useRecolorHighlight(doc.id);
+  usePublishHighlightColors(doc.highlights);
+  const canEdit = doc.userPermissions.canEdit;
+  const askAi = doc.isVectorised && sendChatMessage ? sendChatMessage : undefined;
+
+  const describeSelection = useCallback(
+    () => (articleContentRef.current ? getArticleTextSelection(articleContentRef.current) : null),
+    [],
+  );
+  const selectionTip = useSelectionTip(articleContent, describeSelection);
+  const highlightTip = useHighlightTip(articleContent, {
+    suspended: selectionTip.tip !== null,
+  });
+  const closeSelection = () => {
+    selectionTip.close();
     window.getSelection()?.removeAllRanges();
   };
 
-  const readSelection = () => {
-    const root = articleContentRef.current;
-    if (!root) return;
-    // Always assign: keeping the previous selection when the current one is
-    // unusable leaves the popover anchored to text the user no longer has
-    // selected, and highlighting then saves that stale text.
-    setSelection(getArticleTextSelection(root));
-  };
-
-  const openHighlightActions = (target: EventTarget | null) => {
-    if (!(target instanceof Element)) return false;
-    const mark = target.closest<HTMLElement>("mark[data-article-highlight-id]");
-    const id = mark?.dataset.articleHighlightId;
-    if (!mark || !id) return false;
-    const highlight = doc.highlights.find((item) => item.id === id);
-    if (!highlight) return false;
-    setSelection(null);
-    setActiveHighlight({
-      id,
-      text: highlight.selectedText,
-      rect: mark.getBoundingClientRect(),
-    });
-    return true;
-  };
-
-  const persistSelection = () => {
-    if (!selection) return;
-    const id = createId();
+  const persistSelection = (
+    selection: ArticleTextSelection,
+    color: HighlightColor,
+  ) => {
     addHighlight({
-      id,
+      id: createId(),
       documentId: doc.id,
       snapshotId: article.snapshot.id,
       blockId: selection.blockId,
@@ -326,9 +317,14 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
       exactText: selection.exactText,
       prefix: selection.prefix,
       suffix: selection.suffix,
+      color,
     });
-    dismissPopover();
   };
+
+  const selection = selectionTip.tip?.value;
+  const tipHighlight = highlightTip.tip
+    ? doc.highlights.find((h) => h.id === highlightTip.tip!.id)
+    : undefined;
 
   return (
     <div
@@ -349,12 +345,10 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
       <main
         ref={scrollRootRef}
         onScroll={() => {
-          setSelection(null);
-          setActiveHighlight(null);
           articleTts.notifyUserScroll();
           if (!restoringProgressRef.current) saveProgress();
         }}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-24 pt-10 sm:px-8 sm:pb-24 sm:pt-14"
+        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-24 pt-10 sm:px-8 sm:pb-24 sm:pt-14"
       >
         <article
           className="mx-auto max-w-[68ch]"
@@ -380,59 +374,54 @@ export default function ArticleReader({ doc }: { doc: ArticleDocumentData }) {
           </header>
 
           <div
-            ref={articleContentRef}
+            ref={attachArticleContent}
             className="article-content prose max-w-none break-words leading-[1.7] prose-headings:scroll-mt-6 prose-headings:text-balance prose-headings:font-semibold prose-headings:tracking-tight prose-a:font-medium prose-a:text-foreground prose-a:decoration-muted-foreground prose-a:underline-offset-4 prose-blockquote:border-border prose-blockquote:text-muted-foreground prose-img:rounded-md prose-img:outline prose-img:outline-1 prose-img:outline-foreground/10 prose-pre:overflow-x-auto"
             style={{ fontFamily: "inherit", fontSize }}
             dangerouslySetInnerHTML={{ __html: article.snapshot.contentHtml }}
-            onMouseUp={(event) => {
-              if (openHighlightActions(event.target)) return;
-              requestAnimationFrame(readSelection);
-            }}
-            onKeyUp={(event) => {
-              if (event.key === "Enter" && openHighlightActions(event.target)) {
-                return;
-              }
-              requestAnimationFrame(readSelection);
-            }}
           />
         </article>
+        {highlightTip.tip && tipHighlight && (
+          <AnchoredPopover
+            key={highlightTip.tip.id}
+            ref={highlightTip.popoverRef}
+            anchor={highlightTip.tip.anchor}
+          >
+            <HighlightedTextPopover
+              text={tipHighlight.selectedText}
+              color={tipHighlight.color}
+              onRead={() =>
+                articleTts.startFromSelection(
+                  tipHighlight.anchor.blockId,
+                  tipHighlight.anchor.startOffset,
+                )
+              }
+              onRecolor={
+                canEdit ? (color) => recolorHighlight(tipHighlight.id, color) : undefined
+              }
+              onDelete={
+                canEdit
+                  ? () => deleteHighlight({ documentId: doc.id, highlightId: tipHighlight.id })
+                  : undefined
+              }
+              onAskAi={askAi}
+              close={highlightTip.close}
+            />
+          </AnchoredPopover>
+        )}
+        {selectionTip.tip && selection && (
+          <AnchoredPopover ref={selectionTip.popoverRef} anchor={selectionTip.tip.anchor}>
+            <TextSelectionPopover
+              text={selection.exactText}
+              onHighlight={canEdit ? (color) => persistSelection(selection, color) : undefined}
+              onRead={() =>
+                articleTts.startFromSelection(selection.blockId, selection.startOffset)
+              }
+              onAskAi={askAi}
+              close={closeSelection}
+            />
+          </AnchoredPopover>
+        )}
       </main>
-      {selection && (
-        <ArticleSelectionPopover
-          rect={selection.rect}
-          text={selection.exactText}
-          canEdit={doc.userPermissions.canEdit}
-          onDismiss={dismissPopover}
-          onHighlight={persistSelection}
-          onRead={() =>
-            articleTts.startFromSelection(
-              selection.blockId,
-              selection.startOffset,
-            )
-          }
-          onAsk={
-            doc.isVectorised && sendChatMessage
-              ? (prompt) => {
-                  sendChatMessage(prompt);
-                  setSidebarTab("chat");
-                }
-              : undefined
-          }
-        />
-      )}
-      {activeHighlight && doc.userPermissions.canEdit && (
-        <ArticleHighlightPopover
-          rect={activeHighlight.rect}
-          text={activeHighlight.text}
-          onDismiss={dismissPopover}
-          onDelete={() =>
-            deleteHighlight({
-              documentId: doc.id,
-              highlightId: activeHighlight.id,
-            })
-          }
-        />
-      )}
       <ArticleBottomToolbar tts={articleTts} originalUrl={article.sourceUrl} />
     </div>
   );

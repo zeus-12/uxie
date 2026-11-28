@@ -6,6 +6,7 @@ import {
 } from "@/types/highlight";
 import { type ReaderDoc } from "@/types/reader";
 import { HighlightTypeEnum } from "@prisma/client";
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
 import PdfHighlighter from "@uxie/shared/components/pdf-reader/pdf-highlighter";
 import { PdfLoader } from "@uxie/shared/components/pdf-reader/pdf-loader";
 import { SpinnerPage } from "@uxie/shared/components/ui/spinner";
@@ -24,17 +25,17 @@ import { toast } from "sonner";
 const PdfReader = ({
   addHighlight,
   deleteHighlight,
+  recolorHighlight,
   doc,
   onPdfDocumentChange,
   onUpdateReaderState,
   onUpdateAreaHighlight,
 }: {
-  addHighlight: ({ content, position }: AddHighlightType) => Promise<void>;
+  addHighlight: (highlight: AddHighlightType) => Promise<void>;
   deleteHighlight: (id: string) => void;
+  recolorHighlight: (id: string, color: HighlightColor) => void;
   doc: ReaderDoc;
   onPdfDocumentChange?: (pdfDocument: PDFDocumentProxy | null) => void;
-  // When provided (e.g. the local demo), these bypass the backend for the two
-  // persistence touchpoints; otherwise the components fall back to tRPC.
   onUpdateReaderState?: (
     docId: string,
     state: { lastReadPage?: number; zoomLevel?: number },
@@ -56,8 +57,6 @@ const PdfReader = ({
     [],
   );
 
-  // Persistence lives here, not in the shared components: they only report what
-  // happened. The demo injects its own local writers instead.
   const utils = api.useContext();
   const { mutateAsync: saveReaderState } =
     api.document.updateReaderState.useMutation();
@@ -154,13 +153,15 @@ const PdfReader = ({
               pdfDocument={pdfDocument}
               highlights={highlights}
               showAiFeatures={doc.isVectorised}
-              addHighlight={({ content, position }) =>
+              addHighlight={({ content, position, color }) =>
                 void addHighlight({
                   content,
                   position: position as AddHighlightType["position"],
+                  color,
                 })
               }
               deleteHighlight={deleteHighlight}
+              recolorHighlight={recolorHighlight}
               updateAreaHighlight={(id, boundingRect, pageNumber) => {
                 if (onUpdateAreaHighlight) {
                   onUpdateAreaHighlight(

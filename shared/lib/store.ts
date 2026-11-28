@@ -1,10 +1,12 @@
 import { PDF_BACKGROUND_COLOURS } from "./constants";
 import { type BlockNoteEditorType } from "../types/editor";
 import { type RetrievedChunk } from "./chat";
+import { useEffect, useMemo } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { getEngineFromVoice, type TTSEngineType, type TTSVoiceId } from "./tts";
 import { BROWSER_VOICES } from "./tts/providers/browser-provider";
+import { DEFAULT_HIGHLIGHT_COLOR, type HighlightColor } from "./highlight-colors";
 
 type EditorStore = {
   editor: BlockNoteEditorType | null;
@@ -78,6 +80,9 @@ interface PdfSettingsStore {
 
   reflowOnZoom: boolean;
   setReflowOnZoom: (enabled: boolean) => void;
+
+  highlightColor: HighlightColor;
+  setHighlightColor: (color: HighlightColor) => void;
 }
 
 export const usePdfSettingsStore = create<PdfSettingsStore>()(
@@ -113,6 +118,9 @@ export const usePdfSettingsStore = create<PdfSettingsStore>()(
 
       reflowOnZoom: false,
       setReflowOnZoom: (enabled) => set({ reflowOnZoom: enabled }),
+
+      highlightColor: DEFAULT_HIGHLIGHT_COLOR,
+      setHighlightColor: (color) => set({ highlightColor: color }),
     }),
     {
       name: "pdf-settings",
@@ -166,6 +174,29 @@ type JumpToHighlight = (
   highlightId: string,
   fallbackPageNumber?: number,
 ) => void;
+
+interface HighlightColorStore {
+  colors: ReadonlyMap<string, HighlightColor>;
+  setColors: (colors: ReadonlyMap<string, HighlightColor>) => void;
+}
+
+export const useHighlightColorStore = create<HighlightColorStore>((set) => ({
+  colors: new Map(),
+  setColors: (colors) => set({ colors }),
+}));
+
+export function usePublishHighlightColors(
+  highlights: ReadonlyArray<{ id: string; color: HighlightColor }>,
+) {
+  const colors = useMemo(
+    () => new Map(highlights.map((h) => [h.id, h.color])),
+    [highlights],
+  );
+  const setColors = useHighlightColorStore((s) => s.setColors);
+  useEffect(() => setColors(colors), [colors, setColors]);
+  useEffect(() => () => setColors(new Map()), [setColors]);
+  return colors;
+}
 
 interface HighlightJumpStore {
   jumpToHighlight: JumpToHighlight | null;

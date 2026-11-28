@@ -8,7 +8,6 @@ export type ArticleTextSelection = {
   exactText: string;
   prefix: string;
   suffix: string;
-  rect: DOMRect;
 };
 
 const blockForNode = (node: Node | null) => {
@@ -92,7 +91,6 @@ export const getArticleTextSelection = (
     exactText,
     prefix: blockText.slice(Math.max(0, startOffset - 128), startOffset),
     suffix: blockText.slice(endOffset, endOffset + 128),
-    rect: range.getBoundingClientRect(),
   };
 };
 
@@ -131,7 +129,7 @@ export const createArticleRange = ({
 
 const clearPaintedHighlights = (root: HTMLElement) => {
   root
-    .querySelectorAll<HTMLElement>("mark[data-article-highlight-id]")
+    .querySelectorAll<HTMLElement>("mark[data-highlight-id]")
     .forEach((mark) => mark.replaceWith(...Array.from(mark.childNodes)));
   root.normalize();
 };
@@ -164,10 +162,10 @@ export const paintArticleHighlights = (
     if (!range || range.toString() !== highlight.anchor.exactText) continue;
 
     const mark = document.createElement("mark");
-    mark.dataset.articleHighlightId = highlight.id;
+    mark.dataset.highlightId = highlight.id;
+    mark.dataset.highlightColor = highlight.color;
     mark.className =
-      "article-annotation rounded-[2px] text-inherit decoration-clone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
-    mark.style.backgroundColor = "var(--annotation)";
+      "article-annotation cursor-pointer rounded-[2px] decoration-clone focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
     mark.tabIndex = 0;
     mark.setAttribute("role", "button");
     mark.setAttribute(

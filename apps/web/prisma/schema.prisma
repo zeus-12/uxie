@@ -169,11 +169,18 @@ enum HighlightTypeEnum {
   ARTICLE_TEXT
 }
 
+enum HighlightColor {
+  yellow
+  green
+  blue
+  red
+  orange
+}
+
 model Highlight {
   id         String            @id @default(cuid())
-  // imageUrl   String?  @db.Text
-  // text       String?  @db.Text
   type       HighlightTypeEnum
+  color      HighlightColor    @default(yellow)
   document   Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
   documentId String
   createdAt  DateTime          @default(now())
@@ -246,18 +253,13 @@ model FlashcardAttempt {
   flashcardId String
   user        User      @relation(fields: [userId], references: [id])
   userId      String
-  // option to remove the qn => maybe a hasMemorised boolean
   createdAt   DateTime  @default(now())
 
-  // what user responded
   userResponse String
 
-  // what user got right
   correctResponse String?
 
-  // what user got wrong
   incorrectResponse String?
 
-  // more info about the answer
   moreInfo String?
 }

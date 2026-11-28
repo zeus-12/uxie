@@ -1,3 +1,5 @@
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
+
 export enum HighlightContentType {
   TEXT = "TEXT",
   IMAGE = "IMAGE",
@@ -51,4 +53,5 @@ export interface AddHighlightType {
     image?: string;
   };
   position: HighlightPositionType;
+  color: HighlightColor;
 }

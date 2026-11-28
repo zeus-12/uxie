@@ -27,15 +27,21 @@ const DemoDocViewer = ({
 }) => {
   const addHighlightToStore = useDemoDocStore((s) => s.addHighlight);
   const deleteHighlight = useDemoDocStore((s) => s.deleteHighlight);
+  const recolorHighlight = useDemoDocStore((s) => s.recolorHighlight);
   const updateAreaHighlight = useDemoDocStore((s) => s.updateAreaHighlight);
   const setReaderState = useDemoDocStore((s) => s.setReaderState);
 
-  async function addHighlight({ content, position }: AddHighlightType) {
+  async function addHighlight({ content, position, color }: AddHighlightType) {
     const { text, image } = content;
     if (!text && !image) return;
 
     const highlightId = createId();
-    addHighlightToStore({ id: highlightId, position });
+    addHighlightToStore({
+      id: highlightId,
+      position,
+      color,
+      text: image ? null : text,
+    });
 
     const editor = useBlocknoteEditorStore.getState().editor;
     if (text) {
@@ -78,6 +84,7 @@ const DemoDocViewer = ({
           doc={doc}
           addHighlight={addHighlight}
           deleteHighlight={deleteHighlight}
+          recolorHighlight={recolorHighlight}
           onUpdateReaderState={(_id, state) => setReaderState(state)}
           onUpdateAreaHighlight={updateAreaHighlight}
           onPdfDocumentChange={onPdfDocumentChange}
