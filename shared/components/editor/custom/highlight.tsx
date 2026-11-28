@@ -1,6 +1,32 @@
 import { defaultProps, type PropSchema } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
-import { useHighlightJumpStore } from "../../../lib/store";
+import { useHighlightColorStore, useHighlightJumpStore } from "../../../lib/store";
+import { cn } from "../../../lib/utils";
+
+const HighlightMarker = ({
+  highlightId,
+  pageNumber,
+}: {
+  highlightId: string;
+  pageNumber: number;
+}) => {
+  const color = useHighlightColorStore((s) => s.colors.get(highlightId));
+  return (
+    <div
+      data-swatch={color}
+      onClick={() => {
+        if (!highlightId) return;
+        useHighlightJumpStore
+          .getState()
+          .jumpToHighlight?.(highlightId, pageNumber || undefined);
+      }}
+      className={cn(
+        "w-2 rounded-full hover:cursor-pointer",
+        color ? "bg-[var(--uxie-swatch)]" : "bg-border",
+      )}
+    />
+  );
+};
 
 export const highlightPropSchema = {
   textAlignment: defaultProps.textAlignment,
@@ -24,15 +50,9 @@ export const HighlighBlock = createReactBlockSpec(
   {
     render: (props) => (
       <div className="flex h-full w-full items-stretch gap-2 rounded-sm p-1">
-        <div
-          onClick={() => {
-            const { highlightId, pageNumber } = props.block.props;
-            if (!highlightId) return;
-            useHighlightJumpStore
-              .getState()
-              .jumpToHighlight?.(highlightId, pageNumber || undefined);
-          }}
-          className="w-2 rounded-full bg-[hsl(var(--palette-yellow))] hover:cursor-pointer"
+        <HighlightMarker
+          highlightId={props.block.props.highlightId}
+          pageNumber={props.block.props.pageNumber}
         />
         <div className="flex-1">
           <div className="inline-content" ref={props.contentRef} />
@@ -44,7 +64,6 @@ export const HighlighBlock = createReactBlockSpec(
         props.block.content?.[0] && "text" in props.block.content?.[0]
           ? props.block.content?.[0]?.text
           : "";
-      // todo: add styles to maake it look like a highlight
       return <p>{highlightText}</p>;
     },
   },

@@ -24,6 +24,9 @@ import { caretAt, charRect, offsetWithin } from "./caret";
 import { highlightRanges } from "./highlight-ranges";
 import { ReflowPageView, runKey, type LoadedPage, type PageMarks, type ReflowLink } from "./reflow-page";
 import { usePdfSettingsStore } from "../../../lib/store";
+import type { HighlightColor } from "../../../lib/highlight-colors";
+import { useHighlightTip, useSelectionTip } from "../../../hooks/use-reader-tips";
+import { AnchoredPopover } from "../anchored-popover";
 
 export const CSS_PX_PER_PT = 96 / 72;
 const WINDOW_RADIUS = 3;
@@ -58,6 +61,7 @@ type Props = {
   scale: number;
   anchor: ScreenAnchor;
   highlightRects: (pageNumber: number, width: number, height: number) => HighlightRegion[];
+  highlightColors: ReadonlyMap<string, HighlightColor>;
   visible: boolean;
   onPlaced: () => void;
   onFailed: () => void;
@@ -118,10 +122,26 @@ const sectionAnchorAt = (
 };
 
 export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLayer(
-  { source, pdfDocument, viewer, findController, eventBus, scale, anchor, highlightRects, visible, onPlaced, onFailed, onResized, renderSelection, renderHighlight },
+  {
+    source,
+    pdfDocument,
+    viewer,
+    findController,
+    eventBus,
+    scale,
+    anchor,
+    highlightRects,
+    highlightColors,
+    visible,
+    onPlaced,
+    onFailed,
+    onResized,
+    renderSelection,
+    renderHighlight,
+  },
   ref,
 ) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [pages, setPages] = useState<LoadedPage[]>([]);
   const pagesRef = useRef<LoadedPage[]>([]);
   const [findVersion, setFindVersion] = useState(0);
@@ -472,142 +492,40 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     };
   }, [pages, highlightRects, resolveDest]);
 
-  const [selection, setSelection] = useState<{ value: ReflowSelection; left: number; top: number } | null>(null);
   const [ghost, setGhost] = useState<ReflowSelection | null>(null);
-
-  const selectable = Boolean(renderSelection);
-  const [highlightTip, setHighlightTip] = useState<{ id: string; left: number; top: number; pinned: boolean } | null>(
-    null,
-  );
-  const highlightTipRef = useRef(highlightTip);
-  highlightTipRef.current = highlightTip;
-  const highlightTipEl = useRef<HTMLDivElement>(null);
-  const closeHighlightTip = useCallback(() => setHighlightTip(null), []);
-
-  // Same rules as the page's highlights: hover shows the tip, a click or tap pins it
-  // until a pointerdown outside it, Escape, or delete.
-  useEffect(() => {
-    const root = scroller();
-    if (!root || !visible || !renderHighlight) return;
-    const markAt = (target: EventTarget | null) => {
-      const mark = (target as Element | null)?.closest?.<HTMLElement>("mark[data-highlight-id]");
-      return mark && root.contains(mark) ? mark : null;
-    };
-    const tipFor = (mark: HTMLElement, pinned: boolean) => {
-      const box = mark.getBoundingClientRect();
-      const rootBox = root.getBoundingClientRect();
-      const half = Math.min(60, rootBox.width / 2);
-      return {
-        id: mark.dataset.highlightId!,
-        left: clamp(box.left + box.width / 2 - rootBox.left, half, rootBox.width - half),
-        top: box.top - rootBox.top + root.scrollTop,
-        pinned,
-      };
-    };
-    const onClick = (e: MouseEvent) => {
-      const mark = markAt(e.target);
-      if (!mark || !window.getSelection()?.isCollapsed) return;
-      setHighlightTip(tipFor(mark, true));
-    };
-    const onOver = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse" || highlightTipRef.current?.pinned || e.buttons) return;
-      const mark = markAt(e.target);
-      if (mark && highlightTipRef.current?.id !== mark.dataset.highlightId) setHighlightTip(tipFor(mark, false));
-    };
-    const onMove = (e: PointerEvent) => {
-      const tip = highlightTipRef.current;
-      if (e.pointerType !== "mouse" || !tip || tip.pinned) return;
-      if (markAt(e.target)?.dataset.highlightId === tip.id) return;
-      const box = highlightTipEl.current?.getBoundingClientRect();
-      const near =
-        box &&
-        e.clientX > box.left - 60 &&
-        e.clientX < box.right + 60 &&
-        e.clientY > box.top - 30 &&
-        e.clientY < box.bottom + 30;
-      if (!near) setHighlightTip(null);
-    };
-    const onDown = (e: PointerEvent) => {
-      if ((e.target as Element | null)?.closest?.("[data-reflow-tip]")) return;
-      setHighlightTip(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setHighlightTip(null);
-    };
-    root.addEventListener("click", onClick);
-    root.addEventListener("pointerover", onOver);
-    document.addEventListener("pointermove", onMove);
-    document.addEventListener("pointerdown", onDown, true);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      root.removeEventListener("click", onClick);
-      root.removeEventListener("pointerover", onOver);
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerdown", onDown, true);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [visible, renderHighlight]);
-
-  const closeSelection = useCallback(() => {
-    setSelection(null);
-    setGhost(null);
-    window.getSelection()?.removeAllRanges();
+  const [scrollerEl, setScrollerEl] = useState<HTMLDivElement | null>(null);
+  const attachScroller = useCallback((el: HTMLDivElement | null) => {
+    scrollerRef.current = el;
+    setScrollerEl(el);
   }, []);
 
-  useEffect(() => {
-    const root = scroller();
-    if (!root || !visible || !selectable) return;
-    let pointerDown = false;
-
-    // Runs on every selectionchange while a selection is dragged: it may read
-    // layout, but must not change the DOM or the live selection is dropped.
-    const finish = () => {
-      const sel = window.getSelection();
-      if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
-      const range = sel.getRangeAt(0);
-      if (!root.contains(range.commonAncestorContainer)) return;
+  const describe = useCallback(
+    (_selection: Selection, range: Range) => {
+      const root = scrollerRef.current;
+      if (!root) return null;
       const inputs = new Map(pagesRef.current.map((p) => [p.page.pageNumber, p.input]));
-      const value = describeSelection(
+      return describeSelection(
         selectedSlices(root, range),
         (n) => inputs.get(n),
         (n) => pdfDocument.getPage(n),
         viewer.currentScale,
       );
-      if (!value) return;
-      const box = range.getBoundingClientRect();
-      const rootBox = root.getBoundingClientRect();
-      const half = Math.min(140, rootBox.width / 2);
-      const left = clamp(box.left + box.width / 2 - rootBox.left, half, rootBox.width - half);
-      const top = box.top - rootBox.top + root.scrollTop;
-      setSelection({ value, left, top });
-    };
-    const onDown = (e: PointerEvent) => {
-      if ((e.target as Element | null)?.closest?.("[data-reflow-tip]")) return;
-      pointerDown = true;
-      setSelection(null);
-      setGhost(null);
-    };
-    const onUp = () => {
-      if (!pointerDown) return;
-      pointerDown = false;
-      finish();
-    };
-    const onChange = () => {
-      if (!pointerDown) finish();
-    };
-    root.addEventListener("pointerdown", onDown);
-    document.addEventListener("pointerup", onUp);
-    document.addEventListener("pointercancel", onUp);
-    document.addEventListener("keyup", onChange);
-    document.addEventListener("selectionchange", onChange);
-    return () => {
-      root.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("pointerup", onUp);
-      document.removeEventListener("pointercancel", onUp);
-      document.removeEventListener("keyup", onChange);
-      document.removeEventListener("selectionchange", onChange);
-    };
-  }, [visible, selectable, pdfDocument, viewer]);
+    },
+    [pdfDocument, viewer],
+  );
+  const selectionTip = useSelectionTip(visible && renderSelection ? scrollerEl : null, describe);
+  const highlightTip = useHighlightTip(visible && renderHighlight ? scrollerEl : null, {
+    suspended: selectionTip.tip !== null,
+  });
+
+  useEffect(() => {
+    if (!selectionTip.tip) setGhost(null);
+  }, [selectionTip.tip]);
+
+  const closeSelection = useCallback(() => {
+    selectionTip.close();
+    window.getSelection()?.removeAllRanges();
+  }, [selectionTip.close]);
 
   const marksByPage = useMemo(() => {
     const fc = findController;
@@ -621,7 +539,10 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           : [],
         selectedSearch: active && fc.selected.pageIdx === index ? fc.selected.matchIdx : null,
         highlights: [
-          ...(highlightsByPage[loaded.page.pageNumber] ?? []),
+          ...(highlightsByPage[loaded.page.pageNumber] ?? []).map((range) => ({
+            ...range,
+            color: highlightColors.get(range.id),
+          })),
           ...(ghost?.ranges.get(loaded.page.pageNumber) ?? []),
         ],
         links: linksDisabled ? [] : (linksByPage[loaded.page.pageNumber] ?? []),
@@ -629,7 +550,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
     }
     return marks;
     // pdf.js mutates findController in place; findVersion is its change signal.
-  }, [pages, findController, findVersion, highlightsByPage, ghost, linksByPage, linksDisabled]);
+  }, [pages, findController, findVersion, highlightsByPage, highlightColors, ghost, linksByPage, linksDisabled]);
 
   useEffect(() => {
     const fc = findController;
@@ -864,7 +785,7 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
 
   return (
     <div
-      ref={scrollerRef}
+      ref={attachScroller}
       className="reflow-layer"
       data-active={visible ? "" : undefined}
       style={{ visibility: visible ? "visible" : "hidden" }}
@@ -877,20 +798,15 @@ export const ReflowLayer = forwardRef<ReflowLayerApi, Props>(function ReflowLaye
           marks={marksByPage.get(loaded.page.pageNumber)!}
         />
       ))}
-      {highlightTip && renderHighlight && (
-        <div
-          ref={highlightTipEl}
-          className="reflow-tip"
-          data-reflow-tip=""
-          style={{ left: highlightTip.left, top: highlightTip.top }}
-        >
-          {renderHighlight(highlightTip.id, closeHighlightTip)}
-        </div>
+      {highlightTip.tip && renderHighlight && (
+        <AnchoredPopover key={highlightTip.tip.id} ref={highlightTip.popoverRef} anchor={highlightTip.tip.anchor}>
+          {renderHighlight(highlightTip.tip.id, highlightTip.close)}
+        </AnchoredPopover>
       )}
-      {selection && renderSelection && (
-        <div className="reflow-tip" data-reflow-tip="" style={{ left: selection.left, top: selection.top }}>
-          {renderSelection(selection.value, closeSelection, () => setGhost(selection.value))}
-        </div>
+      {selectionTip.tip && renderSelection && (
+        <AnchoredPopover ref={selectionTip.popoverRef} anchor={selectionTip.tip.anchor}>
+          {renderSelection(selectionTip.tip.value, closeSelection, () => setGhost(selectionTip.tip!.value))}
+        </AnchoredPopover>
       )}
     </div>
   );

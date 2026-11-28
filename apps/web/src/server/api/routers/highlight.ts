@@ -4,6 +4,9 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { getArticleBlockText } from "@/server/article/extract";
 import { CollaboratorRole, HighlightTypeEnum } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import { HIGHLIGHT_COLORS } from "@uxie/shared/lib/highlight-colors";
+
+const highlightColor = z.enum(HIGHLIGHT_COLORS);
 
 export const highlightRouter = createTRPCRouter({
   addArticleText: protectedProcedure
@@ -19,6 +22,7 @@ export const highlightRouter = createTRPCRouter({
           exactText: z.string().min(1).max(20_000),
           prefix: z.string().max(256),
           suffix: z.string().max(256),
+          color: highlightColor,
         })
         .refine((value) => value.endOffset > value.startOffset, {
           message: "The highlight range is invalid.",
@@ -78,6 +82,7 @@ export const highlightRouter = createTRPCRouter({
         data: {
           id: input.id,
           type: HighlightTypeEnum.ARTICLE_TEXT,
+          color: input.color,
           documentId: input.documentId,
           selectedText: input.exactText,
           articleAnchor: {
@@ -109,7 +114,6 @@ export const highlightRouter = createTRPCRouter({
           y2: z.number(),
           width: z.number(),
           height: z.number(),
-          // see when this becomes optional => for text highlights?
           pageNumber: z.number().optional(),
         }),
         rects: z.array(
@@ -120,12 +124,13 @@ export const highlightRouter = createTRPCRouter({
             y2: z.number(),
             width: z.number(),
             height: z.number(),
-            // see when this becomes optional => for imagehighlights?
             pageNumber: z.number().optional(),
           }),
         ),
         pageNumber: z.number(),
         type: z.nativeEnum(HighlightTypeEnum),
+        color: highlightColor,
+        selectedText: z.string().max(20_000).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -176,6 +181,8 @@ export const highlightRouter = createTRPCRouter({
             },
           },
           type: input.type,
+          color: input.color,
+          selectedText: input.selectedText,
           ...pageNumber,
           rectangles: {
             createMany: {
@@ -199,6 +206,47 @@ export const highlightRouter = createTRPCRouter({
             },
           },
         },
+      });
+
+      return true;
+    }),
+
+  updateColor: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string(),
+        id: z.string(),
+        color: highlightColor,
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.documentId,
+          OR: [
+            { ownerId: ctx.session.user.id },
+            {
+              collaborators: {
+                some: {
+                  userId: ctx.session.user.id,
+                  role: CollaboratorRole.EDITOR,
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      if (!doc) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You are not authorized to edit this document",
+        });
+      }
+
+      await ctx.prisma.highlight.update({
+        where: { id: input.id, documentId: input.documentId },
+        data: { color: input.color },
       });
 
       return true;

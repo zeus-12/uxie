@@ -43,6 +43,7 @@ export const useInPlaceReflow = ({
   instance,
   pdfDocument,
   highlightRects,
+  highlightColors,
   onZoomChange,
   renderSelection,
   renderHighlight,
@@ -51,6 +52,7 @@ export const useInPlaceReflow = ({
   instance: Instance | null;
   pdfDocument: PDFDocumentProxy;
   highlightRects: ComponentProps<typeof ReflowLayer>["highlightRects"];
+  highlightColors: ComponentProps<typeof ReflowLayer>["highlightColors"];
   onZoomChange?: (scale: number, persist: boolean) => void;
   renderSelection?: ComponentProps<typeof ReflowLayer>["renderSelection"];
   renderHighlight?: ComponentProps<typeof ReflowLayer>["renderHighlight"];
@@ -452,6 +454,7 @@ export const useInPlaceReflow = ({
         scale={reflow.scale}
         anchor={reflow.anchor}
         highlightRects={highlightRects}
+        highlightColors={highlightColors}
         visible={placed}
         onPlaced={onPlaced}
         onFailed={onFailed}

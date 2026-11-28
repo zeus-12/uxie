@@ -21,6 +21,7 @@ function exportHighlights(
 ): AnnotatedPdfHighlight[] {
   return highlights.map((highlight) => ({
     id: highlight.id,
+    color: highlight.color,
     position: {
       pageNumber: highlight.pageNumber,
       boundingRect: highlight.boundingRectangle,

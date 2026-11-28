@@ -5,6 +5,7 @@
 @import "@uxie/shared/styles/pdf-search.css";
 @import "@uxie/shared/styles/reflow.css";
 @import "@uxie/shared/styles/reader-page.css";
+@import "@uxie/shared/styles/selection-popover.css";
 
 @tailwind base;
 @tailwind components;
@@ -200,9 +201,9 @@ textarea {
 }
 
 .bionic-reading-active .Highlight__part {
-  background: rgba(255, 226, 143, 0.4) !important;
+  background: var(--hl-fill, rgba(255, 226, 143, 0.4)) !important;
 }
 
 .bionic-reading-active .AreaHighlight__part {
-  background-color: rgba(252, 232, 151, 0.4) !important;
+  background-color: var(--hl-fill, rgba(252, 232, 151, 0.4)) !important;
 }

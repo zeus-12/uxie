@@ -6,6 +6,7 @@
 .uxie-pdf-page {
   display: contents;
   --hl-selection: rgb(252 232 151);
+  --hl-alpha: 0.45;
 }
 
 .uxie-pdf-page .textLayer ::selection,
@@ -20,6 +21,7 @@
 
 .uxie-pdf-page[data-page-tone="ink"] {
   --hl-blend: screen;
+  --hl-alpha: 0.38;
   --hl-annotation: hsl(var(--palette-yellow) / 0.38);
   --hl-annotation-focus: hsl(var(--palette-orange) / 0.45);
   --hl-selection: hsl(var(--palette-blue) / 0.4);
@@ -78,5 +80,33 @@
 .uxie-pdf-page[data-page-tone="ink"]
   .bionic-reading-active
   .AreaHighlight__part {
-  background: var(--hl-annotation) !important;
+  background: var(--hl-fill, var(--hl-annotation)) !important;
+}
+
+[data-highlight-color="yellow"] {
+  --hl-fill: hsl(var(--palette-yellow) / var(--hl-alpha, 0.45));
+}
+[data-highlight-color="green"] {
+  --hl-fill: hsl(var(--palette-green) / var(--hl-alpha, 0.45));
+}
+[data-highlight-color="blue"] {
+  --hl-fill: hsl(var(--palette-blue) / var(--hl-alpha, 0.45));
+}
+[data-highlight-color="red"] {
+  --hl-fill: hsl(var(--palette-red) / var(--hl-alpha, 0.45));
+}
+[data-highlight-color="orange"] {
+  --hl-fill: hsl(var(--palette-orange) / var(--hl-alpha, 0.45));
+}
+
+.uxie-pdf-page [data-highlight-color] .Highlight__part,
+.uxie-pdf-page [data-highlight-color] .AreaHighlight__part,
+mark[data-highlight-color] {
+  background: var(--hl-fill);
+  color: inherit;
+}
+
+.uxie-pdf-page [data-highlight-color] .Highlight--scrolledTo .Highlight__part,
+.uxie-pdf-page [data-highlight-color] .AreaHighlight--scrolledTo .AreaHighlight__part {
+  background: var(--hl-annotation-focus, #ff4141);
 }

@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import * as schema from "@uxie/shared/schema";
 import type { AddHighlightInput, RectInput } from "@uxie/shared/schema";
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
 import type { DB } from "./client";
 
 function rectColumns(rect: RectInput) {
@@ -28,6 +29,8 @@ export async function addHighlight(
         type: input.type,
         documentId: input.documentId,
         pageNumber,
+        color: input.color,
+        selectedText: input.selectedText ?? null,
         imageUrl: input.imageUrl ?? null,
       })
       .run();
@@ -52,6 +55,17 @@ export async function addHighlight(
         .run();
     }
   });
+}
+
+export async function updateHighlightColor(
+  db: DB,
+  id: string,
+  color: HighlightColor,
+): Promise<void> {
+  await db
+    .update(schema.highlight)
+    .set({ color })
+    .where(eq(schema.highlight.id, id));
 }
 
 export async function deleteHighlight(db: DB, id: string): Promise<void> {

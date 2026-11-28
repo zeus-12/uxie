@@ -2,6 +2,7 @@ import PdfReader from "@/components/pdf-reader/reader";
 import { ReaderHeader } from "@/components/workspace/reader-header";
 import { addHighlightToNotes } from "@/lib/add-highlight-to-notes";
 import { api } from "@/lib/api";
+import { useRecolorHighlight } from "@/hooks/use-recolor-highlight";
 import { useBlocknoteEditorStore } from "@/lib/store";
 import { type AddHighlightType, HighlightContentType } from "@/types/highlight";
 import type { PdfDocumentData } from "@/types/reader";
@@ -40,6 +41,8 @@ const DocViewer = ({
             ...old.highlights,
             {
               id: newHighlight.id,
+              color: newHighlight.color,
+              text: newHighlight.selectedText ?? null,
               position: {
                 boundingRect: {
                   id: `${newHighlight.id}-bounds`,
@@ -68,8 +71,7 @@ const DocViewer = ({
       utils.document.getDocData.setData({ docId: docId }, ctx?.prevData);
     },
     onSettled() {
-      // Sync with server once mutation has settled
-      utils.document.getDocData.invalidate();
+      void utils.document.getDocData.invalidate();
     },
   });
 
@@ -103,13 +105,13 @@ const DocViewer = ({
     },
   });
 
-  async function addHighlight({ content, position }: AddHighlightType) {
+  const recolorHighlight = useRecolorHighlight(docId);
+
+  async function addHighlight({ content, position, color }: AddHighlightType) {
     const highlightId = createId();
 
     if (!content.text && !content.image) return;
     const isTextHighlight = !content.image;
-
-    // todo check if user has edit/admin access => also dont render the highlight popover for them.
 
     addHighlightMutation({
       id: highlightId,
@@ -118,6 +120,10 @@ const DocViewer = ({
       documentId: docId,
       pageNumber: position.pageNumber,
       rects: position.rects,
+      color,
+      ...(isTextHighlight && content.text
+        ? { selectedText: content.text }
+        : {}),
     });
 
     const editor = useBlocknoteEditorStore.getState().editor;
@@ -125,7 +131,6 @@ const DocViewer = ({
     if (isTextHighlight) {
       if (!content.text) return;
 
-      // todo why is id being passed here?
       void addHighlightToNotes({
         content: content.text,
         highlightId,
@@ -148,7 +153,6 @@ const DocViewer = ({
   }
 
   const deleteHighlight = (id: string) => {
-    // todo check if user has edit/admin access
     deleteHighlightMutation({
       documentId: docId,
       highlightId: id,
@@ -165,6 +169,7 @@ const DocViewer = ({
       <div className="relative h-full w-full">
         <PdfReader
           deleteHighlight={deleteHighlight}
+          recolorHighlight={recolorHighlight}
           doc={doc}
           addHighlight={addHighlight}
           onPdfDocumentChange={onPdfDocumentChange}

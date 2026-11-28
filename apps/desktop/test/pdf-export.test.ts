@@ -20,7 +20,7 @@ import {
 import { getDocument as loadPdfJsDocument } from "pdfjs-dist/legacy/build/pdf";
 import { describe, expect, it } from "vitest";
 import {
-  HIGHLIGHT_COLOR,
+  HIGHLIGHT_EXPORT_RGB,
   createAnnotatedPdf,
   type AnnotatedPdfHighlight,
 } from "@uxie/shared/lib/annotated-pdf";
@@ -86,6 +86,8 @@ function textHighlight(rectangle: RectInput): HighlightWithRects {
     documentId: "document",
     createdAt: new Date(0),
     pageNumber: rectangle.pageNumber ?? null,
+    color: "green",
+    selectedText: "Selectable source text",
     imageUrl: null,
     boundingRectangle: coordinate(rectangle, "bounding"),
     rectangles: [coordinate(rectangle, "rectangle")],
@@ -99,6 +101,8 @@ function areaHighlight(rectangle: RectInput): HighlightWithRects {
     documentId: "document",
     createdAt: new Date(0),
     pageNumber: rectangle.pageNumber ?? null,
+    color: "yellow",
+    selectedText: null,
     imageUrl: "uxie-pdf://image/document/image",
     boundingRectangle: coordinate(rectangle, "bounding"),
     rectangles: [],
@@ -108,6 +112,7 @@ function areaHighlight(rectangle: RectInput): HighlightWithRects {
 function exportHighlight(highlight: HighlightWithRects): AnnotatedPdfHighlight {
   return {
     id: highlight.id,
+    color: highlight.color,
     position: {
       pageNumber: highlight.pageNumber,
       boundingRect: highlight.boundingRectangle,
@@ -208,7 +213,7 @@ describe("annotated PDF export", () => {
       ]);
       const highlight = firstAnnotations.find((a) => a.subtype === "Highlight");
       expect(highlight.color).toEqual(
-        new Uint8ClampedArray(HIGHLIGHT_COLOR),
+        new Uint8ClampedArray(HIGHLIGHT_EXPORT_RGB.green),
       );
       expectViewportRect(
         first.getViewport({ scale: 1 }),
@@ -219,6 +224,9 @@ describe("annotated PDF export", () => {
       const second = await pdfJsDocument.getPage(2);
       const [area] = await second.getAnnotations();
       expect(area.subtype).toBe("Square");
+      expect(area.color).toEqual(
+        new Uint8ClampedArray(HIGHLIGHT_EXPORT_RGB.yellow),
+      );
       expectViewportRect(
         second.getViewport({ scale: 1 }),
         area.rect,
@@ -233,6 +241,7 @@ describe("annotated PDF export", () => {
     const output = await annotate(await sourcePdf(), [
       {
         id: "spanning",
+        color: "blue",
         position: {
           pageNumber: 1,
           rects: [textRect, { ...areaRect, pageNumber: 2 }],

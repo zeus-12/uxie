@@ -195,7 +195,10 @@ const BottomToolbar = ({
   ]);
 
   return (
-    <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 flex-col items-center">
+    <div
+      data-reader-overlay=""
+      className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 flex-col items-center"
+    >
       <SpeakAlong pageNumber={pageNumberInView} pageCount={totalPages} />
       <RsvpReader pageNumber={pageNumberInView} pageCount={totalPages} />
       <ExpandableTabs tabs={tabs} />

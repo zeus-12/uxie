@@ -3,10 +3,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { ChevronLeftIcon, SettingsIcon } from "lucide-react";
 import workerSrc from "pdfjs-dist/legacy/build/pdf.worker.min.js?url";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import {
-  type IHighlight,
-  type ScaledPosition,
-} from "react-pdf-highlighter";
+import { type ScaledPosition } from "react-pdf-highlighter";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -42,7 +39,9 @@ import { Spinner, SpinnerPage } from "@uxie/shared/components/ui/spinner";
 import BottomToolbar from "@uxie/shared/components/pdf-reader/toolbar";
 import PdfHighlighter, {
   type HighlighterInstance,
+  type ReaderHighlight,
 } from "@uxie/shared/components/pdf-reader/pdf-highlighter";
+import type { HighlightColor } from "@uxie/shared/lib/highlight-colors";
 import usePdfReader from "@uxie/shared/hooks/use-pdf-reader";
 import type {
   Cordinate,
@@ -70,18 +69,18 @@ const scaled = (c: Cordinate | RectInput) => ({
   pageNumber: c.pageNumber ?? undefined,
 });
 
-function toViewerHighlight(h: HighlightWithRects): IHighlight | null {
+function toViewerHighlight(h: HighlightWithRects): ReaderHighlight | null {
   if (!h.boundingRectangle) return null;
   const pageNumber = h.pageNumber ?? h.boundingRectangle.pageNumber ?? 1;
   return {
     id: h.id,
+    color: h.color,
+    text: h.selectedText,
     position: {
       boundingRect: { ...scaled(h.boundingRectangle), pageNumber },
       rects: h.rectangles.map((r) => ({ ...scaled(r), pageNumber })),
       pageNumber,
     },
-    content: {},
-    comment: { text: "", emoji: "" },
   };
 }
 
@@ -226,10 +225,10 @@ function ReaderContent({
   onSettings: () => void;
   onTitleSaved: (title: string) => void;
 }) {
-  const [highlights, setHighlights] = useState<IHighlight[]>(() =>
+  const [highlights, setHighlights] = useState<ReaderHighlight[]>(() =>
     doc.highlights
       .map(toViewerHighlight)
-      .filter((h): h is IHighlight => h !== null),
+      .filter((h): h is ReaderHighlight => h !== null),
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -318,12 +317,14 @@ function ReaderContent({
   async function addHighlight(
     position: ScaledPosition,
     content: { text?: string; image?: string },
+    color: HighlightColor,
   ) {
     const hlId = createId();
     const isText = !content.image;
+    const selectedText = isText ? (content.text ?? null) : null;
     setHighlights((prev) => [
       ...prev,
-      { id: hlId, position, content, comment: { text: "", emoji: "" } },
+      { id: hlId, position, color, text: selectedText },
     ]);
 
     // Stored as a file so the note holds a url, not base64 that every autosave
@@ -353,6 +354,8 @@ function ReaderContent({
         pageNumber: position.pageNumber,
         boundingRect: toRectInput(position.boundingRect),
         rects: position.rects.map(toRectInput),
+        color,
+        selectedText,
         imageUrl,
       });
     } catch (e) {
@@ -375,6 +378,17 @@ function ReaderContent({
     setHighlights((hs) => hs.filter((h) => h.id !== hlId));
     try {
       await window.uxieAPI.deleteHighlight(hlId);
+    } catch (e) {
+      setHighlights(prev);
+      setError(message(e));
+    }
+  }
+
+  async function recolorHighlight(hlId: string, color: HighlightColor) {
+    const prev = highlights;
+    setHighlights((hs) => hs.map((h) => (h.id === hlId ? { ...h, color } : h)));
+    try {
+      await window.uxieAPI.updateHighlightColor(hlId, color);
     } catch (e) {
       setHighlights(prev);
       setError(message(e));
@@ -452,10 +466,13 @@ function ReaderContent({
                   pdfScaleValue={pdfScaleValue}
                   highlights={highlights}
                   showAiFeatures={doc.isVectorised}
-                  addHighlight={({ content, position }) =>
-                    void addHighlight(position as ScaledPosition, content)
+                  addHighlight={({ content, position, color }) =>
+                    void addHighlight(position as ScaledPosition, content, color)
                   }
                   deleteHighlight={(hid) => void deleteHighlight(hid)}
+                  recolorHighlight={(hid, color) =>
+                    void recolorHighlight(hid, color)
+                  }
                   updateAreaHighlight={(hid, boundingRect) =>
                     void updateArea(
                       hid,

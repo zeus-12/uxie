@@ -10,6 +10,7 @@ import {
   initDatabase,
   listDocuments,
   updateAreaHighlight,
+  updateHighlightColor,
   updateDocumentNotes,
   updateDocumentTitle,
   updateReaderState,
@@ -94,6 +95,8 @@ const invokeHandlers: {
   "highlights:delete": (id) => deleteHighlight(getDb(), id),
   "highlights:updateArea": (id, boundingRect) =>
     updateAreaHighlight(getDb(), id, boundingRect),
+  "highlights:updateColor": (id, color) =>
+    updateHighlightColor(getDb(), id, color),
 
   "settings:get": () => getSettings(),
   "settings:set": (settings) => setSettings(settings),

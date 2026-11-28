@@ -10,6 +10,7 @@ import {
   setGraphicsState,
 } from "pdf-lib";
 import { exportFilename } from "../export-filename";
+import type { HighlightColor } from "../highlight-colors";
 import {
   scaledRectToPdfRectangle,
   type PdfRectangle,
@@ -22,6 +23,7 @@ export { scaledRectToPdfRectangle } from "./coordinates";
 
 export interface AnnotatedPdfHighlight {
   id: string;
+  color: HighlightColor;
   position: {
     boundingRect?: ScaledPdfRect | null;
     rects?: ScaledPdfRect[] | null;
@@ -37,9 +39,42 @@ export interface PdfViewportDocument {
 }
 
 type Rgb = readonly [number, number, number];
+type Hsl = readonly [hue: number, saturation: number, lightness: number];
 
-// The fill react-pdf-highlighter's .Highlight__part and .AreaHighlight__part paint, multiplied onto the page.
-export const HIGHLIGHT_COLOR: Rgb = [255, 226, 143];
+// The light theme's --palette-* tokens (styles/themes.css), which the reader paints at
+// PAPER_HIGHLIGHT_ALPHA over the page (styles/reader-page.css).
+export const LIGHT_PALETTE_HSL: Record<HighlightColor, Hsl> = {
+  yellow: [45.4, 93.4, 47.5],
+  green: [142.1, 76.2, 36.3],
+  blue: [221.2, 83.2, 53.3],
+  red: [0, 72.2, 50.6],
+  orange: [20.5, 90.2, 48.2],
+};
+
+export const PAPER_HIGHLIGHT_ALPHA = 0.45;
+
+function hslToRgb([hue, saturation, lightness]: Hsl): Rgb {
+  const s = saturation / 100;
+  const l = lightness / 100;
+  const chroma = (1 - Math.abs(2 * l - 1)) * s;
+  const channel = (n: number) => {
+    const k = (n + hue / 30) % 12;
+    return l - (chroma / 2) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+  return [channel(0) * 255, channel(8) * 255, channel(4) * 255];
+}
+
+function overWhite([red, green, blue]: Rgb, alpha: number): Rgb {
+  const mix = (c: number) => Math.round(255 * (1 - alpha) + c * alpha);
+  return [mix(red), mix(green), mix(blue)];
+}
+
+export const HIGHLIGHT_EXPORT_RGB = Object.fromEntries(
+  Object.entries(LIGHT_PALETTE_HSL).map(([color, hsl]) => [
+    color,
+    overWhite(hslToRgb(hsl), PAPER_HIGHLIGHT_ALPHA),
+  ]),
+) as Record<HighlightColor, Rgb>;
 
 const PRINT_FLAG = 4;
 
@@ -90,9 +125,10 @@ function appearanceStream(
 function textHighlightAnnotation(
   context: PDFContext,
   id: string,
+  rgb: Rgb,
   rectangles: PdfRectangle[],
 ): PDFRef {
-  const color = pdfColor(HIGHLIGHT_COLOR);
+  const color = pdfColor(rgb);
   const bbox = union(rectangles);
   const appearance = appearanceStream(context, bbox, [
     setGraphicsState("Multiply"),
@@ -126,9 +162,10 @@ function textHighlightAnnotation(
 function areaHighlightAnnotation(
   context: PDFContext,
   id: string,
+  rgb: Rgb,
   area: PdfRectangle,
 ): PDFRef {
-  const color = pdfColor(HIGHLIGHT_COLOR);
+  const color = pdfColor(rgb);
   const bbox = union([area]);
   const appearance = appearanceStream(context, bbox, [
     setGraphicsState("Multiply"),
@@ -190,6 +227,7 @@ export async function createAnnotatedPdf(
     pdfDocument.getPage(pageNumber - 1).node.addAnnot(ref);
 
   for (const highlight of highlights) {
+    const rgb = HIGHLIGHT_EXPORT_RGB[highlight.color];
     const rects = highlight.position.rects ?? [];
     if (rects.length > 0) {
       const byPage = new Map<number, PdfRectangle[]>();
@@ -207,6 +245,7 @@ export async function createAnnotatedPdf(
           textHighlightAnnotation(
             pdfDocument.context,
             highlight.id,
+            rgb,
             rectangles,
           ),
         );
@@ -224,6 +263,7 @@ export async function createAnnotatedPdf(
       areaHighlightAnnotation(
         pdfDocument.context,
         highlight.id,
+        rgb,
         scaledRectToPdfRectangle(rect, await viewportFor(pageNumber)),
       ),
     );

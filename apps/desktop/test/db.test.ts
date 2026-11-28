@@ -17,6 +17,7 @@ import {
 } from "../src/main/db/documents";
 import {
   addHighlight,
+  updateHighlightColor,
   deleteHighlight,
   updateAreaHighlight,
 } from "../src/main/db/highlights";
@@ -88,6 +89,8 @@ describe("desktop db layer", () => {
       id: "hl-1",
       documentId: doc.id,
       type: "TEXT",
+      color: "green",
+      selectedText: "a passage",
       pageNumber: 2,
       boundingRect: rect({ x1: 10 }),
       rects: [rect({ x1: 11 }), rect({ x1: 12 })],
@@ -103,6 +106,31 @@ describe("desktop db layer", () => {
     expect(hl.boundingRectangle?.x1).toBe(10);
     expect(hl.rectangles).toHaveLength(2);
     expect(hl.rectangles.map((r) => r.x1).sort()).toEqual([11, 12]);
+    expect(hl.color).toBe("green");
+    expect(hl.selectedText).toBe("a passage");
+  });
+
+  it("recolours a highlight in place", async () => {
+    const doc = await createDocument(db, {
+      title: "Doc",
+      url: "/x.pdf",
+      coverImageUrl: "/x.png",
+      pageCount: 1,
+    });
+    await addHighlight(db, {
+      id: "hl-recolour",
+      documentId: doc.id,
+      type: "TEXT",
+      color: "yellow",
+      pageNumber: 1,
+      boundingRect: rect({ x1: 1 }),
+      rects: [rect({ x1: 1 })],
+    });
+
+    await updateHighlightColor(db, "hl-recolour", "orange");
+
+    const loaded = await getDocument(db, doc.id);
+    expect(loaded!.highlights[0].color).toBe("orange");
   });
 
   it("updates an area highlight's bounding rectangle in place", async () => {
@@ -116,6 +144,7 @@ describe("desktop db layer", () => {
       id: "hl-area",
       documentId: doc.id,
       type: "IMAGE",
+      color: "yellow",
       pageNumber: 1,
       boundingRect: rect({ x1: 5 }),
       rects: [],
@@ -138,6 +167,7 @@ describe("desktop db layer", () => {
       id: "hl-2",
       documentId: doc.id,
       type: "TEXT",
+      color: "yellow",
       pageNumber: 1,
       boundingRect: rect(),
       rects: [rect()],
@@ -160,6 +190,7 @@ describe("desktop db layer", () => {
       id: "hl-3",
       documentId: doc.id,
       type: "TEXT",
+      color: "yellow",
       pageNumber: 1,
       boundingRect: rect(),
       rects: [rect()],
@@ -225,6 +256,7 @@ describe("desktop db layer", () => {
         id: "orphan",
         documentId: "does-not-exist",
         type: "TEXT",
+        color: "yellow",
         pageNumber: 1,
         boundingRect: rect(),
         rects: [],
@@ -238,6 +270,7 @@ describe("desktop db layer", () => {
       id: "hl-keep",
       documentId: doc.id,
       type: "IMAGE",
+      color: "yellow",
       boundingRect: rect({ x1: 5, pageNumber: 3 }),
       rects: [],
     });

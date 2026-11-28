@@ -2,13 +2,14 @@ import type { PDFPageProxy, RenderTask } from "pdfjs-dist";
 import { Fragment, memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sliceOfRun, type ItemRange } from "../../../lib/reflow/anchors";
 import type { PageInput, Rect, ReflowPage, Run, TextRegion } from "../../../lib/reflow/types";
+import type { HighlightColor } from "../../../lib/highlight-colors";
 
 export type LoadedPage = { page: ReflowPage; input: PageInput; pdfPage: PDFPageProxy };
 
 export type PageMarks = {
   search: ItemRange[];
   selectedSearch: number | null;
-  highlights: Array<ItemRange & { id?: string }>;
+  highlights: Array<ItemRange & { id?: string; color?: HighlightColor }>;
   links: Array<ItemRange & { link: ReflowLink }>;
 };
 
@@ -104,6 +105,7 @@ type Slice = {
   selected: boolean;
   highlight: boolean;
   highlightId: string | undefined;
+  highlightColor: HighlightColor | undefined;
   link: ReflowLink | undefined;
 };
 
@@ -114,6 +116,7 @@ const runSlices = (run: Run, marks: PageMarks): Slice[] => {
     to: number;
     kind: "search" | "selected" | "highlight" | "link";
     id?: string;
+    color?: HighlightColor;
     link?: ReflowLink;
   }> = [];
   marks.search.forEach((range, i) => {
@@ -123,7 +126,7 @@ const runSlices = (run: Run, marks: PageMarks): Slice[] => {
   });
   for (const range of marks.highlights) {
     const s = sliceOfRun(run, range);
-    if (s) tagged.push({ ...s, kind: "highlight", id: range.id });
+    if (s) tagged.push({ ...s, kind: "highlight", id: range.id, color: range.color });
   }
   for (const range of marks.links) {
     const s = sliceOfRun(run, range);
@@ -139,13 +142,15 @@ const runSlices = (run: Run, marks: PageMarks): Slice[] => {
     const from = points[i]!;
     const to = points[i + 1]!;
     const covering = tagged.filter((t) => t.from <= from && t.to >= to);
+    const highlight = covering.find((t) => t.kind === "highlight" && t.id);
     out.push({
       from,
       to,
       search: covering.some((t) => t.kind === "search" || t.kind === "selected"),
       selected: covering.some((t) => t.kind === "selected"),
       highlight: covering.some((t) => t.kind === "highlight"),
-      highlightId: covering.find((t) => t.kind === "highlight" && t.id)?.id,
+      highlightId: highlight?.id,
+      highlightColor: highlight?.color,
       link: covering.find((t) => t.kind === "link")?.link,
     });
   }
@@ -168,7 +173,11 @@ const RunText = ({ str, run, marks }: { str: string; run: Run; marks: PageMarks 
         }
         if (s.highlight) {
           node = (
-            <mark className="reflow-highlight" data-highlight-id={s.highlightId}>
+            <mark
+              className="reflow-highlight"
+              data-highlight-id={s.highlightId}
+              data-highlight-color={s.highlightColor}
+            >
               {node}
             </mark>
           );
